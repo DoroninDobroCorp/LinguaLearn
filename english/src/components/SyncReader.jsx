@@ -75,6 +75,32 @@ function clampRatio(value, fallback) {
   return Math.max(0, Math.min(1, value));
 }
 
+function extractHpmorChapterNumber(project) {
+  if (!project || project.source !== 'hpmor') {
+    return null;
+  }
+
+  if (Number.isInteger(project.sourceChapterNumber)) {
+    return project.sourceChapterNumber;
+  }
+
+  const textNameMatch = String(project.textName || '').match(/^HPMOR chapter (\d+)$/i);
+  if (textNameMatch) {
+    return Number.parseInt(textNameMatch[1], 10);
+  }
+
+  const titleMatch = String(project.title || '').match(/^Chapter\s+(\d+)\b/i);
+  if (titleMatch) {
+    return Number.parseInt(titleMatch[1], 10);
+  }
+
+  return null;
+}
+
+function findMatchingHpmorProjects(projects, chapterNumber) {
+  return projects.filter((project) => extractHpmorChapterNumber(project) === chapterNumber);
+}
+
 function getEstimatedWindowAnchors(project, duration, segmentCount) {
   if (!Number.isFinite(duration) || duration <= 0 || !project.estimatedWindow) {
     return {};
@@ -346,15 +372,23 @@ function SyncReader() {
     });
   }, [activeProject]);
 
-  async function persistProject(updatedProject) {
+  async function persistProject(updatedProject, options = {}) {
+    const idsToRemove = new Set((options.removeProjectIds || []).filter(Boolean));
     const savedProject = {
       ...updatedProject,
       updatedAt: new Date().toISOString(),
     };
 
+    const duplicateIds = [...idsToRemove].filter((projectId) => projectId !== savedProject.id);
+    if (duplicateIds.length > 0) {
+      await Promise.all(duplicateIds.map((projectId) => deleteReaderProject(projectId)));
+    }
+
     await saveReaderProject(savedProject);
     setProjects((currentProjects) => {
-      const otherProjects = currentProjects.filter((project) => project.id !== savedProject.id);
+      const otherProjects = currentProjects.filter(
+        (project) => project.id !== savedProject.id && !idsToRemove.has(project.id),
+      );
       return sortProjects([savedProject, ...otherProjects]);
     });
     setActiveProjectId(savedProject.id);
@@ -456,8 +490,10 @@ function SyncReader() {
 
       const rawSegments = splitTextIntoSegments(data.text, 'sentence');
       const now = new Date().toISOString();
+      const matchingProjects = findMatchingHpmorProjects(projects, chapterNumber);
+      const existingProject = matchingProjects[0] || null;
       const draftProject = {
-        id: generateProjectId(),
+        id: existingProject?.id || generateProjectId(),
         title: data.title,
         rawText: data.text,
         segmentationMode: 'sentence',
@@ -474,9 +510,10 @@ function SyncReader() {
         needsSync: true,
         needsInitialSeek: true,
         source: data.source,
+        sourceChapterNumber: chapterNumber,
         audioSourceType: data.audioSourceType,
         syncHint: data.syncHint,
-        createdAt: now,
+        createdAt: existingProject?.createdAt || now,
         updatedAt: now,
       };
       const project = {
@@ -488,10 +525,12 @@ function SyncReader() {
         ),
       };
 
-      await persistProject(project);
+      await persistProject(project, {
+        removeProjectIds: matchingProjects.map((matchingProject) => matchingProject.id),
+      });
       setStatus({
         type: 'success',
-        message: `${data.syncHint} LinguaLearn will jump the audio near the estimated chapter start as soon as the metadata loads.`,
+        message: `${matchingProjects.length > 0 ? 'Replaced the existing Library item for this HPMOR chapter. ' : ''}${data.syncHint} LinguaLearn will jump the audio near the estimated chapter start as soon as the metadata loads.`,
       });
     } catch (error) {
       setStatus({ type: 'error', message: error.message });
