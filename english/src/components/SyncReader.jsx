@@ -35,6 +35,22 @@ const HPMOR_TEXT_URL = 'https://hpmor.com/';
 const HPMOR_AUDIO_URL = 'https://hpmorpodcast.com/?page_id=56';
 const HPMOR_RESET_STORAGE_KEY = 'lingualearn-sync-reader-hpmor-reset-version';
 const HPMOR_RESET_VERSION = '2026-03-17-reset';
+const READER_PROGRESS_STORAGE_KEY = 'lingualearn-sync-reader-progress-v1';
+const READY_READER_EXAMPLES = {
+  'hpmor-chapter-4': {
+    key: 'hpmor-chapter-4',
+    projectId: 'reader-example-hpmor-chapter-4',
+    version: '2026-03-17-distil-v1',
+    title: 'HPMOR Chapter 4 · Ready reader',
+    audioUrl: 'https://hpmorpodcast.com/wp-content/uploads/episodes/HPMoR_Chap_4-5.mp3',
+    audioName: 'HPMOR podcast episode group · chapters 4-5',
+    timingsUrl: '/english/reader-examples/chapter4-distil-large-v3-words.json',
+    timingsName: 'Prepared chapter 4 transcript · word-level timings',
+    textName: 'Prepared HPMOR chapter 4 transcript',
+    source: 'reader-example',
+    sourceExampleKey: 'hpmor-chapter-4',
+  },
+};
 
 function createEmptyForm() {
   return {
@@ -46,6 +62,81 @@ function createEmptyForm() {
     audioFile: null,
     timingsFile: null,
   };
+}
+
+function readReaderProgressMap() {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(READER_PROGRESS_STORAGE_KEY);
+    const parsedValue = storedValue ? JSON.parse(storedValue) : {};
+    return parsedValue && typeof parsedValue === 'object' ? parsedValue : {};
+  } catch {
+    return {};
+  }
+}
+
+function normalizeReaderProgress(progress) {
+  if (!progress || typeof progress !== 'object') {
+    return null;
+  }
+
+  const time = Number(progress.time);
+  if (!Number.isFinite(time) || time < 0) {
+    return null;
+  }
+
+  const segmentIndex = Number(progress.segmentIndex);
+  return {
+    time: Number(time.toFixed(3)),
+    segmentIndex: Number.isInteger(segmentIndex) && segmentIndex >= 0 ? segmentIndex : 0,
+    savedAt: typeof progress.savedAt === 'string' ? progress.savedAt : null,
+  };
+}
+
+function getStoredReaderProgress(projectId) {
+  if (!projectId) {
+    return null;
+  }
+
+  return normalizeReaderProgress(readReaderProgressMap()[projectId]);
+}
+
+function setStoredReaderProgress(projectId, progress) {
+  if (typeof window === 'undefined' || !projectId) {
+    return;
+  }
+
+  const normalizedProgress = normalizeReaderProgress(progress);
+  if (!normalizedProgress) {
+    return;
+  }
+
+  const currentMap = readReaderProgressMap();
+  currentMap[projectId] = normalizedProgress;
+  window.localStorage.setItem(READER_PROGRESS_STORAGE_KEY, JSON.stringify(currentMap));
+}
+
+function clearStoredReaderProgress(projectId) {
+  if (typeof window === 'undefined' || !projectId) {
+    return;
+  }
+
+  const currentMap = readReaderProgressMap();
+  delete currentMap[projectId];
+
+  if (Object.keys(currentMap).length) {
+    window.localStorage.setItem(READER_PROGRESS_STORAGE_KEY, JSON.stringify(currentMap));
+    return;
+  }
+
+  window.localStorage.removeItem(READER_PROGRESS_STORAGE_KEY);
+}
+
+function buildReaderExampleHref(exampleKey) {
+  return `/english/reader?example=${encodeURIComponent(exampleKey)}`;
 }
 
 function readFileAsText(file) {
@@ -109,6 +200,12 @@ function getHpmorProjects(projects) {
   return projects.filter((project) => project.source === 'hpmor');
 }
 
+function findMatchingExampleProjects(projects, exampleKey) {
+  return projects.filter(
+    (project) => project.source === 'reader-example' && project.sourceExampleKey === exampleKey,
+  );
+}
+
 function needsLegacyHpmorReset() {
   if (typeof window === 'undefined') {
     return false;
@@ -151,7 +248,12 @@ function buildCombinedAnchors(project, duration, segmentCount) {
 
 function getSegmentBadges(project) {
   return {
-    modeLabel: project.timingMode === 'timed' ? 'Timed transcript' : 'Rough sync + anchors',
+    modeLabel:
+      project.source === 'reader-example'
+        ? 'Ready transcript'
+        : project.timingMode === 'timed'
+          ? 'Timed transcript'
+          : 'Rough sync + anchors',
     segmentCount: project.segments.length,
     manualAnchors: countVisibleAnchors(project),
   };
@@ -170,6 +272,7 @@ function normalizeLoadedProject(project) {
   const projectWithDefaults = {
     ...project,
     bookmark: project?.bookmark || null,
+    readingProgress: getStoredReaderProgress(project?.id) || project?.readingProgress || null,
     needsInitialSeek: Boolean(project?.needsInitialSeek),
   };
 
@@ -280,6 +383,13 @@ function getBookmarkSnippet(bookmark) {
 
 function SyncReader() {
   const { isDark } = useTheme();
+  const initialExampleKey = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    return new URLSearchParams(window.location.search).get('example');
+  }, []);
   const [projects, setProjects] = useState([]);
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [form, setForm] = useState(createEmptyForm());
@@ -290,11 +400,19 @@ function SyncReader() {
   const [playbackRate, setPlaybackRate] = useState(1);
   const [audioSource, setAudioSource] = useState('');
   const [isBusy, setIsBusy] = useState(false);
+  const [hasLoadedProjects, setHasLoadedProjects] = useState(false);
   const [hpmorChapter, setHpmorChapter] = useState('1');
   const [followPlayback, setFollowPlayback] = useState(false);
   const segmentRefs = useRef({});
   const segmentsContainerRef = useRef(null);
   const audioRef = useRef(null);
+  const initialExampleHandledRef = useRef(false);
+  const restoredProgressKeyRef = useRef(null);
+  const lastSavedProgressRef = useRef({
+    projectId: null,
+    time: -Infinity,
+    segmentIndex: -1,
+  });
 
   const activeProject = useMemo(
     () => projects.find((project) => project.id === activeProjectId) || null,
@@ -330,6 +448,7 @@ function SyncReader() {
               return;
             }
 
+            staleHpmorProjects.forEach((project) => clearStoredReaderProgress(project.id));
             normalizedProjects = normalizedProjects.filter((project) => project.source !== 'hpmor');
             setStatus({
               type: 'success',
@@ -342,12 +461,14 @@ function SyncReader() {
 
         setProjects(normalizedProjects);
         setActiveProjectId(normalizedProjects[0]?.id || null);
+        setHasLoadedProjects(true);
       } catch (error) {
         if (!isMounted) {
           return;
         }
 
         setStatus({ type: 'error', message: error.message });
+        setHasLoadedProjects(true);
       }
     }
 
@@ -357,6 +478,26 @@ function SyncReader() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!hasLoadedProjects || initialExampleHandledRef.current || !initialExampleKey) {
+      return;
+    }
+
+    initialExampleHandledRef.current = true;
+
+    if (!READY_READER_EXAMPLES[initialExampleKey]) {
+      setStatus({
+        type: 'error',
+        message: `Unknown ready reader example: "${initialExampleKey}".`,
+      });
+      return;
+    }
+
+    handleOpenReadyReaderExample(initialExampleKey, { fromUrl: true }).catch((error) => {
+      setStatus({ type: 'error', message: error.message });
+    });
+  }, [hasLoadedProjects, initialExampleKey, projects]);
 
   useEffect(() => {
     if (!activeProject) {
@@ -374,6 +515,10 @@ function SyncReader() {
       return 0;
     });
   }, [activeProject]);
+
+  useEffect(() => {
+    restoredProgressKeyRef.current = null;
+  }, [activeProjectId]);
 
   useEffect(() => {
     if (!activeProject) {
@@ -491,16 +636,308 @@ function SyncReader() {
     });
   }, [activeProject]);
 
+  useEffect(() => {
+    function flushProgressBeforeLeaving() {
+      maybeSaveReadingProgress('pause');
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'hidden') {
+        flushProgressBeforeLeaving();
+      }
+    }
+
+    window.addEventListener('beforeunload', flushProgressBeforeLeaving);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('beforeunload', flushProgressBeforeLeaving);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [activeProjectId, activeSegmentIndex]);
+
+  function updateProjectReadingProgress(projectId, nextProgress) {
+    const normalizedProgress = normalizeReaderProgress(nextProgress);
+
+    if (normalizedProgress) {
+      setStoredReaderProgress(projectId, normalizedProgress);
+    } else {
+      clearStoredReaderProgress(projectId);
+    }
+
+    setProjects((currentProjects) =>
+      currentProjects.map((project) => {
+        if (project.id !== projectId) {
+          return project;
+        }
+
+        const currentProgress = normalizeReaderProgress(project.readingProgress);
+        if (
+          currentProgress?.time === normalizedProgress?.time &&
+          currentProgress?.segmentIndex === normalizedProgress?.segmentIndex &&
+          currentProgress?.savedAt === normalizedProgress?.savedAt
+        ) {
+          return project;
+        }
+
+        return {
+          ...project,
+          readingProgress: normalizedProgress,
+        };
+      }),
+    );
+  }
+
+  function buildReadingProgressSnapshot(project, timeOverride, segmentIndexOverride) {
+    if (!project) {
+      return null;
+    }
+
+    const snapshotTime = Number(timeOverride);
+    if (!Number.isFinite(snapshotTime) || snapshotTime < 1) {
+      return null;
+    }
+
+    const resolvedSegmentIndex =
+      Number.isInteger(segmentIndexOverride) && segmentIndexOverride >= 0
+        ? segmentIndexOverride
+        : findSegmentIndexByTime(project.segments, snapshotTime);
+
+    return normalizeReaderProgress({
+      time: snapshotTime,
+      segmentIndex: resolvedSegmentIndex >= 0 ? resolvedSegmentIndex : 0,
+      savedAt: new Date().toISOString(),
+    });
+  }
+
+  function maybeSaveReadingProgress(
+    reason,
+    timeOverride,
+    segmentIndexOverride,
+    projectOverride = activeProject,
+    options = {},
+  ) {
+    if (!projectOverride || !audioRef.current) {
+      return;
+    }
+
+    const nextProgress = buildReadingProgressSnapshot(
+      projectOverride,
+      Number.isFinite(timeOverride) ? timeOverride : audioRef.current.currentTime,
+      segmentIndexOverride,
+    );
+    if (!nextProgress) {
+      return;
+    }
+
+    const lastSavedProgress = lastSavedProgressRef.current;
+    const sameProject = lastSavedProgress.projectId === projectOverride.id;
+    const sameSegment = sameProject && lastSavedProgress.segmentIndex === nextProgress.segmentIndex;
+    const timeDelta = sameProject ? Math.abs(nextProgress.time - lastSavedProgress.time) : Infinity;
+
+    if (
+      !options.force &&
+      reason === 'tick' &&
+      sameSegment &&
+      timeDelta < 15
+    ) {
+      return;
+    }
+
+    if (
+      !options.force &&
+      reason !== 'tick' &&
+      sameSegment &&
+      timeDelta < 1
+    ) {
+      return;
+    }
+
+    lastSavedProgressRef.current = {
+      projectId: projectOverride.id,
+      time: nextProgress.time,
+      segmentIndex: nextProgress.segmentIndex,
+    };
+    updateProjectReadingProgress(projectOverride.id, nextProgress);
+  }
+
+  function flushCurrentProjectProgress() {
+    if (!activeProject || !audioRef.current) {
+      return;
+    }
+
+    const currentTimeSnapshot = audioRef.current.currentTime;
+    const currentSegmentIndex = findSegmentIndexByTime(
+      activeProject.segments,
+      currentTimeSnapshot,
+    );
+    maybeSaveReadingProgress(
+      'switch',
+      currentTimeSnapshot,
+      currentSegmentIndex,
+      activeProject,
+      { force: true },
+    );
+  }
+
+  function handleSelectProject(projectId) {
+    if (projectId === activeProjectId) {
+      return;
+    }
+
+    flushCurrentProjectProgress();
+    setActiveProjectId(projectId);
+  }
+
+  function applyReaderPosition(time, segmentIndex) {
+    if (!audioRef.current || !activeProject) {
+      return;
+    }
+
+    const duration = Number.isFinite(audioRef.current.duration) ? audioRef.current.duration : Infinity;
+    const nextTime = Math.max(0, Math.min(duration, Number(time) || 0));
+    const nextSegmentIndex =
+      Number.isInteger(segmentIndex) && segmentIndex >= 0
+        ? segmentIndex
+        : findSegmentIndexByTime(activeProject.segments, nextTime);
+
+    audioRef.current.currentTime = nextTime;
+    if (nextSegmentIndex >= 0) {
+      setSelectedSegmentIndex(nextSegmentIndex);
+      setActiveSegmentIndex(nextSegmentIndex);
+    }
+    setCurrentTime(nextTime);
+  }
+
+  function maybeRestoreReadingProgress(project, duration) {
+    const progress = normalizeReaderProgress(project?.readingProgress);
+    if (!progress || project?.needsInitialSeek || !audioRef.current || !Number.isFinite(duration) || duration <= 0) {
+      return false;
+    }
+
+    const restoreKey = `${project.id}:${progress.savedAt || progress.time}`;
+    if (restoredProgressKeyRef.current === restoreKey) {
+      return false;
+    }
+
+    restoredProgressKeyRef.current = restoreKey;
+    const restoredTime = Math.min(progress.time, duration);
+    applyReaderPosition(restoredTime, findSegmentIndexByTime(project.segments, restoredTime));
+    setStatus({
+      type: 'success',
+      message: `Resumed your saved progress at ${formatTime(progress.time)}.`,
+    });
+    return true;
+  }
+
+  async function handleOpenReadyReaderExample(exampleKey, options = {}) {
+    const example = READY_READER_EXAMPLES[exampleKey];
+    if (!example) {
+      throw new Error(`Unknown ready reader example: "${exampleKey}".`);
+    }
+
+    setIsBusy(true);
+
+    try {
+      const currentProjects = options.currentProjects || projects;
+      const matchingProjects = findMatchingExampleProjects(currentProjects, exampleKey);
+      const currentVersionProject = matchingProjects.find(
+        (project) => project.sourceExampleVersion === example.version,
+      );
+
+      if (currentVersionProject) {
+        handleSelectProject(currentVersionProject.id);
+        setStatus({
+          type: 'success',
+          message:
+            'Opened the ready chapter 4 reader. It stays in your Library and remembers progress in this browser.',
+        });
+        return currentVersionProject;
+      }
+
+      const response = await fetch(example.timingsUrl);
+      if (!response.ok) {
+        throw new Error('Failed to load the prepared chapter 4 transcript.');
+      }
+
+      const rawTimings = await response.text();
+      const segments = parseTimedTranscript(rawTimings, example.timingsUrl);
+      if (!segments.length) {
+        throw new Error('The prepared chapter 4 transcript did not contain readable segments.');
+      }
+
+      const now = new Date().toISOString();
+      const existingProject = matchingProjects[0] || null;
+      const project = {
+        id: example.projectId,
+        title: example.title,
+        rawText: segments.map((segment) => segment.text).join('\n\n'),
+        segmentationMode: 'sentence',
+        timingMode: 'timed',
+        audioUrl: example.audioUrl,
+        audioBlob: null,
+        audioName: example.audioName,
+        textName: example.textName,
+        timingsName: example.timingsName,
+        manualAnchors: {},
+        bookmark: existingProject?.bookmark || null,
+        readingProgress: getStoredReaderProgress(example.projectId) || existingProject?.readingProgress || null,
+        estimatedWindow: null,
+        segments,
+        audioDuration: existingProject?.audioDuration || null,
+        needsSync: false,
+        needsInitialSeek: false,
+        source: example.source,
+        sourceExampleKey: example.sourceExampleKey,
+        sourceExampleVersion: example.version,
+        createdAt: existingProject?.createdAt || now,
+        updatedAt: now,
+      };
+
+      await persistProject(project, {
+        removeProjectIds: matchingProjects
+          .filter((matchingProject) => matchingProject.id !== example.projectId)
+          .map((matchingProject) => matchingProject.id),
+      });
+      setStatus({
+        type: 'success',
+        message:
+          'Opened the ready chapter 4 reader. It loads instantly, keeps your progress, and is ready to read/listen right away.',
+      });
+      return project;
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  function handleResumeSavedProgress() {
+    if (!activeProject?.readingProgress) {
+      return;
+    }
+
+    const resumeTime = activeProject.readingProgress.time;
+    applyReaderPosition(resumeTime, findSegmentIndexByTime(activeProject.segments, resumeTime));
+    setStatus({
+      type: 'success',
+      message: `Jumped back to your saved progress at ${formatTime(activeProject.readingProgress.time)}.`,
+    });
+  }
+
   async function persistProject(updatedProject, options = {}) {
     const idsToRemove = new Set((options.removeProjectIds || []).filter(Boolean));
     const savedProject = {
       ...updatedProject,
       updatedAt: new Date().toISOString(),
     };
+    const isSwitchingProjects = Boolean(activeProjectId && savedProject.id !== activeProjectId);
 
     const duplicateIds = [...idsToRemove].filter((projectId) => projectId !== savedProject.id);
     if (duplicateIds.length > 0) {
       await deleteReaderProjects(duplicateIds);
+      duplicateIds.forEach((projectId) => clearStoredReaderProgress(projectId));
+    }
+
+    if (isSwitchingProjects) {
+      flushCurrentProjectProgress();
     }
 
     await saveReaderProject(savedProject);
@@ -570,6 +1007,7 @@ function SyncReader() {
         timingsName: form.timingsFile?.name || null,
         manualAnchors: {},
         bookmark: null,
+        readingProgress: null,
         estimatedWindow: null,
         segments,
         audioDuration: null,
@@ -629,6 +1067,7 @@ function SyncReader() {
         timingsName: `Estimated from ${data.audioSourceType === 'audiobook-part-fallback' ? 'the official audiobook part' : 'the narrowest official podcast episode'}`,
         manualAnchors: {},
         bookmark: null,
+        readingProgress: null,
         estimatedWindow: data.estimatedWindow || null,
         segments: [],
         audioDuration: data.audioDurationEstimate,
@@ -664,13 +1103,23 @@ function SyncReader() {
     }
   }
 
-  async function handleAudioMetadata() {
-    if (!activeProject || activeProject.timingMode !== 'estimated' || !audioRef.current) {
+  async function handleAudioMetadata(event) {
+    if (!activeProject || !audioRef.current) {
+      return;
+    }
+
+    if (event?.currentTarget?.dataset?.projectId !== activeProject.id) {
       return;
     }
 
     const duration = audioRef.current.duration;
     if (!Number.isFinite(duration) || duration <= 0) {
+      return;
+    }
+
+    maybeRestoreReadingProgress(activeProject, duration);
+
+    if (activeProject.timingMode !== 'estimated') {
       return;
     }
 
@@ -689,8 +1138,12 @@ function SyncReader() {
     await persistProject(updatedProject);
   }
 
-  function handleTimeUpdate() {
+  function handleTimeUpdate(event) {
     if (!activeProject || !audioRef.current) {
+      return;
+    }
+
+    if (event?.currentTarget?.dataset?.projectId !== activeProject.id) {
       return;
     }
 
@@ -698,6 +1151,19 @@ function SyncReader() {
     setCurrentTime(nextTime);
     const nextIndex = findSegmentIndexByTime(activeProject.segments, nextTime);
     setActiveSegmentIndex((currentIndex) => (currentIndex === nextIndex ? currentIndex : nextIndex));
+    maybeSaveReadingProgress('tick', nextTime, nextIndex);
+  }
+
+  function handleAudioPause(event) {
+    if (!activeProject) {
+      return;
+    }
+
+    if (event?.currentTarget?.dataset?.projectId !== activeProject.id) {
+      return;
+    }
+
+    maybeSaveReadingProgress('pause');
   }
 
   function seekToSegment(segmentIndex) {
@@ -710,9 +1176,8 @@ function SyncReader() {
       return;
     }
 
-    audioRef.current.currentTime = segment.start;
-    setSelectedSegmentIndex(segmentIndex);
-    setCurrentTime(segment.start);
+    applyReaderPosition(segment.start, segmentIndex);
+    maybeSaveReadingProgress('seek', segment.start, segmentIndex);
   }
 
   async function handleSaveBookmark() {
@@ -749,10 +1214,7 @@ function SyncReader() {
       ? activeProject.bookmark.segmentIndex
       : 0;
 
-    audioRef.current.currentTime = bookmarkTime;
-    setSelectedSegmentIndex(bookmarkSegmentIndex);
-    setActiveSegmentIndex(bookmarkSegmentIndex);
-    setCurrentTime(bookmarkTime);
+    applyReaderPosition(bookmarkTime, bookmarkSegmentIndex);
   }
 
   async function handleSetAnchor() {
@@ -833,6 +1295,7 @@ function SyncReader() {
     }
 
     await deleteReaderProject(projectId);
+    clearStoredReaderProgress(projectId);
     setProjects((currentProjects) => currentProjects.filter((project) => project.id !== projectId));
 
     if (activeProjectId === projectId) {
@@ -862,6 +1325,7 @@ function SyncReader() {
 
     const hpmorProjectIds = hpmorProjects.map((project) => project.id);
     await deleteReaderProjects(hpmorProjectIds);
+    hpmorProjectIds.forEach((projectId) => clearStoredReaderProgress(projectId));
 
     const remainingProjects = projects.filter((project) => !hpmorProjectIds.includes(project.id));
     setProjects(remainingProjects);
@@ -891,19 +1355,25 @@ function SyncReader() {
 
     const duration = Number.isFinite(audioRef.current.duration) ? audioRef.current.duration : Infinity;
     const nextTime = Math.max(0, Math.min(duration, audioRef.current.currentTime + seconds));
-    audioRef.current.currentTime = nextTime;
-    setCurrentTime(nextTime);
+    applyReaderPosition(nextTime, findSegmentIndexByTime(activeProject?.segments || [], nextTime));
+    maybeSaveReadingProgress('seek', nextTime, findSegmentIndexByTime(activeProject?.segments || [], nextTime));
   }
 
   const selectedSegment = activeProject?.segments[selectedSegmentIndex] || null;
   const activeSegment = activeProject?.segments[activeSegmentIndex] || null;
   const activeBookmark = activeProject?.bookmark || null;
+  const activeReadingProgress = normalizeReaderProgress(activeProject?.readingProgress);
   const activeWordIndex = activeSegment ? findActiveWordIndex(activeSegment.words, currentTime) : -1;
   const activeProjectHasWordTimings = activeProject?.segments?.some(
     (segment) => Array.isArray(segment.words) && segment.words.length > 0,
   );
   const isPreparingChapterStart = Boolean(activeProject?.needsInitialSeek && audioSource);
   const hpmorProjectCount = getHpmorProjects(projects).length;
+  const readyChapter4Href = buildReaderExampleHref('hpmor-chapter-4');
+  const isRoughHpmorChapter4 =
+    activeProject?.source === 'hpmor' &&
+    activeProject?.sourceChapterNumber === 4 &&
+    activeProject?.timingMode === 'estimated';
 
   function renderSegmentWords(segment, activeWordPosition) {
     if (!Array.isArray(segment.words) || !segment.words.length) {
@@ -1007,6 +1477,30 @@ function SyncReader() {
               <p className={`mt-2 text-xs ${subtextClass}`}>
                 Note: chapter 64 does not have a matching audiobook part in the official podcast release.
               </p>
+            </div>
+
+            <div className={`mt-4 rounded-xl border p-4 ${softCardClass}`}>
+              <p className="text-sm font-semibold">Ready example: chapter 4</p>
+              <p className={`mt-1 text-xs ${subtextClass}`}>
+                Skip transcript prep. This opens HPMOR chapter 4 with the official `4-5` audio and a
+                prepared word-timed transcript, then keeps your progress in this browser.
+              </p>
+              <div className="mt-3 flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleOpenReadyReaderExample('hpmor-chapter-4')}
+                  disabled={isBusy}
+                  className="rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900 disabled:opacity-60"
+                >
+                  Open ready chapter 4
+                </button>
+                <a
+                  href={readyChapter4Href}
+                  className={`rounded-xl border px-4 py-3 text-sm font-semibold text-center ${borderClass}`}
+                >
+                  Direct link that reopens the same saved project
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -1151,7 +1645,8 @@ function SyncReader() {
               <div>
                 <h3 className="text-2xl font-bold">Library</h3>
                 <p className={`${subtextClass} mt-2 text-sm`}>
-                  Saved locally in your browser with text, timings, and uploaded audio files.
+                  Saved locally in your browser with text, timings, uploaded audio files, and your reading
+                  progress.
                 </p>
               </div>
 
@@ -1182,29 +1677,41 @@ function SyncReader() {
                   <button
                     key={project.id}
                     type="button"
-                    onClick={() => setActiveProjectId(project.id)}
+                    onClick={() => handleSelectProject(project.id)}
                     className={`w-full rounded-xl border p-4 text-left transition-all ${
                       isActive
                         ? 'border-yellow-400 bg-gradient-to-r from-yellow-100 to-lime-100 text-gray-900 shadow-lg'
                         : `${softCardClass} hover:border-yellow-300`
                     }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold">{project.title}</p>
-                        <p className={`mt-1 text-xs ${isActive ? 'text-gray-700' : subtextClass}`}>
-                          {badges.modeLabel} · {badges.segmentCount} segments · {summary.firstTime} →{' '}
-                          {summary.lastTime}
-                        </p>
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold">{project.title}</p>
+                          <p className={`mt-1 text-xs ${isActive ? 'text-gray-700' : subtextClass}`}>
+                            {badges.modeLabel} · {badges.segmentCount} segments · {summary.firstTime} →{' '}
+                            {summary.lastTime}
+                          </p>
+                          {project.readingProgress && (
+                            <p className={`mt-2 text-xs font-semibold ${isActive ? 'text-sky-800' : 'text-sky-700'}`}>
+                              Resume from {formatTime(project.readingProgress.time)}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          {project.readingProgress && (
+                            <span className="rounded-full bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-900">
+                              progress {formatTime(project.readingProgress.time)}
+                            </span>
+                          )}
+                          {badges.manualAnchors > 0 && (
+                            <span className="rounded-full bg-yellow-200 px-2 py-1 text-xs font-semibold text-yellow-900">
+                              {badges.manualAnchors} pins
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      {badges.manualAnchors > 0 && (
-                        <span className="rounded-full bg-yellow-200 px-2 py-1 text-xs font-semibold text-yellow-900">
-                          {badges.manualAnchors} pins
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
+                    </button>
+                  );
               })}
             </div>
           </section>
@@ -1268,6 +1775,32 @@ function SyncReader() {
                     </button>
                   </div>
                 </div>
+
+                {isRoughHpmorChapter4 && (
+                  <div className="mt-4 rounded-2xl border border-lime-200 bg-lime-50 px-4 py-4 text-sm text-lime-900">
+                    <p className="font-semibold">This is the rough auto-import version of chapter 4.</p>
+                    <p className="mt-1">
+                      If you want the simpler ready-to-read version with exact line timings, current-word
+                      highlight, and saved progress, open the prepared chapter 4 reader instead.
+                    </p>
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenReadyReaderExample('hpmor-chapter-4')}
+                        disabled={isBusy}
+                        className="rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900 disabled:opacity-60"
+                      >
+                        Open ready chapter 4 now
+                      </button>
+                      <a
+                        href={readyChapter4Href}
+                        className="rounded-xl border border-lime-300 px-4 py-3 font-semibold text-center"
+                      >
+                        Direct chapter 4 link
+                      </a>
+                    </div>
+                  </div>
+                )}
               </section>
 
               <section className={`${cardClass} rounded-2xl shadow-2xl p-6`}>
@@ -1279,11 +1812,13 @@ function SyncReader() {
                 )}
                 <audio
                   key={activeProject.id}
+                  data-project-id={activeProject.id}
                   ref={audioRef}
                   controls={!isPreparingChapterStart}
                   preload="metadata"
                   src={audioSource}
                   onLoadedMetadata={handleAudioMetadata}
+                  onPause={handleAudioPause}
                   onTimeUpdate={handleTimeUpdate}
                   className="w-full"
                 />
@@ -1343,6 +1878,28 @@ function SyncReader() {
                   </p>
                 </div>
 
+                {activeReadingProgress && (
+                  <div className={`mt-4 rounded-2xl border p-4 ${softCardClass}`}>
+                    <p className="text-sm font-semibold">Saved progress</p>
+                    <p className={`mt-1 text-xs ${subtextClass}`}>
+                      LinguaLearn remembers this spot in your browser, so you can leave and continue later
+                      without loading the transcript again.
+                    </p>
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className={`text-sm font-semibold ${accentTextClass}`}>
+                        Continue from {formatTime(activeReadingProgress.time)}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleResumeSavedProgress}
+                        className="rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900"
+                      >
+                        Continue where I stopped
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className={`mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]`}>
                   <div className={`rounded-2xl border p-5 ${softCardClass} min-h-[9rem] max-h-[16rem] overflow-y-auto`}>
                     <p className="text-sm font-semibold">Current line</p>
@@ -1376,6 +1933,11 @@ function SyncReader() {
                     <p className="mt-2 text-sm leading-relaxed">
                       {activeBookmark ? getBookmarkSnippet(activeBookmark) : 'Save the current spot whenever you want to come back later.'}
                     </p>
+                    {activeReadingProgress && (
+                      <p className={`mt-3 text-xs ${subtextClass}`}>
+                        Auto-saved progress: {formatTime(activeReadingProgress.time)}
+                      </p>
+                    )}
                     <div className="mt-4 flex flex-col gap-3">
                       <button
                         type="button"
@@ -1502,7 +2064,11 @@ function SyncReader() {
                       </p>
                     </div>
                     <span className={`text-sm font-semibold ${accentTextClass}`}>
-                      {countVisibleAnchors(activeProject)} manual pins
+                      {activeProject.timingMode === 'timed'
+                        ? activeProjectHasWordTimings
+                          ? 'word-level timings'
+                          : 'line timings'
+                        : `${countVisibleAnchors(activeProject)} manual pins`}
                     </span>
                   </div>
 

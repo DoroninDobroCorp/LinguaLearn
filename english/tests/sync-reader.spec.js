@@ -28,6 +28,16 @@ const timedTranscriptPayload = {
   ],
 };
 
+async function mockReadyChapter4Assets(page) {
+  await page.route('**/english/reader-examples/chapter4-distil-large-v3-words.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(timedTranscriptPayload),
+    });
+  });
+}
+
 async function createTimedReaderProject(page, title = 'Timed transcript drill') {
   await page.goto(readerUrl, { waitUntil: 'networkidle' });
 
@@ -306,4 +316,281 @@ test('toggles audio with the spacebar outside input fields', async ({ page }) =>
   await expect
     .poll(() => page.locator('audio').evaluate((audio) => audio.dataset.pausedState))
     .toBe('true');
+});
+
+test('switching projects saves progress for the project you were listening to', async ({ page }) => {
+  await createTimedReaderProject(page, 'First progress drill');
+  await createTimedReaderProject(page, 'Second progress drill');
+
+  await page.getByRole('button', { name: /First progress drill/ }).click();
+  await page.locator('audio').evaluate((audio) => {
+    audio.dataset.mockCurrentTime = '0';
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get() {
+        return Number(this.dataset.mockCurrentTime || '0');
+      },
+      set(value) {
+        this.dataset.mockCurrentTime = String(value);
+      },
+    });
+  });
+
+  await page.locator('audio').evaluate((audio) => {
+    audio.currentTime = 1.05;
+    audio.dispatchEvent(new Event('timeupdate'));
+  });
+
+  await page.getByRole('button', { name: /Second progress drill/ }).click();
+  await expect(page.getByRole('button', { name: /First progress drill/ })).toContainText('Resume from 00:01');
+});
+
+test('scrubbing and switching projects restores the correct line', async ({ page }) => {
+  await createTimedReaderProject(page, 'First scrub drill');
+  await createTimedReaderProject(page, 'Second scrub drill');
+
+  await page.getByRole('button', { name: /First scrub drill/ }).click();
+  await page.locator('audio').evaluate((audio) => {
+    audio.dataset.mockCurrentTime = '0';
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get() {
+        return Number(this.dataset.mockCurrentTime || '0');
+      },
+      set(value) {
+        this.dataset.mockCurrentTime = String(value);
+      },
+    });
+  });
+
+  await page.locator('audio').evaluate((audio) => {
+    audio.currentTime = 1.05;
+  });
+
+  await page.getByRole('button', { name: /Second scrub drill/ }).click();
+  await page.getByRole('button', { name: /First scrub drill/ }).click();
+
+  await page.locator('audio').evaluate((audio) => {
+    audio.dataset.mockCurrentTime = '0';
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get() {
+        return Number(this.dataset.mockCurrentTime || '0');
+      },
+      set(value) {
+        this.dataset.mockCurrentTime = String(value);
+      },
+    });
+    Object.defineProperty(audio, 'duration', {
+      configurable: true,
+      get() {
+        return 10;
+      },
+    });
+    audio.dispatchEvent(new Event('loadedmetadata'));
+  });
+
+  await expect(page.getByTestId('reader-line-1')).toHaveAttribute('data-active', 'true');
+});
+
+test('switching from a paused active project still saves the first pause on the newly selected project', async ({ page }) => {
+  await createTimedReaderProject(page, 'Paused source drill');
+  await createTimedReaderProject(page, 'Paused target drill');
+
+  await expect(page.getByRole('heading', { name: 'Paused target drill' })).toBeVisible();
+  await page.getByRole('button', { name: /Paused source drill/ }).click();
+  await page.locator('audio').evaluate((audio) => {
+    audio.dataset.mockCurrentTime = '0';
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get() {
+        return Number(this.dataset.mockCurrentTime || '0');
+      },
+      set(value) {
+        this.dataset.mockCurrentTime = String(value);
+      },
+    });
+  });
+
+  await page.locator('audio').evaluate((audio) => {
+    audio.currentTime = 1.05;
+    audio.dispatchEvent(new Event('pause'));
+  });
+
+  await expect(page.getByRole('button', { name: /Paused source drill/ })).toContainText('Resume from 00:01');
+});
+
+test('switching from a playing active project still saves the first pause on the newly selected project', async ({ page }) => {
+  await createTimedReaderProject(page, 'Playing source drill');
+  await createTimedReaderProject(page, 'Playing target drill');
+
+  await page.getByRole('button', { name: /Playing source drill/ }).click();
+  await page.locator('audio').evaluate((audio) => {
+    audio.dataset.mockCurrentTime = '0';
+    audio.dataset.mockPaused = 'false';
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get() {
+        return Number(this.dataset.mockCurrentTime || '0');
+      },
+      set(value) {
+        this.dataset.mockCurrentTime = String(value);
+      },
+    });
+    Object.defineProperty(audio, 'paused', {
+      configurable: true,
+      get() {
+        return this.dataset.mockPaused !== 'false';
+      },
+    });
+  });
+
+  await page.locator('audio').evaluate((audio) => {
+    audio.currentTime = 2.05;
+  });
+
+  await page.getByRole('button', { name: /Playing target drill/ }).click();
+  await page.locator('audio').evaluate((audio) => {
+    audio.dataset.mockCurrentTime = '0';
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get() {
+        return Number(this.dataset.mockCurrentTime || '0');
+      },
+      set(value) {
+        this.dataset.mockCurrentTime = String(value);
+      },
+    });
+  });
+
+  await page.locator('audio').evaluate((audio) => {
+    audio.currentTime = 1.05;
+    audio.dispatchEvent(new Event('pause'));
+  });
+
+  await expect(page.getByRole('button', { name: /Playing target drill/ })).toContainText('Resume from 00:01');
+});
+
+test('restoring saved progress uses time even if the stored segment index is stale', async ({ page }) => {
+  await createTimedReaderProject(page, 'Stale progress drill');
+
+  const projectId = await page.evaluate(async () => {
+    const database = await new Promise((resolve, reject) => {
+      const request = window.indexedDB.open('lingualearn-sync-reader', 1);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+    });
+
+    const projects = await new Promise((resolve, reject) => {
+      const transaction = database.transaction('projects', 'readonly');
+      const request = transaction.objectStore('projects').getAll();
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+    });
+
+    database.close();
+    return projects[0].id;
+  });
+
+  await page.evaluate(({ key, projectId: id }) => {
+    window.localStorage.setItem(
+      key,
+      JSON.stringify({
+        [id]: {
+          time: 1.05,
+          segmentIndex: 0,
+          savedAt: '2026-03-17T00:00:00.000Z',
+        },
+      }),
+    );
+  }, { key: 'lingualearn-sync-reader-progress-v1', projectId });
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.locator('audio').evaluate((audio) => {
+    audio.dataset.mockCurrentTime = '0';
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get() {
+        return Number(this.dataset.mockCurrentTime || '0');
+      },
+      set(value) {
+        this.dataset.mockCurrentTime = String(value);
+      },
+    });
+    Object.defineProperty(audio, 'duration', {
+      configurable: true,
+      get() {
+        return 10;
+      },
+    });
+  });
+
+  await expect(page.getByText(/Continue from 00:01/)).toBeVisible();
+  await page.getByRole('button', { name: 'Continue where I stopped' }).click();
+  await expect(page.getByTestId('reader-line-1')).toHaveAttribute('data-active', 'true');
+});
+
+test('opens the ready chapter 4 example from a direct link and restores saved progress', async ({
+  page,
+}) => {
+  await mockReadyChapter4Assets(page);
+  await page.goto(`${readerUrl}?example=hpmor-chapter-4`, { waitUntil: 'domcontentloaded' });
+
+  await expect(page.getByRole('heading', { name: 'HPMOR Chapter 4 · Ready reader' })).toBeVisible();
+  await expect(page.getByText(/Opened the ready chapter 4 reader/i)).toBeVisible();
+
+  await page.locator('audio').evaluate((audio) => {
+    audio.dataset.mockCurrentTime = '0';
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get() {
+        return Number(this.dataset.mockCurrentTime || '0');
+      },
+      set(value) {
+        this.dataset.mockCurrentTime = String(value);
+      },
+    });
+    Object.defineProperty(audio, 'duration', {
+      configurable: true,
+      get() {
+        return 10;
+      },
+    });
+  });
+
+  await page.locator('audio').evaluate((audio) => {
+    audio.currentTime = 1.05;
+    audio.dispatchEvent(new Event('timeupdate'));
+    audio.dispatchEvent(new Event('pause'));
+  });
+
+  await expect(page.getByText(/Continue from 00:01/)).toBeVisible();
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: 'HPMOR Chapter 4 · Ready reader' })).toBeVisible();
+
+  await page.locator('audio').evaluate((audio) => {
+    audio.dataset.mockCurrentTime = '0';
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get() {
+        return Number(this.dataset.mockCurrentTime || '0');
+      },
+      set(value) {
+        this.dataset.mockCurrentTime = String(value);
+      },
+    });
+    Object.defineProperty(audio, 'duration', {
+      configurable: true,
+      get() {
+        return 10;
+      },
+    });
+    audio.dispatchEvent(new Event('loadedmetadata'));
+  });
+
+  await expect(page.getByText(/Resumed your saved progress at 00:01/)).toBeVisible();
+  await expect
+    .poll(() => page.locator('audio').evaluate((audio) => Number(audio.dataset.mockCurrentTime || '0')))
+    .toBeGreaterThan(1);
 });
