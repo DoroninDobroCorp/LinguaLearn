@@ -117,29 +117,38 @@ function buildEstimatedSegments(project, duration) {
 }
 
 function normalizeLoadedProject(project) {
-  if (project?.source !== 'hpmor' || project?.timingMode !== 'estimated' || project?.estimatedWindow) {
-    return project;
+  const projectWithDefaults = {
+    ...project,
+    needsInitialSeek: Boolean(project?.needsInitialSeek),
+  };
+
+  if (
+    projectWithDefaults?.source !== 'hpmor' ||
+    projectWithDefaults?.timingMode !== 'estimated' ||
+    projectWithDefaults?.estimatedWindow
+  ) {
+    return projectWithDefaults;
   }
 
-  const segmentCount = Array.isArray(project.segments) ? project.segments.length : 0;
+  const segmentCount = Array.isArray(projectWithDefaults.segments) ? projectWithDefaults.segments.length : 0;
   if (segmentCount <= 0) {
-    return project;
+    return projectWithDefaults;
   }
 
-  const startAnchor = Number(project.manualAnchors?.[0]);
-  const endAnchor = Number(project.manualAnchors?.[segmentCount]);
-  const duration = Number(project.audioDuration) || endAnchor;
+  const startAnchor = Number(projectWithDefaults.manualAnchors?.[0]);
+  const endAnchor = Number(projectWithDefaults.manualAnchors?.[segmentCount]);
+  const duration = Number(projectWithDefaults.audioDuration) || endAnchor;
 
   if (!Number.isFinite(startAnchor) || !Number.isFinite(endAnchor) || !Number.isFinite(duration) || duration <= 0) {
-    return project;
+    return projectWithDefaults;
   }
 
-  const manualAnchors = { ...(project.manualAnchors || {}) };
+  const manualAnchors = { ...(projectWithDefaults.manualAnchors || {}) };
   delete manualAnchors[0];
   delete manualAnchors[segmentCount];
 
   const normalizedProject = {
-    ...project,
+    ...projectWithDefaults,
     manualAnchors,
     estimatedWindow: {
       startRatio: clampRatio(startAnchor / duration, 0),
@@ -312,6 +321,31 @@ function SyncReader() {
     }
   }, [activeSegmentIndex, followPlayback]);
 
+  useEffect(() => {
+    if (!activeProject?.needsInitialSeek || !audioRef.current) {
+      return;
+    }
+
+    const chapterStart = activeProject.segments[0]?.start;
+    const audioElement = audioRef.current;
+    if (!Number.isFinite(chapterStart) || !Number.isFinite(audioElement.duration) || audioElement.duration <= 0) {
+      return;
+    }
+
+    audioElement.currentTime = chapterStart;
+    setSelectedSegmentIndex(0);
+    setActiveSegmentIndex(0);
+
+    const updatedProject = {
+      ...activeProject,
+      needsInitialSeek: false,
+    };
+
+    persistProject(updatedProject).catch((error) => {
+      setStatus({ type: 'error', message: error.message });
+    });
+  }, [activeProject]);
+
   async function persistProject(updatedProject) {
     const savedProject = {
       ...updatedProject,
@@ -383,6 +417,7 @@ function SyncReader() {
         segments,
         audioDuration: null,
         needsSync: timingMode === 'estimated',
+        needsInitialSeek: false,
         createdAt: now,
         updatedAt: now,
       };
@@ -437,6 +472,7 @@ function SyncReader() {
         segments: [],
         audioDuration: data.audioDurationEstimate,
         needsSync: true,
+        needsInitialSeek: true,
         source: data.source,
         audioSourceType: data.audioSourceType,
         syncHint: data.syncHint,
@@ -455,7 +491,7 @@ function SyncReader() {
       await persistProject(project);
       setStatus({
         type: 'success',
-        message: `${data.syncHint} Start estimate: ${formatTime(data.estimatedRange.start)}. Follow playback is off by default so the page stays still.`,
+        message: `${data.syncHint} LinguaLearn will jump the audio near the estimated chapter start as soon as the metadata loads.`,
       });
     } catch (error) {
       setStatus({ type: 'error', message: error.message });
@@ -483,6 +519,7 @@ function SyncReader() {
       audioDuration: duration,
       segments: buildEstimatedSegments(activeProject, duration),
       needsSync: false,
+      needsInitialSeek: activeProject.needsInitialSeek,
     };
 
     await persistProject(updatedProject);
@@ -1035,6 +1072,15 @@ function SyncReader() {
                   </div>
 
                   <div className="mt-4 space-y-3">
+                    {activeProject.source === 'hpmor' && activeProject.timingMode === 'estimated' && (
+                      <button
+                        type="button"
+                        onClick={() => seekToSegment(0)}
+                        className={`w-full rounded-xl border px-4 py-3 font-semibold ${borderClass}`}
+                      >
+                        Jump to estimated chapter start
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => seekToSegment(selectedSegmentIndex)}
