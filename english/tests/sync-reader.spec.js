@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 const readerUrl = 'http://127.0.0.1:5173/english/reader';
+const hpmorResetStorageKey = 'lingualearn-sync-reader-hpmor-reset-version';
 const tinyAudioDataUrl =
   'data:audio/wav;base64,UklGRqQMAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YYAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
 
@@ -22,6 +23,83 @@ test('creates a custom reader project from pasted text and audio', async ({ page
   await expect(page.getByText('Second shadowing line.').first()).toBeVisible();
   await expect(page.getByText('0 manual pins')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Follow playback: off' })).toBeVisible();
+});
+
+test('resets stale HPMOR chapter imports while keeping manual projects', async ({ page }) => {
+  await page.goto(readerUrl, { waitUntil: 'networkidle' });
+
+  await page.evaluate(
+    async ({ resetKey, audioUrl }) => {
+      const database = await new Promise((resolve, reject) => {
+        const request = window.indexedDB.open('lingualearn-sync-reader', 1);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+      });
+
+      const now = new Date().toISOString();
+      const transaction = database.transaction('projects', 'readwrite');
+      const store = transaction.objectStore('projects');
+
+      store.put({
+        id: 'manual-project',
+        title: 'Manual project',
+        rawText: 'Manual text stays.',
+        segmentationMode: 'paragraph',
+        timingMode: 'estimated',
+        audioUrl,
+        audioBlob: null,
+        audioName: 'Manual audio',
+        textName: 'Manual text',
+        timingsName: null,
+        manualAnchors: {},
+        estimatedWindow: null,
+        segments: [{ text: 'Manual text stays.', start: 0, end: 1 }],
+        audioDuration: 1,
+        needsSync: false,
+        needsInitialSeek: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      store.put({
+        id: 'hpmor-project',
+        title: 'Chapter 3: Comparing Reality To Its Alternatives',
+        rawText: 'HPMOR text should be purged.',
+        segmentationMode: 'sentence',
+        timingMode: 'estimated',
+        audioUrl,
+        audioBlob: null,
+        audioName: 'HPMOR audio',
+        textName: 'HPMOR chapter 3',
+        timingsName: 'Estimated',
+        manualAnchors: {},
+        estimatedWindow: { startRatio: 0.4, endRatio: 1 },
+        segments: [{ text: 'HPMOR text should be purged.', start: 0.4, end: 1 }],
+        audioDuration: 1,
+        needsSync: false,
+        needsInitialSeek: false,
+        source: 'hpmor',
+        sourceChapterNumber: 3,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await new Promise((resolve, reject) => {
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+      });
+
+      database.close();
+      window.localStorage.removeItem(resetKey);
+    },
+    { resetKey: hpmorResetStorageKey, audioUrl: tinyAudioDataUrl },
+  );
+
+  await page.reload({ waitUntil: 'networkidle' });
+
+  await expect(page.getByText(/Removed old HPMOR chapter imports/)).toBeVisible();
+  await expect(page.getByRole('button', { name: /Manual project/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Chapter 3:/ })).toHaveCount(0);
 });
 
 test('imports an HPMOR chapter via mocked backend response', async ({ page }) => {

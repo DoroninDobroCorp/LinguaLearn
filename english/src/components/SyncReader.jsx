@@ -25,12 +25,15 @@ import {
 } from '../utils/syncReader';
 import {
   deleteReaderProject,
+  deleteReaderProjects,
   getAllReaderProjects,
   saveReaderProject,
 } from '../utils/syncReaderStorage';
 
 const HPMOR_TEXT_URL = 'https://hpmor.com/';
 const HPMOR_AUDIO_URL = 'https://hpmorpodcast.com/?page_id=56';
+const HPMOR_RESET_STORAGE_KEY = 'lingualearn-sync-reader-hpmor-reset-version';
+const HPMOR_RESET_VERSION = '2026-03-17-reset';
 
 function createEmptyForm() {
   return {
@@ -99,6 +102,26 @@ function extractHpmorChapterNumber(project) {
 
 function findMatchingHpmorProjects(projects, chapterNumber) {
   return projects.filter((project) => extractHpmorChapterNumber(project) === chapterNumber);
+}
+
+function getHpmorProjects(projects) {
+  return projects.filter((project) => project.source === 'hpmor');
+}
+
+function needsLegacyHpmorReset() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return window.localStorage.getItem(HPMOR_RESET_STORAGE_KEY) !== HPMOR_RESET_VERSION;
+}
+
+function markLegacyHpmorResetApplied() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(HPMOR_RESET_STORAGE_KEY, HPMOR_RESET_VERSION);
 }
 
 function getEstimatedWindowAnchors(project, duration, segmentCount) {
@@ -251,12 +274,28 @@ function SyncReader() {
           return;
         }
 
-        const normalizedProjects = savedProjects.map((project) => normalizeLoadedProject(project));
+        let normalizedProjects = savedProjects.map((project) => normalizeLoadedProject(project));
+
+        if (needsLegacyHpmorReset()) {
+          const staleHpmorProjects = getHpmorProjects(normalizedProjects);
+          if (staleHpmorProjects.length > 0) {
+            await deleteReaderProjects(staleHpmorProjects.map((project) => project.id));
+            if (!isMounted) {
+              return;
+            }
+
+            normalizedProjects = normalizedProjects.filter((project) => project.source !== 'hpmor');
+            setStatus({
+              type: 'success',
+              message: 'Removed old HPMOR chapter imports. You can start from scratch now.',
+            });
+          }
+
+          markLegacyHpmorResetApplied();
+        }
 
         setProjects(normalizedProjects);
-        if (normalizedProjects.length > 0) {
-          setActiveProjectId(normalizedProjects[0].id);
-        }
+        setActiveProjectId(normalizedProjects[0]?.id || null);
       } catch (error) {
         if (!isMounted) {
           return;
@@ -385,7 +424,7 @@ function SyncReader() {
 
     const duplicateIds = [...idsToRemove].filter((projectId) => projectId !== savedProject.id);
     if (duplicateIds.length > 0) {
-      await Promise.all(duplicateIds.map((projectId) => deleteReaderProject(projectId)));
+      await deleteReaderProjects(duplicateIds);
     }
 
     await saveReaderProject(savedProject);
@@ -678,6 +717,36 @@ function SyncReader() {
     setStatus({ type: 'success', message: 'Reader project deleted.' });
   }
 
+  async function handleResetHpmorProjects() {
+    const hpmorProjects = getHpmorProjects(projects);
+    if (!hpmorProjects.length) {
+      setStatus({ type: 'idle', message: 'No imported HPMOR chapters to remove.' });
+      return;
+    }
+
+    if (
+      !confirm(
+        `Delete ${hpmorProjects.length} imported HPMOR chapter${
+          hpmorProjects.length === 1 ? '' : 's'
+        } and start from scratch?`,
+      )
+    ) {
+      return;
+    }
+
+    const hpmorProjectIds = hpmorProjects.map((project) => project.id);
+    await deleteReaderProjects(hpmorProjectIds);
+
+    const remainingProjects = projects.filter((project) => !hpmorProjectIds.includes(project.id));
+    setProjects(remainingProjects);
+    if (!remainingProjects.some((project) => project.id === activeProjectId)) {
+      setActiveProjectId(remainingProjects[0]?.id || null);
+    }
+
+    markLegacyHpmorResetApplied();
+    setStatus({ type: 'success', message: 'Removed imported HPMOR chapters. Start from scratch.' });
+  }
+
   function handleExportProject() {
     if (!activeProject) {
       return;
@@ -701,6 +770,7 @@ function SyncReader() {
   const selectedSegment = activeProject?.segments[selectedSegmentIndex] || null;
   const activeSegment = activeProject?.segments[activeSegmentIndex] || null;
   const isPreparingChapterStart = Boolean(activeProject?.needsInitialSeek && audioSource);
+  const hpmorProjectCount = getHpmorProjects(projects).length;
 
   return (
     <div className="space-y-6">
@@ -916,10 +986,24 @@ function SyncReader() {
           </section>
 
           <section className={`${cardClass} rounded-2xl shadow-2xl p-6`}>
-            <h3 className="text-2xl font-bold">Library</h3>
-            <p className={`${subtextClass} mt-2 text-sm`}>
-              Saved locally in your browser with text, timings, and uploaded audio files.
-            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-2xl font-bold">Library</h3>
+                <p className={`${subtextClass} mt-2 text-sm`}>
+                  Saved locally in your browser with text, timings, and uploaded audio files.
+                </p>
+              </div>
+
+              {hpmorProjectCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleResetHpmorProjects}
+                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100"
+                >
+                  Reset HPMOR chapters ({hpmorProjectCount})
+                </button>
+              )}
+            </div>
 
             <div className="mt-4 space-y-3">
               {projects.length === 0 && (

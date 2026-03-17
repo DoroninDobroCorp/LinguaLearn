@@ -75,3 +75,26 @@ export async function deleteReaderProject(projectId) {
     request.onsuccess = () => resolve();
   });
 }
+
+export async function deleteReaderProjects(projectIds) {
+  const uniqueProjectIds = [...new Set(projectIds.filter(Boolean))];
+  if (!uniqueProjectIds.length) {
+    return;
+  }
+
+  return runTransaction('readwrite', (store, resolve, reject) => {
+    let remainingDeletes = uniqueProjectIds.length;
+
+    uniqueProjectIds.forEach((projectId) => {
+      const request = store.delete(projectId);
+
+      request.onerror = () => reject(request.error || new Error('Failed to delete reader projects.'));
+      request.onsuccess = () => {
+        remainingDeletes -= 1;
+        if (remainingDeletes === 0) {
+          resolve();
+        }
+      };
+    });
+  });
+}
