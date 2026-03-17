@@ -399,6 +399,8 @@ test('switching from a paused active project still saves the first pause on the 
 
   await expect(page.getByRole('heading', { name: 'Paused target drill' })).toBeVisible();
   await page.getByRole('button', { name: /Paused source drill/ }).click();
+  await expect(page.getByRole('heading', { name: 'Paused source drill' })).toBeVisible();
+  await page.getByRole('button', { name: /Paused target drill/ }).click();
   await page.locator('audio').evaluate((audio) => {
     audio.dataset.mockCurrentTime = '0';
     Object.defineProperty(audio, 'currentTime', {
@@ -417,7 +419,7 @@ test('switching from a paused active project still saves the first pause on the 
     audio.dispatchEvent(new Event('pause'));
   });
 
-  await expect(page.getByRole('button', { name: /Paused source drill/ })).toContainText('Resume from 00:01');
+  await expect(page.getByRole('button', { name: /Paused target drill/ })).toContainText('Resume from 00:01');
 });
 
 test('switching from a playing active project still saves the first pause on the newly selected project', async ({ page }) => {
