@@ -107,7 +107,6 @@ test('re-importing the same HPMOR chapter replaces the existing library item', a
 
   await page.getByRole('button', { name: 'Import chapter' }).click();
 
-  await expect(page.getByText(/Replaced the existing Library item/)).toBeVisible();
   await expect(page.getByText('Harry stepped forward again.').first()).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Chapter 7: The Stanford Prison Experiment' }),

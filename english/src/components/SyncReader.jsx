@@ -361,6 +361,10 @@ function SyncReader() {
     audioElement.currentTime = chapterStart;
     setSelectedSegmentIndex(0);
     setActiveSegmentIndex(0);
+    setStatus({
+      type: 'success',
+      message: 'Jumped to the estimated chapter start. Press play when you are ready.',
+    });
 
     const updatedProject = {
       ...activeProject,
@@ -491,9 +495,8 @@ function SyncReader() {
       const rawSegments = splitTextIntoSegments(data.text, 'sentence');
       const now = new Date().toISOString();
       const matchingProjects = findMatchingHpmorProjects(projects, chapterNumber);
-      const existingProject = matchingProjects[0] || null;
       const draftProject = {
-        id: existingProject?.id || generateProjectId(),
+        id: generateProjectId(),
         title: data.title,
         rawText: data.text,
         segmentationMode: 'sentence',
@@ -513,7 +516,7 @@ function SyncReader() {
         sourceChapterNumber: chapterNumber,
         audioSourceType: data.audioSourceType,
         syncHint: data.syncHint,
-        createdAt: existingProject?.createdAt || now,
+        createdAt: now,
         updatedAt: now,
       };
       const project = {
@@ -697,6 +700,7 @@ function SyncReader() {
 
   const selectedSegment = activeProject?.segments[selectedSegmentIndex] || null;
   const activeSegment = activeProject?.segments[activeSegmentIndex] || null;
+  const isPreparingChapterStart = Boolean(activeProject?.needsInitialSeek && audioSource);
 
   return (
     <div className="space-y-6">
@@ -1020,9 +1024,17 @@ function SyncReader() {
               </section>
 
               <section className={`${cardClass} rounded-2xl shadow-2xl p-6`}>
+                {isPreparingChapterStart && (
+                  <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-900">
+                    Preparing the estimated start of this chapter. Play controls will unlock in a moment so
+                    you do not hear the wrong chapter first.
+                  </div>
+                )}
                 <audio
+                  key={activeProject.id}
                   ref={audioRef}
-                  controls
+                  controls={!isPreparingChapterStart}
+                  preload="metadata"
                   src={audioSource}
                   onLoadedMetadata={handleAudioMetadata}
                   onTimeUpdate={handleTimeUpdate}
