@@ -40,7 +40,7 @@ async function createTimedReaderProject(page, title = 'Timed transcript drill') 
   });
   await page.getByRole('button', { name: 'Create Reader Project' }).click();
 
-  await expect(page.getByText(new RegExp(`Loaded "${title}" with a timed transcript.`))).toBeVisible();
+  await expect(page.getByText(new RegExp(`Loaded "${title}" with a timed transcript`))).toBeVisible();
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
 }
 

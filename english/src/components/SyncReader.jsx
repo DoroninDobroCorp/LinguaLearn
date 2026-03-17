@@ -552,6 +552,9 @@ function SyncReader() {
         }
       }
 
+      const hasWordTimings = segments.some(
+        (segment) => Array.isArray(segment.words) && segment.words.length > 0,
+      );
       const now = new Date().toISOString();
       const title = form.title.trim() || 'Untitled reader project';
       const project = {
@@ -582,7 +585,9 @@ function SyncReader() {
         type: 'success',
         message:
           timingMode === 'timed'
-            ? `Loaded "${title}" with a timed transcript.`
+            ? hasWordTimings
+              ? `Loaded "${title}" with a timed transcript and word-level highlighting.`
+              : `Loaded "${title}" with timed lines. Add JSON word timestamps if you want current-word highlighting too.`
             : `Loaded "${title}" with rough sync. Play the audio to estimate timings.`,
       });
     } catch (error) {
@@ -894,6 +899,9 @@ function SyncReader() {
   const activeSegment = activeProject?.segments[activeSegmentIndex] || null;
   const activeBookmark = activeProject?.bookmark || null;
   const activeWordIndex = activeSegment ? findActiveWordIndex(activeSegment.words, currentTime) : -1;
+  const activeProjectHasWordTimings = activeProject?.segments?.some(
+    (segment) => Array.isArray(segment.words) && segment.words.length > 0,
+  );
   const isPreparingChapterStart = Boolean(activeProject?.needsInitialSeek && audioSource);
   const hpmorProjectCount = getHpmorProjects(projects).length;
 
@@ -1222,7 +1230,9 @@ function SyncReader() {
                     <h3 className="text-3xl font-bold">{activeProject.title}</h3>
                     <p className={`${subtextClass} mt-2`}>
                       {activeProject.timingMode === 'timed'
-                        ? 'Exact timings imported from a transcript file.'
+                        ? activeProjectHasWordTimings
+                          ? 'Exact timings imported from a transcript file with word-level highlighting.'
+                          : 'Exact line timings imported from a transcript file. Add word-aware JSON if you want current-word highlighting too.'
                         : activeProject.syncHint ||
                           'Rough sync is estimated from text length. Use manual anchors where it drifts.'}
                     </p>
@@ -1345,6 +1355,12 @@ function SyncReader() {
                         <span className={accentTextClass}>
                           {String(activeSegment.words[activeWordIndex]?.text || '').trim() || '—'}
                         </span>
+                      </p>
+                    )}
+                    {activeProject?.timingMode === 'timed' && !activeProjectHasWordTimings && (
+                      <p className={`mt-3 text-xs ${subtextClass}`}>
+                        This transcript has line timings only. Current-word highlighting appears when the
+                        imported JSON also includes per-word timestamps.
                       </p>
                     )}
                   </div>
