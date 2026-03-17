@@ -61,6 +61,13 @@ Three exercise types with instant feedback:
 - Smart scheduling: Don't Know → today, Hard → 1 day, Good → exponential growth, Easy → accelerated
 - Add words manually or auto-collect from chat
 
+### 🎧 Sync Reader
+- Load any text + audio pair for intensive reading practice
+- One-click HPMOR chapter import from the official text mirror
+- Import optional timings from JSON / SRT / VTT
+- Start with rough sync, then refine it with manual anchors
+- Great for HPMOR-style chapter drilling, shadowing, and listening-reading
+
 </td>
 <td width="50%">
 
@@ -97,14 +104,17 @@ LinguaLearn/
 │   │   │   ├── Chat.jsx        # AI chat with exercise widgets
 │   │   │   ├── CurriculumMap.jsx  # CEFR topic navigator
 │   │   │   ├── Exercises.jsx   # Structured practice
+│   │   │   ├── SyncReader.jsx  # Text + audio reader with sync controls
 │   │   │   ├── Vocabulary.jsx  # Spaced repetition cards
 │   │   │   ├── Topics.jsx      # Progress dashboard
 │   │   │   └── Settings.jsx    # User preferences
 │   │   ├── contexts/           # React context (theme)
 │   │   ├── hooks/              # Custom React hooks
+│   │   ├── utils/              # Sync-reader parsing and IndexedDB storage
 │   │   ├── App.jsx             # Main app + routing
 │   │   └── index.css           # Tailwind + custom styles
 │   ├── server/
+│   │   ├── hpmor.js            # HPMOR import + chapter parsing helpers
 │   │   └── index.js            # Express API + Gemini + SQLite
 │   ├── package.json
 │   └── vite.config.js
@@ -192,6 +202,7 @@ npm run dev
 | `POST` | `/api/vocabulary` | Add new word |
 | `PUT` | `/api/vocabulary/:id/review` | Record review result |
 | `DELETE` | `/api/vocabulary/:id` | Delete word |
+| `GET` | `/api/reader/hpmor/chapter/:chapterNumber` | Import an HPMOR chapter with estimated audiobook window |
 
 ---
 

@@ -5,12 +5,14 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { buildHpmorChapterImport } from './hpmor.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = 3001;
+const hpmorChapterHtmlCache = new Map();
 
 // Инициализация Gemini
 if (!process.env.GEMINI_API_KEY) {
@@ -902,6 +904,49 @@ app.get('/api/stats', (req, res) => {
   } catch (error) {
     console.error('Error fetching stats:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+async function fetchHpmorChapterHtml(chapterNumber) {
+  if (hpmorChapterHtmlCache.has(chapterNumber)) {
+    return hpmorChapterHtmlCache.get(chapterNumber);
+  }
+
+  const response = await fetch(`https://hpmor.com/chapter/${chapterNumber}`, {
+    headers: {
+      'User-Agent': 'LinguaLearn Sync Reader/1.0',
+    },
+  });
+
+  if (!response.ok) {
+    const error = new Error(`Failed to fetch HPMOR chapter ${chapterNumber}.`);
+    error.statusCode = response.status === 404 ? 404 : 502;
+    throw error;
+  }
+
+  const html = await response.text();
+  hpmorChapterHtmlCache.set(chapterNumber, html);
+  return html;
+}
+
+app.get('/api/reader/hpmor/chapter/:chapterNumber', async (req, res) => {
+  try {
+    const chapterNumber = Number.parseInt(req.params.chapterNumber, 10);
+
+    if (!Number.isInteger(chapterNumber)) {
+      return res.status(400).json({ error: 'Chapter number must be an integer.' });
+    }
+
+    const chapterImport = await buildHpmorChapterImport({
+      chapterNumber,
+      fetchChapterHtml: fetchHpmorChapterHtml,
+    });
+
+    res.json(chapterImport);
+  } catch (error) {
+    console.error('Error importing HPMOR chapter:', error);
+    const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
+    res.status(statusCode).json({ error: error.message });
   }
 });
 
