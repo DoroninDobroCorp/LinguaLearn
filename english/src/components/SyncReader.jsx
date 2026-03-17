@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Bookmark,
   Clock3,
   Download,
   FileAudio,
@@ -168,6 +169,7 @@ function buildEstimatedSegments(project, duration) {
 function normalizeLoadedProject(project) {
   const projectWithDefaults = {
     ...project,
+    bookmark: project?.bookmark || null,
     needsInitialSeek: Boolean(project?.needsInitialSeek),
   };
 
@@ -233,6 +235,49 @@ function buildProjectSummary(project) {
   };
 }
 
+function isEditableTarget(target) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return (
+    target.isContentEditable ||
+    ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(target.tagName) ||
+    target.closest('input, textarea, select, button, [contenteditable="true"]')
+  );
+}
+
+function findActiveWordIndex(words, time) {
+  if (!Array.isArray(words) || !words.length || !Number.isFinite(time)) {
+    return -1;
+  }
+
+  for (let wordIndex = 0; wordIndex < words.length; wordIndex += 1) {
+    const word = words[wordIndex];
+    if (!Number.isFinite(word.start) || !Number.isFinite(word.end)) {
+      continue;
+    }
+
+    if (time >= word.start && time < word.end) {
+      return wordIndex;
+    }
+  }
+
+  if (time >= words[words.length - 1].end) {
+    return words.length - 1;
+  }
+
+  return -1;
+}
+
+function getBookmarkSnippet(bookmark) {
+  if (!bookmark?.text) {
+    return 'No bookmark text yet.';
+  }
+
+  return bookmark.text.length > 120 ? `${bookmark.text.slice(0, 117)}...` : bookmark.text;
+}
+
 function SyncReader() {
   const { isDark } = useTheme();
   const [projects, setProjects] = useState([]);
@@ -241,6 +286,7 @@ function SyncReader() {
   const [status, setStatus] = useState({ type: 'idle', message: '' });
   const [selectedSegmentIndex, setSelectedSegmentIndex] = useState(0);
   const [activeSegmentIndex, setActiveSegmentIndex] = useState(-1);
+  const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [audioSource, setAudioSource] = useState('');
   const [isBusy, setIsBusy] = useState(false);
@@ -316,6 +362,7 @@ function SyncReader() {
     if (!activeProject) {
       setSelectedSegmentIndex(0);
       setActiveSegmentIndex(-1);
+      setCurrentTime(0);
       return;
     }
 
@@ -352,6 +399,34 @@ function SyncReader() {
       audioRef.current.playbackRate = playbackRate;
     }
   }, [playbackRate, activeProjectId]);
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.code !== 'Space' || event.repeat || isEditableTarget(event.target)) {
+        return;
+      }
+
+      if (!audioRef.current || !audioSource || activeProject?.needsInitialSeek) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (audioRef.current.paused) {
+        audioRef.current.play().catch((error) => {
+          setStatus({ type: 'error', message: error.message });
+        });
+        return;
+      }
+
+      audioRef.current.pause();
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeProject?.needsInitialSeek, audioSource]);
 
   useEffect(() => {
     if (!followPlayback || activeSegmentIndex < 0) {
@@ -400,6 +475,7 @@ function SyncReader() {
     audioElement.currentTime = chapterStart;
     setSelectedSegmentIndex(0);
     setActiveSegmentIndex(0);
+    setCurrentTime(chapterStart);
     setStatus({
       type: 'success',
       message: 'Jumped to the estimated chapter start. Press play when you are ready.',
@@ -490,6 +566,7 @@ function SyncReader() {
         textName: form.textFile?.name || (normalizedText ? 'Pasted text' : 'Transcript text'),
         timingsName: form.timingsFile?.name || null,
         manualAnchors: {},
+        bookmark: null,
         estimatedWindow: null,
         segments,
         audioDuration: null,
@@ -546,6 +623,7 @@ function SyncReader() {
         textName: `HPMOR chapter ${chapterNumber}`,
         timingsName: `Estimated from ${data.audioSourceType === 'audiobook-part-fallback' ? 'the official audiobook part' : 'the narrowest official podcast episode'}`,
         manualAnchors: {},
+        bookmark: null,
         estimatedWindow: data.estimatedWindow || null,
         segments: [],
         audioDuration: data.audioDurationEstimate,
@@ -611,7 +689,9 @@ function SyncReader() {
       return;
     }
 
-    const nextIndex = findSegmentIndexByTime(activeProject.segments, audioRef.current.currentTime);
+    const nextTime = audioRef.current.currentTime;
+    setCurrentTime(nextTime);
+    const nextIndex = findSegmentIndexByTime(activeProject.segments, nextTime);
     setActiveSegmentIndex((currentIndex) => (currentIndex === nextIndex ? currentIndex : nextIndex));
   }
 
@@ -627,6 +707,47 @@ function SyncReader() {
 
     audioRef.current.currentTime = segment.start;
     setSelectedSegmentIndex(segmentIndex);
+    setCurrentTime(segment.start);
+  }
+
+  async function handleSaveBookmark() {
+    if (!activeProject || !audioRef.current) {
+      return;
+    }
+
+    const bookmarkSegmentIndex = activeSegmentIndex >= 0 ? activeSegmentIndex : selectedSegmentIndex;
+    const bookmarkSegment = activeProject.segments[bookmarkSegmentIndex] || selectedSegment;
+    const bookmarkTime = Number(audioRef.current.currentTime.toFixed(3));
+    const updatedProject = {
+      ...activeProject,
+      bookmark: {
+        time: bookmarkTime,
+        segmentIndex: bookmarkSegmentIndex,
+        text: bookmarkSegment?.text || '',
+      },
+    };
+
+    await persistProject(updatedProject);
+    setStatus({
+      type: 'success',
+      message: `Saved a shared bookmark at ${formatTime(bookmarkTime)}.`,
+    });
+  }
+
+  function handleJumpToBookmark() {
+    if (!activeProject?.bookmark || !audioRef.current) {
+      return;
+    }
+
+    const bookmarkTime = Number(activeProject.bookmark.time);
+    const bookmarkSegmentIndex = Number.isInteger(activeProject.bookmark.segmentIndex)
+      ? activeProject.bookmark.segmentIndex
+      : 0;
+
+    audioRef.current.currentTime = bookmarkTime;
+    setSelectedSegmentIndex(bookmarkSegmentIndex);
+    setActiveSegmentIndex(bookmarkSegmentIndex);
+    setCurrentTime(bookmarkTime);
   }
 
   async function handleSetAnchor() {
@@ -764,13 +885,45 @@ function SyncReader() {
     }
 
     const duration = Number.isFinite(audioRef.current.duration) ? audioRef.current.duration : Infinity;
-    audioRef.current.currentTime = Math.max(0, Math.min(duration, audioRef.current.currentTime + seconds));
+    const nextTime = Math.max(0, Math.min(duration, audioRef.current.currentTime + seconds));
+    audioRef.current.currentTime = nextTime;
+    setCurrentTime(nextTime);
   }
 
   const selectedSegment = activeProject?.segments[selectedSegmentIndex] || null;
   const activeSegment = activeProject?.segments[activeSegmentIndex] || null;
+  const activeBookmark = activeProject?.bookmark || null;
+  const activeWordIndex = activeSegment ? findActiveWordIndex(activeSegment.words, currentTime) : -1;
   const isPreparingChapterStart = Boolean(activeProject?.needsInitialSeek && audioSource);
   const hpmorProjectCount = getHpmorProjects(projects).length;
+
+  function renderSegmentWords(segment, activeWordPosition) {
+    if (!Array.isArray(segment.words) || !segment.words.length) {
+      return segment.text;
+    }
+
+    return segment.words.map((word, wordIndex) => {
+      const wordText = word.text || '';
+      const leadingWhitespace = wordText.match(/^\s*/)?.[0] || '';
+      const visibleText = wordText.slice(leadingWhitespace.length) || wordText;
+
+      return (
+        <React.Fragment key={`${segment.id}-word-${wordIndex}`}>
+          {leadingWhitespace}
+          {wordIndex === activeWordPosition ? (
+            <span
+              data-testid="active-word"
+              className="rounded bg-yellow-300 px-0.5 py-0.5 text-gray-900 shadow-sm"
+            >
+              {visibleText}
+            </span>
+          ) : (
+            visibleText
+          )}
+        </React.Fragment>
+      );
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -1155,7 +1308,7 @@ function SyncReader() {
                     </select>
                   </label>
                   <div className={`rounded-xl border px-4 py-3 ${borderClass}`}>
-                    <p className="text-sm font-semibold">Current segment</p>
+                    <p className="text-sm font-semibold">Current line</p>
                     <p className={`mt-2 text-sm ${accentTextClass}`}>
                       {activeSegmentIndex >= 0 ? `${activeSegmentIndex + 1} / ${activeProject.segments.length}` : '—'}
                     </p>
@@ -1175,35 +1328,88 @@ function SyncReader() {
                     {followPlayback ? 'Follow playback: on' : 'Follow playback: off'}
                   </button>
                   <p className={`text-xs ${subtextClass}`}>
-                    Off by default so the page stays still. Turn it on only if you want the segment list
-                    to move with the audio.
+                    Off by default so the page stays still. Press <span className="font-semibold">Space</span>{' '}
+                    to play or pause whenever you are not typing in a field.
                   </p>
                 </div>
 
-                <div className={`mt-4 rounded-2xl border p-5 ${softCardClass} min-h-[9rem] max-h-[16rem] overflow-y-auto`}>
-                  <p className="text-sm font-semibold">Now reading</p>
-                  <p className="mt-3 text-lg leading-relaxed">
-                    {activeSegment?.text || 'Press play to let the reader follow your audio.'}
-                  </p>
+                <div className={`mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]`}>
+                  <div className={`rounded-2xl border p-5 ${softCardClass} min-h-[9rem] max-h-[16rem] overflow-y-auto`}>
+                    <p className="text-sm font-semibold">Current line</p>
+                    <p className="mt-3 text-lg leading-relaxed">
+                      {activeSegment?.text || 'Press play to let the reader follow your audio.'}
+                    </p>
+                    {Array.isArray(activeSegment?.words) && activeWordIndex >= 0 && (
+                      <p className={`mt-3 text-xs font-medium ${subtextClass}`}>
+                        Current word:{' '}
+                        <span className={accentTextClass}>
+                          {String(activeSegment.words[activeWordIndex]?.text || '').trim() || '—'}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className={`rounded-2xl border p-5 ${softCardClass}`}>
+                    <p className="text-sm font-semibold">Shared bookmark</p>
+                    <p className={`mt-2 text-xs ${subtextClass}`}>
+                      One bookmark ties the audio position and the matching text line together.
+                    </p>
+                    <p data-testid="shared-bookmark-time" className={`mt-3 text-sm ${accentTextClass}`}>
+                      {activeBookmark ? formatTime(activeBookmark.time) : 'No bookmark yet'}
+                    </p>
+                    <p className="mt-2 text-sm leading-relaxed">
+                      {activeBookmark ? getBookmarkSnippet(activeBookmark) : 'Save the current spot whenever you want to come back later.'}
+                    </p>
+                    <div className="mt-4 flex flex-col gap-3">
+                      <button
+                        type="button"
+                        onClick={handleSaveBookmark}
+                        className={`w-full rounded-xl border px-4 py-3 font-semibold flex items-center justify-center gap-2 ${borderClass}`}
+                      >
+                        <Bookmark className="h-4 w-4" />
+                        Save bookmark here
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleJumpToBookmark}
+                        disabled={!activeBookmark}
+                        className="w-full rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900 disabled:opacity-60"
+                      >
+                        Jump to bookmark
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </section>
 
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
                 <section className={`${cardClass} rounded-2xl shadow-2xl p-6`}>
-                  <h4 className="text-xl font-bold">Manual sync</h4>
+                  <h4 className="text-xl font-bold">
+                    {activeProject.timingMode === 'timed' ? 'Navigation & bookmark' : 'Navigation & manual sync'}
+                  </h4>
                   <p className={`${subtextClass} mt-2 text-sm`}>
-                    Best for HPMOR or audiobook chapters without subtitles: jump to a line, play until it
-                    drifts, then pin the current time.
+                    {activeProject.timingMode === 'timed'
+                      ? 'Jump through the transcript, keep one shared bookmark, and let the highlighted line track the audio.'
+                      : 'Best for HPMOR or audiobook chapters without subtitles: jump to a line, play until it drifts, then pin the current time.'}
                   </p>
 
                   <div className={`mt-4 rounded-xl border p-4 ${softCardClass}`}>
-                    <p className="text-sm font-semibold">Selected segment</p>
+                    <p className="text-sm font-semibold">Selected line</p>
                     <p className="mt-2 text-sm leading-relaxed">
-                      {selectedSegment?.text || 'Select a segment from the list.'}
+                      {selectedSegment?.text || 'Select a line from the reader text.'}
                     </p>
                     <div className={`mt-3 text-xs ${subtextClass}`}>
                       Start: {formatTime(selectedSegment?.start)} · End: {formatTime(selectedSegment?.end)}
                     </div>
+                  </div>
+
+                  <div className={`mt-4 rounded-xl border p-4 ${softCardClass}`}>
+                    <p className="text-sm font-semibold">Bookmark</p>
+                    <p className={`mt-2 text-xs ${subtextClass}`}>
+                      {activeBookmark
+                        ? `${formatTime(activeBookmark.time)} · ${getBookmarkSnippet(activeBookmark)}`
+                        : 'No bookmark saved yet.'}
+                    </p>
                   </div>
 
                   <div className="mt-4 space-y-3">
@@ -1218,10 +1424,26 @@ function SyncReader() {
                     )}
                     <button
                       type="button"
+                      onClick={handleSaveBookmark}
+                      className={`w-full rounded-xl border px-4 py-3 font-semibold flex items-center justify-center gap-2 ${borderClass}`}
+                    >
+                      <Bookmark className="h-4 w-4" />
+                      Save shared bookmark
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleJumpToBookmark}
+                      disabled={!activeBookmark}
+                      className={`w-full rounded-xl border px-4 py-3 font-semibold ${borderClass} disabled:opacity-60`}
+                    >
+                      Jump to bookmark
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => seekToSegment(selectedSegmentIndex)}
                       className="w-full rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900"
                     >
-                      Jump to selected segment
+                      Jump to selected line
                     </button>
 
                     {activeProject.timingMode === 'estimated' && (
@@ -1257,10 +1479,10 @@ function SyncReader() {
                 <section className={`${cardClass} rounded-2xl shadow-2xl p-6`}>
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h4 className="text-xl font-bold">Segments</h4>
+                      <h4 className="text-xl font-bold">Reader text</h4>
                       <p className={`${subtextClass} mt-1 text-sm`}>
-                        Click a segment to select it. The list follows playback only when the toggle above
-                        is turned on.
+                        Continuous text view. Click any line to jump there; the active line stays highlighted,
+                        and JSON transcripts with word timings also highlight the current word.
                       </p>
                     </div>
                     <span className={`text-sm font-semibold ${accentTextClass}`}>
@@ -1268,10 +1490,15 @@ function SyncReader() {
                     </span>
                   </div>
 
-                  <div ref={segmentsContainerRef} className="mt-4 max-h-[70vh] space-y-3 overflow-y-auto pr-2">
+                  <div
+                    ref={segmentsContainerRef}
+                    className={`mt-4 max-h-[70vh] overflow-y-auto rounded-2xl border p-5 pr-3 ${softCardClass}`}
+                  >
+                    <div className="text-lg leading-8">
                     {activeProject.segments.map((segment) => {
                       const isSelected = selectedSegmentIndex === segment.index;
                       const isActive = activeSegmentIndex === segment.index;
+                      const segmentWordIndex = isActive ? activeWordIndex : -1;
                       const hasManualAnchor =
                         Number.isFinite(activeProject.manualAnchors?.[segment.index]) &&
                         segment.index > 0 &&
@@ -1281,6 +1508,9 @@ function SyncReader() {
                         <button
                           key={segment.id}
                           type="button"
+                          data-testid={`reader-line-${segment.index}`}
+                          data-active={isActive ? 'true' : 'false'}
+                          data-selected={isSelected ? 'true' : 'false'}
                           ref={(element) => {
                             segmentRefs.current[segment.index] = element;
                           }}
@@ -1290,33 +1520,24 @@ function SyncReader() {
                               seekToSegment(segment.index);
                             }
                           }}
-                          className={`w-full rounded-xl border p-4 text-left transition-all ${
+                          className={`mb-1 mr-1 inline rounded-lg px-1.5 py-1 text-left align-baseline transition-all ${
                             isActive
-                              ? 'border-lime-400 bg-lime-100 text-gray-900'
+                              ? 'bg-lime-200 text-gray-900 shadow-sm'
                               : isSelected
-                                ? 'border-yellow-400 bg-yellow-100 text-gray-900'
-                                : `${softCardClass}`
+                                ? 'bg-yellow-100 text-gray-900'
+                                : 'text-inherit hover:bg-yellow-50/80'
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                              <span className="rounded-full bg-gray-900 px-2.5 py-1 text-xs font-bold text-white">
-                                {segment.index + 1}
-                              </span>
-                              {hasManualAnchor && (
-                                <span className="rounded-full bg-yellow-200 px-2 py-1 text-[11px] font-semibold text-yellow-900">
-                                  pinned
-                                </span>
-                              )}
-                            </div>
-                            <span className={`text-xs font-semibold ${subtextClass}`}>
-                              {formatTime(segment.start)} → {formatTime(segment.end)}
+                          {renderSegmentWords(segment, segmentWordIndex)}
+                          {hasManualAnchor && (
+                            <span className="ml-1 rounded-full bg-yellow-200 px-2 py-0.5 text-[11px] font-semibold text-yellow-900">
+                              pin
                             </span>
-                          </div>
-                          <p className="mt-3 text-sm leading-relaxed">{segment.text}</p>
+                          )}
                         </button>
                       );
                     })}
+                    </div>
                   </div>
                 </section>
               </div>

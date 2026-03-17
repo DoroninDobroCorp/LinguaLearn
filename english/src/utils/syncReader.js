@@ -226,6 +226,7 @@ function finalizeTimedSegments(segments) {
       return createSegment(segment.text, index, {
         start: Number.isFinite(segment.start) ? roundTime(segment.start) : null,
         end: Number.isFinite(end) ? roundTime(end) : null,
+        words: Array.isArray(segment.words) ? segment.words : undefined,
       });
     })
     .filter((segment) => segment.text);
@@ -290,6 +291,21 @@ function parseTimedJson(content) {
       text: String(segment.text ?? segment.content ?? '').trim(),
       start: Number(segment.start ?? segment.begin ?? segment.from),
       end: Number(segment.end ?? segment.stop ?? segment.to),
+      words: Array.isArray(segment.words)
+        ? segment.words
+            .map((word) => ({
+              text: String(word.word ?? word.text ?? word.content ?? '').replace(/\r\n/g, '\n'),
+              start: Number(word.start ?? word.begin ?? word.from),
+              end: Number(word.end ?? word.stop ?? word.to),
+            }))
+            .filter(
+              (word) =>
+                word.text.trim() &&
+                Number.isFinite(word.start) &&
+                Number.isFinite(word.end) &&
+                word.end >= word.start,
+            )
+        : undefined,
     }))
     .filter((segment) => segment.text && Number.isFinite(segment.start))
     .sort((left, right) => left.start - right.start);
@@ -321,10 +337,20 @@ export function exportSegmentsToJson(project) {
       title: project.title,
       timingMode: project.timingMode,
       segmentationMode: project.segmentationMode,
+      bookmark: project.bookmark ?? null,
       segments: project.segments.map((segment) => ({
         text: segment.text,
         start: segment.start,
         end: segment.end,
+        ...(Array.isArray(segment.words) && segment.words.length
+          ? {
+              words: segment.words.map((word) => ({
+                text: word.text,
+                start: word.start,
+                end: word.end,
+              })),
+            }
+          : {}),
       })),
     },
     null,

@@ -5,6 +5,45 @@ const hpmorResetStorageKey = 'lingualearn-sync-reader-hpmor-reset-version';
 const tinyAudioDataUrl =
   'data:audio/wav;base64,UklGRqQMAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YYAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
 
+const timedTranscriptPayload = {
+  segments: [
+    {
+      text: 'Hello world.',
+      start: 0,
+      end: 0.6,
+      words: [
+        { text: 'Hello', start: 0, end: 0.25 },
+        { text: ' world.', start: 0.25, end: 0.6 },
+      ],
+    },
+    {
+      text: 'Next line.',
+      start: 0.6,
+      end: 1.2,
+      words: [
+        { text: 'Next', start: 0.6, end: 0.85 },
+        { text: ' line.', start: 0.85, end: 1.2 },
+      ],
+    },
+  ],
+};
+
+async function createTimedReaderProject(page, title = 'Timed transcript drill') {
+  await page.goto(readerUrl, { waitUntil: 'networkidle' });
+
+  await page.getByLabel('Project title').fill(title);
+  await page.getByLabel('Audio URL').fill(tinyAudioDataUrl);
+  await page.getByLabel('Optional timings (JSON, SRT, VTT)').setInputFiles({
+    name: 'timed-transcript.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(timedTranscriptPayload)),
+  });
+  await page.getByRole('button', { name: 'Create Reader Project' }).click();
+
+  await expect(page.getByText(new RegExp(`Loaded "${title}" with a timed transcript.`))).toBeVisible();
+  await expect(page.getByRole('heading', { name: title })).toBeVisible();
+}
+
 test('creates a custom reader project from pasted text and audio', async ({ page }) => {
   await page.goto(readerUrl, { waitUntil: 'networkidle' });
 
@@ -189,4 +228,82 @@ test('re-importing the same HPMOR chapter replaces the existing library item', a
   await expect(
     page.getByRole('button', { name: 'Chapter 7: The Stanford Prison Experiment' }),
   ).toHaveCount(1);
+});
+
+test('shows continuous timed text with current word highlight and a shared bookmark', async ({ page }) => {
+  await createTimedReaderProject(page);
+
+  await expect(page.getByRole('heading', { name: 'Reader text' })).toBeVisible();
+  await expect(page.getByTestId('reader-line-0')).toContainText('Hello world.');
+  await expect(page.getByTestId('reader-line-1')).toContainText('Next line.');
+
+  await page.locator('audio').evaluate((audio) => {
+    audio.dataset.mockCurrentTime = '0';
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      get() {
+        return Number(this.dataset.mockCurrentTime || '0');
+      },
+      set(value) {
+        this.dataset.mockCurrentTime = String(value);
+      },
+    });
+  });
+
+  await page.locator('audio').evaluate((audio) => {
+    audio.currentTime = 0.35;
+    audio.dispatchEvent(new Event('timeupdate'));
+  });
+
+  await expect(page.getByTestId('reader-line-0')).toHaveAttribute('data-active', 'true');
+  await expect(page.getByTestId('active-word')).toHaveText('world.');
+
+  await page.getByRole('button', { name: 'Save shared bookmark' }).click();
+  await expect(page.getByText(/Saved a shared bookmark at/)).toBeVisible();
+  await expect(page.getByTestId('shared-bookmark-time')).not.toHaveText('No bookmark yet');
+
+  await page.locator('audio').evaluate((audio) => {
+    audio.currentTime = 0.9;
+    audio.dispatchEvent(new Event('timeupdate'));
+  });
+
+  await expect(page.getByTestId('reader-line-1')).toHaveAttribute('data-active', 'true');
+
+  await page.getByRole('button', { name: 'Jump to bookmark' }).first().click();
+
+  await expect(page.getByTestId('reader-line-0')).toHaveAttribute('data-selected', 'true');
+  const jumpedTime = await page.locator('audio').evaluate((audio) => audio.currentTime);
+  expect(jumpedTime).toBeLessThan(0.5);
+});
+
+test('toggles audio with the spacebar outside input fields', async ({ page }) => {
+  await createTimedReaderProject(page, 'Keyboard controls drill');
+
+  await page.locator('audio').evaluate((audio) => {
+    audio.dataset.pausedState = 'true';
+    audio.play = async () => {
+      audio.dataset.pausedState = 'false';
+    };
+    audio.pause = () => {
+      audio.dataset.pausedState = 'true';
+    };
+
+    Object.defineProperty(audio, 'paused', {
+      configurable: true,
+      get() {
+        return this.dataset.pausedState !== 'false';
+      },
+    });
+  });
+
+  await page.getByRole('heading', { name: 'Keyboard controls drill' }).click();
+  await page.keyboard.press('Space');
+  await expect
+    .poll(() => page.locator('audio').evaluate((audio) => audio.dataset.pausedState))
+    .toBe('false');
+
+  await page.keyboard.press('Space');
+  await expect
+    .poll(() => page.locator('audio').evaluate((audio) => audio.dataset.pausedState))
+    .toBe('true');
 });
