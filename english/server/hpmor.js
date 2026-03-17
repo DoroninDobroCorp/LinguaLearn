@@ -4,42 +4,42 @@ export const HPMOR_AUDIO_PARTS = [
     startChapter: 1,
     endChapter: 21,
     durationSeconds: 11.2 * 3600,
-    audioUrl: 'https://media.blubrry.com/hpmor/p/www.hpmorpodcast.com/wp-content/uploads/episodes/HPMoR_Part_1.mp3',
+    audioUrl: 'https://hpmorpodcast.com/wp-content/uploads/episodes/HPMoR_Part_1.mp3',
   },
   {
     part: 2,
     startChapter: 22,
     endChapter: 37,
     durationSeconds: 8.5 * 3600,
-    audioUrl: 'https://media.blubrry.com/hpmor/p/www.hpmorpodcast.com/wp-content/uploads/episodes/HPMoR_Part_2.mp3',
+    audioUrl: 'https://hpmorpodcast.com/wp-content/uploads/episodes/HPMoR_Part_2.mp3',
   },
   {
     part: 3,
     startChapter: 38,
     endChapter: 63,
     durationSeconds: 13.2 * 3600,
-    audioUrl: 'https://media.blubrry.com/hpmor/p/www.hpmorpodcast.com/wp-content/uploads/episodes/HPMoR_Part_3.mp3',
+    audioUrl: 'https://hpmorpodcast.com/wp-content/uploads/episodes/HPMoR_Part_3.mp3',
   },
   {
     part: 4,
     startChapter: 65,
     endChapter: 85,
     durationSeconds: 13.7 * 3600,
-    audioUrl: 'https://media.blubrry.com/hpmor/p/www.hpmorpodcast.com/wp-content/uploads/episodes/HPMoR_Part_4.mp3',
+    audioUrl: 'https://hpmorpodcast.com/wp-content/uploads/episodes/HPMoR_Part_4.mp3',
   },
   {
     part: 5,
     startChapter: 86,
     endChapter: 99,
     durationSeconds: 7.9 * 3600,
-    audioUrl: 'https://media.blubrry.com/hpmor/p/www.hpmorpodcast.com/wp-content/uploads/episodes/HPMoR_Part_5.mp3',
+    audioUrl: 'https://hpmorpodcast.com/wp-content/uploads/episodes/HPMoR_Part_5.mp3',
   },
   {
     part: 6,
     startChapter: 100,
     endChapter: 122,
     durationSeconds: 12.2 * 3600,
-    audioUrl: 'https://media.blubrry.com/hpmor/p/www.hpmorpodcast.com/wp-content/uploads/episodes/HPMoR_Part_6.mp3',
+    audioUrl: 'https://hpmorpodcast.com/wp-content/uploads/episodes/HPMoR_Part_6.mp3',
   },
 ];
 
@@ -81,6 +81,16 @@ function normalizeParagraphs(value) {
     .trim();
 }
 
+function normalizeMediaUrl(url) {
+  const decodedUrl = decodeHtmlEntities(url).trim();
+  const pathMatch = decodedUrl.match(/\/wp-content\/uploads\/episodes\/[^"'?#\s]+\.mp3/i);
+  if (pathMatch) {
+    return `https://hpmorpodcast.com${pathMatch[0]}`;
+  }
+
+  return decodedUrl.replace(/^http:\/\//i, 'https://');
+}
+
 function stripHtmlToText(html) {
   return normalizeParagraphs(
     decodeHtmlEntities(
@@ -98,6 +108,83 @@ function stripHtmlToText(html) {
         .replace(/\u00ad/g, ''),
     ),
   );
+}
+
+function buildCoverageLabel(chapterNumbers) {
+  if (!chapterNumbers.length) {
+    return 'chapter audio';
+  }
+
+  if (chapterNumbers.length === 1) {
+    return `chapter ${chapterNumbers[0]}`;
+  }
+
+  const firstChapter = chapterNumbers[0];
+  const lastChapter = chapterNumbers[chapterNumbers.length - 1];
+  return `chapters ${firstChapter}-${lastChapter}`;
+}
+
+function parsePodcastFileInfo(audioUrl) {
+  const filename = audioUrl.match(/\/([^/?#]+)\.mp3/i)?.[1] || '';
+
+  if (!/^HPMoR_Chap_/i.test(filename)) {
+    return {
+      filename,
+      isPartial: false,
+    };
+  }
+
+  const tokenString = filename.replace(/^HPMoR_Chap_/i, '');
+  const rawTokens = tokenString.split('-').filter(Boolean);
+
+  return {
+    filename,
+    isPartial: rawTokens.some((token) => /[a-z]/i.test(token)),
+  };
+}
+
+function buildPodcastEntry(sectionHtml) {
+  const audioMatch = sectionHtml.match(/href=["'](https?:\/\/[^"']+\.mp3)["']/i);
+  if (!audioMatch) {
+    return null;
+  }
+
+  const audioUrl = normalizeMediaUrl(audioMatch[1]);
+  const sectionText = stripHtmlToText(sectionHtml);
+  const chapterNumbers = Array.from(
+    new Set(
+      Array.from(sectionText.matchAll(/Chapter\s+(\d+)/gi), (match) => Number.parseInt(match[1], 10)).filter(
+        Number.isInteger,
+      ),
+    ),
+  ).sort((left, right) => left - right);
+
+  if (!chapterNumbers.length) {
+    return null;
+  }
+
+  const fileInfo = parsePodcastFileInfo(audioUrl);
+  const coverageLabel = buildCoverageLabel(chapterNumbers);
+
+  return {
+    audioUrl,
+    audioLabel:
+      chapterNumbers.length === 1
+        ? `HPMOR podcast episode · ${coverageLabel}`
+        : `HPMOR podcast episode group · ${coverageLabel}`,
+    chapterNumbers,
+    isPartial: fileInfo.isPartial,
+  };
+}
+
+export function parseHpmorPodcastEpisodeEntries(html) {
+  const episodeIndex = html.indexOf('Also available by episode');
+  const relevantHtml = episodeIndex >= 0 ? html.slice(episodeIndex) : html;
+
+  return relevantHtml
+    .split(/<hr\s*\/?>/i)
+    .map((sectionHtml) => buildPodcastEntry(sectionHtml))
+    .filter(Boolean);
 }
 
 export function getHpmorAudioPart(chapterNumber) {
@@ -170,7 +257,101 @@ function estimateWindow(chapterLengths, targetChapterNumber, audioDuration) {
   };
 }
 
-export async function buildHpmorChapterImport({ chapterNumber, fetchChapterHtml }) {
+function buildEstimatedWindow(estimatedRange, audioDurationEstimate) {
+  if (!Number.isFinite(audioDurationEstimate) || audioDurationEstimate <= 0) {
+    return {
+      startRatio: 0,
+      endRatio: 1,
+    };
+  }
+
+  const startRatio = Math.max(0, Math.min(1, estimatedRange.start / audioDurationEstimate));
+  const endRatio = Math.max(startRatio, Math.min(1, estimatedRange.end / audioDurationEstimate));
+
+  return {
+    startRatio,
+    endRatio,
+  };
+}
+
+function estimateCoverageDuration(chapterLengths, coverageChapterNumbers, totalDuration) {
+  const totalLength = chapterLengths.reduce((sum, chapter) => sum + chapter.length, 0);
+  const coverageLength = chapterLengths
+    .filter((chapter) => coverageChapterNumbers.includes(chapter.chapterNumber))
+    .reduce((sum, chapter) => sum + chapter.length, 0);
+
+  if (totalLength <= 0 || coverageLength <= 0) {
+    return totalDuration;
+  }
+
+  return Math.max((coverageLength / totalLength) * totalDuration, 1);
+}
+
+function selectHpmorAudioSource({ chapterNumber, chapterLengths, part, podcastHtml }) {
+  const podcastEntries = podcastHtml ? parseHpmorPodcastEpisodeEntries(podcastHtml) : [];
+  const podcastCandidates = podcastEntries
+    .filter(
+      (entry) =>
+        !entry.isPartial &&
+        entry.chapterNumbers.includes(chapterNumber) &&
+        entry.chapterNumbers.every(
+          (coveredChapter) => coveredChapter >= part.startChapter && coveredChapter <= part.endChapter,
+        ),
+    )
+    .sort(
+      (left, right) =>
+        left.chapterNumbers.length - right.chapterNumbers.length ||
+        left.chapterNumbers[0] - right.chapterNumbers[0],
+    );
+
+  if (!podcastCandidates.length) {
+    const partChapterNumbers = chapterLengths.map((chapter) => chapter.chapterNumber);
+    const estimatedRange = estimateWindow(chapterLengths, chapterNumber, part.durationSeconds);
+
+    return {
+      audioUrl: part.audioUrl,
+      audioDurationEstimate: part.durationSeconds,
+      audioLabel: `HPMOR audiobook part ${part.part}`,
+      estimatedRange,
+      estimatedWindow: buildEstimatedWindow(estimatedRange, part.durationSeconds),
+      audioSourceType: 'audiobook-part-fallback',
+      syncHint:
+        'This chapter is split across podcast sub-episodes or lacks a chapter-level file, so LinguaLearn is using the wider audiobook part as a fallback.',
+      coverageChapterNumbers: partChapterNumbers,
+    };
+  }
+
+  const bestCandidate = podcastCandidates[0];
+  const audioDurationEstimate = estimateCoverageDuration(
+    chapterLengths,
+    bestCandidate.chapterNumbers,
+    part.durationSeconds,
+  );
+  const coverageChapterLengths = chapterLengths.filter((chapter) =>
+    bestCandidate.chapterNumbers.includes(chapter.chapterNumber),
+  );
+  const estimatedRange = estimateWindow(coverageChapterLengths, chapterNumber, audioDurationEstimate);
+
+  return {
+    audioUrl: bestCandidate.audioUrl,
+    audioDurationEstimate,
+    audioLabel: bestCandidate.audioLabel,
+    estimatedRange,
+    estimatedWindow: buildEstimatedWindow(estimatedRange, audioDurationEstimate),
+    audioSourceType: bestCandidate.chapterNumbers.length === 1 ? 'episode' : 'episode-group',
+    syncHint:
+      bestCandidate.chapterNumbers.length === 1
+        ? 'LinguaLearn found a chapter-specific HPMOR podcast file, so the import should land much closer to the right text.'
+        : 'LinguaLearn found a narrow HPMOR podcast episode group, so the import should stay much tighter than the full audiobook part.',
+    coverageChapterNumbers: bestCandidate.chapterNumbers,
+  };
+}
+
+export async function buildHpmorChapterImport({
+  chapterNumber,
+  fetchChapterHtml,
+  fetchPodcastHtml,
+}) {
   const part = getHpmorAudioPart(chapterNumber);
 
   const chapterNumbers = [];
@@ -178,12 +359,15 @@ export async function buildHpmorChapterImport({ chapterNumber, fetchChapterHtml 
     chapterNumbers.push(current);
   }
 
-  const htmlEntries = await Promise.all(
-    chapterNumbers.map(async (currentChapterNumber) => ({
-      chapterNumber: currentChapterNumber,
-      html: await fetchChapterHtml(currentChapterNumber),
-    })),
-  );
+  const [htmlEntries, podcastHtml] = await Promise.all([
+    Promise.all(
+      chapterNumbers.map(async (currentChapterNumber) => ({
+        chapterNumber: currentChapterNumber,
+        html: await fetchChapterHtml(currentChapterNumber),
+      })),
+    ),
+    fetchPodcastHtml ? fetchPodcastHtml().catch(() => '') : Promise.resolve(''),
+  ]);
 
   const chapterLengths = htmlEntries.map(({ chapterNumber: currentChapterNumber, html }) => ({
     chapterNumber: currentChapterNumber,
@@ -195,16 +379,18 @@ export async function buildHpmorChapterImport({ chapterNumber, fetchChapterHtml 
     throw createHpmorError(`Failed to load HPMOR chapter ${chapterNumber}.`, 502);
   }
 
-  const estimatedRange = estimateWindow(chapterLengths, chapterNumber, part.durationSeconds);
+  const audioSource = selectHpmorAudioSource({
+    chapterNumber,
+    chapterLengths,
+    part,
+    podcastHtml,
+  });
 
   return {
     chapterNumber,
     title: extractHpmorChapterTitle(targetHtml),
     text: extractHpmorChapterText(targetHtml),
-    audioUrl: part.audioUrl,
-    audioDurationEstimate: part.durationSeconds,
-    audioLabel: `HPMOR audiobook part ${part.part}`,
-    estimatedRange,
     source: 'hpmor',
+    ...audioSource,
   };
 }

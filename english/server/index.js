@@ -13,6 +13,7 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = 3001;
 const hpmorChapterHtmlCache = new Map();
+let hpmorPodcastHtmlCache = null;
 
 // Инициализация Gemini
 if (!process.env.GEMINI_API_KEY) {
@@ -929,6 +930,28 @@ async function fetchHpmorChapterHtml(chapterNumber) {
   return html;
 }
 
+async function fetchHpmorPodcastHtml() {
+  if (hpmorPodcastHtmlCache) {
+    return hpmorPodcastHtmlCache;
+  }
+
+  const response = await fetch('https://hpmorpodcast.com/?page_id=56', {
+    headers: {
+      'User-Agent': 'LinguaLearn Sync Reader/1.0',
+    },
+  });
+
+  if (!response.ok) {
+    const error = new Error('Failed to fetch the HPMOR podcast index.');
+    error.statusCode = response.status === 404 ? 404 : 502;
+    throw error;
+  }
+
+  const html = await response.text();
+  hpmorPodcastHtmlCache = html;
+  return html;
+}
+
 app.get('/api/reader/hpmor/chapter/:chapterNumber', async (req, res) => {
   try {
     const chapterNumber = Number.parseInt(req.params.chapterNumber, 10);
@@ -940,6 +963,7 @@ app.get('/api/reader/hpmor/chapter/:chapterNumber', async (req, res) => {
     const chapterImport = await buildHpmorChapterImport({
       chapterNumber,
       fetchChapterHtml: fetchHpmorChapterHtml,
+      fetchPodcastHtml: fetchHpmorPodcastHtml,
     });
 
     res.json(chapterImport);

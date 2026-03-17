@@ -67,6 +67,38 @@ function countVisibleAnchors(project) {
   }).length;
 }
 
+function clampRatio(value, fallback) {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.min(1, value));
+}
+
+function getEstimatedWindowAnchors(project, duration, segmentCount) {
+  if (!Number.isFinite(duration) || duration <= 0 || !project.estimatedWindow) {
+    return {};
+  }
+
+  const startRatio = clampRatio(project.estimatedWindow.startRatio, 0);
+  const endRatio = clampRatio(project.estimatedWindow.endRatio, 1);
+  const start = Number((duration * startRatio).toFixed(3));
+  const end = Number((duration * Math.max(endRatio, startRatio)).toFixed(3));
+  const safeEnd = Math.max(start, Math.min(duration, end));
+
+  return {
+    0: start,
+    [segmentCount]: safeEnd,
+  };
+}
+
+function buildCombinedAnchors(project, duration, segmentCount) {
+  return {
+    ...getEstimatedWindowAnchors(project, duration, segmentCount),
+    ...(project.manualAnchors || {}),
+  };
+}
+
 function getSegmentBadges(project) {
   return {
     modeLabel: project.timingMode === 'timed' ? 'Timed transcript' : 'Rough sync + anchors',
@@ -77,7 +109,48 @@ function getSegmentBadges(project) {
 
 function buildEstimatedSegments(project, duration) {
   const rawSegments = splitTextIntoSegments(project.rawText, project.segmentationMode);
-  return estimateSegmentBoundaries(rawSegments, duration, project.manualAnchors);
+  return estimateSegmentBoundaries(
+    rawSegments,
+    duration,
+    buildCombinedAnchors(project, duration, rawSegments.length),
+  );
+}
+
+function normalizeLoadedProject(project) {
+  if (project?.source !== 'hpmor' || project?.timingMode !== 'estimated' || project?.estimatedWindow) {
+    return project;
+  }
+
+  const segmentCount = Array.isArray(project.segments) ? project.segments.length : 0;
+  if (segmentCount <= 0) {
+    return project;
+  }
+
+  const startAnchor = Number(project.manualAnchors?.[0]);
+  const endAnchor = Number(project.manualAnchors?.[segmentCount]);
+  const duration = Number(project.audioDuration) || endAnchor;
+
+  if (!Number.isFinite(startAnchor) || !Number.isFinite(endAnchor) || !Number.isFinite(duration) || duration <= 0) {
+    return project;
+  }
+
+  const manualAnchors = { ...(project.manualAnchors || {}) };
+  delete manualAnchors[0];
+  delete manualAnchors[segmentCount];
+
+  const normalizedProject = {
+    ...project,
+    manualAnchors,
+    estimatedWindow: {
+      startRatio: clampRatio(startAnchor / duration, 0),
+      endRatio: clampRatio(endAnchor / duration, 1),
+    },
+  };
+
+  return {
+    ...normalizedProject,
+    segments: buildEstimatedSegments(normalizedProject, duration),
+  };
 }
 
 function downloadJson(filename, content) {
@@ -114,7 +187,9 @@ function SyncReader() {
   const [audioSource, setAudioSource] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [hpmorChapter, setHpmorChapter] = useState('1');
+  const [followPlayback, setFollowPlayback] = useState(false);
   const segmentRefs = useRef({});
+  const segmentsContainerRef = useRef(null);
   const audioRef = useRef(null);
 
   const activeProject = useMemo(
@@ -141,9 +216,11 @@ function SyncReader() {
           return;
         }
 
-        setProjects(savedProjects);
-        if (savedProjects.length > 0) {
-          setActiveProjectId(savedProjects[0].id);
+        const normalizedProjects = savedProjects.map((project) => normalizeLoadedProject(project));
+
+        setProjects(normalizedProjects);
+        if (normalizedProjects.length > 0) {
+          setActiveProjectId(normalizedProjects[0].id);
         }
       } catch (error) {
         if (!isMounted) {
@@ -203,15 +280,37 @@ function SyncReader() {
   }, [playbackRate, activeProjectId]);
 
   useEffect(() => {
-    if (activeSegmentIndex < 0) {
+    if (!followPlayback || activeSegmentIndex < 0) {
       return;
     }
 
+    const container = segmentsContainerRef.current;
     const element = segmentRefs.current[activeSegmentIndex];
-    if (element) {
-      element.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (!container || !element) {
+      return;
     }
-  }, [activeSegmentIndex]);
+
+    const margin = 24;
+    const elementTop = element.offsetTop;
+    const elementBottom = elementTop + element.offsetHeight;
+    const visibleTop = container.scrollTop;
+    const visibleBottom = visibleTop + container.clientHeight;
+
+    if (elementTop < visibleTop + margin) {
+      container.scrollTo({
+        top: Math.max(elementTop - margin, 0),
+        behavior: 'smooth',
+      });
+      return;
+    }
+
+    if (elementBottom > visibleBottom - margin) {
+      container.scrollTo({
+        top: Math.max(elementBottom - container.clientHeight + margin, 0),
+        behavior: 'smooth',
+      });
+    }
+  }, [activeSegmentIndex, followPlayback]);
 
   async function persistProject(updatedProject) {
     const savedProject = {
@@ -280,6 +379,7 @@ function SyncReader() {
         textName: form.textFile?.name || (normalizedText ? 'Pasted text' : 'Transcript text'),
         timingsName: form.timingsFile?.name || null,
         manualAnchors: {},
+        estimatedWindow: null,
         segments,
         audioDuration: null,
         needsSync: timingMode === 'estimated',
@@ -320,12 +420,8 @@ function SyncReader() {
       }
 
       const rawSegments = splitTextIntoSegments(data.text, 'sentence');
-      const manualAnchors = {
-        0: data.estimatedRange.start,
-        [rawSegments.length]: data.estimatedRange.end,
-      };
       const now = new Date().toISOString();
-      const project = {
+      const draftProject = {
         id: generateProjectId(),
         title: data.title,
         rawText: data.text,
@@ -335,22 +431,31 @@ function SyncReader() {
         audioBlob: null,
         audioName: data.audioLabel,
         textName: `HPMOR chapter ${chapterNumber}`,
-        timingsName: 'Estimated from official text + audiobook part',
-        manualAnchors,
-        segments: estimateSegmentBoundaries(rawSegments, data.audioDurationEstimate, manualAnchors),
+        timingsName: `Estimated from ${data.audioSourceType === 'audiobook-part-fallback' ? 'the official audiobook part' : 'the narrowest official podcast episode'}`,
+        manualAnchors: {},
+        estimatedWindow: data.estimatedWindow || null,
+        segments: [],
         audioDuration: data.audioDurationEstimate,
-        needsSync: false,
+        needsSync: true,
         source: data.source,
+        audioSourceType: data.audioSourceType,
+        syncHint: data.syncHint,
         createdAt: now,
         updatedAt: now,
+      };
+      const project = {
+        ...draftProject,
+        segments: estimateSegmentBoundaries(
+          rawSegments,
+          data.audioDurationEstimate,
+          buildCombinedAnchors(draftProject, data.audioDurationEstimate, rawSegments.length),
+        ),
       };
 
       await persistProject(project);
       setStatus({
         type: 'success',
-        message: `Imported HPMOR chapter ${chapterNumber}. Start estimate: ${formatTime(
-          data.estimatedRange.start,
-        )}. Refine with pins if it drifts.`,
+        message: `${data.syncHint} Start estimate: ${formatTime(data.estimatedRange.start)}. Follow playback is off by default so the page stays still.`,
       });
     } catch (error) {
       setStatus({ type: 'error', message: error.message });
@@ -389,7 +494,7 @@ function SyncReader() {
     }
 
     const nextIndex = findSegmentIndexByTime(activeProject.segments, audioRef.current.currentTime);
-    setActiveSegmentIndex(nextIndex);
+    setActiveSegmentIndex((currentIndex) => (currentIndex === nextIndex ? currentIndex : nextIndex));
   }
 
   function seekToSegment(segmentIndex) {
@@ -565,8 +670,9 @@ function SyncReader() {
             <div className={`mt-4 rounded-xl border p-4 ${softCardClass}`}>
               <p className="text-sm font-semibold">One-click HPMOR import</p>
               <p className={`mt-1 text-xs ${subtextClass}`}>
-                Imports the official chapter text and estimates its location inside the matching HPMOR
-                audiobook part.
+                Imports the official chapter text and uses the narrowest official HPMOR podcast audio
+                file available. If a chapter only exists as split sub-episodes, LinguaLearn falls back to
+                the wider audiobook part.
               </p>
               <div className="mt-3 flex flex-col gap-3 sm:flex-row">
                 <input
@@ -800,7 +906,8 @@ function SyncReader() {
                     <p className={`${subtextClass} mt-2`}>
                       {activeProject.timingMode === 'timed'
                         ? 'Exact timings imported from a transcript file.'
-                        : 'Rough sync is estimated from text length. Use manual anchors where it drifts.'}
+                        : activeProject.syncHint ||
+                          'Rough sync is estimated from text length. Use manual anchors where it drifts.'}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-900">
@@ -883,7 +990,25 @@ function SyncReader() {
                   </div>
                 </div>
 
-                <div className={`mt-4 rounded-2xl border p-5 ${softCardClass}`}>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFollowPlayback((currentValue) => !currentValue)}
+                    className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
+                      followPlayback
+                        ? 'border-lime-400 bg-lime-100 text-lime-900'
+                        : `${borderClass} ${cardClass}`
+                    }`}
+                  >
+                    {followPlayback ? 'Follow playback: on' : 'Follow playback: off'}
+                  </button>
+                  <p className={`text-xs ${subtextClass}`}>
+                    Off by default so the page stays still. Turn it on only if you want the segment list
+                    to move with the audio.
+                  </p>
+                </div>
+
+                <div className={`mt-4 rounded-2xl border p-5 ${softCardClass} min-h-[9rem] max-h-[16rem] overflow-y-auto`}>
                   <p className="text-sm font-semibold">Now reading</p>
                   <p className="mt-3 text-lg leading-relaxed">
                     {activeSegment?.text || 'Press play to let the reader follow your audio.'}
@@ -953,8 +1078,8 @@ function SyncReader() {
                     <div>
                       <h4 className="text-xl font-bold">Segments</h4>
                       <p className={`${subtextClass} mt-1 text-sm`}>
-                        Click a segment to select it. Double-clicking isn&apos;t needed: clicking also seeks
-                        when timings are available.
+                        Click a segment to select it. The list follows playback only when the toggle above
+                        is turned on.
                       </p>
                     </div>
                     <span className={`text-sm font-semibold ${accentTextClass}`}>
@@ -962,7 +1087,7 @@ function SyncReader() {
                     </span>
                   </div>
 
-                  <div className="mt-4 max-h-[70vh] space-y-3 overflow-y-auto pr-2">
+                  <div ref={segmentsContainerRef} className="mt-4 max-h-[70vh] space-y-3 overflow-y-auto pr-2">
                     {activeProject.segments.map((segment) => {
                       const isSelected = selectedSegmentIndex === segment.index;
                       const isActive = activeSegmentIndex === segment.index;

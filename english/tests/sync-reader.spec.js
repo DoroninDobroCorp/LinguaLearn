@@ -21,6 +21,7 @@ test('creates a custom reader project from pasted text and audio', async ({ page
   await expect(page.getByText('First shadowing line.').first()).toBeVisible();
   await expect(page.getByText('Second shadowing line.').first()).toBeVisible();
   await expect(page.getByText('0 manual pins')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Follow playback: off' })).toBeVisible();
 });
 
 test('imports an HPMOR chapter via mocked backend response', async ({ page }) => {
@@ -35,10 +36,17 @@ test('imports an HPMOR chapter via mocked backend response', async ({ page }) =>
         audioUrl: tinyAudioDataUrl,
         audioDurationEstimate: 180,
         audioLabel: 'HPMOR audiobook part 1',
+        audioSourceType: 'episode-group',
+        estimatedWindow: {
+          startRatio: 0.133,
+          endRatio: 0.217,
+        },
         estimatedRange: {
           start: 24,
           end: 39,
         },
+        syncHint:
+          'LinguaLearn found a narrow HPMOR podcast episode group, so the import should stay much tighter than the full audiobook part.',
         source: 'hpmor',
       }),
     });
@@ -49,9 +57,9 @@ test('imports an HPMOR chapter via mocked backend response', async ({ page }) =>
   await page.getByPlaceholder('Chapter number').fill('7');
   await page.getByRole('button', { name: 'Import chapter' }).click();
 
-  await expect(page.getByText(/Imported HPMOR chapter 7\./)).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Chapter 7: The Stanford Prison Experiment' })).toBeVisible();
   await expect(page.getByText('HPMOR audiobook part 1')).toBeVisible();
   await expect(page.getByText('Harry stepped forward.').first()).toBeVisible();
   await expect(page.getByText('0 manual pins')).toBeVisible();
+  await expect(page.getByText(/stay much tighter than the full audiobook part/).first()).toBeVisible();
 });
