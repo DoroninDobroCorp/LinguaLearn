@@ -38,6 +38,45 @@ async function mockReadyChapter4Assets(page) {
   });
 }
 
+async function mockReadyChapter12Assets(page, options = {}) {
+  const segments =
+    options.segments ||
+    [
+      {
+        text: 'Hello, and welcome to the Methods of Rationality podcast.',
+        start: 0,
+        end: 2.1,
+      },
+      {
+        text: 'Chapter 12: Impulse Control',
+        start: 2.1,
+        end: 5.3,
+      },
+    ];
+  const translations =
+    options.translations ||
+    [
+      'Здравствуйте, и добро пожаловать на подкаст «Методы рациональности».',
+      'Глава 12: Контроль импульсов',
+    ];
+
+  await page.route('**/english/reader-examples/chapter12-local-whisper-lines.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ segments }),
+    });
+  });
+
+  await page.route('**/english/reader-examples/chapter12-local-whisper-lines.ru.json', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ translations }),
+    });
+  });
+}
+
 async function createTimedReaderProject(page, title = 'Timed transcript drill') {
   await page.goto(readerUrl, { waitUntil: 'networkidle' });
 
@@ -72,6 +111,236 @@ test('creates a custom reader project from pasted text and audio', async ({ page
   await expect(page.getByText('Second shadowing line.').first()).toBeVisible();
   await expect(page.getByText('0 manual pins')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Follow playback: off' })).toBeVisible();
+});
+
+test('creates a timed reader project by transcribing an audio URL locally', async ({ page }) => {
+  await page.route('**/english/api/reader/transcribe-url', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        timingMode: 'timed',
+        timingsName: 'Local Whisper transcript · line timings (small.en)',
+        text: 'Hello there.\n\nGeneral Kenobi.',
+        audioDurationEstimate: 12,
+        segments: [
+          {
+            text: 'Hello there.',
+            start: 0,
+            end: 1.2,
+          },
+          {
+            text: 'General Kenobi.',
+            start: 1.2,
+            end: 2.8,
+          },
+        ],
+        syncHint: 'LinguaLearn transcribed the official HPMOR audio as spoken with local Whisper timings.',
+      }),
+    });
+  });
+
+  await page.goto(readerUrl, { waitUntil: 'networkidle' });
+  await page.getByLabel('Project title').fill('Local ASR drill');
+  await page.getByLabel('Audio URL').fill(tinyAudioDataUrl);
+  await page.getByRole('button', { name: 'Transcribe Audio Locally' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Local ASR drill' })).toBeVisible();
+  await expect(page.getByText(/Loaded "Local ASR drill" with a local timed transcript/)).toBeVisible();
+  await expect(page.getByText('Hello there.').first()).toBeVisible();
+  await expect(page.getByText('General Kenobi.').first()).toBeVisible();
+  await expect(page.getByText('Exact line timings are loaded.').first()).toBeVisible();
+});
+
+test('shows a progress bar while local transcription is running', async ({ page }) => {
+  await page.route('**/english/api/reader/transcribe-url', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        timingMode: 'timed',
+        timingsName: 'Local Whisper transcript · line timings (small.en)',
+        text: 'Delayed line.',
+        audioDurationEstimate: 6,
+        segments: [
+          {
+            text: 'Delayed line.',
+            start: 0,
+            end: 1.5,
+          },
+        ],
+        syncHint: 'LinguaLearn transcribed the official HPMOR audio as spoken with local Whisper timings.',
+      }),
+    });
+  });
+
+  await page.goto(readerUrl, { waitUntil: 'networkidle' });
+  await page.getByLabel('Project title').fill('Delayed ASR drill');
+  await page.getByLabel('Audio URL').fill(tinyAudioDataUrl);
+  await page.getByRole('button', { name: 'Transcribe Audio Locally' }).click();
+
+  await expect(page.getByTestId('reader-progress')).toBeVisible();
+  await expect(page.getByTestId('reader-progress')).toContainText('Transcribing audio locally');
+  await expect(page.getByTestId('reader-progress')).toContainText('Processing on the server');
+  await expect(page.getByRole('heading', { name: 'Delayed ASR drill' })).toBeVisible();
+  await expect(page.getByTestId('reader-progress')).toHaveCount(0);
+});
+
+test('falls back to /api translation when /english/api returns HTML', async ({ page }) => {
+  await createTimedReaderProject(page, 'Translation fallback drill');
+
+  await page.route('**/english/api/reader/translate', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<!DOCTYPE html><html><body>fallback</body></html>',
+    });
+  });
+
+  await page.route('**/api/reader/translate', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        translations: ['Привет, мир.', 'Следующая строка.'],
+      }),
+    });
+  });
+
+  await page.getByRole('button', { name: 'Open EN/RU reader' }).click();
+
+  await expect(page.getByText('Привет, мир.').first()).toBeVisible();
+  await expect(page.getByText('Следующая строка.').first()).toBeVisible();
+});
+
+test('falls back to direct backend translation when proxy paths return HTML', async ({ page }) => {
+  await createTimedReaderProject(page, 'Direct backend translation fallback drill');
+
+  await page.route('**/english/api/reader/translate', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<!DOCTYPE html><html><body>english proxy fallback</body></html>',
+    });
+  });
+
+  await page.route('**/api/reader/translate', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<!DOCTYPE html><html><body>root proxy fallback</body></html>',
+    });
+  });
+
+  await page.route('http://127.0.0.1:3001/api/reader/translate', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        translations: ['Привет, мир.', 'Следующая строка.'],
+      }),
+    });
+  });
+
+  await page.getByRole('button', { name: 'Open EN/RU reader' }).click();
+
+  await expect(page.getByText('Привет, мир.').first()).toBeVisible();
+  await expect(page.getByText('Следующая строка.').first()).toBeVisible();
+});
+
+test('requests translation as the same visible English lines', async ({ page }) => {
+  await createTimedReaderProject(page, 'Line aligned translation drill');
+
+  let translationPayload = null;
+  await page.route('**/english/api/reader/translate', async (route) => {
+    translationPayload = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        translations: ['Привет, мир.', 'Следующая строка.'],
+      }),
+    });
+  });
+
+  await page.getByRole('button', { name: 'Open EN/RU reader' }).click();
+
+  await expect(page.getByText('Привет, мир.').first()).toBeVisible();
+  expect(translationPayload).toEqual({
+    title: 'Line aligned translation drill',
+    lines: ['Hello world.', 'Next line.'],
+  });
+});
+
+test('opens ready chapter 12 with prepared Russian translation and no API call', async ({ page }) => {
+  await mockReadyChapter12Assets(page);
+
+  let translationApiCalls = 0;
+  await page.route('**/reader/translate', async (route) => {
+    translationApiCalls += 1;
+    await route.abort();
+  });
+
+  await page.goto(readerUrl, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Open ready chapter 12' }).click();
+
+  await expect(page.getByRole('heading', { name: 'HPMOR Chapter 12 · Ready reader' })).toBeVisible();
+  await page.getByRole('button', { name: 'Open EN/RU reader' }).click();
+
+  await expect(page.getByText('Здравствуйте, и добро пожаловать на подкаст «Методы рациональности».').first()).toBeVisible();
+  await expect(page.getByText('Глава 12: Контроль импульсов').first()).toBeVisible();
+  expect(translationApiCalls).toBe(0);
+});
+
+test('syncs bilingual scrolling in both directions', async ({ page }) => {
+  const segments = Array.from({ length: 36 }, (_, index) => ({
+    text: `English line ${index + 1}. ${'More text. '.repeat((index % 3) + 2)}`,
+    start: index * 2,
+    end: index * 2 + 2,
+  }));
+  const translations = segments.map(
+    (_, index) => `Русская строка ${index + 1}. ${'Больше текста. '.repeat((index % 4) + 3)}`,
+  );
+
+  await mockReadyChapter12Assets(page, { segments, translations });
+
+  await page.goto(readerUrl, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Open ready chapter 12' }).click();
+  await page.getByRole('button', { name: 'Open EN/RU reader' }).click();
+
+  await expect(page.getByTestId('split-english-scroll')).toBeVisible();
+  await expect(page.getByTestId('split-translation-scroll')).toBeVisible();
+
+  await page.evaluate(() => {
+    const element = document.querySelector('[data-testid="split-english-scroll"]');
+    element.scrollTop = 700;
+    element.dispatchEvent(new Event('scroll'));
+  });
+
+  await page.waitForFunction(() => {
+    const element = document.querySelector('[data-testid="split-translation-scroll"]');
+    return element && element.scrollTop > 0;
+  });
+
+  const englishScrollAfterFirstMove = await page.getByTestId('split-english-scroll').evaluate((element) => element.scrollTop);
+  const translationScrollAfterFirstMove = await page
+    .getByTestId('split-translation-scroll')
+    .evaluate((element) => element.scrollTop);
+
+  expect(englishScrollAfterFirstMove).toBeGreaterThan(0);
+  expect(translationScrollAfterFirstMove).toBeGreaterThan(0);
+
+  await page.evaluate(() => {
+    const element = document.querySelector('[data-testid="split-translation-scroll"]');
+    element.scrollTop = 1200;
+    element.dispatchEvent(new Event('scroll'));
+  });
+
+  await page.waitForFunction((previousEnglishTop) => {
+    const element = document.querySelector('[data-testid="split-english-scroll"]');
+    return element && element.scrollTop > previousEnglishTop;
+  }, englishScrollAfterFirstMove);
 });
 
 test('resets stale HPMOR chapter imports while keeping manual projects', async ({ page }) => {
@@ -189,6 +458,57 @@ test('imports an HPMOR chapter via mocked backend response', async ({ page }) =>
   await expect(page.getByText('Harry stepped forward.').first()).toBeVisible();
   await expect(page.getByText('0 manual pins')).toBeVisible();
   await expect(page.getByText(/stay much tighter than the full audiobook part/).first()).toBeVisible();
+});
+
+test('imports a timed HPMOR chapter via mocked backend response', async ({ page }) => {
+  await page.route('**/english/api/reader/hpmor/chapter/12', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        chapterNumber: 12,
+        title: 'Chapter 12: Impulse Control',
+        text:
+          'Hello, and welcome to the Methods of Rationality podcast.\n\nChapter 12: Impulse Control\n\n"Wonder what\'s wrong with him."',
+        audioUrl: tinyAudioDataUrl,
+        audioDurationEstimate: 90,
+        audioLabel: 'HPMOR podcast episode · chapter 12',
+        audioSourceType: 'episode',
+        timingMode: 'timed',
+        timingsName: 'Local Whisper transcript · line timings (small.en)',
+        segments: [
+          {
+            text: 'Hello, and welcome to the Methods of Rationality podcast.',
+            start: 0,
+            end: 2.1,
+          },
+          {
+            text: 'Chapter 12: Impulse Control',
+            start: 2.1,
+            end: 5.3,
+          },
+          {
+            text: '"Wonder what\'s wrong with him."',
+            start: 5.3,
+            end: 7.9,
+          },
+        ],
+        syncHint: 'LinguaLearn transcribed the official HPMOR audio as spoken with local Whisper timings.',
+        source: 'hpmor',
+      }),
+    });
+  });
+
+  await page.goto(readerUrl, { waitUntil: 'networkidle' });
+
+  await page.getByPlaceholder('Chapter number').fill('12');
+  await page.getByRole('button', { name: 'Import chapter' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Chapter 12: Impulse Control' })).toBeVisible();
+  await expect(page.getByText(/Exact line timings are loaded/).first()).toBeVisible();
+  await expect(page.getByText('Hello, and welcome to the Methods of Rationality podcast.').first()).toBeVisible();
+  await expect(page.getByText('"Wonder what\'s wrong with him."').first()).toBeVisible();
+  await expect(page.getByText(/transcribed the official HPMOR audio as spoken with local Whisper timings/).first()).toBeVisible();
 });
 
 test('re-importing the same HPMOR chapter replaces the existing library item', async ({ page }) => {
@@ -539,7 +859,7 @@ test('opens the ready chapter 4 example from a direct link and restores saved pr
   await page.goto(`${readerUrl}?example=hpmor-chapter-4`, { waitUntil: 'domcontentloaded' });
 
   await expect(page.getByRole('heading', { name: 'HPMOR Chapter 4 · Ready reader' })).toBeVisible();
-  await expect(page.getByText(/Opened the ready chapter 4 reader/i)).toBeVisible();
+  await expect(page.getByText(/Opened the ready reader for HPMOR Chapter 4/i)).toBeVisible();
 
   await page.locator('audio').evaluate((audio) => {
     audio.dataset.mockCurrentTime = '0';

@@ -3,12 +3,15 @@ node_modules/
 
 # Environment variables (NEVER commit secrets!)
 .env
+english/.venv-asr/
+english/server/__pycache__/
 
 # Database files
 *.db
 
 # Build output
 dist/
+english/server/.cache/
 
 # OS files
 .DS_Store

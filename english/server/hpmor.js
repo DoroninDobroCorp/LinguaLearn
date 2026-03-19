@@ -60,6 +60,8 @@ const ENTITY_MAP = {
   middot: '·',
 };
 
+const HPMOR_FRONT_MATTER_PREFIXES = [/^disclaimer:/i, /^a\/n:/i, /^an:/i, /^author'?s note:/i, /^edit:/i, /^note:/i];
+
 function createHpmorError(message, statusCode) {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -149,6 +151,7 @@ function buildPodcastEntry(sectionHtml) {
     return null;
   }
 
+  const postUrlMatch = sectionHtml.match(/<a[^>]*href=["']([^"']+)["'][^>]*>\s*Post\s*<\/a>/i);
   const audioUrl = normalizeMediaUrl(audioMatch[1]);
   const sectionText = stripHtmlToText(sectionHtml);
   const chapterNumbers = Array.from(
@@ -174,6 +177,7 @@ function buildPodcastEntry(sectionHtml) {
         : `HPMOR podcast episode group · ${coverageLabel}`,
     chapterNumbers,
     isPartial: fileInfo.isPartial,
+    postUrl: postUrlMatch ? decodeHtmlEntities(postUrlMatch[1]).trim() : null,
   };
 }
 
@@ -231,6 +235,95 @@ export function extractHpmorChapterText(html) {
   }
 
   return stripHtmlToText(storyMatch[1]);
+}
+
+function looksLikeHpmorFrontMatter(paragraph) {
+  const normalizedParagraph = paragraph.replace(/\s+/g, ' ').trim();
+  if (!normalizedParagraph) {
+    return false;
+  }
+
+  if (HPMOR_FRONT_MATTER_PREFIXES.some((pattern) => pattern.test(normalizedParagraph))) {
+    return true;
+  }
+
+  return normalizedParagraph.length <= 240 && /J\.\s*K\.\s*Rowling/i.test(normalizedParagraph);
+}
+
+function stripLeadingHpmorFrontMatter(text) {
+  const paragraphs = normalizeParagraphs(text)
+    .split(/\n\s*\n+/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
+  let storyStartIndex = 0;
+  while (storyStartIndex < paragraphs.length && looksLikeHpmorFrontMatter(paragraphs[storyStartIndex])) {
+    storyStartIndex += 1;
+  }
+
+  return normalizeParagraphs(paragraphs.slice(storyStartIndex).join('\n\n'));
+}
+
+export function buildHpmorNarrationText(title, text) {
+  const normalizedTitle = normalizeParagraphs(String(title || '').replace(/\s+/g, ' '));
+  const storyText = stripLeadingHpmorFrontMatter(text);
+  const storyAlreadyStartsWithTitle =
+    normalizedTitle && storyText.toLowerCase().startsWith(normalizedTitle.toLowerCase());
+
+  return normalizeParagraphs(
+    [normalizedTitle, storyAlreadyStartsWithTitle ? '' : storyText]
+      .filter(Boolean)
+      .join('\n\n'),
+  );
+}
+
+function parseIso8601Duration(value) {
+  const match = String(value || '').trim().match(/^P(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const hours = Number(match[1] || 0);
+  const minutes = Number(match[2] || 0);
+  const seconds = Number(match[3] || 0);
+  const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+  return Number.isFinite(totalSeconds) && totalSeconds > 0 ? totalSeconds : null;
+}
+
+export function extractPodcastAudioDuration(html) {
+  const durationMatch =
+    html.match(/<meta[^>]*itemprop=["']duration["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
+    html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*itemprop=["']duration["'][^>]*>/i);
+
+  return parseIso8601Duration(durationMatch?.[1]);
+}
+
+async function maybeApplyExactPodcastDuration(audioSource, fetchPodcastPostHtml) {
+  if (!audioSource.postUrl || !fetchPodcastPostHtml) {
+    return audioSource;
+  }
+
+  try {
+    const podcastPostHtml = await fetchPodcastPostHtml(audioSource.postUrl);
+    const exactDuration = extractPodcastAudioDuration(podcastPostHtml);
+    if (!Number.isFinite(exactDuration) || exactDuration <= 0) {
+      return audioSource;
+    }
+
+    const startRatio = Number(audioSource.estimatedWindow?.startRatio) || 0;
+    const endRatio = Number(audioSource.estimatedWindow?.endRatio) || 1;
+
+    return {
+      ...audioSource,
+      audioDurationEstimate: exactDuration,
+      estimatedRange: {
+        start: startRatio * exactDuration,
+        end: Math.max(endRatio * exactDuration, startRatio * exactDuration + 1),
+      },
+    };
+  } catch {
+    return audioSource;
+  }
 }
 
 function estimateWindow(chapterLengths, targetChapterNumber, audioDuration) {
@@ -344,6 +437,7 @@ function selectHpmorAudioSource({ chapterNumber, chapterLengths, part, podcastHt
         ? 'LinguaLearn found a chapter-specific HPMOR podcast file, so the import should land much closer to the right text.'
         : 'LinguaLearn found a narrow HPMOR podcast episode group, so the import should stay much tighter than the full audiobook part.',
     coverageChapterNumbers: bestCandidate.chapterNumbers,
+    postUrl: bestCandidate.postUrl || null,
   };
 }
 
@@ -351,6 +445,7 @@ export async function buildHpmorChapterImport({
   chapterNumber,
   fetchChapterHtml,
   fetchPodcastHtml,
+  fetchPodcastPostHtml,
 }) {
   const part = getHpmorAudioPart(chapterNumber);
 
@@ -369,28 +464,43 @@ export async function buildHpmorChapterImport({
     fetchPodcastHtml ? fetchPodcastHtml().catch(() => '') : Promise.resolve(''),
   ]);
 
-  const chapterLengths = htmlEntries.map(({ chapterNumber: currentChapterNumber, html }) => ({
+  const chapterEntries = htmlEntries.map(({ chapterNumber: currentChapterNumber, html }) => {
+    const title = extractHpmorChapterTitle(html);
+    const text = extractHpmorChapterText(html);
+
+    return {
+      chapterNumber: currentChapterNumber,
+      title,
+      narrationText: buildHpmorNarrationText(title, text),
+    };
+  });
+
+  const chapterLengths = chapterEntries.map(({ chapterNumber: currentChapterNumber, narrationText }) => ({
     chapterNumber: currentChapterNumber,
-    length: extractHpmorChapterText(html).length,
+    length: narrationText.length,
   }));
 
-  const targetHtml = htmlEntries.find((entry) => entry.chapterNumber === chapterNumber)?.html;
-  if (!targetHtml) {
+  const targetChapter = chapterEntries.find((entry) => entry.chapterNumber === chapterNumber);
+  if (!targetChapter) {
     throw createHpmorError(`Failed to load HPMOR chapter ${chapterNumber}.`, 502);
   }
 
-  const audioSource = selectHpmorAudioSource({
-    chapterNumber,
-    chapterLengths,
-    part,
-    podcastHtml,
-  });
+  const audioSource = await maybeApplyExactPodcastDuration(
+    selectHpmorAudioSource({
+      chapterNumber,
+      chapterLengths,
+      part,
+      podcastHtml,
+    }),
+    fetchPodcastPostHtml,
+  );
+  const { postUrl: _postUrl, ...publicAudioSource } = audioSource;
 
   return {
     chapterNumber,
-    title: extractHpmorChapterTitle(targetHtml),
-    text: extractHpmorChapterText(targetHtml),
+    title: targetChapter.title,
+    text: targetChapter.narrationText,
     source: 'hpmor',
-    ...audioSource,
+    ...publicAudioSource,
   };
 }

@@ -6,6 +6,8 @@ import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { buildHpmorChapterImport } from './hpmor.js';
+import { transcribeAudioLocally } from './localAudioTranscription.js';
+import { translateSegmentsWithGemini } from './geminiSegmentTranslation.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -13,6 +15,7 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = 3001;
 const hpmorChapterHtmlCache = new Map();
+const hpmorPodcastPostHtmlCache = new Map();
 let hpmorPodcastHtmlCache = null;
 
 // Инициализация Gemini
@@ -303,7 +306,7 @@ const seedCurriculum = db.transaction(() => {
 seedCurriculum();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 // Уровни английского языка по приоритету
 const LEVEL_PRIORITY = {
@@ -952,9 +955,32 @@ async function fetchHpmorPodcastHtml() {
   return html;
 }
 
+async function fetchHpmorPodcastPostHtml(url) {
+  if (hpmorPodcastPostHtmlCache.has(url)) {
+    return hpmorPodcastPostHtmlCache.get(url);
+  }
+
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'LinguaLearn Sync Reader/1.0',
+    },
+  });
+
+  if (!response.ok) {
+    const error = new Error('Failed to fetch the HPMOR podcast episode page.');
+    error.statusCode = response.status === 404 ? 404 : 502;
+    throw error;
+  }
+
+  const html = await response.text();
+  hpmorPodcastPostHtmlCache.set(url, html);
+  return html;
+}
+
 app.get('/api/reader/hpmor/chapter/:chapterNumber', async (req, res) => {
   try {
     const chapterNumber = Number.parseInt(req.params.chapterNumber, 10);
+    const importMode = String(req.get('x-lingualearn-import-mode') || 'rough').toLowerCase();
 
     if (!Number.isInteger(chapterNumber)) {
       return res.status(400).json({ error: 'Chapter number must be an integer.' });
@@ -964,7 +990,23 @@ app.get('/api/reader/hpmor/chapter/:chapterNumber', async (req, res) => {
       chapterNumber,
       fetchChapterHtml: fetchHpmorChapterHtml,
       fetchPodcastHtml: fetchHpmorPodcastHtml,
+      fetchPodcastPostHtml: fetchHpmorPodcastPostHtml,
     });
+
+    if (importMode === 'timed') {
+      const transcriptImport = await transcribeAudioLocally({
+        audioUrl: chapterImport.audioUrl,
+        audioLabel: chapterImport.audioLabel,
+        estimatedWindow: chapterImport.estimatedWindow,
+        audioDurationEstimate: chapterImport.audioDurationEstimate,
+        restrictToWindow: chapterImport.audioSourceType !== 'episode',
+      });
+
+      return res.json({
+        ...chapterImport,
+        ...transcriptImport,
+      });
+    }
 
     res.json(chapterImport);
   } catch (error) {
@@ -972,6 +1014,113 @@ app.get('/api/reader/hpmor/chapter/:chapterNumber', async (req, res) => {
     const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
     res.status(statusCode).json({ error: error.message });
   }
+});
+
+app.post('/api/reader/transcribe-url', async (req, res) => {
+  try {
+    const { audioUrl, audioName } = req.body || {};
+    if (typeof audioUrl !== 'string' || !audioUrl.trim()) {
+      return res.status(400).json({ error: 'Provide an audioUrl for local transcription.' });
+    }
+
+    const transcriptImport = await transcribeAudioLocally({
+      audioUrl: audioUrl.trim(),
+      audioLabel: typeof audioName === 'string' && audioName.trim() ? audioName.trim() : 'Remote audio URL',
+      restrictToWindow: false,
+    });
+
+    res.json(transcriptImport);
+  } catch (error) {
+    console.error('Error transcribing reader audio URL locally:', error);
+    const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
+    res.status(statusCode).json({ error: error.message });
+  }
+});
+
+app.post(
+  '/api/reader/transcribe-upload',
+  express.raw({
+    type: () => true,
+    limit: '250mb',
+  }),
+  async (req, res) => {
+    try {
+      const audioBuffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || []);
+      if (!audioBuffer.length) {
+        return res.status(400).json({ error: 'Upload an audio file for local transcription.' });
+      }
+
+      const audioName = String(req.get('x-lingualearn-audio-name') || 'Uploaded audio').trim() || 'Uploaded audio';
+      const transcriptImport = await transcribeAudioLocally({
+        audioBuffer,
+        fileName: audioName,
+        audioLabel: audioName,
+        restrictToWindow: false,
+      });
+
+      res.json(transcriptImport);
+    } catch (error) {
+      console.error('Error transcribing uploaded reader audio locally:', error);
+      const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
+      res.status(statusCode).json({ error: error.message });
+    }
+  },
+);
+
+app.post('/api/reader/translate', async (req, res) => {
+  try {
+    const { title, segments, lines } = req.body || {};
+    if ((!Array.isArray(lines) || !lines.length) && (!Array.isArray(segments) || !segments.length)) {
+      return res
+        .status(400)
+        .json({ error: 'Provide a non-empty lines array for translation.' });
+    }
+
+    const translations = await translateSegmentsWithGemini({
+      genAI,
+      title: typeof title === 'string' ? title : '',
+      lines: Array.isArray(lines) ? lines : null,
+      segments,
+      targetLanguage: 'Russian',
+    });
+
+    res.json({
+      translations,
+    });
+  } catch (error) {
+    console.error('Error translating reader segments:', error);
+    const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
+    res.status(statusCode).json({ error: error.message });
+  }
+});
+
+app.use((error, req, res, next) => {
+  if (!error) {
+    next();
+    return;
+  }
+
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+
+  const statusCode =
+    Number.isInteger(error.statusCode) ? error.statusCode :
+    Number.isInteger(error.status) ? error.status :
+    error.type === 'entity.parse.failed' ? 400 :
+    error.type === 'entity.too.large' ? 413 :
+    500;
+
+  const message =
+    error.type === 'entity.parse.failed'
+      ? 'Reader API received invalid JSON.'
+      : error.type === 'entity.too.large'
+        ? 'Reader API request body is too large.'
+        : error.message || 'Reader API request failed.';
+
+  console.error('Reader API middleware error:', error);
+  res.status(statusCode).json({ error: message });
 });
 
 app.listen(PORT, () => {
