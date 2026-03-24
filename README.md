@@ -196,6 +196,7 @@ npm run dev
 | `POST` | `/api/topics/update` | Update topic progress |
 | `DELETE` | `/api/topics/:id` | Remove a topic |
 | `GET` | `/api/settings` | Get user settings |
+| `GET` | `/api/health` | Health/status/readiness probe for monitoring |
 | `POST` | `/api/settings` | Update settings |
 | `DELETE` | `/api/chat/clear` | Clear chat history |
 | `GET` | `/api/vocabulary` | Get vocabulary cards |

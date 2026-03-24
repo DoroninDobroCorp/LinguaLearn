@@ -13,17 +13,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = 3001;
+const PORT = Number.parseInt(process.env.PORT || '3001', 10);
+const SERVICE_NAME = 'english-api';
 const hpmorChapterHtmlCache = new Map();
 const hpmorPodcastPostHtmlCache = new Map();
 let hpmorPodcastHtmlCache = null;
 
 // Инициализация Gemini
-if (!process.env.GEMINI_API_KEY) {
-  console.error('❌ GEMINI_API_KEY not found in environment variables');
-  process.exit(1);
+const geminiApiKey = String(process.env.GEMINI_API_KEY || '').trim();
+const geminiEnabled = geminiApiKey.length > 0;
+const genAI = geminiEnabled ? new GoogleGenerativeAI(geminiApiKey) : null;
+
+if (!geminiEnabled) {
+  console.warn(
+    '⚠️ GEMINI_API_KEY not found. Core API will stay online, but AI chat and reader translation endpoints will return 503 until Gemini is configured.'
+  );
 }
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Инициализация базы данных
 const db = new Database(join(__dirname, 'english_learning.db'));
@@ -308,6 +313,62 @@ seedCurriculum();
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
 
+function buildHealthResponse() {
+  db.prepare('SELECT 1 AS ok').get();
+
+  return {
+    status: 'healthy',
+    service: SERVICE_NAME,
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.round(process.uptime()),
+    checks: {
+      database: 'healthy',
+      gemini: geminiEnabled ? 'configured' : 'not_configured',
+    },
+    features: {
+      aiChat: geminiEnabled,
+      readerTranslation: geminiEnabled,
+      readerImport: true,
+      curriculum: true,
+      vocabulary: true,
+    },
+  };
+}
+
+function ensureGeminiAvailable(res, unavailableFeatures) {
+  if (genAI) {
+    return true;
+  }
+
+  res.status(503).json({
+    error: 'Gemini-powered features are unavailable because GEMINI_API_KEY is not configured.',
+    unavailableFeatures,
+  });
+  return false;
+}
+
+app.get(
+  ['/health', '/status', '/ready', '/live', '/api/health', '/api/status', '/api/ready', '/api/live'],
+  (req, res) => {
+    try {
+      res.set('Cache-Control', 'no-store');
+      res.json(buildHealthResponse());
+    } catch (error) {
+      console.error('Health check failed:', error);
+      res.status(500).json({
+        status: 'unhealthy',
+        service: SERVICE_NAME,
+        timestamp: new Date().toISOString(),
+        checks: {
+          database: 'unhealthy',
+          gemini: geminiEnabled ? 'configured' : 'not_configured',
+        },
+        error: error.message,
+      });
+    }
+  }
+);
+
 // Уровни английского языка по приоритету
 const LEVEL_PRIORITY = {
   'A1': 6,
@@ -370,6 +431,10 @@ IMPORTANT: Track BOTH mistakes AND successes in ALL interactions. Be gentle when
 
 // API: Чат с ЛЛМ
 app.post('/api/chat', async (req, res) => {
+  if (!ensureGeminiAvailable(res, ['aiChat'])) {
+    return;
+  }
+
   try {
     const { message } = req.body;
     
@@ -1068,6 +1133,10 @@ app.post(
 );
 
 app.post('/api/reader/translate', async (req, res) => {
+  if (!ensureGeminiAvailable(res, ['readerTranslation'])) {
+    return;
+  }
+
   try {
     const { title, segments, lines } = req.body || {};
     if ((!Array.isArray(lines) || !lines.length) && (!Array.isArray(segments) || !segments.length)) {
