@@ -408,107 +408,8 @@ function scrollReaderLineIntoView(container, element) {
   }
 }
 
-function clampScrollTop(container, value) {
-  if (!container) {
-    return 0;
-  }
-
-  const maxScrollTop = Math.max(container.scrollHeight - container.clientHeight, 0);
-  return Math.max(0, Math.min(maxScrollTop, Number.isFinite(value) ? value : 0));
-}
-
-function buildSegmentRefEntries(segmentRefs) {
-  return Object.entries(segmentRefs || {})
-    .map(([index, element]) => ({
-      index: Number(index),
-      element,
-    }))
-    .filter(({ index, element }) => Number.isInteger(index) && element)
-    .sort((left, right) => left.index - right.index);
-}
-
-function findScrollAnchor(segmentRefs, scrollTop) {
-  const entries = buildSegmentRefEntries(segmentRefs);
-  if (!entries.length) {
-    return null;
-  }
-
-  let previousEntry = null;
-
-  for (const entry of entries) {
-    const top = entry.element.offsetTop;
-    const height = entry.element.offsetHeight;
-    const bottom = top + height;
-
-    if (scrollTop < top) {
-      if (!previousEntry) {
-        return {
-          index: entry.index,
-          progress: 0,
-        };
-      }
-
-      return {
-        index: previousEntry.index,
-        progress: 1,
-      };
-    }
-
-    if (scrollTop <= bottom) {
-      return {
-        index: entry.index,
-        progress: height > 0 ? clampRatio((scrollTop - top) / height, 0) : 0,
-      };
-    }
-
-    previousEntry = entry;
-  }
-
-  return {
-    index: previousEntry ? previousEntry.index : entries[entries.length - 1].index,
-    progress: 1,
-  };
-}
-
-function syncSplitScrollPosition({
-  sourceContainer,
-  sourceSegmentRefs,
-  targetContainer,
-  targetSegmentRefs,
-}) {
-  if (!sourceContainer || !targetContainer) {
-    return;
-  }
-
-  const sourceMaxScrollTop = Math.max(sourceContainer.scrollHeight - sourceContainer.clientHeight, 0);
-  const targetMaxScrollTop = Math.max(targetContainer.scrollHeight - targetContainer.clientHeight, 0);
-  if (targetMaxScrollTop <= 0) {
-    targetContainer.scrollTop = 0;
-    return;
-  }
-
-  const sourceScrollTop = clampScrollTop(sourceContainer, sourceContainer.scrollTop);
-  const anchor = findScrollAnchor(sourceSegmentRefs, sourceScrollTop);
-  const targetAnchorElement =
-    anchor && targetSegmentRefs ? targetSegmentRefs[anchor.index] || null : null;
-
-  if (anchor && targetAnchorElement) {
-    const targetScrollTop =
-      targetAnchorElement.offsetTop + anchor.progress * targetAnchorElement.offsetHeight;
-    targetContainer.scrollTop = clampScrollTop(targetContainer, targetScrollTop);
-    return;
-  }
-
-  if (sourceMaxScrollTop <= 0) {
-    targetContainer.scrollTop = 0;
-    return;
-  }
-
-  targetContainer.scrollTop = clampScrollTop(
-    targetContainer,
-    (sourceScrollTop / sourceMaxScrollTop) * targetMaxScrollTop,
-  );
-}
+// Scroll sync helpers removed: bilingual reader now uses a single scroll
+// container with paired rows, eliminating the need for cross-container sync.
 
 function extractHpmorChapterNumber(project) {
   if (!project || project.source !== 'hpmor') {
@@ -771,11 +672,8 @@ function SyncReader() {
   const segmentRefs = useRef({});
   const segmentsContainerRef = useRef(null);
   const splitEnglishSegmentRefs = useRef({});
-  const splitEnglishContainerRef = useRef(null);
+  const splitBilingualContainerRef = useRef(null);
   const splitTranslationSegmentRefs = useRef({});
-  const splitTranslationContainerRef = useRef(null);
-  const splitScrollSyncFrameRef = useRef(null);
-  const isSyncingSplitScrollRef = useRef(false);
   const audioRef = useRef(null);
   const initialExampleHandledRef = useRef(false);
   const initialReaderBootstrapHandledRef = useRef(false);
@@ -1035,16 +933,10 @@ function SyncReader() {
         element: segmentRefs.current[activeSegmentIndex],
       });
     } else {
-      scrollTargets.push(
-        {
-          container: splitEnglishContainerRef.current,
-          element: splitEnglishSegmentRefs.current[activeSegmentIndex],
-        },
-        {
-          container: splitTranslationContainerRef.current,
-          element: splitTranslationSegmentRefs.current[activeSegmentIndex],
-        },
-      );
+      scrollTargets.push({
+        container: splitBilingualContainerRef.current,
+        element: splitEnglishSegmentRefs.current[activeSegmentIndex],
+      });
     }
 
     scrollTargets.forEach(({ container, element }) => {
@@ -1071,89 +963,8 @@ function SyncReader() {
     }
   }, [activeProject, isBilingualMode]);
 
-  useEffect(() => {
-    if (!isBilingualMode || !isTranslationVisible) {
-      return undefined;
-    }
-
-    const englishContainer = splitEnglishContainerRef.current;
-    const translationContainer = splitTranslationContainerRef.current;
-    if (!englishContainer || !translationContainer) {
-      return undefined;
-    }
-
-    function releaseScrollLock() {
-      if (splitScrollSyncFrameRef.current) {
-        cancelAnimationFrame(splitScrollSyncFrameRef.current);
-      }
-
-      splitScrollSyncFrameRef.current = requestAnimationFrame(() => {
-        isSyncingSplitScrollRef.current = false;
-        splitScrollSyncFrameRef.current = null;
-      });
-    }
-
-    function syncFromEnglish() {
-      if (isSyncingSplitScrollRef.current) {
-        return;
-      }
-
-      isSyncingSplitScrollRef.current = true;
-      syncSplitScrollPosition({
-        sourceContainer: englishContainer,
-        sourceSegmentRefs: splitEnglishSegmentRefs.current,
-        targetContainer: translationContainer,
-        targetSegmentRefs: splitTranslationSegmentRefs.current,
-      });
-      releaseScrollLock();
-    }
-
-    function syncFromTranslation() {
-      if (isSyncingSplitScrollRef.current) {
-        return;
-      }
-
-      isSyncingSplitScrollRef.current = true;
-      syncSplitScrollPosition({
-        sourceContainer: translationContainer,
-        sourceSegmentRefs: splitTranslationSegmentRefs.current,
-        targetContainer: englishContainer,
-        targetSegmentRefs: splitEnglishSegmentRefs.current,
-      });
-      releaseScrollLock();
-    }
-
-    function syncFromResize() {
-      syncSplitScrollPosition({
-        sourceContainer: englishContainer,
-        sourceSegmentRefs: splitEnglishSegmentRefs.current,
-        targetContainer: translationContainer,
-        targetSegmentRefs: splitTranslationSegmentRefs.current,
-      });
-    }
-
-    englishContainer.addEventListener('scroll', syncFromEnglish, { passive: true });
-    translationContainer.addEventListener('scroll', syncFromTranslation, { passive: true });
-    window.addEventListener('resize', syncFromResize);
-    syncFromResize();
-
-    return () => {
-      englishContainer.removeEventListener('scroll', syncFromEnglish);
-      translationContainer.removeEventListener('scroll', syncFromTranslation);
-      window.removeEventListener('resize', syncFromResize);
-      if (splitScrollSyncFrameRef.current) {
-        cancelAnimationFrame(splitScrollSyncFrameRef.current);
-        splitScrollSyncFrameRef.current = null;
-      }
-      isSyncingSplitScrollRef.current = false;
-    };
-  }, [
-    activeProjectId,
-    activeProject?.segments.length,
-    activeProjectHasTranslations,
-    isBilingualMode,
-    isTranslationVisible,
-  ]);
+  // Scroll sync effect removed: bilingual reader now uses a single scroll
+  // container with paired rows, so both columns scroll as one.
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -2883,38 +2694,95 @@ function SyncReader() {
                       </div>
                     </div>
 
-                    <div className={`grid min-h-0 flex-1 grid-cols-1 gap-4 ${isTranslationVisible ? 'xl:grid-cols-2' : ''}`}>
-                      <section
-                        className={`${cardClass} min-h-0 rounded-3xl border shadow-2xl ${borderClass} p-5 ${
+                    <div className="flex min-h-0 flex-1 flex-col gap-4">
+                      {/* Column headers */}
+                      <div className={`grid gap-4 ${isTranslationVisible ? 'xl:grid-cols-2' : 'grid-cols-1'}`}>
+                        <div className={`${cardClass} rounded-2xl border ${borderClass} px-5 py-3 ${
                           isTranslationFirst ? 'xl:order-2' : 'xl:order-1'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold">English</p>
-                            <p className={`mt-1 text-xs ${subtextClass}`}>
-                              Click any line to jump there.
-                            </p>
+                        }`}>
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold">English</p>
+                              <p className={`mt-1 text-xs ${subtextClass}`}>
+                                Click any line to jump there.
+                              </p>
+                            </div>
+                            <span className={`text-xs font-semibold ${accentTextClass}`}>
+                              {activeSegmentIndex >= 0 ? `Line ${activeSegmentIndex + 1}` : 'Ready'}
+                            </span>
                           </div>
-                          <span className={`text-xs font-semibold ${accentTextClass}`}>
-                            {activeSegmentIndex >= 0 ? `Line ${activeSegmentIndex + 1}` : 'Ready'}
-                          </span>
                         </div>
 
-                        <div
-                          ref={splitEnglishContainerRef}
-                          data-testid="split-english-scroll"
-                          className={`mt-4 h-full overflow-y-auto rounded-2xl border p-4 ${softCardClass}`}
-                        >
-                          <div className="space-y-3 text-base leading-7">
-                            {activeProject.segments.map((segment) => {
-                              const isSelected = selectedSegmentIndex === segment.index;
-                              const isActive = activeSegmentIndex === segment.index;
-                              const segmentWordIndex = isActive ? activeWordIndex : -1;
+                        {isTranslationVisible && (
+                        <div className={`${cardClass} rounded-2xl border ${borderClass} px-5 py-3 ${
+                          isTranslationFirst ? 'xl:order-1' : 'xl:order-2'
+                        }`}>
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold">Russian</p>
+                              <p className={`mt-1 text-xs ${subtextClass}`}>
+                                Fast meaning-oriented translation for side-by-side reading.
+                              </p>
+                            </div>
+                            <span className={`text-xs font-semibold ${accentTextClass}`}>
+                              {translationStatusLabel}
+                            </span>
+                          </div>
+                        </div>
+                        )}
+                      </div>
 
-                              return (
+                      {/* Translation loading / error banners */}
+                      {isTranslationVisible && isTranslationBusy && !activeProjectHasTranslations && (
+                        <div className={`${cardClass} flex items-center gap-4 rounded-2xl border ${borderClass} px-5 py-4`}>
+                          <RefreshCw className="h-6 w-6 flex-shrink-0 animate-spin text-yellow-500" />
+                          <div>
+                            <p className="font-semibold">Generating Russian side text</p>
+                            <p className={`mt-1 text-sm ${subtextClass}`}>
+                              Quality is tuned for quick comprehension, not literary polish.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {isTranslationVisible && translationError && !activeProjectHasTranslations && (
+                        <div className={`${cardClass} flex items-center gap-4 rounded-2xl border border-red-300 px-5 py-4`}>
+                          <div>
+                            <p className="font-semibold text-red-600">Translation failed</p>
+                            <p className={`mt-1 text-sm ${subtextClass}`}>{translationError}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleLoadProjectTranslations(activeProject)}
+                            className="ml-auto flex-shrink-0 rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Single scrollable container with paired rows */}
+                      <div
+                        ref={splitBilingualContainerRef}
+                        data-testid="split-bilingual-scroll"
+                        className={`${cardClass} min-h-0 flex-1 overflow-y-auto rounded-3xl border shadow-2xl ${borderClass} p-5`}
+                      >
+                        <div className="space-y-3 text-base leading-7">
+                          {activeProject.segments.map((segment) => {
+                            const isSelected = selectedSegmentIndex === segment.index;
+                            const isActive = activeSegmentIndex === segment.index;
+                            const segmentWordIndex = isActive ? activeWordIndex : -1;
+                            const showTranslation = isTranslationVisible && activeProjectHasTranslations;
+                            const translatedText = showTranslation
+                              ? activeProjectTranslations[segment.index]
+                              : null;
+
+                            return (
+                              <div
+                                key={segment.id}
+                                className={`grid gap-4 ${showTranslation ? 'xl:grid-cols-2' : 'grid-cols-1'}`}
+                              >
                                 <button
-                                  key={`split-en-${segment.id}`}
                                   type="button"
                                   ref={(element) => {
                                     splitEnglishSegmentRefs.current[segment.index] = element;
@@ -2926,6 +2794,8 @@ function SyncReader() {
                                     }
                                   }}
                                   className={`block w-full rounded-2xl px-4 py-3 text-left transition-all ${
+                                    isTranslationFirst ? 'xl:order-2' : 'xl:order-1'
+                                  } ${
                                     isActive
                                       ? 'bg-lime-200 text-gray-900 shadow-sm'
                                       : isSelected
@@ -2935,94 +2805,36 @@ function SyncReader() {
                                 >
                                   {renderSegmentWords(segment, segmentWordIndex)}
                                 </button>
-                              );
-                            })}
-                          </div>
+                                {showTranslation && (
+                                <button
+                                  type="button"
+                                  ref={(element) => {
+                                    splitTranslationSegmentRefs.current[segment.index] = element;
+                                  }}
+                                  onClick={() => {
+                                    setSelectedSegmentIndex(segment.index);
+                                    if (Number.isFinite(segment.start)) {
+                                      seekToSegment(segment.index);
+                                    }
+                                  }}
+                                  className={`block w-full rounded-2xl px-4 py-3 text-left transition-all ${
+                                    isTranslationFirst ? 'xl:order-1' : 'xl:order-2'
+                                  } ${
+                                    isActive
+                                      ? 'bg-sky-200 text-gray-900 shadow-sm'
+                                      : isSelected
+                                        ? 'bg-yellow-100 text-gray-900'
+                                        : `${cardClass} hover:bg-yellow-50/80`
+                                  }`}
+                                >
+                                  {translatedText}
+                                </button>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                      </section>
-
-                      {isTranslationVisible && (
-                      <section
-                        className={`${cardClass} min-h-0 rounded-3xl border shadow-2xl ${borderClass} p-5 ${
-                          isTranslationFirst ? 'xl:order-1' : 'xl:order-2'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold">Russian</p>
-                            <p className={`mt-1 text-xs ${subtextClass}`}>
-                              Fast meaning-oriented translation for side-by-side reading.
-                            </p>
-                          </div>
-                          <span className={`text-xs font-semibold ${accentTextClass}`}>
-                            {translationStatusLabel}
-                          </span>
-                        </div>
-
-                        <div
-                          ref={splitTranslationContainerRef}
-                          data-testid="split-translation-scroll"
-                          className={`mt-4 h-full overflow-y-auto rounded-2xl border p-4 ${softCardClass}`}
-                        >
-                          {isTranslationBusy && !activeProjectHasTranslations ? (
-                            <div className="flex h-full min-h-[18rem] flex-col items-center justify-center text-center">
-                              <RefreshCw className="h-8 w-8 animate-spin text-yellow-500" />
-                              <p className="mt-4 text-lg font-semibold">Generating Russian side text</p>
-                              <p className={`mt-2 max-w-md text-sm ${subtextClass}`}>
-                                Quality is tuned for quick comprehension, not literary polish.
-                              </p>
-                            </div>
-                          ) : translationError && !activeProjectHasTranslations ? (
-                            <div className="flex h-full min-h-[18rem] flex-col items-center justify-center text-center">
-                              <p className="text-lg font-semibold text-red-600">Translation failed</p>
-                              <p className={`mt-2 max-w-md text-sm ${subtextClass}`}>{translationError}</p>
-                              <button
-                                type="button"
-                                onClick={() => handleLoadProjectTranslations(activeProject)}
-                                className="mt-4 rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900"
-                              >
-                                Retry Russian translation
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="space-y-3 text-base leading-7">
-                              {activeProject.segments.map((segment) => {
-                                const isSelected = selectedSegmentIndex === segment.index;
-                                const isActive = activeSegmentIndex === segment.index;
-                                const translatedText = activeProjectHasTranslations
-                                  ? activeProjectTranslations[segment.index]
-                                  : 'Translation will appear here.';
-
-                                return (
-                                  <button
-                                    key={`split-ru-${segment.id}`}
-                                    type="button"
-                                    ref={(element) => {
-                                      splitTranslationSegmentRefs.current[segment.index] = element;
-                                    }}
-                                    onClick={() => {
-                                      setSelectedSegmentIndex(segment.index);
-                                      if (Number.isFinite(segment.start)) {
-                                        seekToSegment(segment.index);
-                                      }
-                                    }}
-                                    className={`block w-full rounded-2xl px-4 py-3 text-left transition-all ${
-                                      isActive
-                                        ? 'bg-sky-200 text-gray-900 shadow-sm'
-                                        : isSelected
-                                          ? 'bg-yellow-100 text-gray-900'
-                                          : `${cardClass} hover:bg-yellow-50/80`
-                                    }`}
-                                  >
-                                    {translatedText}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </section>
-                      )}
+                      </div>
                     </div>
                   </div>
                 </div>

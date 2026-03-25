@@ -293,7 +293,7 @@ test('opens ready chapter 12 with prepared Russian translation and no API call',
   expect(translationApiCalls).toBe(0);
 });
 
-test('syncs bilingual scrolling in both directions', async ({ page }) => {
+test('bilingual reader uses a single scroll container with paired rows', async ({ page }) => {
   const segments = Array.from({ length: 36 }, (_, index) => ({
     text: `English line ${index + 1}. ${'More text. '.repeat((index % 3) + 2)}`,
     start: index * 2,
@@ -309,38 +309,24 @@ test('syncs bilingual scrolling in both directions', async ({ page }) => {
   await page.getByRole('button', { name: 'Open ready chapter 12' }).click();
   await page.getByRole('button', { name: 'Open EN/RU reader' }).click();
 
-  await expect(page.getByTestId('split-english-scroll')).toBeVisible();
-  await expect(page.getByTestId('split-translation-scroll')).toBeVisible();
+  const container = page.getByTestId('split-bilingual-scroll');
+  await expect(container).toBeVisible();
 
-  await page.evaluate(() => {
-    const element = document.querySelector('[data-testid="split-english-scroll"]');
+  // Both English and Russian text live inside the same scrollable container
+  await expect(container.getByText('English line 1.', { exact: false })).toBeVisible();
+  await expect(container.getByText('Русская строка 1.', { exact: false })).toBeVisible();
+
+  // Scrolling the single container moves both languages together
+  await container.evaluate((element) => {
     element.scrollTop = 700;
-    element.dispatchEvent(new Event('scroll'));
   });
 
-  await page.waitForFunction(() => {
-    const element = document.querySelector('[data-testid="split-translation-scroll"]');
-    return element && element.scrollTop > 0;
-  });
+  const scrollTop = await container.evaluate((element) => element.scrollTop);
+  expect(scrollTop).toBeGreaterThan(0);
 
-  const englishScrollAfterFirstMove = await page.getByTestId('split-english-scroll').evaluate((element) => element.scrollTop);
-  const translationScrollAfterFirstMove = await page
-    .getByTestId('split-translation-scroll')
-    .evaluate((element) => element.scrollTop);
-
-  expect(englishScrollAfterFirstMove).toBeGreaterThan(0);
-  expect(translationScrollAfterFirstMove).toBeGreaterThan(0);
-
-  await page.evaluate(() => {
-    const element = document.querySelector('[data-testid="split-translation-scroll"]');
-    element.scrollTop = 1200;
-    element.dispatchEvent(new Event('scroll'));
-  });
-
-  await page.waitForFunction((previousEnglishTop) => {
-    const element = document.querySelector('[data-testid="split-english-scroll"]');
-    return element && element.scrollTop > previousEnglishTop;
-  }, englishScrollAfterFirstMove);
+  // Verify a later segment is now visible (i.e. scroll actually worked)
+  await expect(container.getByText('English line 10.', { exact: false })).toBeVisible();
+  await expect(container.getByText('Русская строка 10.', { exact: false })).toBeVisible();
 });
 
 test('resets stale HPMOR chapter imports while keeping manual projects', async ({ page }) => {
