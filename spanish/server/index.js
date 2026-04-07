@@ -128,11 +128,16 @@ if (!db.prepare('SELECT id FROM profiles WHERE id = 1').get()) {
 // Prevent duplicate profile names (case-insensitive)
 // Migrate: replace old case-sensitive index with COLLATE NOCASE version
 {
-  const oldIdx = db.prepare(
-    "SELECT 1 FROM pragma_index_info('idx_profiles_name') LIMIT 1"
+  // Check whether the COLLATE NOCASE index already exists by inspecting the DDL
+  // stored in sqlite_master. This distinguishes the migrated index from the old
+  // case-sensitive one so the migration becomes truly idempotent.
+  const idxRow = db.prepare(
+    "SELECT sql FROM sqlite_master WHERE type = 'index' AND name = 'idx_profiles_name'"
   ).get();
-  if (oldIdx) {
-    // Resolve any existing case-only duplicate names before re-creating the index.
+  const alreadyNocase = idxRow && /COLLATE\s+NOCASE/i.test(idxRow.sql);
+
+  if (idxRow && !alreadyNocase) {
+    // Old case-sensitive index found — resolve any case-only duplicate names.
     // Keep the profile with the lowest id for each lowercased name.
     const dupes = db.prepare(`
       SELECT id FROM profiles
@@ -154,7 +159,10 @@ if (!db.prepare('SELECT id FROM profiles WHERE id = 1').get()) {
     }
     db.exec('DROP INDEX idx_profiles_name');
   }
-  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_name ON profiles(name COLLATE NOCASE)');
+
+  if (!alreadyNocase) {
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_name ON profiles(name COLLATE NOCASE)');
+  }
 }
 
 // Add profile_id to chat_history
@@ -858,9 +866,13 @@ IMPORTANT RULES:
     for (const updates of extractAllTags(responseText, '[TOPICS_UPDATE: ')) {
       if (updates.updates) {
         for (const update of updates.updates) {
-          const result = updateTopic(update.topic, update.category, update.level, update.success, profileId);
-          if (result) {
-            topicChanges.push(result);
+          try {
+            const result = updateTopic(update.topic, update.category, update.level, update.success, profileId);
+            if (result) {
+              topicChanges.push(result);
+            }
+          } catch (e) {
+            console.error('Error processing topic update:', e);
           }
         }
       }
@@ -1055,10 +1067,15 @@ app.get('/api/settings', (req, res) => {
 
 // API: Ручное обновление темы
 app.post('/api/topics/update', (req, res) => {
-  const profileId = getProfileId(req);
-  const { topic, category, level, success } = req.body;
-  updateTopic(topic, category, level, success, profileId);
-  res.json({ success: true });
+  try {
+    const profileId = getProfileId(req);
+    const { topic, category, level, success } = req.body;
+    updateTopic(topic, category, level, success, profileId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating topic:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // API: Удаление/сброс темы progress for this profile
