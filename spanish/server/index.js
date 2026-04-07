@@ -707,7 +707,11 @@ app.post('/api/chat', async (req, res) => {
 
   try {
     const { message } = req.body;
-    
+
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ error: 'message is required and must be a non-empty string' });
+    }
+
     // Сохранение сообщения пользователя
     db.prepare('INSERT INTO chat_history (role, content, profile_id) VALUES (?, ?, ?)').run('user', message, profileId);
     
@@ -910,12 +914,17 @@ IMPORTANT RULES:
     // Парсинг добавления слов в словарь — handle ALL VOCAB_ADD tags
     for (const vocab of extractAllTags(responseText, '[VOCAB_ADD: ')) {
       try {
-        const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? COLLATE NOCASE AND profile_id = ?').get(vocab.word, profileId);
+        if (!vocab.word || typeof vocab.word !== 'string' || !vocab.word.trim()) {
+          console.warn('Skipping VOCAB_ADD with missing/blank word:', vocab);
+          continue;
+        }
+        const trimmedWord = vocab.word.trim();
+        const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? COLLATE NOCASE AND profile_id = ?').get(trimmedWord, profileId);
         if (!existing) {
           db.prepare(`
             INSERT INTO vocabulary (word, translation, example, level, next_review, profile_id)
             VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
-          `).run(vocab.word, vocab.translation, vocab.example || null, profileId);
+          `).run(trimmedWord, vocab.translation, vocab.example || null, profileId);
         }
       } catch (e) {
         console.error('Error processing vocab add:', e);
@@ -1012,19 +1021,26 @@ function updateTopic(name, category, level, success, profileId) {
     // Normalize CEFR level: invalid AI-provided values fall back to A1
     // to prevent ghost topics that never appear in level-filtered views.
     const safeLevel = VALID_CEFR_LEVELS.includes(level) ? level : DEFAULT_CEFR_LEVEL;
-    const result = db.prepare(`
-      INSERT INTO curriculum_topics (name, category, level, source)
-      VALUES (?, ?, ?, 'ai_detected')
-    `).run(name, category, safeLevel);
 
-    const topicId = result.lastInsertRowid;
-    const initialScore = success ? 50 : 0;
+    // Atomic: create topic + its initial progress row in one transaction
+    const createTopicWithProgress = db.transaction((name, category, safeLevel, profileId, success) => {
+      const result = db.prepare(`
+        INSERT INTO curriculum_topics (name, category, level, source)
+        VALUES (?, ?, ?, 'ai_detected')
+      `).run(name, category, safeLevel);
 
-    // Create progress for this profile
-    db.prepare(`
-      INSERT INTO curriculum_progress (topic_id, profile_id, status, score, success_count, failure_count, last_practiced)
-      VALUES (?, ?, 'in_progress', ?, ?, ?, CURRENT_TIMESTAMP)
-    `).run(topicId, profileId, initialScore, success ? 1 : 0, success ? 0 : 1);
+      const topicId = result.lastInsertRowid;
+      const initialScore = success ? 50 : 0;
+
+      db.prepare(`
+        INSERT INTO curriculum_progress (topic_id, profile_id, status, score, success_count, failure_count, last_practiced)
+        VALUES (?, ?, 'in_progress', ?, ?, ?, CURRENT_TIMESTAMP)
+      `).run(topicId, profileId, initialScore, success ? 1 : 0, success ? 0 : 1);
+
+      return { topicId, initialScore };
+    });
+
+    createTopicWithProgress(name, category, safeLevel, profileId, success);
 
     return { 
       isNew: true, 
