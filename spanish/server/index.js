@@ -1036,6 +1036,10 @@ app.post('/api/settings', (req, res) => {
     const settings = getProfileSettings(profileId);
     
     if (maxLevel) {
+      const VALID_CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+      if (!VALID_CEFR_LEVELS.includes(maxLevel)) {
+        return res.status(400).json({ error: `Invalid CEFR level: ${maxLevel}. Valid levels: ${VALID_CEFR_LEVELS.join(', ')}` });
+      }
       db.prepare('UPDATE user_settings SET max_level = ? WHERE profile_id = ?').run(maxLevel, profileId);
     }
     if (darkMode !== undefined) {

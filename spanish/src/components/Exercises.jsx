@@ -54,6 +54,12 @@ function Exercises() {
         }
       } else {
         const topic = topics.find(t => t.id === parseInt(selectedTopic));
+        if (!topic) {
+          alert('The selected topic is no longer available. Please choose another topic.');
+          setSelectedTopic('random');
+          setLoading(false);
+          return;
+        }
         prompt = `Generate a ${exerciseType} exercise specifically about: ${topic.name} (${topic.category}).`;
       }
 
