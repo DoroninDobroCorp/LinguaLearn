@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { profileApiUrl } from '../utils/api';
+import { profileApiUrl, profileFetch } from '../utils/api';
 
 const API_BASE = '/spanish/api';
 
@@ -39,23 +39,24 @@ export function useVocabulary() {
     setError(null);
 
     try {
-      const response = await fetch(profileApiUrl(`${API_BASE}/vocabulary`));
+      const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary`));
       if (!response.ok) throw new Error('Failed to fetch vocabulary');
       
       const data = await response.json();
-      setWords(data);
+      const wordList = Array.isArray(data) ? data : data.words || [];
+      setWords(wordList);
       
       const now = new Date();
-      const due = data.filter(w => new Date(w.next_review) <= now).length;
-      const mastered = data.filter(w => w.review_count >= 5 && w.level >= 2).length;
+      const due = wordList.filter(w => new Date(w.next_review) <= now).length;
+      const mastered = wordList.filter(w => w.review_count >= 5 && w.level >= 2).length;
       
       setStats({
-        total: data.length,
+        total: wordList.length,
         due,
         mastered,
       });
       
-      return data;
+      return wordList;
     } catch (err) {
       setError(err.message);
       console.error('Error fetching vocabulary:', err);
@@ -67,12 +68,13 @@ export function useVocabulary() {
 
   const fetchDueWords = useCallback(async () => {
     try {
-      const response = await fetch(profileApiUrl(`${API_BASE}/vocabulary/due`));
+      const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/due`));
       if (!response.ok) throw new Error('Failed to fetch due words');
       
       const data = await response.json();
-      setDueWords(data);
-      return data;
+      const dueList = Array.isArray(data) ? data : data.words || [];
+      setDueWords(dueList);
+      return dueList;
     } catch (err) {
       setError(err.message);
       console.error('Error fetching due words:', err);
@@ -82,7 +84,7 @@ export function useVocabulary() {
 
   const addWord = useCallback(async (word, translation, example = '') => {
     try {
-      const response = await fetch(profileApiUrl(`${API_BASE}/vocabulary`), {
+      const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ word, translation, example }),
@@ -116,7 +118,7 @@ export function useVocabulary() {
         word.interval
       );
       
-      const response = await fetch(profileApiUrl(`${API_BASE}/vocabulary/${wordId}/review`), {
+      const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/${wordId}/review`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,7 +145,7 @@ export function useVocabulary() {
 
   const deleteWord = useCallback(async (wordId) => {
     try {
-      const response = await fetch(profileApiUrl(`${API_BASE}/vocabulary/${wordId}`), {
+      const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/${wordId}`), {
         method: 'DELETE',
       });
 

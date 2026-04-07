@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Brain, Target, RefreshCw, CheckCircle, XCircle, Award, TrendingUp } from 'lucide-react';
-import { profileApiUrl } from '../utils/api';
+import { profileApiUrl, profileFetch } from '../utils/api';
 
 function Exercises() {
   const [topics, setTopics] = useState([]);
@@ -20,7 +20,7 @@ function Exercises() {
 
   const fetchTopics = async () => {
     try {
-      const response = await fetch(profileApiUrl('/spanish/api/topics'));
+      const response = await profileFetch(profileApiUrl('/spanish/api/topics'));
       const data = await response.json();
       setTopics(data.topics);
     } catch (error) {
@@ -59,7 +59,7 @@ function Exercises() {
       prompt += `\n\nIMPORTANT: Respond ONLY with the exercise JSON in this exact format, nothing else:
 [EXERCISE: {"type": "${exerciseType}", "question": "...", ${exerciseType === 'multiple-choice' ? '"options": ["A", "B", "C", "D"], ' : ''}"correctAnswer": "...", "topic": "Topic Name", "level": "A1-C2"}]`;
 
-      const response = await fetch(profileApiUrl('/spanish/api/chat'), {
+      const response = await profileFetch(profileApiUrl('/spanish/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: prompt }),
@@ -108,7 +108,7 @@ function Exercises() {
     
     // Отправляем результат в backend для обновления прогресса
     try {
-      await fetch(profileApiUrl('/spanish/api/topics/update'), {
+      await profileFetch(profileApiUrl('/spanish/api/topics/update'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, Trash2, CheckCircle, XCircle } from 'lucide-react';
-import { profileApiUrl } from '../utils/api';
+import { profileApiUrl, profileFetch } from '../utils/api';
 
 // Компонент интерактивного упражнения
 function ExerciseWidget({ exercise, onAnswer }) {
@@ -134,7 +134,7 @@ function Chat() {
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const response = await fetch(profileApiUrl('/spanish/api/chat/history'));
+        const response = await profileFetch(profileApiUrl('/spanish/api/chat/history'));
         const data = await response.json();
         
         if (data.history.length > 0) {
@@ -180,7 +180,7 @@ function Chat() {
     setLoading(true);
     
     try {
-      const response = await fetch(profileApiUrl('/spanish/api/chat'), {
+      const response = await profileFetch(profileApiUrl('/spanish/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMessage }),
@@ -257,7 +257,7 @@ function Chat() {
     if (!confirm('Clear chat history?')) return;
     
     try {
-      await fetch(profileApiUrl('/spanish/api/chat/clear'), { method: 'DELETE' });
+      await profileFetch(profileApiUrl('/spanish/api/chat/clear'), { method: 'DELETE' });
       setMessages([
         {
           role: 'assistant',

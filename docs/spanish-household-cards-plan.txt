@@ -1,0 +1,99 @@
+LinguaLearn plan: spanish-first household profiles + vocabulary cards v2
+
+Problem
+
+The current app is effectively single-user. Settings, chat history, vocabulary,
+and curriculum progress are stored globally in SQLite. The current vocabulary
+flow already has basic spaced repetition, but it does not isolate progress by
+person, does not model both card directions independently, and does not support
+an explicit "learned for 15 days" action.
+
+Decision
+
+Start with the spanish/ app first. It is the immediate priority. After the
+Spanish rollout is stable, mirror the same architecture into english/.
+
+Recommended approach
+
+Do not clone Anki feature-for-feature. Build an Anki-inspired system that fits
+LinguaLearn better:
+
+- simple household profiles without passwords for now;
+- separate progress per family member;
+- two card directions for each word;
+- intensive repetition for new and difficult words;
+- explicit "Learned (15 days)" action;
+- room to add import/export and more advanced scheduling later.
+
+Key architecture decision
+
+Treat one vocabulary item and its review cards as different entities.
+
+- Word entry: the lexical item itself (source text, target text, example, tags).
+- Review card: one learnable direction with its own schedule.
+
+At minimum, each word should create two review cards:
+
+- source_to_target
+- target_to_source
+
+Each review card should track its own:
+
+- state
+- review_count
+- interval_days
+- ease_factor or simplified difficulty weight
+- next_review_at
+- learned_until
+
+This matters because recognition and production are not equally difficult.
+
+Phase 1 - Household profiles in spanish/
+
+- add a profiles table;
+- scope user_settings to a profile;
+- scope chat_history to a profile;
+- scope curriculum progress to a profile;
+- scope vocabulary data to a profile;
+- add a current profile selector in the UI;
+- reload app state when the active profile changes.
+
+Phase 2 - Vocabulary model v2 in spanish/
+
+- split word entries from review cards;
+- generate two review cards per word;
+- keep scheduling state per direction;
+- add a dedicated action to mark a card as learned for 15 days;
+- exclude learned cards from due reviews until the date expires.
+
+Phase 3 - Review UX
+
+- allow prompts in both directions;
+- buttons: Don't Know, Hard, Good, Easy, Learned (15 days);
+- clear status badges: new, learning, snoozed, learned;
+- keep the flow fast enough for repeated drilling.
+
+Phase 4 - Later improvements
+
+- import/export;
+- richer statistics by direction;
+- optional profile PIN;
+- mirror the same architecture into english/.
+
+Implementation order
+
+1. Add profile-aware backend schema and migrations in spanish/server/index.js.
+2. Add profile endpoints and profile-aware filtering to existing endpoints.
+3. Add a profile context and selector in spanish/src.
+4. Refactor Spanish vocabulary APIs and UI around word entries + review cards.
+5. Add the 15-day learned action and bidirectional review flow.
+6. Run build/tests, then prepare the english/ port.
+
+Notes
+
+- achievements exist in schema but are not actively surfaced in the UI, so they
+  should stay out of the first rollout;
+- the repo has duplicated English and Spanish apps, so Spanish should be used as
+  the pilot implementation for this feature set;
+- the existing custom hooks in src/hooks are a better long-term integration
+  point than adding more fetch logic directly inside components.

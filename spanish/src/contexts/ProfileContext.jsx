@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getActiveProfileId, setActiveProfileId, profileApiUrl } from '../utils/api';
+import { getActiveProfileId, setActiveProfileId, profileApiUrl, PROFILE_RESET_EVENT } from '../utils/api';
 
 const ProfileContext = createContext();
 
@@ -31,6 +31,17 @@ export function ProfileProvider({ children }) {
 
   useEffect(() => {
     fetchProfiles();
+  }, [fetchProfiles]);
+
+  // Recover from stale/deleted profile: any API call that gets
+  // PROFILE_NOT_FOUND dispatches this event via profileFetch.
+  useEffect(() => {
+    const handleProfileReset = () => {
+      setProfileId(1);
+      fetchProfiles();
+    };
+    window.addEventListener(PROFILE_RESET_EVENT, handleProfileReset);
+    return () => window.removeEventListener(PROFILE_RESET_EVENT, handleProfileReset);
   }, [fetchProfiles]);
 
   const switchProfile = useCallback((id) => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Trash2, AlertCircle, Award } from 'lucide-react';
-import { profileApiUrl } from '../utils/api';
+import { profileApiUrl, profileFetch } from '../utils/api';
 
 const LEVEL_COLORS = {
   'A1': 'bg-green-200 text-green-800',
@@ -22,7 +22,7 @@ function Topics() {
   
   const fetchTopics = async () => {
     try {
-      const response = await fetch(profileApiUrl('/spanish/api/topics'));
+      const response = await profileFetch(profileApiUrl('/spanish/api/topics'));
       const data = await response.json();
       setTopics(data.topics);
       setMaxLevel(data.maxLevel);
@@ -35,7 +35,7 @@ function Topics() {
     if (!confirm('Удалить эту тему?')) return;
     
     try {
-      await fetch(profileApiUrl(`/spanish/api/topics/${id}`), { method: 'DELETE' });
+      await profileFetch(profileApiUrl(`/spanish/api/topics/${id}`), { method: 'DELETE' });
       fetchTopics();
     } catch (error) {
       console.error('Error deleting topic:', error);

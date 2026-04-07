@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { profileApiUrl } from '../utils/api';
+import { profileApiUrl, profileFetch } from '../utils/api';
 
 const API_BASE = '/spanish/api';
 
@@ -36,12 +36,13 @@ export function useTopics() {
     setError(null);
 
     try {
-      const response = await fetch(profileApiUrl(`${API_BASE}/topics`));
+      const response = await profileFetch(profileApiUrl(`${API_BASE}/topics`));
       if (!response.ok) throw new Error('Failed to fetch topics');
       
       const data = await response.json();
-      setTopics(data);
-      cacheRef.current = { data, timestamp: now };
+      const topicList = Array.isArray(data) ? data : data.topics || [];
+      setTopics(topicList);
+      cacheRef.current = { data: topicList, timestamp: now };
       
       return data;
     } catch (err) {
@@ -57,7 +58,7 @@ export function useTopics() {
 
   const updateTopic = useCallback(async (topicId, updates) => {
     try {
-      const response = await fetch(profileApiUrl(`${API_BASE}/topics/update`), {
+      const response = await profileFetch(profileApiUrl(`${API_BASE}/topics/update`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: topicId, ...updates }),
@@ -81,7 +82,7 @@ export function useTopics() {
 
   const deleteTopic = useCallback(async (topicId) => {
     try {
-      const response = await fetch(profileApiUrl(`${API_BASE}/topics/${topicId}`), {
+      const response = await profileFetch(profileApiUrl(`${API_BASE}/topics/${topicId}`), {
         method: 'DELETE',
       });
 

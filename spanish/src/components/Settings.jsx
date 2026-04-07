@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Info } from 'lucide-react';
-import { profileApiUrl } from '../utils/api';
+import { profileApiUrl, profileFetch } from '../utils/api';
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
@@ -23,7 +23,7 @@ function Settings() {
   
   const fetchSettings = async () => {
     try {
-      const response = await fetch(profileApiUrl('/spanish/api/settings'));
+      const response = await profileFetch(profileApiUrl('/spanish/api/settings'));
       const data = await response.json();
       setMaxLevel(data.max_level);
     } catch (error) {
@@ -33,7 +33,7 @@ function Settings() {
   
   const saveSettings = async () => {
     try {
-      await fetch(profileApiUrl('/spanish/api/settings'), {
+      await profileFetch(profileApiUrl('/spanish/api/settings'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ maxLevel }),

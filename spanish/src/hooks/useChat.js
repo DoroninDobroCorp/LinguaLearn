@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { profileApiUrl } from '../utils/api';
+import { profileApiUrl, profileFetch } from '../utils/api';
 
 const API_BASE = '/spanish/api';
 
@@ -11,10 +11,10 @@ export function useChat() {
 
   const loadHistory = useCallback(async () => {
     try {
-      const response = await fetch(profileApiUrl(`${API_BASE}/chat/history`));
+      const response = await profileFetch(profileApiUrl(`${API_BASE}/chat/history`));
       if (!response.ok) throw new Error('Failed to load chat history');
       const data = await response.json();
-      setMessages(data);
+      setMessages(Array.isArray(data) ? data : data.history || []);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -37,7 +37,7 @@ export function useChat() {
     setError(null);
 
     try {
-      const response = await fetch(profileApiUrl(`${API_BASE}/chat`), {
+      const response = await profileFetch(profileApiUrl(`${API_BASE}/chat`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message }),
@@ -74,7 +74,7 @@ export function useChat() {
 
   const clearChat = useCallback(async () => {
     try {
-      const response = await fetch(profileApiUrl(`${API_BASE}/chat/clear`), {
+      const response = await profileFetch(profileApiUrl(`${API_BASE}/chat/clear`), {
         method: 'DELETE',
       });
 

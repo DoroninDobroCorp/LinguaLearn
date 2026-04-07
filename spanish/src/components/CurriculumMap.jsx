@@ -3,7 +3,7 @@ import {
   ChevronDown, ChevronRight, CheckCircle2, Circle, 
   TrendingUp, TrendingDown, Filter, Map, ArrowDownUp, Sparkles, Trash2
 } from 'lucide-react';
-import { profileApiUrl } from '../utils/api';
+import { profileApiUrl, profileFetch } from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
 
 const LEVEL_CONFIG = {
@@ -69,7 +69,7 @@ function CurriculumMap() {
 
   const fetchCurriculum = async () => {
     try {
-      const response = await fetch(profileApiUrl('/spanish/api/curriculum'));
+      const response = await profileFetch(profileApiUrl('/spanish/api/curriculum'));
       const data = await response.json();
       setTopics(data.topics);
       
@@ -94,7 +94,7 @@ function CurriculumMap() {
     const msg = source === 'ai_detected' ? 'Delete this AI-detected topic?' : 'Reset this topic progress?';
     if (!confirm(msg)) return;
     try {
-      await fetch(profileApiUrl(`/spanish/api/topics/${id}`), { method: 'DELETE' });
+      await profileFetch(profileApiUrl(`/spanish/api/topics/${id}`), { method: 'DELETE' });
       fetchCurriculum();
     } catch (error) {
       console.error('Error deleting topic:', error);

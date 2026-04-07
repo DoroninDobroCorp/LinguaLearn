@@ -399,15 +399,48 @@ seedCurriculum();
 app.use(cors());
 app.use(express.json());
 
+// ==================== PROFILE VALIDATION MIDDLEWARE ====================
+// When profileId is absent → backward-compatible default (profile 1).
+// When profileId is explicitly provided but invalid/non-existent → 400/404
+// so a stale client never silently writes into another user's data.
+
+app.use((req, res, next) => {
+  // Skip profile validation for health and profile-management endpoints
+  if (/^\/(health|status|ready|live)$/.test(req.path) ||
+      /^\/api\/(health|status|ready|live|profiles)(\/|$)/.test(req.path)) {
+    return next();
+  }
+
+  const raw = req.query.profileId;
+  if (raw === undefined || raw === null || raw === '') {
+    req.profileId = 1;
+    return next();
+  }
+
+  const id = parseInt(raw, 10);
+  if (!Number.isFinite(id) || id <= 0) {
+    return res.status(400).json({
+      error: 'Invalid profileId',
+      code: 'INVALID_PROFILE_ID',
+    });
+  }
+
+  const exists = db.prepare('SELECT 1 FROM profiles WHERE id = ?').get(id);
+  if (!exists) {
+    return res.status(404).json({
+      error: 'Profile not found',
+      code: 'PROFILE_NOT_FOUND',
+    });
+  }
+
+  req.profileId = id;
+  next();
+});
+
 // ==================== PROFILE HELPERS ====================
 
 function getProfileId(req) {
-  const id = parseInt(req.query.profileId, 10);
-  if (Number.isFinite(id) && id > 0) {
-    const exists = db.prepare('SELECT 1 FROM profiles WHERE id = ?').get(id);
-    if (exists) return id;
-  }
-  return 1;
+  return req.profileId;
 }
 
 function getProfileSettings(profileId) {
@@ -422,6 +455,25 @@ function getProfileSettings(profileId) {
     settings = db.prepare('SELECT * FROM user_settings WHERE profile_id = ?').get(profileId);
   }
   return settings;
+}
+
+// Server-side SRS schedule — guarantees next_review is never NULL
+function calculateNextReview(quality, reviewCount) {
+  let interval;
+  if (quality === 0) {
+    interval = 0;
+  } else if (quality === 1) {
+    interval = 1;
+  } else if (quality === 2) {
+    const intervals = [1, 3, 7, 14, 30, 60];
+    interval = intervals[Math.min(reviewCount, intervals.length - 1)];
+  } else {
+    const intervals = [3, 7, 14, 30, 60, 90];
+    interval = intervals[Math.min(reviewCount, intervals.length - 1)];
+  }
+  const nextReview = new Date();
+  nextReview.setDate(nextReview.getDate() + interval);
+  return { nextReview: nextReview.toISOString(), interval };
 }
 
 function buildHealthResponse() {
@@ -757,21 +809,43 @@ IMPORTANT RULES:
       }
     }
     
-    // Парсинг добавления слов в словарь
-    const vocabMatch = responseText.match(/\[VOCAB_ADD: ({.*?})\]/s);
-    if (vocabMatch) {
-      try {
-        const vocab = JSON.parse(vocabMatch[1]);
-        // Проверка на существование
-        const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? AND profile_id = ?').get(vocab.word, profileId);
-        if (!existing) {
-          db.prepare(`
-            INSERT INTO vocabulary (word, translation, example, level, next_review, profile_id)
-            VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
-          `).run(vocab.word, vocab.translation, vocab.example || null, profileId);
+    // Парсинг добавления слов в словарь — handle ALL VOCAB_ADD tags
+    {
+      let searchStart = 0;
+      const vocabPrefix = '[VOCAB_ADD: ';
+      while (true) {
+        const tagIdx = responseText.indexOf(vocabPrefix, searchStart);
+        if (tagIdx === -1) break;
+
+        const jsonStart = tagIdx + vocabPrefix.length;
+        let braceCount = 0;
+        let jsonEnd = -1;
+        for (let i = jsonStart; i < responseText.length; i++) {
+          if (responseText[i] === '{') braceCount++;
+          else if (responseText[i] === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              jsonEnd = i + 1;
+              break;
+            }
+          }
         }
-      } catch (e) {
-        console.error('Error parsing vocab add:', e);
+        if (jsonEnd === -1) break;
+
+        try {
+          const vocab = JSON.parse(responseText.substring(jsonStart, jsonEnd));
+          const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? AND profile_id = ?').get(vocab.word, profileId);
+          if (!existing) {
+            db.prepare(`
+              INSERT INTO vocabulary (word, translation, example, level, next_review, profile_id)
+              VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
+            `).run(vocab.word, vocab.translation, vocab.example || null, profileId);
+          }
+        } catch (e) {
+          console.error('Error parsing vocab add:', e);
+        }
+
+        searchStart = jsonEnd;
       }
     }
     
@@ -1056,22 +1130,27 @@ app.post('/api/vocabulary/:id/review', (req, res) => {
   try {
     const profileId = getProfileId(req);
     const { id } = req.params;
-    const { quality, nextReview, interval } = req.body;
+    const { quality, nextReview } = req.body;
     
     const word = db.prepare('SELECT * FROM vocabulary WHERE id = ? AND profile_id = ?').get(id, profileId);
     if (!word) {
       return res.status(404).json({ error: 'Word not found' });
     }
     
+    // Server-side SRS: always compute a valid next_review
+    const safeQuality = Number.isFinite(quality) ? Math.max(0, Math.min(3, quality)) : 0;
+    const computed = calculateNextReview(safeQuality, word.review_count);
+    const resolvedNextReview = nextReview || computed.nextReview;
+    
     let newLevel = word.level;
     
-    if (quality === 0) {
+    if (safeQuality === 0) {
       newLevel = 0;
-    } else if (quality === 1) {
+    } else if (safeQuality === 1) {
       newLevel = Math.max(0, Math.min(5, word.level + 0.5));
-    } else if (quality === 2) {
+    } else if (safeQuality === 2) {
       newLevel = Math.min(5, word.level + 1);
-    } else if (quality === 3) {
+    } else if (safeQuality === 3) {
       newLevel = Math.min(5, word.level + 2);
     }
     
@@ -1082,7 +1161,7 @@ app.post('/api/vocabulary/:id/review', (req, res) => {
           review_count = review_count + 1,
           last_reviewed = CURRENT_TIMESTAMP
       WHERE id = ? AND profile_id = ?
-    `).run(newLevel, nextReview, id, profileId);
+    `).run(newLevel, resolvedNextReview, id, profileId);
     
     const updatedWord = db.prepare('SELECT * FROM vocabulary WHERE id = ?').get(id);
     res.json(updatedWord);
