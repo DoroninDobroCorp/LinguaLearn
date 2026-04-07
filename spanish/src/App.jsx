@@ -126,6 +126,8 @@ function AppContent() {
     }}>
       <NavBar />
       
+      {/* key={profileId} forces full remount of all routes on profile switch,
+          ensuring no stale state (chat, vocab, settings) leaks between profiles. */}
       <main key={profileId} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         <Routes>
           <Route path="/" element={<Chat />} />

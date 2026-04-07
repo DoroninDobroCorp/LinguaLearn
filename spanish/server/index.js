@@ -267,7 +267,33 @@ if (!db.prepare('SELECT id FROM user_settings WHERE profile_id = 1').get()) {
         ) WHERE rn = 1
       )
     `);
-    db.exec('CREATE UNIQUE INDEX idx_vocabulary_word_profile ON vocabulary(word, profile_id)');
+    db.exec('CREATE UNIQUE INDEX idx_vocabulary_word_profile ON vocabulary(word COLLATE NOCASE, profile_id)');
+  }
+}
+
+// ==================== VOCABULARY CASE-INSENSITIVE UNIQUENESS MIGRATION ====================
+// Upgrade existing case-sensitive index to COLLATE NOCASE so 'madrugada' and 'Madrugada'
+// cannot coexist within the same profile.
+{
+  const idxSql = db.prepare(
+    "SELECT sql FROM sqlite_master WHERE type='index' AND name='idx_vocabulary_word_profile'"
+  ).get();
+  if (idxSql && !idxSql.sql.includes('NOCASE')) {
+    // Deduplicate case-variant words within each profile, keeping the most-reviewed row
+    db.exec(`
+      DELETE FROM vocabulary
+      WHERE id NOT IN (
+        SELECT id FROM (
+          SELECT id, ROW_NUMBER() OVER (
+            PARTITION BY LOWER(word), profile_id
+            ORDER BY review_count DESC, id ASC
+          ) AS rn
+          FROM vocabulary
+        ) WHERE rn = 1
+      )
+    `);
+    db.exec('DROP INDEX idx_vocabulary_word_profile');
+    db.exec('CREATE UNIQUE INDEX idx_vocabulary_word_profile ON vocabulary(word COLLATE NOCASE, profile_id)');
   }
 }
 
@@ -884,7 +910,7 @@ IMPORTANT RULES:
     // Парсинг добавления слов в словарь — handle ALL VOCAB_ADD tags
     for (const vocab of extractAllTags(responseText, '[VOCAB_ADD: ')) {
       try {
-        const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? AND profile_id = ?').get(vocab.word, profileId);
+        const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? COLLATE NOCASE AND profile_id = ?').get(vocab.word, profileId);
         if (!existing) {
           db.prepare(`
             INSERT INTO vocabulary (word, translation, example, level, next_review, profile_id)
@@ -1173,7 +1199,7 @@ app.post('/api/vocabulary', (req, res) => {
     const profileId = getProfileId(req);
     const { word, translation, example } = req.body;
     
-    const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? AND profile_id = ?').get(word, profileId);
+    const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? COLLATE NOCASE AND profile_id = ?').get(word, profileId);
     if (existing) {
       return res.status(400).json({ error: 'Word already exists' });
     }

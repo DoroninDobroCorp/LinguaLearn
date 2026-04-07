@@ -266,7 +266,7 @@ describe('Profile isolation (DB)', async () => {
         next_review TEXT DEFAULT CURRENT_TIMESTAMP,
         profile_id INTEGER DEFAULT 1
       );
-      CREATE UNIQUE INDEX idx_vocabulary_word_profile ON vocabulary(word, profile_id);
+      CREATE UNIQUE INDEX idx_vocabulary_word_profile ON vocabulary(word COLLATE NOCASE, profile_id);
 
       INSERT INTO profiles (name, avatar_emoji) VALUES ('Default', '👤');
       INSERT INTO profiles (name, avatar_emoji) VALUES ('Alice', '👧');
@@ -305,6 +305,16 @@ describe('Profile isolation (DB)', async () => {
     db.prepare('INSERT INTO vocabulary (word, translation, profile_id) VALUES (?, ?, ?)').run('hola', 'hello', 1);
     assert.throws(
       () => db.prepare('INSERT INTO vocabulary (word, translation, profile_id) VALUES (?, ?, ?)').run('hola', 'hi', 1),
+      /UNIQUE constraint/
+    );
+    db.close();
+  });
+
+  it('case-variant duplicate in same profile is rejected', () => {
+    const db = createTestDb();
+    db.prepare('INSERT INTO vocabulary (word, translation, profile_id) VALUES (?, ?, ?)').run('madrugada', 'dawn', 1);
+    assert.throws(
+      () => db.prepare('INSERT INTO vocabulary (word, translation, profile_id) VALUES (?, ?, ?)').run('Madrugada', 'dawn', 1),
       /UNIQUE constraint/
     );
     db.close();
