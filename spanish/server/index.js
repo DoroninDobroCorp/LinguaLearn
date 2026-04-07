@@ -26,6 +26,8 @@ if (!geminiEnabled) {
 
 // Инициализация базы данных
 const db = new Database(join(__dirname, 'spanish_learning.db'));
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 
 // Создание таблиц
 db.exec(`
@@ -169,27 +171,30 @@ db.exec(`
   }
 }
 
-// Migrate user_settings to support multiple profiles
+// Migrate user_settings to support multiple profiles (atomic transaction)
 try {
   db.prepare('SELECT profile_id FROM user_settings LIMIT 1').get();
 } catch (e) {
-  const prev = db.prepare('SELECT * FROM user_settings WHERE id = 1').get();
-  db.exec('DROP TABLE user_settings');
-  db.exec(`
-    CREATE TABLE user_settings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      profile_id INTEGER NOT NULL UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
-      max_level TEXT DEFAULT 'C2',
-      dark_mode INTEGER DEFAULT 0,
-      notifications_enabled INTEGER DEFAULT 1,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  if (prev) {
-    db.prepare(
-      'INSERT INTO user_settings (profile_id, max_level, dark_mode, notifications_enabled) VALUES (1, ?, ?, ?)'
-    ).run(prev.max_level, prev.dark_mode, prev.notifications_enabled);
-  }
+  const migrate = db.transaction(() => {
+    const prev = db.prepare('SELECT * FROM user_settings WHERE id = 1').get();
+    db.exec('DROP TABLE user_settings');
+    db.exec(`
+      CREATE TABLE user_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
+        max_level TEXT DEFAULT 'C2',
+        dark_mode INTEGER DEFAULT 0,
+        notifications_enabled INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    if (prev) {
+      db.prepare(
+        'INSERT INTO user_settings (profile_id, max_level, dark_mode, notifications_enabled) VALUES (1, ?, ?, ?)'
+      ).run(prev.max_level, prev.dark_mode, prev.notifications_enabled);
+    }
+  });
+  migrate();
 }
 
 // Ensure default profile has settings
@@ -398,12 +403,21 @@ app.use(express.json());
 
 function getProfileId(req) {
   const id = parseInt(req.query.profileId, 10);
-  return Number.isFinite(id) && id > 0 ? id : 1;
+  if (Number.isFinite(id) && id > 0) {
+    const exists = db.prepare('SELECT 1 FROM profiles WHERE id = ?').get(id);
+    if (exists) return id;
+  }
+  return 1;
 }
 
 function getProfileSettings(profileId) {
   let settings = db.prepare('SELECT * FROM user_settings WHERE profile_id = ?').get(profileId);
   if (!settings) {
+    // Only auto-create settings for profiles that actually exist
+    const profileExists = db.prepare('SELECT 1 FROM profiles WHERE id = ?').get(profileId);
+    if (!profileExists) {
+      return db.prepare('SELECT * FROM user_settings WHERE profile_id = 1').get();
+    }
     db.prepare('INSERT INTO user_settings (profile_id, max_level) VALUES (?, ?)').run(profileId, 'B2');
     settings = db.prepare('SELECT * FROM user_settings WHERE profile_id = ?').get(profileId);
   }
@@ -761,11 +775,38 @@ IMPORTANT RULES:
       }
     }
     
-    // Удаление метаданных из ответа
-    const cleanResponse = responseText
-      .replace(/\[TOPICS_UPDATE: ({.*?})\]/s, '')
-      .replace(/\[VOCAB_ADD: ({.*?})\]/s, '')
-      .trim();
+    // Remove metadata tags using balanced-brace extraction (handles nested JSON)
+    function stripBalancedTag(text, tagPrefix) {
+      let result = text;
+      let idx;
+      while ((idx = result.indexOf(tagPrefix)) !== -1) {
+        const jsonStart = idx + tagPrefix.length;
+        let braceCount = 0;
+        let jsonEnd = -1;
+        for (let i = jsonStart; i < result.length; i++) {
+          if (result[i] === '{') braceCount++;
+          else if (result[i] === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              jsonEnd = i + 1;
+              break;
+            }
+          }
+        }
+        if (jsonEnd === -1) break;
+        // Skip past the closing ']'
+        let tagEnd = jsonEnd;
+        while (tagEnd < result.length && result[tagEnd] !== ']') tagEnd++;
+        if (tagEnd < result.length) tagEnd++; // include the ']'
+        result = result.slice(0, idx) + result.slice(tagEnd);
+      }
+      return result;
+    }
+
+    const cleanResponse = stripBalancedTag(
+      stripBalancedTag(responseText, '[TOPICS_UPDATE: '),
+      '[VOCAB_ADD: '
+    ).trim();
     
     // Сохранение ответа ассистента
     db.prepare('INSERT INTO chat_history (role, content, profile_id) VALUES (?, ?, ?)').run('assistant', cleanResponse, profileId);
@@ -1179,12 +1220,15 @@ app.delete('/api/profiles/:id', (req, res) => {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
-    // Cascade delete all profile data
-    db.prepare('DELETE FROM chat_history WHERE profile_id = ?').run(id);
-    db.prepare('DELETE FROM vocabulary WHERE profile_id = ?').run(id);
-    db.prepare('DELETE FROM curriculum_progress WHERE profile_id = ?').run(id);
-    db.prepare('DELETE FROM user_settings WHERE profile_id = ?').run(id);
-    db.prepare('DELETE FROM profiles WHERE id = ?').run(id);
+    // Cascade delete all profile data atomically
+    const deleteProfile = db.transaction((profileId) => {
+      db.prepare('DELETE FROM chat_history WHERE profile_id = ?').run(profileId);
+      db.prepare('DELETE FROM vocabulary WHERE profile_id = ?').run(profileId);
+      db.prepare('DELETE FROM curriculum_progress WHERE profile_id = ?').run(profileId);
+      db.prepare('DELETE FROM user_settings WHERE profile_id = ?').run(profileId);
+      db.prepare('DELETE FROM profiles WHERE id = ?').run(profileId);
+    });
+    deleteProfile(id);
 
     res.json({ success: true });
   } catch (error) {

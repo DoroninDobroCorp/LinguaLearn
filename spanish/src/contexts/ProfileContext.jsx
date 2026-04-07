@@ -49,9 +49,9 @@ export function ProfileProvider({ children }) {
       throw new Error(data.error || 'Failed to create profile');
     }
     const profile = await res.json();
-    await fetchProfiles();
+    setProfiles(prev => [...prev, profile]);
     return profile;
-  }, [fetchProfiles]);
+  }, []);
 
   const deleteProfile = useCallback(async (id) => {
     if (id === 1) throw new Error('Cannot delete the default profile');
@@ -64,8 +64,8 @@ export function ProfileProvider({ children }) {
     if (id === profileId) {
       switchProfile(1);
     }
-    await fetchProfiles();
-  }, [profileId, switchProfile, fetchProfiles]);
+    setProfiles(prev => prev.filter(p => p.id !== id));
+  }, [profileId, switchProfile]);
 
   const activeProfile = profiles.find(p => p.id === profileId) || null;
 
