@@ -664,10 +664,17 @@ function stripBalancedTag(text, tagPrefix) {
   while ((idx = result.indexOf(tagPrefix)) !== -1) {
     const jsonStart = idx + tagPrefix.length;
     let braceCount = 0;
+    let inString = false;
+    let escape = false;
     let jsonEnd = -1;
     for (let i = jsonStart; i < result.length; i++) {
-      if (result[i] === '{') braceCount++;
-      else if (result[i] === '}') {
+      const ch = result[i];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\' && inString) { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') braceCount++;
+      else if (ch === '}') {
         braceCount--;
         if (braceCount === 0) {
           jsonEnd = i + 1;
@@ -865,8 +872,11 @@ IMPORTANT RULES:
       // Return the AI response to the caller but skip all DB writes
       // to avoid orphan rows in chat_history / vocabulary / curriculum_progress.
       const cleanResponse = stripBalancedTag(
-        stripBalancedTag(responseText, '[TOPICS_UPDATE: '),
-        '[VOCAB_ADD: '
+        stripBalancedTag(
+          stripBalancedTag(responseText, '[TOPICS_UPDATE: '),
+          '[VOCAB_ADD: '
+        ),
+        '[EXERCISE: '
       ).trim();
       return res.status(200).json({
         response: cleanResponse,
@@ -959,9 +969,42 @@ IMPORTANT RULES:
       }
     }
     
+    // Extract EXERCISE data before stripping all tags
+    let exerciseData = null;
+    {
+      const exercisePrefix = '[EXERCISE: ';
+      const idx = responseText.indexOf(exercisePrefix);
+      if (idx !== -1) {
+        const jsonStart = idx + exercisePrefix.length;
+        let braceCount = 0;
+        let inString = false;
+        let escape = false;
+        let jsonEnd = -1;
+        for (let i = jsonStart; i < responseText.length; i++) {
+          const ch = responseText[i];
+          if (escape) { escape = false; continue; }
+          if (ch === '\\' && inString) { escape = true; continue; }
+          if (ch === '"') { inString = !inString; continue; }
+          if (inString) continue;
+          if (ch === '{') braceCount++;
+          else if (ch === '}') {
+            braceCount--;
+            if (braceCount === 0) { jsonEnd = i + 1; break; }
+          }
+        }
+        if (jsonEnd !== -1) {
+          try { exerciseData = JSON.parse(responseText.substring(jsonStart, jsonEnd)); }
+          catch (e) { console.error('Error parsing exercise:', e); }
+        }
+      }
+    }
+
     const cleanResponse = stripBalancedTag(
-      stripBalancedTag(responseText, '[TOPICS_UPDATE: '),
-      '[VOCAB_ADD: '
+      stripBalancedTag(
+        stripBalancedTag(responseText, '[TOPICS_UPDATE: '),
+        '[VOCAB_ADD: '
+      ),
+      '[EXERCISE: '
     ).trim();
     
     // Сохранение ответа ассистента
@@ -969,6 +1012,7 @@ IMPORTANT RULES:
     
     res.json({ 
       response: cleanResponse,
+      exercise: exerciseData || undefined,
       topicChanges: topicChanges.length > 0 ? topicChanges : undefined
     });
   } catch (error) {
@@ -984,14 +1028,24 @@ function updateTopic(name, category, level, success, profileId) {
     'SELECT * FROM curriculum_topics WHERE LOWER(name) = LOWER(?)'
   ).get(name);
 
-  // Fuzzy match if no exact match
+  // Fuzzy match if no exact match — but only when unambiguous
   if (!existing) {
-    existing = db.prepare(
+    const fuzzyMatches = db.prepare(
       `SELECT * FROM curriculum_topics 
        WHERE LOWER(?) LIKE '%' || LOWER(name) || '%' 
-       OR LOWER(name) LIKE '%' || LOWER(?) || '%'
-       LIMIT 1`
-    ).get(name, name);
+       OR LOWER(name) LIKE '%' || LOWER(?) || '%'`
+    ).all(name, name);
+
+    if (fuzzyMatches.length === 1) {
+      existing = fuzzyMatches[0];
+    } else if (fuzzyMatches.length > 1) {
+      // Multiple candidates — skip to avoid misattributing progress
+      console.warn(
+        `Ambiguous fuzzy topic match for "${name}": ` +
+        `${fuzzyMatches.length} candidates [${fuzzyMatches.map(m => m.name).join(', ')}]. ` +
+        `Skipping — creating new topic instead.`
+      );
+    }
   }
 
   if (existing) {

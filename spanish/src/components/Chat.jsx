@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
+import { parseExerciseTag } from '../utils/exerciseParser';
 
 // Компонент интерактивного упражнения
 function ExerciseWidget({ exercise, onAnswer }) {
@@ -135,10 +136,25 @@ function Chat() {
     const loadHistory = async () => {
       try {
         const response = await profileFetch(profileApiUrl('/spanish/api/chat/history'));
+        if (!response.ok) {
+          throw new Error(`Server error (${response.status})`);
+        }
         const data = await response.json();
         
         if (data.history.length > 0) {
-          setMessages(data.history);
+          // Parse any EXERCISE tags left in historical messages so they
+          // render as interactive widgets instead of raw JSON.
+          const parsed = data.history.map(msg => {
+            if (msg.role !== 'assistant') return msg;
+            // Prefer the already-extracted exercise field (new messages)
+            if (msg.exercise) return msg;
+            const result = parseExerciseTag(msg.content);
+            if (result) {
+              return { ...msg, content: result.cleanContent, exercise: result.exercise };
+            }
+            return msg;
+          });
+          setMessages(parsed);
         } else {
           // Приветственное сообщение только если история пустая
           setMessages([{
@@ -186,6 +202,10 @@ function Chat() {
         body: JSON.stringify({ message: userMessage }),
       });
       
+      if (!response.ok) {
+        throw new Error(`Server error (${response.status})`);
+      }
+      
       const data = await response.json();
       
       // Обработка изменений тем
@@ -201,17 +221,16 @@ function Chat() {
         });
       }
       
-      // Парсинг упражнений
-      const exerciseMatch = data.response.match(/\[EXERCISE: ({.*?})\]/s);
-      let exercise = null;
+      // Парсинг упражнений — prefer server-extracted exercise,
+      // fall back to balanced-brace parser for backward compat
+      let exercise = data.exercise || null;
       let cleanResponse = data.response;
-      
-      if (exerciseMatch) {
-        try {
-          exercise = JSON.parse(exerciseMatch[1]);
-          cleanResponse = data.response.replace(/\[EXERCISE: ({.*?})\]/s, '').trim();
-        } catch (e) {
-          console.error('Error parsing exercise:', e);
+
+      if (!exercise) {
+        const parsed = parseExerciseTag(data.response);
+        if (parsed) {
+          exercise = parsed.exercise;
+          cleanResponse = parsed.cleanContent;
         }
       }
       
@@ -257,7 +276,10 @@ function Chat() {
     if (!confirm('Clear chat history?')) return;
     
     try {
-      await profileFetch(profileApiUrl('/spanish/api/chat/clear'), { method: 'DELETE' });
+      const response = await profileFetch(profileApiUrl('/spanish/api/chat/clear'), { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error(`Failed to clear chat (${response.status})`);
+      }
       setMessages([
         {
           role: 'assistant',

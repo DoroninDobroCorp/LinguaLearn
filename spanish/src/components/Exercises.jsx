@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Brain, Target, RefreshCw, CheckCircle, XCircle, Award, TrendingUp } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
+import { parseExerciseTag } from '../utils/exerciseParser';
 
 function Exercises() {
   const [topics, setTopics] = useState([]);
@@ -67,14 +68,17 @@ function Exercises() {
 
       const data = await response.json();
       
-      // Парсинг упражнения
-      const exerciseMatch = data.response.match(/\[EXERCISE: ({.*?})\]/s);
-      if (exerciseMatch) {
-        const exercise = JSON.parse(exerciseMatch[1]);
-        setCurrentExercise(exercise);
+      // Парсинг упражнения — prefer server-extracted, fallback to balanced parser
+      if (data.exercise) {
+        setCurrentExercise(data.exercise);
       } else {
-        console.error('No exercise found in response');
-        alert('Failed to generate exercise. Please try again.');
+        const parsed = parseExerciseTag(data.response);
+        if (parsed) {
+          setCurrentExercise(parsed.exercise);
+        } else {
+          console.error('No exercise found in response');
+          alert('Failed to generate exercise. Please try again.');
+        }
       }
     } catch (error) {
       console.error('Error generating exercise:', error);
