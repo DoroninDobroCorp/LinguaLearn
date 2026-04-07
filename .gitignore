@@ -8,6 +8,8 @@ english/server/__pycache__/
 
 # Database files
 *.db
+*.db-wal
+*.db-shm
 
 # Build output
 dist/

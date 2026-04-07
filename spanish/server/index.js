@@ -124,8 +124,37 @@ if (!db.prepare('SELECT id FROM profiles WHERE id = 1').get()) {
   db.exec("INSERT INTO profiles (id, name, avatar_emoji) VALUES (1, 'Default', '👤')");
 }
 
-// Prevent duplicate profile names
-db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_name ON profiles(name)');
+// Prevent duplicate profile names (case-insensitive)
+// Migrate: replace old case-sensitive index with COLLATE NOCASE version
+{
+  const oldIdx = db.prepare(
+    "SELECT 1 FROM pragma_index_info('idx_profiles_name') LIMIT 1"
+  ).get();
+  if (oldIdx) {
+    // Resolve any existing case-only duplicate names before re-creating the index.
+    // Keep the profile with the lowest id for each lowercased name.
+    const dupes = db.prepare(`
+      SELECT id FROM profiles
+      WHERE id NOT IN (
+        SELECT MIN(id) FROM profiles GROUP BY LOWER(name)
+      )
+    `).all();
+    if (dupes.length > 0) {
+      const del = db.transaction(() => {
+        for (const { id } of dupes) {
+          db.prepare('DELETE FROM chat_history WHERE profile_id = ?').run(id);
+          db.prepare('DELETE FROM vocabulary WHERE profile_id = ?').run(id);
+          db.prepare('DELETE FROM curriculum_progress WHERE profile_id = ?').run(id);
+          db.prepare('DELETE FROM user_settings WHERE profile_id = ?').run(id);
+          db.prepare('DELETE FROM profiles WHERE id = ?').run(id);
+        }
+      });
+      del();
+    }
+    db.exec('DROP INDEX idx_profiles_name');
+  }
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_name ON profiles(name COLLATE NOCASE)');
+}
 
 // Add profile_id to chat_history
 try {
@@ -203,6 +232,31 @@ try {
 // Ensure default profile has settings
 if (!db.prepare('SELECT id FROM user_settings WHERE profile_id = 1').get()) {
   db.prepare('INSERT INTO user_settings (profile_id, max_level) VALUES (1, ?)').run('B2');
+}
+
+// ==================== VOCABULARY UNIQUENESS MIGRATION ====================
+// Add a UNIQUE(word, profile_id) constraint so duplicate words within a profile
+// are prevented at the schema level, not only by application-layer checks.
+{
+  const hasIdx = db.prepare(
+    "SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_vocabulary_word_profile'"
+  ).get();
+  if (!hasIdx) {
+    // Remove duplicate words within each profile, keeping the row with the most reviews
+    db.exec(`
+      DELETE FROM vocabulary
+      WHERE id NOT IN (
+        SELECT id FROM (
+          SELECT id, ROW_NUMBER() OVER (
+            PARTITION BY word, profile_id
+            ORDER BY review_count DESC, id ASC
+          ) AS rn
+          FROM vocabulary
+        ) WHERE rn = 1
+      )
+    `);
+    db.exec('CREATE UNIQUE INDEX idx_vocabulary_word_profile ON vocabulary(word, profile_id)');
+  }
 }
 
 // ==================== CEFR CURRICULUM DATA ====================
@@ -560,9 +614,14 @@ function getTopicsContext(profileId) {
   const relevantTopics = activeTopics.filter(t => LEVEL_PRIORITY[t.level] >= maxLevelPriority);
   
   // All curriculum topic names for AI reference
+  // Only include preset topics and AI-detected topics this profile has interacted with,
+  // so that novel AI-detected topics from other profiles do not leak into the prompt.
   const curriculumNames = db.prepare(
-    'SELECT name, level, category FROM curriculum_topics ORDER BY level, category'
-  ).all();
+    `SELECT ct.name, ct.level, ct.category FROM curriculum_topics ct
+     WHERE ct.source = 'preset'
+        OR ct.id IN (SELECT topic_id FROM curriculum_progress WHERE profile_id = ?)
+     ORDER BY ct.level, ct.category`
+  ).all(profileId);
   const curriculumByLevel = {};
   for (const ct of curriculumNames) {
     if (!curriculumByLevel[ct.level]) curriculumByLevel[ct.level] = [];
@@ -596,6 +655,34 @@ function getTopicsContext(profileId) {
 IMPORTANT: Track BOTH mistakes AND successes in ALL interactions. Be gentle when correcting in casual chat. When tracking, prefer using the exact curriculum topic names listed above.`;
   
   return context;
+}
+
+// Remove metadata tags using balanced-brace extraction (handles nested JSON)
+function stripBalancedTag(text, tagPrefix) {
+  let result = text;
+  let idx;
+  while ((idx = result.indexOf(tagPrefix)) !== -1) {
+    const jsonStart = idx + tagPrefix.length;
+    let braceCount = 0;
+    let jsonEnd = -1;
+    for (let i = jsonStart; i < result.length; i++) {
+      if (result[i] === '{') braceCount++;
+      else if (result[i] === '}') {
+        braceCount--;
+        if (braceCount === 0) {
+          jsonEnd = i + 1;
+          break;
+        }
+      }
+    }
+    if (jsonEnd === -1) break;
+    // Skip past the closing ']'
+    let tagEnd = jsonEnd;
+    while (tagEnd < result.length && result[tagEnd] !== ']') tagEnd++;
+    if (tagEnd < result.length) tagEnd++; // include the ']'
+    result = result.slice(0, idx) + result.slice(tagEnd);
+  }
+  return result;
 }
 
 // API: Чат с ЛЛМ
@@ -770,7 +857,23 @@ IMPORTANT RULES:
     if (!responseText) {
       throw new Error('Failed to get response from AI');
     }
-    
+
+    // Re-validate profile existence after the async Gemini call.
+    // The profile may have been deleted while we were awaiting the AI response.
+    const profileStillExists = db.prepare('SELECT 1 FROM profiles WHERE id = ?').get(profileId);
+    if (!profileStillExists) {
+      // Return the AI response to the caller but skip all DB writes
+      // to avoid orphan rows in chat_history / vocabulary / curriculum_progress.
+      const cleanResponse = stripBalancedTag(
+        stripBalancedTag(responseText, '[TOPICS_UPDATE: '),
+        '[VOCAB_ADD: '
+      ).trim();
+      return res.status(200).json({
+        response: cleanResponse,
+        profileDeleted: true,
+      });
+    }
+
     // Парсинг обновлений тем — handle ALL TOPICS_UPDATE tags
     const topicChanges = [];
     
@@ -856,34 +959,6 @@ IMPORTANT RULES:
       }
     }
     
-    // Remove metadata tags using balanced-brace extraction (handles nested JSON)
-    function stripBalancedTag(text, tagPrefix) {
-      let result = text;
-      let idx;
-      while ((idx = result.indexOf(tagPrefix)) !== -1) {
-        const jsonStart = idx + tagPrefix.length;
-        let braceCount = 0;
-        let jsonEnd = -1;
-        for (let i = jsonStart; i < result.length; i++) {
-          if (result[i] === '{') braceCount++;
-          else if (result[i] === '}') {
-            braceCount--;
-            if (braceCount === 0) {
-              jsonEnd = i + 1;
-              break;
-            }
-          }
-        }
-        if (jsonEnd === -1) break;
-        // Skip past the closing ']'
-        let tagEnd = jsonEnd;
-        while (tagEnd < result.length && result[tagEnd] !== ']') tagEnd++;
-        if (tagEnd < result.length) tagEnd++; // include the ']'
-        result = result.slice(0, idx) + result.slice(tagEnd);
-      }
-      return result;
-    }
-
     const cleanResponse = stripBalancedTag(
       stripBalancedTag(responseText, '[TOPICS_UPDATE: '),
       '[VOCAB_ADD: '
@@ -1206,6 +1281,7 @@ app.get('/api/curriculum', (req, res) => {
              cp.last_practiced
       FROM curriculum_topics ct
       LEFT JOIN curriculum_progress cp ON cp.topic_id = ct.id AND cp.profile_id = ?
+      WHERE ct.source = 'preset' OR cp.profile_id IS NOT NULL
       ORDER BY ct.level, ct.category, ct.name
     `).all(profileId);
     res.json({ topics, maxLevel: settings.max_level });
@@ -1261,6 +1337,9 @@ app.get('/api/stats', (req, res) => {
 
 // ==================== PROFILES API ====================
 
+const PROFILE_NAME_MAX_LENGTH = 30;
+const ALLOWED_AVATARS = new Set(['👤', '👩', '👨', '👧', '👦', '🧑', '👵', '👴', '🐱', '🐶', '🦊', '🌟']);
+
 app.get('/api/profiles', (req, res) => {
   try {
     const profiles = db.prepare('SELECT * FROM profiles ORDER BY id').all();
@@ -1279,14 +1358,21 @@ app.post('/api/profiles', (req, res) => {
     }
 
     const trimmedName = name.trim();
-    const existing = db.prepare('SELECT id FROM profiles WHERE name = ?').get(trimmedName);
+
+    if (trimmedName.length > PROFILE_NAME_MAX_LENGTH) {
+      return res.status(400).json({ error: `Profile name must be ${PROFILE_NAME_MAX_LENGTH} characters or fewer` });
+    }
+
+    const avatarToUse = (avatarEmoji && ALLOWED_AVATARS.has(avatarEmoji)) ? avatarEmoji : '👤';
+
+    const existing = db.prepare('SELECT id FROM profiles WHERE name = ? COLLATE NOCASE').get(trimmedName);
     if (existing) {
       return res.status(409).json({ error: 'A profile with this name already exists' });
     }
 
     const result = db.prepare(
       'INSERT INTO profiles (name, avatar_emoji) VALUES (?, ?)'
-    ).run(trimmedName, avatarEmoji || '👤');
+    ).run(trimmedName, avatarToUse);
 
     const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
 
@@ -1312,12 +1398,21 @@ app.delete('/api/profiles/:id', (req, res) => {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
-    // Cascade delete all profile data atomically
+    // Cascade delete all profile data atomically.
+    // NOTE: chat_history.profile_id and vocabulary.profile_id were added via ALTER TABLE
+    // and lack true DB-level FK ON DELETE CASCADE constraints in SQLite, so cleanup
+    // of those tables must be performed manually here.
     const deleteProfile = db.transaction((profileId) => {
       db.prepare('DELETE FROM chat_history WHERE profile_id = ?').run(profileId);
       db.prepare('DELETE FROM vocabulary WHERE profile_id = ?').run(profileId);
       db.prepare('DELETE FROM curriculum_progress WHERE profile_id = ?').run(profileId);
       db.prepare('DELETE FROM user_settings WHERE profile_id = ?').run(profileId);
+      // Remove AI-detected topics that no longer have progress from any profile
+      db.prepare(`
+        DELETE FROM curriculum_topics
+        WHERE source = 'ai_detected'
+          AND id NOT IN (SELECT DISTINCT topic_id FROM curriculum_progress)
+      `).run();
       db.prepare('DELETE FROM profiles WHERE id = ?').run(profileId);
     });
     deleteProfile(id);
