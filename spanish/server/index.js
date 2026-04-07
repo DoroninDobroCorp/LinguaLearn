@@ -1198,8 +1198,20 @@ app.post('/api/vocabulary', (req, res) => {
   try {
     const profileId = getProfileId(req);
     const { word, translation, example } = req.body;
+
+    if (!word || typeof word !== 'string' || !word.trim()) {
+      return res.status(400).json({ error: 'word is required and must be a non-empty string' });
+    }
+    if (translation !== undefined && translation !== null && typeof translation !== 'string') {
+      return res.status(400).json({ error: 'translation must be a string' });
+    }
+    if (example !== undefined && example !== null && typeof example !== 'string') {
+      return res.status(400).json({ error: 'example must be a string' });
+    }
+
+    const trimmedWord = word.trim();
     
-    const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? COLLATE NOCASE AND profile_id = ?').get(word, profileId);
+    const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? COLLATE NOCASE AND profile_id = ?').get(trimmedWord, profileId);
     if (existing) {
       return res.status(400).json({ error: 'Word already exists' });
     }
@@ -1207,7 +1219,7 @@ app.post('/api/vocabulary', (req, res) => {
     const result = db.prepare(`
       INSERT INTO vocabulary (word, translation, example, level, next_review, profile_id)
       VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
-    `).run(word, translation, example || null, profileId);
+    `).run(trimmedWord, translation || null, example || null, profileId);
     
     const newWord = db.prepare('SELECT * FROM vocabulary WHERE id = ?').get(result.lastInsertRowid);
     res.json(newWord);
@@ -1380,15 +1392,16 @@ app.post('/api/profiles', (req, res) => {
       return res.status(409).json({ error: 'A profile with this name already exists' });
     }
 
-    const result = db.prepare(
-      'INSERT INTO profiles (name, avatar_emoji) VALUES (?, ?)'
-    ).run(trimmedName, avatarToUse);
+    const createProfileWithSettings = db.transaction((pName, pAvatar) => {
+      const result = db.prepare(
+        'INSERT INTO profiles (name, avatar_emoji) VALUES (?, ?)'
+      ).run(pName, pAvatar);
+      const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
+      db.prepare('INSERT INTO user_settings (profile_id, max_level) VALUES (?, ?)').run(profile.id, 'B2');
+      return profile;
+    });
 
-    const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
-
-    // Initialize settings for new profile
-    db.prepare('INSERT INTO user_settings (profile_id, max_level) VALUES (?, ?)').run(profile.id, 'B2');
-
+    const profile = createProfileWithSettings(trimmedName, avatarToUse);
     res.json(profile);
   } catch (error) {
     console.error('Error creating profile:', error);

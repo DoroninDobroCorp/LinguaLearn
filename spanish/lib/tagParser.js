@@ -64,10 +64,12 @@ export function findTag(text, tagPrefix, searchFrom = 0) {
 
   if (jsonEnd === -1) return null;
 
-  // Advance past optional closing ']'
+  // Advance past optional closing ']', but only skip whitespace — never
+  // scan past non-whitespace characters that aren't ']'.  This prevents a
+  // missing ']' from consuming unrelated text.
   let tagEnd = jsonEnd;
-  while (tagEnd < text.length && text[tagEnd] !== ']') tagEnd++;
-  if (tagEnd < text.length) tagEnd++; // include the ']'
+  while (tagEnd < text.length && text[tagEnd] !== ']' && /\s/.test(text[tagEnd])) tagEnd++;
+  if (tagEnd < text.length && text[tagEnd] === ']') tagEnd++; // include the ']'
 
   return { tagStart, jsonStart, jsonEnd, tagEnd };
 }

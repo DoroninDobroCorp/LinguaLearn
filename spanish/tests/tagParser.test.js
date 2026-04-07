@@ -57,6 +57,23 @@ describe('findTag', () => {
     assert.equal(findTag('[EXERCISE: {"open": true', '[EXERCISE: '), null);
   });
 
+  it('does not scan past unrelated text when closing ] is missing', () => {
+    const text = '[TAG: {"a":1} some unrelated content here [OTHER: stuff]';
+    const loc = findTag(text, '[TAG: ');
+    assert.ok(loc);
+    // tagEnd should stop at the first non-whitespace that isn't ']',
+    // not scan all the way to the distant ']' in "[OTHER: stuff]"
+    assert.ok(loc.tagEnd < text.indexOf('[OTHER'));
+    assert.equal(text.substring(loc.jsonStart, loc.jsonEnd), '{"a":1}');
+  });
+
+  it('skips whitespace before closing ]', () => {
+    const text = '[TAG: {"a":1} ]';
+    const loc = findTag(text, '[TAG: ');
+    assert.ok(loc);
+    assert.equal(loc.tagEnd, text.length); // includes the ']'
+  });
+
   it('respects searchFrom parameter', () => {
     const text = '[TAG: {"a":1}] ... [TAG: {"b":2}]';
     const first = findTag(text, '[TAG: ', 0);
