@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { profileApiUrl } from '../utils/api';
 
 const API_BASE = '/spanish/api';
 
@@ -38,7 +39,7 @@ export function useVocabulary() {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/vocabulary`);
+      const response = await fetch(profileApiUrl(`${API_BASE}/vocabulary`));
       if (!response.ok) throw new Error('Failed to fetch vocabulary');
       
       const data = await response.json();
@@ -66,7 +67,7 @@ export function useVocabulary() {
 
   const fetchDueWords = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/vocabulary/due`);
+      const response = await fetch(profileApiUrl(`${API_BASE}/vocabulary/due`));
       if (!response.ok) throw new Error('Failed to fetch due words');
       
       const data = await response.json();
@@ -81,7 +82,7 @@ export function useVocabulary() {
 
   const addWord = useCallback(async (word, translation, example = '') => {
     try {
-      const response = await fetch(`${API_BASE}/vocabulary`, {
+      const response = await fetch(profileApiUrl(`${API_BASE}/vocabulary`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ word, translation, example }),
@@ -115,7 +116,7 @@ export function useVocabulary() {
         word.interval
       );
       
-      const response = await fetch(`${API_BASE}/vocabulary/${wordId}/review`, {
+      const response = await fetch(profileApiUrl(`${API_BASE}/vocabulary/${wordId}/review`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -142,7 +143,7 @@ export function useVocabulary() {
 
   const deleteWord = useCallback(async (wordId) => {
     try {
-      const response = await fetch(`${API_BASE}/vocabulary/${wordId}`, {
+      const response = await fetch(profileApiUrl(`${API_BASE}/vocabulary/${wordId}`), {
         method: 'DELETE',
       });
 

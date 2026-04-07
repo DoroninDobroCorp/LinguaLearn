@@ -2,11 +2,13 @@ import React from 'react';
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { MessageCircle, BookOpen, Settings, Brain, BookMarked, Moon, Sun, Sparkles, Map } from 'lucide-react';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { ProfileProvider, useProfile } from './contexts/ProfileContext';
 import Chat from './components/Chat';
 import Exercises from './components/Exercises';
 import Vocabulary from './components/Vocabulary';
 import SettingsPanel from './components/Settings';
 import CurriculumMap from './components/CurriculumMap';
+import ProfileSelector from './components/ProfileSelector';
 
 function NavBar() {
   const location = useLocation();
@@ -50,6 +52,8 @@ function NavBar() {
               </Link>
             ))}
             
+            <ProfileSelector />
+            
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg hover:bg-pink-100 dark:hover:bg-gray-700 transition-all duration-200"
@@ -61,6 +65,7 @@ function NavBar() {
 
           {/* Mobile Navigation */}
           <div className="flex md:hidden items-center space-x-2">
+            <ProfileSelector />
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg hover:bg-pink-100 dark:hover:bg-gray-700"
@@ -111,6 +116,7 @@ function NavBar() {
 
 function AppContent() {
   const { isDark } = useTheme();
+  const { profileId } = useProfile();
   
   return (
     <div className="min-h-screen transition-all duration-300" style={{ 
@@ -120,7 +126,7 @@ function AppContent() {
     }}>
       <NavBar />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+      <main key={profileId} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         <Routes>
           <Route path="/" element={<Chat />} />
           <Route path="/curriculum" element={<CurriculumMap />} />
@@ -137,7 +143,9 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <ProfileProvider>
+        <AppContent />
+      </ProfileProvider>
     </ThemeProvider>
   );
 }

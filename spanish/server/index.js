@@ -106,9 +106,96 @@ try {
   db.exec("ALTER TABLE curriculum_topics ADD COLUMN source TEXT DEFAULT 'preset'");
 }
 
-// Инициализация настроек пользователя
-const initSettings = db.prepare('INSERT OR IGNORE INTO user_settings (id, max_level) VALUES (1, ?)');
-initSettings.run('B2');
+// ==================== HOUSEHOLD PROFILES MIGRATION ====================
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS profiles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    avatar_emoji TEXT DEFAULT '👤',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
+// Ensure default profile exists
+if (!db.prepare('SELECT id FROM profiles WHERE id = 1').get()) {
+  db.exec("INSERT INTO profiles (id, name, avatar_emoji) VALUES (1, 'Default', '👤')");
+}
+
+// Add profile_id to chat_history
+try {
+  db.prepare('SELECT profile_id FROM chat_history LIMIT 1').get();
+} catch (e) {
+  db.exec('ALTER TABLE chat_history ADD COLUMN profile_id INTEGER DEFAULT 1');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_chat_history_profile ON chat_history(profile_id)');
+}
+
+// Add profile_id to vocabulary
+try {
+  db.prepare('SELECT profile_id FROM vocabulary LIMIT 1').get();
+} catch (e) {
+  db.exec('ALTER TABLE vocabulary ADD COLUMN profile_id INTEGER DEFAULT 1');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_vocabulary_profile ON vocabulary(profile_id)');
+}
+
+// Per-profile curriculum progress (split from curriculum_topics)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS curriculum_progress (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    topic_id INTEGER NOT NULL REFERENCES curriculum_topics(id) ON DELETE CASCADE,
+    profile_id INTEGER NOT NULL DEFAULT 1 REFERENCES profiles(id) ON DELETE CASCADE,
+    status TEXT DEFAULT 'not_started',
+    score REAL DEFAULT 0,
+    success_count INTEGER DEFAULT 0,
+    failure_count INTEGER DEFAULT 0,
+    last_practiced TEXT,
+    UNIQUE(topic_id, profile_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_curriculum_progress_profile ON curriculum_progress(profile_id);
+  CREATE INDEX IF NOT EXISTS idx_curriculum_progress_topic ON curriculum_progress(topic_id);
+`);
+
+// Migrate existing curriculum progress to default profile (one-time)
+{
+  const progressCount = db.prepare('SELECT COUNT(*) as c FROM curriculum_progress').get().c;
+  if (progressCount === 0) {
+    db.exec(`
+      INSERT OR IGNORE INTO curriculum_progress
+        (topic_id, profile_id, status, score, success_count, failure_count, last_practiced)
+      SELECT id, 1, status, score, success_count, failure_count, last_practiced
+      FROM curriculum_topics
+      WHERE status != 'not_started'
+    `);
+  }
+}
+
+// Migrate user_settings to support multiple profiles
+try {
+  db.prepare('SELECT profile_id FROM user_settings LIMIT 1').get();
+} catch (e) {
+  const prev = db.prepare('SELECT * FROM user_settings WHERE id = 1').get();
+  db.exec('DROP TABLE user_settings');
+  db.exec(`
+    CREATE TABLE user_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
+      max_level TEXT DEFAULT 'C2',
+      dark_mode INTEGER DEFAULT 0,
+      notifications_enabled INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  if (prev) {
+    db.prepare(
+      'INSERT INTO user_settings (profile_id, max_level, dark_mode, notifications_enabled) VALUES (1, ?, ?, ?)'
+    ).run(prev.max_level, prev.dark_mode, prev.notifications_enabled);
+  }
+}
+
+// Ensure default profile has settings
+if (!db.prepare('SELECT id FROM user_settings WHERE profile_id = 1').get()) {
+  db.prepare('INSERT INTO user_settings (profile_id, max_level) VALUES (1, ?)').run('B2');
+}
 
 // ==================== CEFR CURRICULUM DATA ====================
 const CURRICULUM_DATA = [
@@ -307,6 +394,22 @@ seedCurriculum();
 app.use(cors());
 app.use(express.json());
 
+// ==================== PROFILE HELPERS ====================
+
+function getProfileId(req) {
+  const id = parseInt(req.query.profileId, 10);
+  return Number.isFinite(id) && id > 0 ? id : 1;
+}
+
+function getProfileSettings(profileId) {
+  let settings = db.prepare('SELECT * FROM user_settings WHERE profile_id = ?').get(profileId);
+  if (!settings) {
+    db.prepare('INSERT INTO user_settings (profile_id, max_level) VALUES (?, ?)').run(profileId, 'B2');
+    settings = db.prepare('SELECT * FROM user_settings WHERE profile_id = ?').get(profileId);
+  }
+  return settings;
+}
+
 function buildHealthResponse() {
   db.prepare('SELECT 1 AS ok').get();
 
@@ -372,14 +475,19 @@ const LEVEL_PRIORITY = {
 };
 
 // Get context for LLM
-function getTopicsContext() {
-  const settings = db.prepare('SELECT max_level FROM user_settings WHERE id = 1').get();
+function getTopicsContext(profileId) {
+  const settings = getProfileSettings(profileId);
   const maxLevelPriority = LEVEL_PRIORITY[settings.max_level] || 1;
 
-  // Active topics (in_progress or mastered) from curriculum
-  const activeTopics = db.prepare(
-    "SELECT * FROM curriculum_topics WHERE status != 'not_started' ORDER BY score ASC, level DESC"
-  ).all();
+  // Active topics (in_progress or mastered) from curriculum_progress
+  const activeTopics = db.prepare(`
+    SELECT ct.name, ct.category, ct.level,
+           cp.score, cp.success_count, cp.failure_count
+    FROM curriculum_topics ct
+    INNER JOIN curriculum_progress cp ON cp.topic_id = ct.id AND cp.profile_id = ?
+    WHERE cp.status != 'not_started'
+    ORDER BY cp.score ASC, ct.level DESC
+  `).all(profileId);
   const relevantTopics = activeTopics.filter(t => LEVEL_PRIORITY[t.level] >= maxLevelPriority);
   
   // All curriculum topic names for AI reference
@@ -427,14 +535,16 @@ app.post('/api/chat', async (req, res) => {
     return;
   }
 
+  const profileId = getProfileId(req);
+
   try {
     const { message } = req.body;
     
     // Сохранение сообщения пользователя
-    db.prepare('INSERT INTO chat_history (role, content) VALUES (?, ?)').run('user', message);
+    db.prepare('INSERT INTO chat_history (role, content, profile_id) VALUES (?, ?, ?)').run('user', message, profileId);
     
     // Получение истории чата (последние 10 сообщений)
-    const history = db.prepare('SELECT role, content FROM chat_history ORDER BY id DESC LIMIT 10').all().reverse();
+    const history = db.prepare('SELECT role, content FROM chat_history WHERE profile_id = ? ORDER BY id DESC LIMIT 10').all(profileId).reverse();
     
     const systemPrompt = `You are a friendly and professional Spanish language tutor. Your tasks:
 1. Help the user learn Spanish through natural dialogue IN SPANISH ONLY
@@ -442,7 +552,7 @@ app.post('/api/chat', async (req, res) => {
 3. Track mistakes and successes
 4. After each user's answer to a task, evaluate it and report the result
 
-${getTopicsContext()}
+${getTopicsContext(profileId)}
 
 TEACHING APPROACH:
 - VARY your responses: casual conversation → interactive exercises → video/resource recommendations
@@ -620,7 +730,7 @@ IMPORTANT RULES:
           const updates = JSON.parse(jsonStr);
           if (updates.updates) {
             for (const update of updates.updates) {
-              const result = updateTopic(update.topic, update.category, update.level, update.success);
+              const result = updateTopic(update.topic, update.category, update.level, update.success, profileId);
               if (result) {
                 topicChanges.push(result);
               }
@@ -639,12 +749,12 @@ IMPORTANT RULES:
       try {
         const vocab = JSON.parse(vocabMatch[1]);
         // Проверка на существование
-        const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ?').get(vocab.word);
+        const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? AND profile_id = ?').get(vocab.word, profileId);
         if (!existing) {
           db.prepare(`
-            INSERT INTO vocabulary (word, translation, example, level, next_review)
-            VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP)
-          `).run(vocab.word, vocab.translation, vocab.example || null);
+            INSERT INTO vocabulary (word, translation, example, level, next_review, profile_id)
+            VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
+          `).run(vocab.word, vocab.translation, vocab.example || null, profileId);
         }
       } catch (e) {
         console.error('Error parsing vocab add:', e);
@@ -658,7 +768,7 @@ IMPORTANT RULES:
       .trim();
     
     // Сохранение ответа ассистента
-    db.prepare('INSERT INTO chat_history (role, content) VALUES (?, ?)').run('assistant', cleanResponse);
+    db.prepare('INSERT INTO chat_history (role, content, profile_id) VALUES (?, ?, ?)').run('assistant', cleanResponse, profileId);
     
     res.json({ 
       response: cleanResponse,
@@ -670,8 +780,8 @@ IMPORTANT RULES:
   }
 });
 
-// Функция обновления темы — writes directly to curriculum_topics
-function updateTopic(name, category, level, success) {
+// Функция обновления темы — writes progress to curriculum_progress
+function updateTopic(name, category, level, success, profileId) {
   // Try exact match in curriculum_topics first
   let existing = db.prepare(
     'SELECT * FROM curriculum_topics WHERE LOWER(name) = LOWER(?)'
@@ -688,18 +798,30 @@ function updateTopic(name, category, level, success) {
   }
 
   if (existing) {
+    // Get or create progress for this profile
+    let progress = db.prepare(
+      'SELECT * FROM curriculum_progress WHERE topic_id = ? AND profile_id = ?'
+    ).get(existing.id, profileId);
+
+    if (!progress) {
+      db.prepare(
+        'INSERT INTO curriculum_progress (topic_id, profile_id, status, score) VALUES (?, ?, ?, 0)'
+      ).run(existing.id, profileId, 'not_started');
+      progress = { score: 0 };
+    }
+
     const scoreChange = success ? 5 : -10;
-    const newScore = Math.max(0, Math.min(100, existing.score + scoreChange));
+    const newScore = Math.max(0, Math.min(100, progress.score + scoreChange));
     const newStatus = newScore >= 80 ? 'mastered' : 'in_progress';
 
     db.prepare(`
-      UPDATE curriculum_topics 
+      UPDATE curriculum_progress 
       SET score = ?, status = ?,
           success_count = success_count + ?,
           failure_count = failure_count + ?,
           last_practiced = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(newScore, newStatus, success ? 1 : 0, success ? 0 : 1, existing.id);
+      WHERE topic_id = ? AND profile_id = ?
+    `).run(newScore, newStatus, success ? 1 : 0, success ? 0 : 1, existing.id, profileId);
 
     return { 
       isNew: false, 
@@ -709,13 +831,20 @@ function updateTopic(name, category, level, success) {
       success 
     };
   } else {
-    // AI detected a new topic — add to curriculum_topics directly
+    // AI detected a new topic — add definition to curriculum_topics
+    const result = db.prepare(`
+      INSERT INTO curriculum_topics (name, category, level, source)
+      VALUES (?, ?, ?, 'ai_detected')
+    `).run(name, category, level);
+
+    const topicId = result.lastInsertRowid;
     const initialScore = success ? 50 : 0;
-    const status = 'in_progress';
+
+    // Create progress for this profile
     db.prepare(`
-      INSERT INTO curriculum_topics (name, category, level, score, status, success_count, failure_count, source, last_practiced)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'ai_detected', CURRENT_TIMESTAMP)
-    `).run(name, category, level, initialScore, status, success ? 1 : 0, success ? 0 : 1);
+      INSERT INTO curriculum_progress (topic_id, profile_id, status, score, success_count, failure_count, last_practiced)
+      VALUES (?, ?, 'in_progress', ?, ?, ?, CURRENT_TIMESTAMP)
+    `).run(topicId, profileId, initialScore, success ? 1 : 0, success ? 0 : 1);
 
     return { 
       isNew: true, 
@@ -727,15 +856,21 @@ function updateTopic(name, category, level, success) {
   }
 }
 
-// API: Получение всех тем (reads from curriculum_topics for backward compatibility)
+// API: Получение всех тем (profile-scoped via curriculum_progress)
 app.get('/api/topics', (req, res) => {
   try {
-    const settings = db.prepare('SELECT max_level FROM user_settings WHERE id = 1').get();
+    const profileId = getProfileId(req);
+    const settings = getProfileSettings(profileId);
     const maxLevelPriority = LEVEL_PRIORITY[settings.max_level] || 1;
     
-    const topics = db.prepare(
-      "SELECT * FROM curriculum_topics WHERE status != 'not_started' ORDER BY score ASC, level DESC"
-    ).all();
+    const topics = db.prepare(`
+      SELECT ct.id, ct.name, ct.category, ct.level, ct.source, ct.created_at,
+             cp.status, cp.score, cp.success_count, cp.failure_count, cp.last_practiced
+      FROM curriculum_topics ct
+      INNER JOIN curriculum_progress cp ON cp.topic_id = ct.id AND cp.profile_id = ?
+      WHERE cp.status != 'not_started'
+      ORDER BY cp.score ASC, ct.level DESC
+    `).all(profileId);
     const relevantTopics = topics.filter(t => LEVEL_PRIORITY[t.level] >= maxLevelPriority);
     
     res.json({ topics: relevantTopics, maxLevel: settings.max_level });
@@ -748,20 +883,22 @@ app.get('/api/topics', (req, res) => {
 // API: Обновление уровня пользователя
 app.post('/api/settings', (req, res) => {
   try {
+    const profileId = getProfileId(req);
     const { maxLevel, darkMode, notificationsEnabled } = req.body;
+    const settings = getProfileSettings(profileId);
     
     if (maxLevel) {
-      db.prepare('UPDATE user_settings SET max_level = ? WHERE id = 1').run(maxLevel);
+      db.prepare('UPDATE user_settings SET max_level = ? WHERE profile_id = ?').run(maxLevel, profileId);
     }
     if (darkMode !== undefined) {
-      db.prepare('UPDATE user_settings SET dark_mode = ? WHERE id = 1').run(darkMode ? 1 : 0);
+      db.prepare('UPDATE user_settings SET dark_mode = ? WHERE profile_id = ?').run(darkMode ? 1 : 0, profileId);
     }
     if (notificationsEnabled !== undefined) {
-      db.prepare('UPDATE user_settings SET notifications_enabled = ? WHERE id = 1').run(notificationsEnabled ? 1 : 0);
+      db.prepare('UPDATE user_settings SET notifications_enabled = ? WHERE profile_id = ?').run(notificationsEnabled ? 1 : 0, profileId);
     }
     
-    const settings = db.prepare('SELECT * FROM user_settings WHERE id = 1').get();
-    res.json(settings);
+    const updated = db.prepare('SELECT * FROM user_settings WHERE profile_id = ?').get(profileId);
+    res.json(updated);
   } catch (error) {
     console.error('Error updating settings:', error);
     res.status(500).json({ error: error.message });
@@ -771,8 +908,9 @@ app.post('/api/settings', (req, res) => {
 // API: Получение настроек
 app.get('/api/settings', (req, res) => {
   try {
-    const settings = db.prepare('SELECT * FROM user_settings WHERE id = 1').get();
-    res.json(settings || { max_level: 'B2', dark_mode: 0, notifications_enabled: 1 });
+    const profileId = getProfileId(req);
+    const settings = getProfileSettings(profileId);
+    res.json(settings);
   } catch (error) {
     console.error('Error fetching settings:', error);
     res.status(500).json({ error: error.message });
@@ -781,21 +919,19 @@ app.get('/api/settings', (req, res) => {
 
 // API: Ручное обновление темы
 app.post('/api/topics/update', (req, res) => {
+  const profileId = getProfileId(req);
   const { topic, category, level, success } = req.body;
-  updateTopic(topic, category, level, success);
+  updateTopic(topic, category, level, success, profileId);
   res.json({ success: true });
 });
 
-// API: Удаление/сброс темы
+// API: Удаление/сброс темы progress for this profile
 app.delete('/api/topics/:id', (req, res) => {
+  const profileId = getProfileId(req);
   const topic = db.prepare('SELECT * FROM curriculum_topics WHERE id = ?').get(req.params.id);
-  if (topic && topic.source === 'ai_detected') {
-    db.prepare('DELETE FROM curriculum_topics WHERE id = ?').run(req.params.id);
-  } else if (topic) {
-    // Preset topic — reset instead of delete
-    db.prepare(
-      "UPDATE curriculum_topics SET status = 'not_started', score = 0, success_count = 0, failure_count = 0, last_practiced = NULL WHERE id = ?"
-    ).run(req.params.id);
+  if (topic) {
+    db.prepare('DELETE FROM curriculum_progress WHERE topic_id = ? AND profile_id = ?')
+      .run(req.params.id, profileId);
   }
   res.json({ success: true });
 });
@@ -803,7 +939,10 @@ app.delete('/api/topics/:id', (req, res) => {
 // API: Получение истории чата
 app.get('/api/chat/history', (req, res) => {
   try {
-    const history = db.prepare('SELECT role, content, timestamp FROM chat_history ORDER BY id ASC').all();
+    const profileId = getProfileId(req);
+    const history = db.prepare(
+      'SELECT role, content, timestamp FROM chat_history WHERE profile_id = ? ORDER BY id ASC'
+    ).all(profileId);
     res.json({ history });
   } catch (error) {
     console.error('Error fetching chat history:', error);
@@ -813,7 +952,8 @@ app.get('/api/chat/history', (req, res) => {
 
 // API: Очистка истории чата
 app.delete('/api/chat/clear', (req, res) => {
-  db.prepare('DELETE FROM chat_history').run();
+  const profileId = getProfileId(req);
+  db.prepare('DELETE FROM chat_history WHERE profile_id = ?').run(profileId);
   res.json({ success: true });
 });
 
@@ -822,7 +962,8 @@ app.delete('/api/chat/clear', (req, res) => {
 // Получение всех слов
 app.get('/api/vocabulary', (req, res) => {
   try {
-    const words = db.prepare('SELECT * FROM vocabulary ORDER BY next_review ASC').all();
+    const profileId = getProfileId(req);
+    const words = db.prepare('SELECT * FROM vocabulary WHERE profile_id = ? ORDER BY next_review ASC').all(profileId);
     res.json({ words });
   } catch (error) {
     console.error('Error fetching vocabulary:', error);
@@ -833,8 +974,11 @@ app.get('/api/vocabulary', (req, res) => {
 // Получение слов на повторение сегодня
 app.get('/api/vocabulary/due', (req, res) => {
   try {
+    const profileId = getProfileId(req);
     const today = new Date().toISOString().split('T')[0];
-    const words = db.prepare('SELECT * FROM vocabulary WHERE next_review <= ? ORDER BY next_review ASC').all(today + 'T23:59:59');
+    const words = db.prepare(
+      'SELECT * FROM vocabulary WHERE profile_id = ? AND next_review <= ? ORDER BY next_review ASC'
+    ).all(profileId, today + 'T23:59:59');
     res.json({ words });
   } catch (error) {
     console.error('Error fetching due words:', error);
@@ -845,18 +989,18 @@ app.get('/api/vocabulary/due', (req, res) => {
 // Добавление нового слова
 app.post('/api/vocabulary', (req, res) => {
   try {
+    const profileId = getProfileId(req);
     const { word, translation, example } = req.body;
     
-    // Проверка на существование
-    const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ?').get(word);
+    const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? AND profile_id = ?').get(word, profileId);
     if (existing) {
       return res.status(400).json({ error: 'Word already exists' });
     }
     
     const result = db.prepare(`
-      INSERT INTO vocabulary (word, translation, example, level, next_review)
-      VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP)
-    `).run(word, translation, example || null);
+      INSERT INTO vocabulary (word, translation, example, level, next_review, profile_id)
+      VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
+    `).run(word, translation, example || null, profileId);
     
     const newWord = db.prepare('SELECT * FROM vocabulary WHERE id = ?').get(result.lastInsertRowid);
     res.json(newWord);
@@ -869,10 +1013,11 @@ app.post('/api/vocabulary', (req, res) => {
 // Обновление прогресса слова (после повторения)
 app.post('/api/vocabulary/:id/review', (req, res) => {
   try {
+    const profileId = getProfileId(req);
     const { id } = req.params;
     const { quality, nextReview, interval } = req.body;
     
-    const word = db.prepare('SELECT * FROM vocabulary WHERE id = ?').get(id);
+    const word = db.prepare('SELECT * FROM vocabulary WHERE id = ? AND profile_id = ?').get(id, profileId);
     if (!word) {
       return res.status(404).json({ error: 'Word not found' });
     }
@@ -895,8 +1040,8 @@ app.post('/api/vocabulary/:id/review', (req, res) => {
           next_review = ?,
           review_count = review_count + 1,
           last_reviewed = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(newLevel, nextReview, id);
+      WHERE id = ? AND profile_id = ?
+    `).run(newLevel, nextReview, id, profileId);
     
     const updatedWord = db.prepare('SELECT * FROM vocabulary WHERE id = ?').get(id);
     res.json(updatedWord);
@@ -909,7 +1054,8 @@ app.post('/api/vocabulary/:id/review', (req, res) => {
 // Удаление слова
 app.delete('/api/vocabulary/:id', (req, res) => {
   try {
-    db.prepare('DELETE FROM vocabulary WHERE id = ?').run(req.params.id);
+    const profileId = getProfileId(req);
+    db.prepare('DELETE FROM vocabulary WHERE id = ? AND profile_id = ?').run(req.params.id, profileId);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting word:', error);
@@ -919,13 +1065,22 @@ app.delete('/api/vocabulary/:id', (req, res) => {
 
 // ==================== CURRICULUM API ====================
 
-// Get all curriculum topics with progress
+// Get all curriculum topics with per-profile progress
 app.get('/api/curriculum', (req, res) => {
   try {
-    const settings = db.prepare('SELECT max_level FROM user_settings WHERE id = 1').get();
-    const topics = db.prepare(
-      'SELECT * FROM curriculum_topics ORDER BY level, category, name'
-    ).all();
+    const profileId = getProfileId(req);
+    const settings = getProfileSettings(profileId);
+    const topics = db.prepare(`
+      SELECT ct.id, ct.name, ct.category, ct.level, ct.source, ct.created_at,
+             COALESCE(cp.status, 'not_started') as status,
+             COALESCE(cp.score, 0) as score,
+             COALESCE(cp.success_count, 0) as success_count,
+             COALESCE(cp.failure_count, 0) as failure_count,
+             cp.last_practiced
+      FROM curriculum_topics ct
+      LEFT JOIN curriculum_progress cp ON cp.topic_id = ct.id AND cp.profile_id = ?
+      ORDER BY ct.level, ct.category, ct.name
+    `).all(profileId);
     res.json({ topics, maxLevel: settings.max_level });
   } catch (error) {
     console.error('Error fetching curriculum:', error);
@@ -936,16 +1091,27 @@ app.get('/api/curriculum', (req, res) => {
 // API: Получение статистики
 app.get('/api/stats', (req, res) => {
   try {
-    const topicsCount = db.prepare("SELECT COUNT(*) as count FROM curriculum_topics WHERE status != 'not_started'").get().count;
-    const topicsLowScore = db.prepare("SELECT COUNT(*) as count FROM curriculum_topics WHERE status != 'not_started' AND score < 30").get().count;
-    const topicsHighScore = db.prepare("SELECT COUNT(*) as count FROM curriculum_topics WHERE score >= 70").get().count;
+    const profileId = getProfileId(req);
+    const topicsCount = db.prepare(
+      "SELECT COUNT(*) as count FROM curriculum_progress WHERE profile_id = ? AND status != 'not_started'"
+    ).get(profileId).count;
+    const topicsLowScore = db.prepare(
+      "SELECT COUNT(*) as count FROM curriculum_progress WHERE profile_id = ? AND status != 'not_started' AND score < 30"
+    ).get(profileId).count;
+    const topicsHighScore = db.prepare(
+      "SELECT COUNT(*) as count FROM curriculum_progress WHERE profile_id = ? AND score >= 70"
+    ).get(profileId).count;
     
-    const vocabTotal = db.prepare('SELECT COUNT(*) as count FROM vocabulary').get().count;
+    const vocabTotal = db.prepare('SELECT COUNT(*) as count FROM vocabulary WHERE profile_id = ?').get(profileId).count;
     const today = new Date().toISOString().split('T')[0];
-    const vocabDue = db.prepare('SELECT COUNT(*) as count FROM vocabulary WHERE next_review <= ?').get(today + 'T23:59:59').count;
-    const vocabMastered = db.prepare('SELECT COUNT(*) as count FROM vocabulary WHERE review_count >= 5 AND level >= 2').get().count;
+    const vocabDue = db.prepare(
+      'SELECT COUNT(*) as count FROM vocabulary WHERE profile_id = ? AND next_review <= ?'
+    ).get(profileId, today + 'T23:59:59').count;
+    const vocabMastered = db.prepare(
+      'SELECT COUNT(*) as count FROM vocabulary WHERE profile_id = ? AND review_count >= 5 AND level >= 2'
+    ).get(profileId).count;
     
-    const chatMessages = db.prepare('SELECT COUNT(*) as count FROM chat_history').get().count;
+    const chatMessages = db.prepare('SELECT COUNT(*) as count FROM chat_history WHERE profile_id = ?').get(profileId).count;
     
     res.json({
       topics: {
@@ -962,6 +1128,67 @@ app.get('/api/stats', (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching stats:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== PROFILES API ====================
+
+app.get('/api/profiles', (req, res) => {
+  try {
+    const profiles = db.prepare('SELECT * FROM profiles ORDER BY id').all();
+    res.json({ profiles });
+  } catch (error) {
+    console.error('Error fetching profiles:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/profiles', (req, res) => {
+  try {
+    const { name, avatarEmoji } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Profile name is required' });
+    }
+
+    const result = db.prepare(
+      'INSERT INTO profiles (name, avatar_emoji) VALUES (?, ?)'
+    ).run(name.trim(), avatarEmoji || '👤');
+
+    const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
+
+    // Initialize settings for new profile
+    db.prepare('INSERT INTO user_settings (profile_id, max_level) VALUES (?, ?)').run(profile.id, 'B2');
+
+    res.json(profile);
+  } catch (error) {
+    console.error('Error creating profile:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/profiles/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (id === 1) {
+      return res.status(400).json({ error: 'Cannot delete the default profile' });
+    }
+
+    const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(id);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // Cascade delete all profile data
+    db.prepare('DELETE FROM chat_history WHERE profile_id = ?').run(id);
+    db.prepare('DELETE FROM vocabulary WHERE profile_id = ?').run(id);
+    db.prepare('DELETE FROM curriculum_progress WHERE profile_id = ?').run(id);
+    db.prepare('DELETE FROM user_settings WHERE profile_id = ?').run(id);
+    db.prepare('DELETE FROM profiles WHERE id = ?').run(id);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting profile:', error);
     res.status(500).json({ error: error.message });
   }
 });

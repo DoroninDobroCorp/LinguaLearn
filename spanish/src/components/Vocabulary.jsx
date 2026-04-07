@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BookMarked, Plus, RotateCcw, Trash2, Check, X, AlertCircle, TrendingUp } from 'lucide-react';
+import { profileApiUrl } from '../utils/api';
 
 function Vocabulary() {
   const [words, setWords] = useState([]);
@@ -17,7 +18,7 @@ function Vocabulary() {
 
   const fetchWords = async () => {
     try {
-      const response = await fetch('/spanish/api/vocabulary');
+      const response = await fetch(profileApiUrl('/spanish/api/vocabulary'));
       const data = await response.json();
       setWords(data.words);
       
@@ -30,7 +31,7 @@ function Vocabulary() {
 
   const fetchDueWords = async () => {
     try {
-      const response = await fetch('/spanish/api/vocabulary/due');
+      const response = await fetch(profileApiUrl('/spanish/api/vocabulary/due'));
       const data = await response.json();
       setDueWords(data.words);
       setStats(prev => ({ ...prev, due: data.words.length }));
@@ -43,7 +44,7 @@ function Vocabulary() {
     if (!newWord.word.trim() || !newWord.translation.trim()) return;
     
     try {
-      await fetch('/spanish/api/vocabulary', {
+      await fetch(profileApiUrl('/spanish/api/vocabulary'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newWord),
@@ -65,7 +66,7 @@ function Vocabulary() {
     const currentWord = dueWords[currentWordIndex];
     
     try {
-      await fetch(`/spanish/api/vocabulary/${currentWord.id}/review`, {
+      await fetch(profileApiUrl(`/spanish/api/vocabulary/${currentWord.id}/review`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quality }),
@@ -90,7 +91,7 @@ function Vocabulary() {
     if (!confirm('Delete this word?')) return;
     
     try {
-      await fetch(`/spanish/api/vocabulary/${id}`, { method: 'DELETE' });
+      await fetch(profileApiUrl(`/spanish/api/vocabulary/${id}`), { method: 'DELETE' });
       fetchWords();
       fetchDueWords();
     } catch (error) {
