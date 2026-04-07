@@ -1,62 +1,22 @@
+import { findTag } from '../../lib/tagParser.js';
+
 /**
- * Balanced-brace parser for [EXERCISE: {...}] tags.
- * Unlike the previous regex approach, this correctly handles `}]` sequences
- * that appear inside JSON string values (e.g. in question text).
+ * Parse an [EXERCISE: {...}] tag from message text.
+ *
+ * Delegates to the shared string-aware tag parser so that `}]` sequences
+ * inside JSON string values are handled correctly.
  *
  * @param {string} text - message content that may contain an EXERCISE tag
  * @returns {{ exercise: object, cleanContent: string } | null}
  */
 export function parseExerciseTag(text) {
   const prefix = '[EXERCISE: ';
-  const tagIndex = text.indexOf(prefix);
-  if (tagIndex === -1) return null;
-
-  const jsonStart = tagIndex + prefix.length;
-  let braceCount = 0;
-  let jsonEnd = -1;
-  let inString = false;
-  let escape = false;
-
-  for (let i = jsonStart; i < text.length; i++) {
-    const ch = text[i];
-
-    if (escape) {
-      escape = false;
-      continue;
-    }
-
-    if (ch === '\\' && inString) {
-      escape = true;
-      continue;
-    }
-
-    if (ch === '"') {
-      inString = !inString;
-      continue;
-    }
-
-    if (inString) continue;
-
-    if (ch === '{') braceCount++;
-    else if (ch === '}') {
-      braceCount--;
-      if (braceCount === 0) {
-        jsonEnd = i + 1;
-        break;
-      }
-    }
-  }
-
-  if (jsonEnd === -1) return null;
-
-  // Advance past the closing ']'
-  let tagEnd = jsonEnd;
-  while (tagEnd < text.length && text[tagEnd] !== ']') tagEnd++;
-  if (tagEnd < text.length) tagEnd++; // include ']'
+  const loc = findTag(text, prefix);
+  if (!loc) return null;
 
   try {
-    const exercise = JSON.parse(text.substring(jsonStart, jsonEnd));
-    const cleanContent = (text.slice(0, tagIndex) + text.slice(tagEnd)).trim();
+    const exercise = JSON.parse(text.substring(loc.jsonStart, loc.jsonEnd));
+    const cleanContent = (text.slice(0, loc.tagStart) + text.slice(loc.tagEnd)).trim();
     return { exercise, cleanContent };
   } catch (e) {
     console.error('Error parsing exercise JSON:', e);

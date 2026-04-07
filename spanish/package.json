@@ -6,7 +6,8 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "node server/index.js",
     "client": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "test": "node --test 'tests/**/*.test.js'"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

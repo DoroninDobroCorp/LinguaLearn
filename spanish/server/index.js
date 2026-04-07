@@ -5,6 +5,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { extractAllTags, extractFirstTag, stripTags } from '../lib/tagParser.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -657,40 +658,7 @@ IMPORTANT: Track BOTH mistakes AND successes in ALL interactions. Be gentle when
   return context;
 }
 
-// Remove metadata tags using balanced-brace extraction (handles nested JSON)
-function stripBalancedTag(text, tagPrefix) {
-  let result = text;
-  let idx;
-  while ((idx = result.indexOf(tagPrefix)) !== -1) {
-    const jsonStart = idx + tagPrefix.length;
-    let braceCount = 0;
-    let inString = false;
-    let escape = false;
-    let jsonEnd = -1;
-    for (let i = jsonStart; i < result.length; i++) {
-      const ch = result[i];
-      if (escape) { escape = false; continue; }
-      if (ch === '\\' && inString) { escape = true; continue; }
-      if (ch === '"') { inString = !inString; continue; }
-      if (inString) continue;
-      if (ch === '{') braceCount++;
-      else if (ch === '}') {
-        braceCount--;
-        if (braceCount === 0) {
-          jsonEnd = i + 1;
-          break;
-        }
-      }
-    }
-    if (jsonEnd === -1) break;
-    // Skip past the closing ']'
-    let tagEnd = jsonEnd;
-    while (tagEnd < result.length && result[tagEnd] !== ']') tagEnd++;
-    if (tagEnd < result.length) tagEnd++; // include the ']'
-    result = result.slice(0, idx) + result.slice(tagEnd);
-  }
-  return result;
-}
+// Tag stripping now handled by shared lib/tagParser.js
 
 // API: Чат с ЛЛМ
 app.post('/api/chat', async (req, res) => {
@@ -871,9 +839,9 @@ IMPORTANT RULES:
     if (!profileStillExists) {
       // Return the AI response to the caller but skip all DB writes
       // to avoid orphan rows in chat_history / vocabulary / curriculum_progress.
-      const cleanResponse = stripBalancedTag(
-        stripBalancedTag(
-          stripBalancedTag(responseText, '[TOPICS_UPDATE: '),
+      const cleanResponse = stripTags(
+        stripTags(
+          stripTags(responseText, '[TOPICS_UPDATE: '),
           '[VOCAB_ADD: '
         ),
         '[EXERCISE: '
@@ -887,121 +855,38 @@ IMPORTANT RULES:
     // Парсинг обновлений тем — handle ALL TOPICS_UPDATE tags
     const topicChanges = [];
     
-    {
-      let searchStart = 0;
-      const topicPrefix = '[TOPICS_UPDATE: ';
-      while (true) {
-        const tagIndex = responseText.indexOf(topicPrefix, searchStart);
-        if (tagIndex === -1) break;
-
-        const jsonStart = tagIndex + topicPrefix.length;
-        let braceCount = 0;
-        let jsonEnd = -1;
-
-        for (let i = jsonStart; i < responseText.length; i++) {
-          if (responseText[i] === '{') braceCount++;
-          else if (responseText[i] === '}') {
-            braceCount--;
-            if (braceCount === 0) {
-              jsonEnd = i + 1;
-              break;
-            }
+    for (const updates of extractAllTags(responseText, '[TOPICS_UPDATE: ')) {
+      if (updates.updates) {
+        for (const update of updates.updates) {
+          const result = updateTopic(update.topic, update.category, update.level, update.success, profileId);
+          if (result) {
+            topicChanges.push(result);
           }
         }
-        if (jsonEnd === -1) break;
-
-        try {
-          const updates = JSON.parse(responseText.substring(jsonStart, jsonEnd));
-          if (updates.updates) {
-            for (const update of updates.updates) {
-              const result = updateTopic(update.topic, update.category, update.level, update.success, profileId);
-              if (result) {
-                topicChanges.push(result);
-              }
-            }
-          }
-        } catch (e) {
-          console.error('Error parsing topic updates:', e);
-          console.error('Failed to parse:', responseText.substring(jsonStart, jsonEnd));
-        }
-
-        searchStart = jsonEnd;
       }
     }
     
     // Парсинг добавления слов в словарь — handle ALL VOCAB_ADD tags
-    {
-      let searchStart = 0;
-      const vocabPrefix = '[VOCAB_ADD: ';
-      while (true) {
-        const tagIdx = responseText.indexOf(vocabPrefix, searchStart);
-        if (tagIdx === -1) break;
-
-        const jsonStart = tagIdx + vocabPrefix.length;
-        let braceCount = 0;
-        let jsonEnd = -1;
-        for (let i = jsonStart; i < responseText.length; i++) {
-          if (responseText[i] === '{') braceCount++;
-          else if (responseText[i] === '}') {
-            braceCount--;
-            if (braceCount === 0) {
-              jsonEnd = i + 1;
-              break;
-            }
-          }
+    for (const vocab of extractAllTags(responseText, '[VOCAB_ADD: ')) {
+      try {
+        const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? AND profile_id = ?').get(vocab.word, profileId);
+        if (!existing) {
+          db.prepare(`
+            INSERT INTO vocabulary (word, translation, example, level, next_review, profile_id)
+            VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
+          `).run(vocab.word, vocab.translation, vocab.example || null, profileId);
         }
-        if (jsonEnd === -1) break;
-
-        try {
-          const vocab = JSON.parse(responseText.substring(jsonStart, jsonEnd));
-          const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? AND profile_id = ?').get(vocab.word, profileId);
-          if (!existing) {
-            db.prepare(`
-              INSERT INTO vocabulary (word, translation, example, level, next_review, profile_id)
-              VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
-            `).run(vocab.word, vocab.translation, vocab.example || null, profileId);
-          }
-        } catch (e) {
-          console.error('Error parsing vocab add:', e);
-        }
-
-        searchStart = jsonEnd;
+      } catch (e) {
+        console.error('Error processing vocab add:', e);
       }
     }
     
     // Extract EXERCISE data before stripping all tags
-    let exerciseData = null;
-    {
-      const exercisePrefix = '[EXERCISE: ';
-      const idx = responseText.indexOf(exercisePrefix);
-      if (idx !== -1) {
-        const jsonStart = idx + exercisePrefix.length;
-        let braceCount = 0;
-        let inString = false;
-        let escape = false;
-        let jsonEnd = -1;
-        for (let i = jsonStart; i < responseText.length; i++) {
-          const ch = responseText[i];
-          if (escape) { escape = false; continue; }
-          if (ch === '\\' && inString) { escape = true; continue; }
-          if (ch === '"') { inString = !inString; continue; }
-          if (inString) continue;
-          if (ch === '{') braceCount++;
-          else if (ch === '}') {
-            braceCount--;
-            if (braceCount === 0) { jsonEnd = i + 1; break; }
-          }
-        }
-        if (jsonEnd !== -1) {
-          try { exerciseData = JSON.parse(responseText.substring(jsonStart, jsonEnd)); }
-          catch (e) { console.error('Error parsing exercise:', e); }
-        }
-      }
-    }
+    const exerciseData = extractFirstTag(responseText, '[EXERCISE: ');
 
-    const cleanResponse = stripBalancedTag(
-      stripBalancedTag(
-        stripBalancedTag(responseText, '[TOPICS_UPDATE: '),
+    const cleanResponse = stripTags(
+      stripTags(
+        stripTags(responseText, '[TOPICS_UPDATE: '),
         '[VOCAB_ADD: '
       ),
       '[EXERCISE: '
