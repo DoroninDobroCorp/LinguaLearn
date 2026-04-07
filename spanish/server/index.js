@@ -124,6 +124,9 @@ if (!db.prepare('SELECT id FROM profiles WHERE id = 1').get()) {
   db.exec("INSERT INTO profiles (id, name, avatar_emoji) VALUES (1, 'Default', '👤')");
 }
 
+// Prevent duplicate profile names
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_name ON profiles(name)');
+
 // Add profile_id to chat_history
 try {
   db.prepare('SELECT profile_id FROM chat_history LIMIT 1').get();
@@ -768,32 +771,34 @@ IMPORTANT RULES:
       throw new Error('Failed to get response from AI');
     }
     
-    // Парсинг обновлений тем
+    // Парсинг обновлений тем — handle ALL TOPICS_UPDATE tags
     const topicChanges = [];
     
-    // Extract JSON by finding balanced braces
-    const tagIndex = responseText.indexOf('[TOPICS_UPDATE: ');
-    if (tagIndex !== -1) {
-      const jsonStart = tagIndex + '[TOPICS_UPDATE: '.length;
-      let braceCount = 0;
-      let jsonEnd = -1;
-      
-      for (let i = jsonStart; i < responseText.length; i++) {
-        if (responseText[i] === '{') braceCount++;
-        else if (responseText[i] === '}') {
-          braceCount--;
-          if (braceCount === 0) {
-            jsonEnd = i + 1;
-            break;
+    {
+      let searchStart = 0;
+      const topicPrefix = '[TOPICS_UPDATE: ';
+      while (true) {
+        const tagIndex = responseText.indexOf(topicPrefix, searchStart);
+        if (tagIndex === -1) break;
+
+        const jsonStart = tagIndex + topicPrefix.length;
+        let braceCount = 0;
+        let jsonEnd = -1;
+
+        for (let i = jsonStart; i < responseText.length; i++) {
+          if (responseText[i] === '{') braceCount++;
+          else if (responseText[i] === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              jsonEnd = i + 1;
+              break;
+            }
           }
         }
-      }
-      
-      if (jsonEnd !== -1) {
-        const jsonStr = responseText.substring(jsonStart, jsonEnd);
-        
+        if (jsonEnd === -1) break;
+
         try {
-          const updates = JSON.parse(jsonStr);
+          const updates = JSON.parse(responseText.substring(jsonStart, jsonEnd));
           if (updates.updates) {
             for (const update of updates.updates) {
               const result = updateTopic(update.topic, update.category, update.level, update.success, profileId);
@@ -804,8 +809,10 @@ IMPORTANT RULES:
           }
         } catch (e) {
           console.error('Error parsing topic updates:', e);
-          console.error('Failed to parse:', jsonStr);
+          console.error('Failed to parse:', responseText.substring(jsonStart, jsonEnd));
         }
+
+        searchStart = jsonEnd;
       }
     }
     
@@ -1271,9 +1278,15 @@ app.post('/api/profiles', (req, res) => {
       return res.status(400).json({ error: 'Profile name is required' });
     }
 
+    const trimmedName = name.trim();
+    const existing = db.prepare('SELECT id FROM profiles WHERE name = ?').get(trimmedName);
+    if (existing) {
+      return res.status(409).json({ error: 'A profile with this name already exists' });
+    }
+
     const result = db.prepare(
       'INSERT INTO profiles (name, avatar_emoji) VALUES (?, ?)'
-    ).run(name.trim(), avatarEmoji || '👤');
+    ).run(trimmedName, avatarEmoji || '👤');
 
     const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
 
