@@ -14,6 +14,9 @@ const app = express();
 const PORT = Number.parseInt(process.env.PORT || '3003', 10);
 const SERVICE_NAME = 'spanish-api';
 
+const VALID_CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+const DEFAULT_CEFR_LEVEL = 'A1';
+
 // Инициализация Gemini
 const geminiApiKey = String(process.env.GEMINI_API_KEY || '').trim();
 const geminiEnabled = geminiApiKey.length > 0;
@@ -980,10 +983,13 @@ function updateTopic(name, category, level, success, profileId) {
     };
   } else {
     // AI detected a new topic — add definition to curriculum_topics
+    // Normalize CEFR level: invalid AI-provided values fall back to A1
+    // to prevent ghost topics that never appear in level-filtered views.
+    const safeLevel = VALID_CEFR_LEVELS.includes(level) ? level : DEFAULT_CEFR_LEVEL;
     const result = db.prepare(`
       INSERT INTO curriculum_topics (name, category, level, source)
       VALUES (?, ?, ?, 'ai_detected')
-    `).run(name, category, level);
+    `).run(name, category, safeLevel);
 
     const topicId = result.lastInsertRowid;
     const initialScore = success ? 50 : 0;
@@ -998,7 +1004,7 @@ function updateTopic(name, category, level, success, profileId) {
       isNew: true, 
       name, 
       category,
-      level,
+      level: safeLevel,
       success 
     };
   }
@@ -1036,7 +1042,6 @@ app.post('/api/settings', (req, res) => {
     const settings = getProfileSettings(profileId);
     
     if (maxLevel) {
-      const VALID_CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
       if (!VALID_CEFR_LEVELS.includes(maxLevel)) {
         return res.status(400).json({ error: `Invalid CEFR level: ${maxLevel}. Valid levels: ${VALID_CEFR_LEVELS.join(', ')}` });
       }
@@ -1074,7 +1079,26 @@ app.post('/api/topics/update', (req, res) => {
   try {
     const profileId = getProfileId(req);
     const { topic, category, level, success } = req.body;
-    updateTopic(topic, category, level, success, profileId);
+
+    // Validate required fields to prevent raw DB errors from leaking
+    const errors = [];
+    if (typeof topic !== 'string' || !topic.trim()) {
+      errors.push('topic must be a non-empty string');
+    }
+    if (typeof category !== 'string' || !category.trim()) {
+      errors.push('category must be a non-empty string');
+    }
+    if (typeof level !== 'string' || !level.trim()) {
+      errors.push('level must be a non-empty string');
+    }
+    if (typeof success !== 'boolean') {
+      errors.push('success must be a boolean');
+    }
+    if (errors.length > 0) {
+      return res.status(400).json({ error: 'Invalid request payload', details: errors });
+    }
+
+    updateTopic(topic.trim(), category.trim(), level.trim(), success, profileId);
     res.json({ success: true });
   } catch (error) {
     console.error('Error updating topic:', error);

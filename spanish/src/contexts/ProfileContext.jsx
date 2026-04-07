@@ -17,10 +17,11 @@ export function ProfileProvider({ children }) {
       const data = await res.json();
       setProfiles(data.profiles);
 
-      // If the stored profileId doesn't exist in DB, reset to default
+      // If the stored profileId doesn't exist in DB, reset to first available profile
       if (data.profiles.length > 0 && !data.profiles.find(p => p.id === profileId)) {
-        setProfileId(1);
-        setActiveProfileId(1);
+        const fallbackId = data.profiles[0].id;
+        setProfileId(fallbackId);
+        setActiveProfileId(fallbackId);
       }
     } catch (err) {
       console.error('Error fetching profiles:', err);
@@ -35,9 +36,10 @@ export function ProfileProvider({ children }) {
 
   // Recover from stale/deleted profile: any API call that gets
   // PROFILE_NOT_FOUND dispatches this event via profileFetch.
+  // We don't hardcode a fallback ID — fetchProfiles will reset to the
+  // first actually-existing profile from the server response.
   useEffect(() => {
     const handleProfileReset = () => {
-      setProfileId(1);
       fetchProfiles();
     };
     window.addEventListener(PROFILE_RESET_EVENT, handleProfileReset);
