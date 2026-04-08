@@ -327,6 +327,72 @@ describe('Profile unlock flows', () => {
     }
   });
 
+  it('switches profiles without errors when a proxy rejects empty JSON select posts', async () => {
+    const browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+    const profileName = 'Header Safe Switch';
+    const switcher = page.locator('button[aria-label="Switch profile"]').first();
+    const seenSelectHeaders = [];
+
+    try {
+      await page.goto(`${frontendBaseUrl}/spanish/`);
+
+      await page.route('**/spanish/api/profiles/*/select', async (route) => {
+        const request = route.request();
+        const pathname = new URL(request.url()).pathname;
+        const contentType = String(request.headers()['content-type'] || '');
+        const postData = request.postData() || '';
+
+        if (pathname !== '/spanish/api/profiles/1/select') {
+          seenSelectHeaders.push(contentType);
+        }
+
+        if (contentType.toLowerCase().includes('application/json') && !postData) {
+          await route.fulfill({
+            status: 415,
+            contentType: 'text/html',
+            body: '<!doctype html><html><body>empty json select rejected</body></html>',
+          });
+          return;
+        }
+
+        await route.continue();
+      });
+
+      await switcher.click();
+      await page.getByRole('button', { name: 'Add Profile', exact: true }).click();
+      await page.getByPlaceholder('Name...').fill(profileName);
+      await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+      await expect(switcher).toContainText(profileName);
+      await expect(page.getByText('Failed to select profile')).toHaveCount(0);
+
+      await switcher.click();
+      await page.locator('div.cursor-pointer').filter({ hasText: 'Default' }).first().click();
+      await expect(switcher).toContainText('Default');
+
+      await switcher.click();
+      await page.locator('div.cursor-pointer').filter({ hasText: profileName }).first().click();
+      await expect(switcher).toContainText(profileName);
+      await expect(page.getByText('Failed to select profile')).toHaveCount(0);
+
+      assert.ok(seenSelectHeaders.length >= 2);
+      assert.ok(seenSelectHeaders.every((value) => value === ''));
+    } finally {
+      await browser.close();
+
+      const profilesResult = await apiRequest('/api/profiles');
+      assert.equal(profilesResult.response.status, 200);
+      const createdProfile = profilesResult.body.profiles.find((profile) => profile.name === profileName);
+      if (createdProfile) {
+        const deleteResult = await apiRequest(`/api/profiles/${createdProfile.id}`, {
+          method: 'DELETE',
+        });
+        assert.equal(deleteResult.response.status, 200);
+      }
+    }
+  });
+
   it('falls back to PIN entry when a remembered unlock token is stale', async () => {
     const profileName = 'Stale Session Lock';
     let currentPin = '2468';

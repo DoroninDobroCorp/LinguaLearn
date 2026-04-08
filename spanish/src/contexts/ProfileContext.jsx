@@ -27,7 +27,7 @@ export function ProfileProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const selectProfileSession = useCallback(async (id) => {
-    const headers = new Headers({ 'Content-Type': 'application/json' });
+    const headers = new Headers();
     const pinToken = getProfilePinToken(id);
     if (pinToken) {
       headers.set(PROFILE_UNLOCK_TOKEN_HEADER, pinToken);
