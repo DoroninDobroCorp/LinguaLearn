@@ -5,6 +5,37 @@ export const PROFILE_RESET_EVENT = 'lingualearn-profile-reset';
 export const ACTIVE_PROFILE_TOKEN_HEADER = 'x-active-profile-token';
 export const PROFILE_UNLOCK_TOKEN_HEADER = 'x-profile-pin-token';
 
+function parseJsonResponse(rawText) {
+  if (!String(rawText || '').trim()) {
+    return { hasJson: false, data: null };
+  }
+
+  try {
+    return { hasJson: true, data: JSON.parse(rawText) };
+  } catch {
+    return { hasJson: false, data: null };
+  }
+}
+
+async function readJsonResponse(response) {
+  const { hasJson, data } = parseJsonResponse(await response.text());
+  return {
+    response,
+    hasJson,
+    data: hasJson && data !== null ? data : {},
+  };
+}
+
+export async function fetchJsonWithFallback(primaryInput, fallbackInput, init) {
+  const primaryResult = await readJsonResponse(await fetch(primaryInput, init));
+  if (primaryResult.hasJson) {
+    return primaryResult;
+  }
+
+  const fallbackResult = await readJsonResponse(await fetch(fallbackInput, init));
+  return fallbackResult;
+}
+
 export function getActiveProfileId() {
   const stored = localStorage.getItem(PROFILE_STORAGE_KEY);
   const id = Number(stored);

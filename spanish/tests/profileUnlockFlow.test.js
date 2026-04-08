@@ -262,6 +262,71 @@ describe('Profile unlock flows', () => {
     }
   });
 
+  it('creates and selects a new unlocked profile when the primary select path returns proxy HTML', async () => {
+    const browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+    const profileName = 'Proxy Fallback';
+    const switcher = page.locator('button[aria-label="Switch profile"]').first();
+    const fallbackSelectPaths = [];
+
+    try {
+      await page.goto(`${frontendBaseUrl}/spanish/`);
+
+      page.on('response', (response) => {
+        const pathname = new URL(response.url()).pathname;
+        if (/^\/api\/profiles\/\d+\/select$/.test(pathname) && response.status() === 200) {
+          fallbackSelectPaths.push(pathname);
+        }
+      });
+
+      await page.route('**/spanish/api/profiles/*/select', async (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        if (pathname === '/spanish/api/profiles/1/select') {
+          await route.continue();
+          return;
+        }
+
+        await route.fulfill({
+          status: 200,
+          contentType: 'text/html',
+          body: '<!doctype html><html><body>proxy fallback</body></html>',
+        });
+      });
+
+      await switcher.click();
+      await page.getByRole('button', { name: 'Add Profile', exact: true }).click();
+      await page.getByPlaceholder('Name...').fill(profileName);
+      await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+      await expect(switcher).toContainText(profileName);
+      await expect(page.getByText('Failed to select profile')).toHaveCount(0);
+
+      await switcher.click();
+      await page.locator('div.cursor-pointer').filter({ hasText: 'Default' }).first().click();
+      await expect(switcher).toContainText('Default');
+
+      await switcher.click();
+      await page.locator('div.cursor-pointer').filter({ hasText: profileName }).first().click();
+      await expect(switcher).toContainText(profileName);
+      await expect(page.getByText('Failed to select profile')).toHaveCount(0);
+
+      assert.ok(fallbackSelectPaths.length >= 2);
+      assert.ok(fallbackSelectPaths.every((pathname) => /^\/api\/profiles\/\d+\/select$/.test(pathname)));
+    } finally {
+      await browser.close();
+
+      const profilesResult = await apiRequest('/api/profiles');
+      assert.equal(profilesResult.response.status, 200);
+      const createdProfile = profilesResult.body.profiles.find((profile) => profile.name === profileName);
+      if (createdProfile) {
+        const deleteResult = await apiRequest(`/api/profiles/${createdProfile.id}`, {
+          method: 'DELETE',
+        });
+        assert.equal(deleteResult.response.status, 200);
+      }
+    }
+  });
+
   it('falls back to PIN entry when a remembered unlock token is stale', async () => {
     const profileName = 'Stale Session Lock';
     let currentPin = '2468';

@@ -9,6 +9,10 @@ export default defineConfig({
   server: {
     port: 5175,
     proxy: {
+      '/api': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+      },
       '/spanish/api': {
         target: apiProxyTarget,
         changeOrigin: true,

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import {
   clearActiveProfileToken,
   clearProfilePinToken,
+  fetchJsonWithFallback,
   getActiveProfileId,
   getProfilePinToken,
   hasProfilePinToken,
@@ -32,11 +33,10 @@ export function ProfileProvider({ children }) {
       headers.set(PROFILE_UNLOCK_TOKEN_HEADER, pinToken);
     }
 
-    const res = await fetch(`/spanish/api/profiles/${id}/select`, {
+    const { response: res, data } = await fetchJsonWithFallback(`/spanish/api/profiles/${id}/select`, `/api/profiles/${id}/select`, {
       method: 'POST',
       headers,
     });
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (data.code === 'PROFILE_LOCKED') {
         clearProfilePinToken(id);
