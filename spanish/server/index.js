@@ -3,9 +3,47 @@ import express from 'express';
 import cors from 'cors';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Database from 'better-sqlite3';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+import { dirname, isAbsolute, join, resolve } from 'path';
 import { extractAllTags, extractFirstTag, stripTags } from '../lib/tagParser.js';
+import {
+  VocabularyApiError,
+  createVocabularyEntry,
+  deleteVocabularyEntry,
+  ensureVocabularyReviewSchema,
+  exportVocabularyArchive,
+  getVocabularyStats,
+  importVocabularyArchive,
+  listLegacyDueVocabularyWords,
+  listLegacyVocabularyWords,
+  listDueReviewCards,
+  listVocabularyEntries,
+  markVocabularyCardLearned,
+  reviewLegacyVocabularyEntry,
+  reviewVocabularyCard,
+} from './vocabularyReview.js';
+import { ensureCaseInsensitiveProfileNameIndex } from './profileNameMigration.js';
+import {
+  ACTIVE_PROFILE_TOKEN_HEADER,
+  buildProfilePinSession,
+  clearProfilePin,
+  ensureActiveProfileSessionSchema,
+  ensureProfilePinSchema,
+  ensureProfilePinTokenSecret,
+  getActiveProfileSession,
+  isProfileLocked,
+  ProfilePinError,
+  PROFILE_UNLOCK_TOKEN_HEADER,
+  rotateActiveProfileSession,
+  sanitizeProfile,
+  setProfilePin,
+  verifyActiveProfileToken,
+  verifyProfilePin,
+  verifyProfilePinAccess,
+  verifyProfileUnlockToken,
+} from './profilePin.js';
+import { buildProfileNameKey } from './unicodeKeys.js';
+import { ensureVocabularyExactDuplicateIndex } from './vocabularyUniquenessMigration.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -13,6 +51,14 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = Number.parseInt(process.env.PORT || '3003', 10);
 const SERVICE_NAME = 'spanish-api';
+const NODE_ENV = String(process.env.NODE_ENV || '').trim();
+const ENV_PROFILE_PIN_TOKEN_SECRET = String(process.env.PROFILE_PIN_TOKEN_SECRET || '').trim();
+const ENV_DB_PATH = String(process.env.SPANISH_DB_PATH || '').trim();
+const ENV_ALLOWED_ORIGINS = String(process.env.SPANISH_ALLOWED_ORIGINS || '').trim();
+const ENV_TRUST_PROXY = String(process.env.SPANISH_TRUST_PROXY || '').trim();
+const DEFAULT_JSON_BODY_LIMIT = '100kb';
+const VOCABULARY_IMPORT_MAX_BYTES = 2 * 1024 * 1024;
+const VOCABULARY_IMPORT_JSON_BODY_LIMIT = '2176kb';
 
 const VALID_CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const DEFAULT_CEFR_LEVEL = 'A1';
@@ -28,8 +74,13 @@ if (!geminiEnabled) {
   );
 }
 
+app.set('trust proxy', ENV_TRUST_PROXY || 'loopback, linklocal, uniquelocal');
+
 // Инициализация базы данных
-const db = new Database(join(__dirname, 'spanish_learning.db'));
+const DB_PATH = ENV_DB_PATH
+  ? (isAbsolute(ENV_DB_PATH) ? ENV_DB_PATH : resolve(process.cwd(), ENV_DB_PATH))
+  : join(__dirname, 'spanish_learning.db');
+const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
@@ -123,50 +174,17 @@ db.exec(`
   );
 `);
 
+ensureProfilePinSchema(db);
+ensureActiveProfileSessionSchema(db);
+const PROFILE_PIN_TOKEN_SECRET = ensureProfilePinTokenSecret(db, ENV_PROFILE_PIN_TOKEN_SECRET);
+
 // Ensure default profile exists
 if (!db.prepare('SELECT id FROM profiles WHERE id = 1').get()) {
   db.exec("INSERT INTO profiles (id, name, avatar_emoji) VALUES (1, 'Default', '👤')");
 }
 
-// Prevent duplicate profile names (case-insensitive)
-// Migrate: replace old case-sensitive index with COLLATE NOCASE version
-{
-  // Check whether the COLLATE NOCASE index already exists by inspecting the DDL
-  // stored in sqlite_master. This distinguishes the migrated index from the old
-  // case-sensitive one so the migration becomes truly idempotent.
-  const idxRow = db.prepare(
-    "SELECT sql FROM sqlite_master WHERE type = 'index' AND name = 'idx_profiles_name'"
-  ).get();
-  const alreadyNocase = idxRow && /COLLATE\s+NOCASE/i.test(idxRow.sql);
-
-  if (idxRow && !alreadyNocase) {
-    // Old case-sensitive index found — resolve any case-only duplicate names.
-    // Keep the profile with the lowest id for each lowercased name.
-    const dupes = db.prepare(`
-      SELECT id FROM profiles
-      WHERE id NOT IN (
-        SELECT MIN(id) FROM profiles GROUP BY LOWER(name)
-      )
-    `).all();
-    if (dupes.length > 0) {
-      const del = db.transaction(() => {
-        for (const { id } of dupes) {
-          db.prepare('DELETE FROM chat_history WHERE profile_id = ?').run(id);
-          db.prepare('DELETE FROM vocabulary WHERE profile_id = ?').run(id);
-          db.prepare('DELETE FROM curriculum_progress WHERE profile_id = ?').run(id);
-          db.prepare('DELETE FROM user_settings WHERE profile_id = ?').run(id);
-          db.prepare('DELETE FROM profiles WHERE id = ?').run(id);
-        }
-      });
-      del();
-    }
-    db.exec('DROP INDEX idx_profiles_name');
-  }
-
-  if (!alreadyNocase) {
-    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_name ON profiles(name COLLATE NOCASE)');
-  }
-}
+// Prevent duplicate profile names (case-insensitive) while preserving existing profile data.
+ensureCaseInsensitiveProfileNameIndex(db);
 
 // Add profile_id to chat_history
 try {
@@ -247,55 +265,19 @@ if (!db.prepare('SELECT id FROM user_settings WHERE profile_id = 1').get()) {
 }
 
 // ==================== VOCABULARY UNIQUENESS MIGRATION ====================
-// Add a UNIQUE(word, profile_id) constraint so duplicate words within a profile
-// are prevented at the schema level, not only by application-layer checks.
+// Preserve existing rows while tightening duplicate protection to exact
+// word+translation matches inside each profile. Multiple senses for the same
+// word can coexist; startup never deletes user vocabulary rows.
 {
-  const hasIdx = db.prepare(
-    "SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_vocabulary_word_profile'"
-  ).get();
-  if (!hasIdx) {
-    // Remove duplicate words within each profile, keeping the row with the most reviews
-    db.exec(`
-      DELETE FROM vocabulary
-      WHERE id NOT IN (
-        SELECT id FROM (
-          SELECT id, ROW_NUMBER() OVER (
-            PARTITION BY word, profile_id
-            ORDER BY review_count DESC, id ASC
-          ) AS rn
-          FROM vocabulary
-        ) WHERE rn = 1
-      )
-    `);
-    db.exec('CREATE UNIQUE INDEX idx_vocabulary_word_profile ON vocabulary(word COLLATE NOCASE, profile_id)');
+  const migration = ensureVocabularyExactDuplicateIndex(db);
+  if (migration.exactDuplicates.length > 0) {
+    console.warn(
+      `⚠️ Skipped exact vocabulary unique index because ${migration.exactDuplicates.length} duplicate group(s) already exist.`
+    );
   }
 }
 
-// ==================== VOCABULARY CASE-INSENSITIVE UNIQUENESS MIGRATION ====================
-// Upgrade existing case-sensitive index to COLLATE NOCASE so 'madrugada' and 'Madrugada'
-// cannot coexist within the same profile.
-{
-  const idxSql = db.prepare(
-    "SELECT sql FROM sqlite_master WHERE type='index' AND name='idx_vocabulary_word_profile'"
-  ).get();
-  if (idxSql && !idxSql.sql.includes('NOCASE')) {
-    // Deduplicate case-variant words within each profile, keeping the most-reviewed row
-    db.exec(`
-      DELETE FROM vocabulary
-      WHERE id NOT IN (
-        SELECT id FROM (
-          SELECT id, ROW_NUMBER() OVER (
-            PARTITION BY LOWER(word), profile_id
-            ORDER BY review_count DESC, id ASC
-          ) AS rn
-          FROM vocabulary
-        ) WHERE rn = 1
-      )
-    `);
-    db.exec('DROP INDEX idx_vocabulary_word_profile');
-    db.exec('CREATE UNIQUE INDEX idx_vocabulary_word_profile ON vocabulary(word COLLATE NOCASE, profile_id)');
-  }
-}
+ensureVocabularyReviewSchema(db);
 
 // ==================== CEFR CURRICULUM DATA ====================
 const CURRICULUM_DATA = [
@@ -491,18 +473,405 @@ const seedCurriculum = db.transaction(() => {
 });
 seedCurriculum();
 
-app.use(cors());
-app.use(express.json());
+const DEFAULT_DEV_TRUSTED_APP_ORIGINS = NODE_ENV === 'production'
+  ? []
+  : [
+      'http://localhost:5175',
+      'http://127.0.0.1:5175',
+    ];
+
+function normalizeTrustedOrigin(value) {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return '';
+  }
+}
+
+const TRUSTED_APP_ORIGINS = new Set(
+  [...DEFAULT_DEV_TRUSTED_APP_ORIGINS, ...ENV_ALLOWED_ORIGINS.split(',')]
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map(normalizeTrustedOrigin)
+    .filter(Boolean),
+);
+
+function getRequestOrigin(req) {
+  const candidates = [req.get('origin'), req.get('referer')];
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+
+    try {
+      return new URL(candidate).origin;
+    } catch {
+      // Ignore malformed origins and keep checking.
+    }
+  }
+
+  return '';
+}
+
+function getSameOriginBase(req) {
+  const forwardedHost = req.get('x-forwarded-host');
+  const host = req.app.get('trust proxy fn')?.(req.socket.remoteAddress, 0)
+    ? (forwardedHost?.split(',')[0].trim() || req.get('host'))
+    : req.get('host');
+  if (!host) {
+    return '';
+  }
+
+  return `${req.protocol}://${host}`;
+}
+
+function isTrustedAppOrigin(req) {
+  const requestOrigin = getRequestOrigin(req);
+  if (!requestOrigin) {
+    return false;
+  }
+
+  return TRUSTED_APP_ORIGINS.has(requestOrigin) || requestOrigin === getSameOriginBase(req);
+}
+
+function getTrustedAppOrigin(req) {
+  return isTrustedAppOrigin(req) ? getRequestOrigin(req) : '';
+}
+
+function requireTrustedProfileManagementOrigin(req, res, next) {
+  if (isTrustedAppOrigin(req)) {
+    return next();
+  }
+
+  return res.status(403).json({
+    error: 'Profile management requests must come from the Spanish app.',
+    code: 'UNTRUSTED_ORIGIN',
+  });
+}
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) {
+      callback(null, false);
+      return;
+    }
+
+    const normalizedOrigin = normalizeTrustedOrigin(origin);
+    callback(null, Boolean(normalizedOrigin) && TRUSTED_APP_ORIGINS.has(normalizedOrigin));
+  },
+}));
+
+const defaultJsonParser = express.json({ limit: DEFAULT_JSON_BODY_LIMIT });
+const vocabularyImportJsonParser = express.json({
+  limit: VOCABULARY_IMPORT_JSON_BODY_LIMIT,
+  verify(req, res, buffer) {
+    req.vocabularyImportBodyBytes = buffer.length;
+  },
+});
+
+app.use((req, res, next) => {
+  if (req.path === '/api/vocabulary/import') {
+    return vocabularyImportJsonParser(req, res, next);
+  }
+
+  return defaultJsonParser(req, res, next);
+});
+
+app.use((error, req, res, next) => {
+  if (req.path === '/api/vocabulary/import' && error?.type === 'entity.too.large') {
+    return res.status(413).json({
+      error: 'Vocabulary import file is too large. Exports up to 2 MB are supported.',
+      code: 'VOCABULARY_IMPORT_TOO_LARGE',
+    });
+  }
+
+  return next(error);
+});
+
+const PROFILE_NAME_MAX_LENGTH = 30;
+const ALLOWED_AVATARS = new Set(['👤', '👩', '👨', '👧', '👦', '🧑', '👵', '👴', '🐱', '🐶', '🦊', '🌟']);
+
+// Profile management routes are mounted before the profile-selection middleware
+// because they must remain reachable even when the default profile is locked.
+const profileManagementRouter = express.Router();
+
+profileManagementRouter.get('/profiles', (req, res) => {
+  try {
+    const profiles = db.prepare('SELECT * FROM profiles ORDER BY id').all().map(sanitizeProfile);
+    res.json({ profiles });
+  } catch (error) {
+    console.error('Error fetching profiles:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+profileManagementRouter.post('/profiles', requireTrustedProfileManagementOrigin, (req, res) => {
+  try {
+    const { name, avatarEmoji } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Profile name is required' });
+    }
+
+    const trimmedName = name.trim();
+
+    if (trimmedName.length > PROFILE_NAME_MAX_LENGTH) {
+      return res.status(400).json({ error: `Profile name must be ${PROFILE_NAME_MAX_LENGTH} characters or fewer` });
+    }
+
+    const avatarToUse = (avatarEmoji && ALLOWED_AVATARS.has(avatarEmoji)) ? avatarEmoji : '👤';
+    const profileNameKey = buildProfileNameKey(trimmedName);
+
+    const existing = db.prepare('SELECT id FROM profiles WHERE name_key = ?').get(profileNameKey);
+    if (existing) {
+      return res.status(409).json({ error: 'A profile with this name already exists' });
+    }
+
+    const createProfileWithSettings = db.transaction((pName, pNameKey, pAvatar) => {
+      const result = db.prepare(
+        'INSERT INTO profiles (name, name_key, avatar_emoji) VALUES (?, ?, ?)'
+      ).run(pName, pNameKey, pAvatar);
+      const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
+      db.prepare('INSERT INTO user_settings (profile_id, max_level) VALUES (?, ?)').run(profile.id, 'B2');
+      return profile;
+    });
+
+    const profile = createProfileWithSettings(trimmedName, profileNameKey, avatarToUse);
+    res.json(sanitizeProfile(profile));
+  } catch (error) {
+    console.error('Error creating profile:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+profileManagementRouter.post('/profiles/:id/select', requireTrustedProfileManagementOrigin, (req, res) => {
+  try {
+    const now = new Date();
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id) || id <= 0) {
+      throw new ProfilePinError(400, 'Profile id must be a positive integer', 'INVALID_PROFILE_ID');
+    }
+
+    const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(id);
+    if (!profile) {
+      throw new ProfilePinError(404, 'Profile not found', 'PROFILE_NOT_FOUND');
+    }
+
+    if (isProfileLocked(profile)) {
+      const unlockToken = req.get(PROFILE_UNLOCK_TOKEN_HEADER);
+      if (!verifyProfileUnlockToken(profile, unlockToken, PROFILE_PIN_TOKEN_SECRET)) {
+        throw new ProfilePinError(423, 'Profile is locked. Enter the PIN to continue.', 'PROFILE_LOCKED');
+      }
+    }
+
+    res.json(buildProfileManagementSession(profile, req, {
+      now,
+      rotateActiveSelection: true,
+    }));
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error selecting profile:');
+  }
+});
+
+profileManagementRouter.post('/profiles/:id/unlock', requireTrustedProfileManagementOrigin, (req, res) => {
+  try {
+    const now = new Date();
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id) || id <= 0) {
+      throw new ProfilePinError(400, 'Profile id must be a positive integer', 'INVALID_PROFILE_ID');
+    }
+
+    const profile = verifyProfilePinAccess(db, id, req.body?.pin, now);
+
+    res.json({
+      success: true,
+      ...buildProfileManagementSession(profile, req, {
+        now,
+        rotateActiveSelection: true,
+      }),
+    });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error unlocking profile:');
+  }
+});
+
+profileManagementRouter.post('/profiles/:id/pin', requireTrustedProfileManagementOrigin, (req, res) => {
+  try {
+    const now = new Date();
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id) || id <= 0) {
+      throw new ProfilePinError(400, 'Profile id must be a positive integer', 'INVALID_PROFILE_ID');
+    }
+
+    const existingProfile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(id);
+    if (!existingProfile) {
+      throw new ProfilePinError(404, 'Profile not found', 'PROFILE_NOT_FOUND');
+    }
+
+    assertCanInitializeUnlockedProfilePin(req, existingProfile);
+
+    if (isProfileLocked(existingProfile)) {
+      verifyProfilePinAccess(db, id, req.body?.currentPin, now);
+    }
+
+    const profile = setProfilePin(db, id, req.body?.newPin, req.body?.currentPin, now, {
+      skipCurrentPinVerification: isProfileLocked(existingProfile),
+    });
+    res.json(buildProfileManagementSession(profile, req, {
+      now,
+      rotateActiveSelection: shouldRefreshCurrentActiveProfileSession(req, id),
+    }));
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error setting profile PIN:');
+  }
+});
+
+profileManagementRouter.delete('/profiles/:id/pin', requireTrustedProfileManagementOrigin, (req, res) => {
+  try {
+    const now = new Date();
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id) || id <= 0) {
+      throw new ProfilePinError(400, 'Profile id must be a positive integer', 'INVALID_PROFILE_ID');
+    }
+
+    verifyProfilePinAccess(db, id, req.body?.currentPin, now);
+
+    const profile = clearProfilePin(db, id, req.body?.currentPin, {
+      skipCurrentPinVerification: true,
+    });
+    res.json(buildProfileManagementSession(profile, req, {
+      now,
+      rotateActiveSelection: shouldRefreshCurrentActiveProfileSession(req, id),
+    }));
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error clearing profile PIN:');
+  }
+});
+
+profileManagementRouter.delete('/profiles/:id', requireTrustedProfileManagementOrigin, (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (id === 1) {
+      return res.status(400).json({ error: 'Cannot delete the default profile' });
+    }
+
+    const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(id);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    if (isProfileLocked(profile)) {
+      verifyProfilePinAccess(db, id, req.body?.pin, new Date());
+    }
+
+    const deleteProfile = db.transaction((profileId) => {
+      db.prepare('DELETE FROM chat_history WHERE profile_id = ?').run(profileId);
+      db.prepare('DELETE FROM vocabulary WHERE profile_id = ?').run(profileId);
+      db.prepare('DELETE FROM curriculum_progress WHERE profile_id = ?').run(profileId);
+      db.prepare('DELETE FROM user_settings WHERE profile_id = ?').run(profileId);
+      db.prepare(`
+        DELETE FROM curriculum_topics
+        WHERE source = 'ai_detected'
+          AND id NOT IN (SELECT DISTINCT topic_id FROM curriculum_progress)
+      `).run();
+      db.prepare('DELETE FROM profiles WHERE id = ?').run(profileId);
+    });
+    deleteProfile(id);
+
+    res.json({ success: true });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error deleting profile:');
+  }
+});
+
+app.use('/api', profileManagementRouter);
 
 // ==================== PROFILE VALIDATION MIDDLEWARE ====================
 // When profileId is absent → backward-compatible default (profile 1).
 // When profileId is explicitly provided but invalid/non-existent → 400/404
 // so a stale client never silently writes into another user's data.
 
+function parseRequestedProfileId(rawProfileId) {
+  if (rawProfileId === undefined || rawProfileId === null || rawProfileId === '') {
+    return null;
+  }
+
+  const id = parseInt(rawProfileId, 10);
+  if (!Number.isFinite(id) || id <= 0) {
+    throw new ProfilePinError(400, 'Invalid profileId', 'INVALID_PROFILE_ID');
+  }
+
+  return id;
+}
+
+function buildProfileManagementSession(profile, req, {
+  now = new Date(),
+  rotateActiveSelection = false,
+} = {}) {
+  const trustedOrigin = getTrustedAppOrigin(req);
+  const activeSession = rotateActiveSelection
+    ? rotateActiveProfileSession(db, profile.id, trustedOrigin, now)
+    : null;
+
+  const session = buildProfilePinSession(profile, PROFILE_PIN_TOKEN_SECRET, {
+    now,
+    trustedOrigin,
+    sessionNonce: activeSession?.session_nonce ?? '',
+  });
+
+  if (!activeSession) {
+    return {
+      ...session,
+      activeProfileToken: null,
+    };
+  }
+
+  return session;
+}
+
+function shouldRefreshCurrentActiveProfileSession(req, profileId) {
+  const trustedOrigin = getTrustedAppOrigin(req);
+  if (!trustedOrigin) {
+    return false;
+  }
+
+  const activeSession = getActiveProfileSession(db, trustedOrigin);
+  return activeSession?.profile_id === profileId;
+}
+
+function assertCanInitializeUnlockedProfilePin(req, profile) {
+  if (isProfileLocked(profile)) {
+    return;
+  }
+
+  const requestedProfileId = parseRequestedProfileId(req.query.profileId);
+  const trustedOrigin = getTrustedAppOrigin(req);
+  const activeSession = getActiveProfileSession(db, trustedOrigin);
+  const activeProfileToken = req.get(ACTIVE_PROFILE_TOKEN_HEADER);
+  if (
+    requestedProfileId === profile.id
+    && activeSession?.profile_id === profile.id
+    && verifyActiveProfileToken(
+      profile,
+      activeProfileToken,
+      PROFILE_PIN_TOKEN_SECRET,
+      new Date(),
+      trustedOrigin,
+      activeSession.session_nonce,
+    )
+  ) {
+    return;
+  }
+
+  throw new ProfilePinError(
+    403,
+    'You can only add a PIN to the currently active profile',
+    'PROFILE_PIN_AUTH_REQUIRED',
+  );
+}
+
 app.use((req, res, next) => {
-  // Skip profile validation for health and profile-management endpoints
   if (/^\/(health|status|ready|live)$/.test(req.path) ||
-      /^\/api\/(health|status|ready|live|profiles)(\/|$)/.test(req.path)) {
+      /^\/api\/(health|status|ready|live)(\/|$)/.test(req.path)) {
     return next();
   }
 
@@ -532,6 +901,27 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use((req, res, next) => {
+  if (!Number.isInteger(req.profileId)) {
+    return next();
+  }
+
+  const profile = db.prepare('SELECT id, pin_hash, pin_salt, pin_updated_at FROM profiles WHERE id = ?').get(req.profileId);
+  if (!profile || !isProfileLocked(profile)) {
+    return next();
+  }
+
+  const unlockToken = req.get(PROFILE_UNLOCK_TOKEN_HEADER);
+  if (verifyProfileUnlockToken(profile, unlockToken, PROFILE_PIN_TOKEN_SECRET)) {
+    return next();
+  }
+
+  return res.status(423).json({
+    error: 'Profile is locked. Enter the PIN to continue.',
+    code: 'PROFILE_LOCKED',
+  });
+});
+
 // ==================== PROFILE HELPERS ====================
 
 function getProfileId(req) {
@@ -552,23 +942,18 @@ function getProfileSettings(profileId) {
   return settings;
 }
 
-// Server-side SRS schedule — guarantees next_review is never NULL
-function calculateNextReview(quality, reviewCount) {
-  let interval;
-  if (quality === 0) {
-    interval = 0;
-  } else if (quality === 1) {
-    interval = 1;
-  } else if (quality === 2) {
-    const intervals = [1, 3, 7, 14, 30, 60];
-    interval = intervals[Math.min(reviewCount, intervals.length - 1)];
-  } else {
-    const intervals = [3, 7, 14, 30, 60, 90];
-    interval = intervals[Math.min(reviewCount, intervals.length - 1)];
+function handleVocabularyError(res, error, context) {
+  console.error(context, error);
+
+  if (error instanceof VocabularyApiError || error instanceof ProfilePinError || (error && Number.isInteger(error.status))) {
+    return res.status(error.status).json({
+      error: error.message,
+      code: error.code,
+      ...(error.details && typeof error.details === 'object' ? error.details : {}),
+    });
   }
-  const nextReview = new Date();
-  nextReview.setDate(nextReview.getDate() + interval);
-  return { nextReview: nextReview.toISOString(), interval };
+
+  return res.status(500).json({ error: error.message });
 }
 
 function buildHealthResponse() {
@@ -914,19 +1299,11 @@ IMPORTANT RULES:
     // Парсинг добавления слов в словарь — handle ALL VOCAB_ADD tags
     for (const vocab of extractAllTags(responseText, '[VOCAB_ADD: ')) {
       try {
-        if (!vocab.word || typeof vocab.word !== 'string' || !vocab.word.trim()) {
-          console.warn('Skipping VOCAB_ADD with missing/blank word:', vocab);
+        createVocabularyEntry(db, profileId, vocab);
+      } catch (e) {
+        if (e?.code === 'DUPLICATE_WORD') {
           continue;
         }
-        const trimmedWord = vocab.word.trim();
-        const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? COLLATE NOCASE AND profile_id = ?').get(trimmedWord, profileId);
-        if (!existing) {
-          db.prepare(`
-            INSERT INTO vocabulary (word, translation, example, level, next_review, profile_id)
-            VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
-          `).run(trimmedWord, vocab.translation, vocab.example || null, profileId);
-        }
-      } catch (e) {
         console.error('Error processing vocab add:', e);
       }
     }
@@ -1182,124 +1559,146 @@ app.delete('/api/chat/clear', (req, res) => {
 
 // ==================== VOCABULARY API ====================
 
-// Получение всех слов
 app.get('/api/vocabulary', (req, res) => {
   try {
     const profileId = getProfileId(req);
-    const words = db.prepare('SELECT * FROM vocabulary WHERE profile_id = ? ORDER BY next_review ASC').all(profileId);
-    res.json({ words });
+    const now = new Date();
+    const vocabulary = listVocabularyEntries(db, profileId, now);
+    const legacyWords = listLegacyVocabularyWords(db, profileId, now);
+    res.json({
+      ...vocabulary,
+      words: vocabulary.entries.map((entry) => ({
+        ...(legacyWords.find((word) => word.id === entry.id) ?? {}),
+        card_summary: entry.card_summary,
+      })),
+    });
   } catch (error) {
-    console.error('Error fetching vocabulary:', error);
-    res.status(500).json({ error: error.message });
+    handleVocabularyError(res, error, 'Error fetching vocabulary:');
   }
 });
 
-// Получение слов на повторение сегодня
+app.get('/api/vocabulary/export', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const profile = db.prepare('SELECT id, name, avatar_emoji FROM profiles WHERE id = ?').get(profileId);
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="spanish-vocabulary-profile-${profileId}.json"`);
+    res.json(exportVocabularyArchive(db, profile, new Date()));
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error exporting vocabulary:');
+  }
+});
+
+app.post('/api/vocabulary/import', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const now = new Date();
+    if ((req.vocabularyImportBodyBytes ?? 0) > VOCABULARY_IMPORT_MAX_BYTES) {
+      throw new VocabularyApiError(413, 'Vocabulary import file is too large. Exports up to 2 MB are supported.', 'VOCABULARY_IMPORT_TOO_LARGE');
+    }
+    const summary = importVocabularyArchive(db, profileId, req.body ?? {}, now);
+    res.json({
+      summary,
+      stats: listVocabularyEntries(db, profileId, now).stats,
+    });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error importing vocabulary:');
+  }
+});
+
+app.get('/api/vocabulary/review-queue', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    res.json(listDueReviewCards(db, profileId, { limit: req.query.limit, now: new Date() }));
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error fetching review queue:');
+  }
+});
+
 app.get('/api/vocabulary/due', (req, res) => {
   try {
     const profileId = getProfileId(req);
-    const today = new Date().toISOString().split('T')[0];
-    const words = db.prepare(
-      'SELECT * FROM vocabulary WHERE profile_id = ? AND next_review <= ? ORDER BY next_review ASC'
-    ).all(profileId, today + 'T23:59:59');
-    res.json({ words });
+    const now = new Date();
+    const queue = listDueReviewCards(db, profileId, { limit: req.query.limit, now });
+    res.json({
+      ...queue,
+      words: listLegacyDueVocabularyWords(db, profileId, now),
+    });
   } catch (error) {
-    console.error('Error fetching due words:', error);
-    res.status(500).json({ error: error.message });
+    handleVocabularyError(res, error, 'Error fetching due review cards:');
   }
 });
 
-// Добавление нового слова
 app.post('/api/vocabulary', (req, res) => {
   try {
     const profileId = getProfileId(req);
-    const { word, translation, example } = req.body;
-
-    if (!word || typeof word !== 'string' || !word.trim()) {
-      return res.status(400).json({ error: 'word is required and must be a non-empty string' });
-    }
-    if (translation !== undefined && translation !== null && typeof translation !== 'string') {
-      return res.status(400).json({ error: 'translation must be a string' });
-    }
-    if (example !== undefined && example !== null && typeof example !== 'string') {
-      return res.status(400).json({ error: 'example must be a string' });
-    }
-
-    const trimmedWord = word.trim();
-    
-    const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ? COLLATE NOCASE AND profile_id = ?').get(trimmedWord, profileId);
-    if (existing) {
-      return res.status(400).json({ error: 'Word already exists' });
-    }
-    
-    const result = db.prepare(`
-      INSERT INTO vocabulary (word, translation, example, level, next_review, profile_id)
-      VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
-    `).run(trimmedWord, translation || null, example || null, profileId);
-    
-    const newWord = db.prepare('SELECT * FROM vocabulary WHERE id = ?').get(result.lastInsertRowid);
-    res.json(newWord);
+    const entry = createVocabularyEntry(db, profileId, req.body ?? {});
+    res.status(201).json(entry);
   } catch (error) {
-    console.error('Error adding word:', error);
-    res.status(500).json({ error: error.message });
+    handleVocabularyError(res, error, 'Error adding word:');
   }
 });
 
-// Обновление прогресса слова (после повторения)
-app.post('/api/vocabulary/:id/review', (req, res) => {
+app.post('/api/vocabulary/review-cards/:id/review', (req, res) => {
   try {
     const profileId = getProfileId(req);
-    const { id } = req.params;
-    const { quality, nextReview } = req.body;
-    
-    const word = db.prepare('SELECT * FROM vocabulary WHERE id = ? AND profile_id = ?').get(id, profileId);
-    if (!word) {
-      return res.status(404).json({ error: 'Word not found' });
+    const cardId = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(cardId) || cardId <= 0) {
+      throw new VocabularyApiError(400, 'Review card id must be a positive integer', 'INVALID_CARD_ID');
     }
-    
-    // Server-side SRS: always compute a valid next_review
-    const safeQuality = Number.isFinite(quality) ? Math.max(0, Math.min(3, quality)) : 0;
-    const computed = calculateNextReview(safeQuality, word.review_count);
-    const resolvedNextReview = nextReview || computed.nextReview;
-    
-    let newLevel = word.level;
-    
-    if (safeQuality === 0) {
-      newLevel = 0;
-    } else if (safeQuality === 1) {
-      newLevel = Math.max(0, Math.min(5, word.level + 0.5));
-    } else if (safeQuality === 2) {
-      newLevel = Math.min(5, word.level + 1);
-    } else if (safeQuality === 3) {
-      newLevel = Math.min(5, word.level + 2);
-    }
-    
-    db.prepare(`
-      UPDATE vocabulary 
-      SET level = ?,
-          next_review = ?,
-          review_count = review_count + 1,
-          last_reviewed = CURRENT_TIMESTAMP
-      WHERE id = ? AND profile_id = ?
-    `).run(newLevel, resolvedNextReview, id, profileId);
-    
-    const updatedWord = db.prepare('SELECT * FROM vocabulary WHERE id = ?').get(id);
-    res.json(updatedWord);
+
+    const grade = typeof req.body?.grade === 'string' ? req.body.grade : '';
+    const updatedCard = reviewVocabularyCard(db, profileId, cardId, grade);
+    res.json({ card: updatedCard });
   } catch (error) {
-    console.error('Error reviewing word:', error);
-    res.status(500).json({ error: error.message });
+    handleVocabularyError(res, error, 'Error reviewing card:');
   }
 });
 
-// Удаление слова
+function handleLegacyVocabularyReview(req, res) {
+  try {
+    const profileId = getProfileId(req);
+    const entryId = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(entryId) || entryId <= 0) {
+      throw new VocabularyApiError(400, 'Vocabulary id must be a positive integer', 'INVALID_VOCAB_ID');
+    }
+
+    const reviewedWord = reviewLegacyVocabularyEntry(db, profileId, entryId, req.body ?? {}, new Date());
+    res.json(reviewedWord);
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error reviewing legacy vocabulary entry:');
+  }
+}
+
+app.post('/api/vocabulary/:id/review', handleLegacyVocabularyReview);
+app.put('/api/vocabulary/:id/review', handleLegacyVocabularyReview);
+
+app.post('/api/vocabulary/review-cards/:id/learned', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const cardId = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(cardId) || cardId <= 0) {
+      throw new VocabularyApiError(400, 'Review card id must be a positive integer', 'INVALID_CARD_ID');
+    }
+
+    const updatedCard = markVocabularyCardLearned(db, profileId, cardId);
+    res.json({ card: updatedCard });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error marking card learned:');
+  }
+});
+
 app.delete('/api/vocabulary/:id', (req, res) => {
   try {
     const profileId = getProfileId(req);
-    db.prepare('DELETE FROM vocabulary WHERE id = ? AND profile_id = ?').run(req.params.id, profileId);
-    res.json({ success: true });
+    const entryId = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(entryId) || entryId <= 0) {
+      throw new VocabularyApiError(400, 'Vocabulary id must be a positive integer', 'INVALID_VOCAB_ID');
+    }
+
+    res.json(deleteVocabularyEntry(db, profileId, entryId));
   } catch (error) {
-    console.error('Error deleting word:', error);
-    res.status(500).json({ error: error.message });
+    handleVocabularyError(res, error, 'Error deleting word:');
   }
 });
 
@@ -1343,14 +1742,10 @@ app.get('/api/stats', (req, res) => {
       "SELECT COUNT(*) as count FROM curriculum_progress WHERE profile_id = ? AND score >= 70"
     ).get(profileId).count;
     
-    const vocabTotal = db.prepare('SELECT COUNT(*) as count FROM vocabulary WHERE profile_id = ?').get(profileId).count;
-    const today = new Date().toISOString().split('T')[0];
-    const vocabDue = db.prepare(
-      'SELECT COUNT(*) as count FROM vocabulary WHERE profile_id = ? AND next_review <= ?'
-    ).get(profileId, today + 'T23:59:59').count;
-    const vocabMastered = db.prepare(
-      'SELECT COUNT(*) as count FROM vocabulary WHERE profile_id = ? AND review_count >= 5 AND level >= 2'
-    ).get(profileId).count;
+    const vocabularyStats = getVocabularyStats(db, profileId);
+    const vocabTotal = vocabularyStats.total_entries;
+    const vocabDue = vocabularyStats.due_cards;
+    const vocabMastered = vocabularyStats.mastered_entries;
     
     const chatMessages = db.prepare('SELECT COUNT(*) as count FROM chat_history WHERE profile_id = ?').get(profileId).count;
     
@@ -1373,96 +1768,16 @@ app.get('/api/stats', (req, res) => {
   }
 });
 
-// ==================== PROFILES API ====================
+function startServer(port = PORT) {
+  return app.listen(port, () => {
+    console.log(`🇪🇸 Spanish Learning Server running on http://localhost:${port}`);
+  });
+}
 
-const PROFILE_NAME_MAX_LENGTH = 30;
-const ALLOWED_AVATARS = new Set(['👤', '👩', '👨', '👧', '👦', '🧑', '👵', '👴', '🐱', '🐶', '🦊', '🌟']);
+const isMainModule = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 
-app.get('/api/profiles', (req, res) => {
-  try {
-    const profiles = db.prepare('SELECT * FROM profiles ORDER BY id').all();
-    res.json({ profiles });
-  } catch (error) {
-    console.error('Error fetching profiles:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+if (isMainModule) {
+  startServer();
+}
 
-app.post('/api/profiles', (req, res) => {
-  try {
-    const { name, avatarEmoji } = req.body;
-    if (!name || !name.trim()) {
-      return res.status(400).json({ error: 'Profile name is required' });
-    }
-
-    const trimmedName = name.trim();
-
-    if (trimmedName.length > PROFILE_NAME_MAX_LENGTH) {
-      return res.status(400).json({ error: `Profile name must be ${PROFILE_NAME_MAX_LENGTH} characters or fewer` });
-    }
-
-    const avatarToUse = (avatarEmoji && ALLOWED_AVATARS.has(avatarEmoji)) ? avatarEmoji : '👤';
-
-    const existing = db.prepare('SELECT id FROM profiles WHERE name = ? COLLATE NOCASE').get(trimmedName);
-    if (existing) {
-      return res.status(409).json({ error: 'A profile with this name already exists' });
-    }
-
-    const createProfileWithSettings = db.transaction((pName, pAvatar) => {
-      const result = db.prepare(
-        'INSERT INTO profiles (name, avatar_emoji) VALUES (?, ?)'
-      ).run(pName, pAvatar);
-      const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
-      db.prepare('INSERT INTO user_settings (profile_id, max_level) VALUES (?, ?)').run(profile.id, 'B2');
-      return profile;
-    });
-
-    const profile = createProfileWithSettings(trimmedName, avatarToUse);
-    res.json(profile);
-  } catch (error) {
-    console.error('Error creating profile:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.delete('/api/profiles/:id', (req, res) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    if (id === 1) {
-      return res.status(400).json({ error: 'Cannot delete the default profile' });
-    }
-
-    const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(id);
-    if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
-    }
-
-    // Cascade delete all profile data atomically.
-    // NOTE: chat_history.profile_id and vocabulary.profile_id were added via ALTER TABLE
-    // and lack true DB-level FK ON DELETE CASCADE constraints in SQLite, so cleanup
-    // of those tables must be performed manually here.
-    const deleteProfile = db.transaction((profileId) => {
-      db.prepare('DELETE FROM chat_history WHERE profile_id = ?').run(profileId);
-      db.prepare('DELETE FROM vocabulary WHERE profile_id = ?').run(profileId);
-      db.prepare('DELETE FROM curriculum_progress WHERE profile_id = ?').run(profileId);
-      db.prepare('DELETE FROM user_settings WHERE profile_id = ?').run(profileId);
-      // Remove AI-detected topics that no longer have progress from any profile
-      db.prepare(`
-        DELETE FROM curriculum_topics
-        WHERE source = 'ai_detected'
-          AND id NOT IN (SELECT DISTINCT topic_id FROM curriculum_progress)
-      `).run();
-      db.prepare('DELETE FROM profiles WHERE id = ?').run(profileId);
-    });
-    deleteProfile(id);
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting profile:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`🇪🇸 Spanish Learning Server running on http://localhost:${PORT}`);
-});
+export { app, db, startServer };

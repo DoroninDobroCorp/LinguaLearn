@@ -116,7 +116,7 @@ function NavBar() {
 
 function AppContent() {
   const { isDark } = useTheme();
-  const { profileId } = useProfile();
+  const { profileId, profileViewKey } = useProfile();
   
   return (
     <div className="min-h-screen transition-all duration-300" style={{ 
@@ -126,9 +126,9 @@ function AppContent() {
     }}>
       <NavBar />
       
-      {/* key={profileId} forces full remount of all routes on profile switch,
-          ensuring no stale state (chat, vocab, settings) leaks between profiles. */}
-      <main key={profileId} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+      {/* key={profileViewKey} forces a full remount whenever the active profile changes
+          or regains session access, preventing stale locked/error states from sticking. */}
+      <main key={profileViewKey} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         <Routes>
           <Route path="/" element={<Chat />} />
           <Route path="/curriculum" element={<CurriculumMap />} />

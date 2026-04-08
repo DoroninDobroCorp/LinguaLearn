@@ -13,6 +13,14 @@ Decision
 Start with the spanish/ app first. It is the immediate priority. After the
 Spanish rollout is stable, mirror the same architecture into english/.
 
+Status snapshot
+
+- Spanish Phase 1 is done: household profiles are live.
+- Spanish Phase 2 is done: vocabulary entries and review cards are split.
+- Spanish Phase 3 is done: bidirectional review UX and the 15-day learned flow are live.
+- Spanish Phase 4 is done: import/export, richer direction-aware stats, and optional profile PIN protection are implemented and hardened.
+- English parity is still future work and is no longer a blocker for the Spanish rollout.
+
 Recommended approach
 
 Do not clone Anki feature-for-feature. Build an Anki-inspired system that fits
@@ -73,7 +81,7 @@ Phase 3 - Review UX
 - clear status badges: new, learning, snoozed, learned;
 - keep the flow fast enough for repeated drilling.
 
-Phase 4 - Later improvements
+Phase 4 - Polish in spanish/ (done)
 
 - import/export;
 - richer statistics by direction;
@@ -87,7 +95,7 @@ Implementation order
 3. Add a profile context and selector in spanish/src.
 4. Refactor Spanish vocabulary APIs and UI around word entries + review cards.
 5. Add the 15-day learned action and bidirectional review flow.
-6. Run build/tests, then prepare the english/ port.
+6. Run build/tests, then prepare the english/ port when the Spanish rollout no longer needs changes.
 
 Notes
 

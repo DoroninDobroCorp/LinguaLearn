@@ -1,181 +1,203 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { profileApiUrl, profileFetch } from '../utils/api';
 
 const API_BASE = '/spanish/api';
-
-export function calculateNextReview(quality, reviewCount, currentInterval = 1) {
-  let interval;
-  
-  if (quality === 0) {
-    interval = 0;
-  } else if (quality === 1) {
-    interval = 1;
-  } else if (quality === 2) {
-    const intervals = [1, 3, 7, 14, 30, 60];
-    interval = intervals[Math.min(reviewCount, intervals.length - 1)];
-  } else {
-    const intervals = [3, 7, 14, 30, 60, 90];
-    interval = intervals[Math.min(reviewCount, intervals.length - 1)];
-  }
-  
-  const nextReview = new Date();
-  nextReview.setDate(nextReview.getDate() + interval);
-  
-  return {
-    nextReview: nextReview.toISOString(),
-    interval,
-  };
-}
+const INITIAL_STATS = {
+  total_entries: 0,
+  total_cards: 0,
+  due_cards: 0,
+  learned_cards: 0,
+  mastered_entries: 0,
+  pending_completion_entries: 0,
+  unreviewable_cards: 0,
+  directions: {
+    source_to_target: {
+      label: 'Spanish → Translation',
+      total_cards: 0,
+      due_cards: 0,
+      learning_cards: 0,
+      review_cards: 0,
+      learned_cards: 0,
+      unreviewable_cards: 0,
+    },
+    target_to_source: {
+      label: 'Translation → Spanish',
+      total_cards: 0,
+      due_cards: 0,
+      learning_cards: 0,
+      review_cards: 0,
+      learned_cards: 0,
+      unreviewable_cards: 0,
+    },
+  },
+};
 
 export function useVocabulary() {
-  const [words, setWords] = useState([]);
-  const [dueWords, setDueWords] = useState([]);
-  const [stats, setStats] = useState({ total: 0, due: 0, mastered: 0 });
+  const [entries, setEntries] = useState([]);
+  const [reviewQueue, setReviewQueue] = useState([]);
+  const [stats, setStats] = useState(INITIAL_STATS);
+  const [queueStats, setQueueStats] = useState({ total_due: 0, returned: 0, limit: 40 });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchWords = useCallback(async () => {
+  const fetchEntries = useCallback(async () => {
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary`));
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to fetch vocabulary');
+    }
+
+    const data = await response.json();
+    setEntries(data.entries || []);
+    setStats(data.stats || INITIAL_STATS);
+    return data;
+  }, []);
+
+  const fetchReviewQueue = useCallback(async (limit = 40) => {
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/review-queue?limit=${limit}`));
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to fetch review queue');
+    }
+
+    const data = await response.json();
+    setReviewQueue(data.cards || []);
+    setQueueStats(data.stats || { total_due: 0, returned: 0, limit });
+    return data;
+  }, []);
+
+  const refreshVocabulary = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary`));
-      if (!response.ok) throw new Error('Failed to fetch vocabulary');
-      
-      const data = await response.json();
-      const wordList = Array.isArray(data) ? data : data.words || [];
-      setWords(wordList);
-      
-      const now = new Date();
-      const due = wordList.filter(w => new Date(w.next_review) <= now).length;
-      const mastered = wordList.filter(w => w.review_count >= 5 && w.level >= 2).length;
-      
-      setStats({
-        total: wordList.length,
-        due,
-        mastered,
-      });
-      
-      return wordList;
+      const [entryData, queueData] = await Promise.all([
+        fetchEntries(),
+        fetchReviewQueue(),
+      ]);
+
+      return { entryData, queueData };
     } catch (err) {
       setError(err.message);
-      console.error('Error fetching vocabulary:', err);
-      return [];
+      throw err;
     } finally {
       setIsLoading(false);
     }
-  }, []);
-
-  const fetchDueWords = useCallback(async () => {
-    try {
-      const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/due`));
-      if (!response.ok) throw new Error('Failed to fetch due words');
-      
-      const data = await response.json();
-      const dueList = Array.isArray(data) ? data : data.words || [];
-      setDueWords(dueList);
-      return dueList;
-    } catch (err) {
-      setError(err.message);
-      console.error('Error fetching due words:', err);
-      return [];
-    }
-  }, []);
+  }, [fetchEntries, fetchReviewQueue]);
 
   const addWord = useCallback(async (word, translation, example = '') => {
-    try {
-      const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ word, translation, example }),
-      });
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ word, translation, example }),
+    });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to add word');
-      }
-      
-      const newWord = await response.json();
-      setWords(prev => [newWord, ...prev]);
-      setStats(prev => ({ ...prev, total: prev.total + 1, due: prev.due + 1 }));
-      
-      return newWord;
-    } catch (err) {
-      setError(err.message);
-      console.error('Error adding word:', err);
-      throw err;
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to add vocabulary entry');
     }
+
+    const entry = await response.json();
+    await refreshVocabulary();
+    return entry;
+  }, [refreshVocabulary]);
+
+  const reviewCard = useCallback(async (cardId, grade) => {
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/review-cards/${cardId}/review`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grade }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to review card');
+    }
+
+    const data = await response.json();
+    await refreshVocabulary();
+    return data.card;
+  }, [refreshVocabulary]);
+
+  const markCardLearned = useCallback(async (cardId) => {
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/review-cards/${cardId}/learned`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to mark card learned');
+    }
+
+    const data = await response.json();
+    await refreshVocabulary();
+    return data.card;
+  }, [refreshVocabulary]);
+
+  const deleteEntry = useCallback(async (entryId) => {
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/${entryId}`), {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to delete vocabulary entry');
+    }
+
+    await refreshVocabulary();
+  }, [refreshVocabulary]);
+
+  const exportVocabulary = useCallback(async () => {
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/export`));
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to export vocabulary');
+    }
+
+    return response.json();
   }, []);
 
-  const reviewWord = useCallback(async (wordId, quality) => {
-    try {
-      const word = words.find(w => w.id === wordId) || dueWords.find(w => w.id === wordId);
-      if (!word) throw new Error('Word not found');
-      
-      const { nextReview, interval } = calculateNextReview(
-        quality,
-        word.review_count,
-        word.interval
-      );
-      
-      const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/${wordId}/review`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quality,
-          nextReview,
-          interval,
-        }),
-      });
+  const importVocabulary = useCallback(async (payload) => {
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/import`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-      if (!response.ok) throw new Error('Failed to review word');
-      
-      const updatedWord = await response.json();
-      setWords(prev => prev.map(w => w.id === wordId ? updatedWord : w));
-      setDueWords(prev => prev.filter(w => w.id !== wordId));
-      await fetchWords();
-      
-      return updatedWord;
-    } catch (err) {
-      setError(err.message);
-      console.error('Error reviewing word:', err);
-      throw err;
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to import vocabulary');
     }
-  }, [words, dueWords, fetchWords]);
 
-  const deleteWord = useCallback(async (wordId) => {
-    try {
-      const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/${wordId}`), {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete word');
-      
-      setWords(prev => prev.filter(w => w.id !== wordId));
-      setDueWords(prev => prev.filter(w => w.id !== wordId));
-      setStats(prev => ({ ...prev, total: prev.total - 1 }));
-    } catch (err) {
-      setError(err.message);
-      console.error('Error deleting word:', err);
-      throw err;
-    }
-  }, []);
+    const data = await response.json();
+    await refreshVocabulary();
+    return data;
+  }, [refreshVocabulary]);
 
   useEffect(() => {
-    fetchWords();
-    fetchDueWords();
-  }, [fetchWords, fetchDueWords]);
+    refreshVocabulary().catch((err) => {
+      console.error('Error loading vocabulary hook:', err);
+    });
+  }, [refreshVocabulary]);
 
   return {
-    words,
-    dueWords,
+    entries,
+    reviewQueue,
     stats,
+    queueStats,
     isLoading,
     error,
-    fetchWords,
-    fetchDueWords,
+    fetchEntries,
+    fetchReviewQueue,
+    refreshVocabulary,
     addWord,
-    reviewWord,
-    deleteWord,
+    reviewCard,
+    markCardLearned,
+    deleteEntry,
+    exportVocabulary,
+    importVocabulary,
+    words: entries,
+    dueWords: reviewQueue,
   };
 }

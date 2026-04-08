@@ -1,5 +1,19 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getActiveProfileId, setActiveProfileId, profileApiUrl, PROFILE_RESET_EVENT } from '../utils/api';
+import {
+  clearActiveProfileToken,
+  clearProfilePinToken,
+  getActiveProfileId,
+  getProfilePinToken,
+  hasProfilePinToken,
+  PROFILE_RESET_EVENT,
+  PROFILE_UNLOCK_TOKEN_HEADER,
+  profileApiUrl,
+  profileFetch,
+  setActiveProfileId,
+  setActiveProfileToken,
+  setProfilePinToken,
+} from '../utils/api';
+import { getNextProfileViewVersion, resolveProfileSelection } from '../utils/profileSelection';
 
 const ProfileContext = createContext();
 
@@ -7,8 +21,46 @@ const AVATAR_OPTIONS = ['👤', '👩', '👨', '👧', '👦', '🧑', '👵', 
 
 export function ProfileProvider({ children }) {
   const [profileId, setProfileId] = useState(getActiveProfileId);
+  const [profileViewVersion, setProfileViewVersion] = useState(0);
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const selectProfileSession = useCallback(async (id) => {
+    const headers = new Headers({ 'Content-Type': 'application/json' });
+    const pinToken = getProfilePinToken(id);
+    if (pinToken) {
+      headers.set(PROFILE_UNLOCK_TOKEN_HEADER, pinToken);
+    }
+
+    const res = await fetch(`/spanish/api/profiles/${id}/select`, {
+      method: 'POST',
+      headers,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (data.code === 'PROFILE_LOCKED') {
+        clearProfilePinToken(id);
+        clearActiveProfileToken(id);
+      }
+
+      const error = new Error(data.error || 'Failed to select profile');
+      if (typeof data.code === 'string' && data.code) {
+        error.code = data.code;
+      }
+      throw error;
+    }
+
+    if (data.unlockToken) {
+      setProfilePinToken(id, data.unlockToken);
+    }
+    if (data.activeProfileToken) {
+      setActiveProfileToken(id, data.activeProfileToken);
+    } else {
+      clearActiveProfileToken(id);
+    }
+
+    return data.profile;
+  }, []);
 
   const fetchProfiles = useCallback(async () => {
     try {
@@ -17,18 +69,27 @@ export function ProfileProvider({ children }) {
       const data = await res.json();
       setProfiles(data.profiles);
 
-      // If the stored profileId doesn't exist in DB, reset to first available profile
-      if (data.profiles.length > 0 && !data.profiles.find(p => p.id === profileId)) {
-        const fallbackId = data.profiles[0].id;
-        setProfileId(fallbackId);
-        setActiveProfileId(fallbackId);
+      const nextProfileId = resolveProfileSelection(data.profiles, profileId, hasProfilePinToken);
+      const selectedProfile = data.profiles.find((profile) => profile.id === nextProfileId) || null;
+
+      if (selectedProfile && (!selectedProfile.is_locked || hasProfilePinToken(selectedProfile.id))) {
+        try {
+          await selectProfileSession(selectedProfile.id);
+        } catch (error) {
+          console.error('Error syncing active profile session:', error);
+        }
+      }
+
+      if (Number.isInteger(nextProfileId) && nextProfileId !== profileId) {
+        setProfileId(nextProfileId);
+        setActiveProfileId(nextProfileId);
       }
     } catch (err) {
       console.error('Error fetching profiles:', err);
     } finally {
       setLoading(false);
     }
-  }, [profileId]);
+  }, [profileId, selectProfileSession]);
 
   useEffect(() => {
     fetchProfiles();
@@ -46,10 +107,11 @@ export function ProfileProvider({ children }) {
     return () => window.removeEventListener(PROFILE_RESET_EVENT, handleProfileReset);
   }, [fetchProfiles]);
 
-  const switchProfile = useCallback((id) => {
+  const switchProfile = useCallback(async (id) => {
+    await selectProfileSession(id);
     setActiveProfileId(id);
     setProfileId(id);
-  }, []);
+  }, [selectProfileSession]);
 
   const createProfile = useCallback(async (name, avatarEmoji) => {
     const res = await fetch('/spanish/api/profiles', {
@@ -66,33 +128,112 @@ export function ProfileProvider({ children }) {
     return profile;
   }, []);
 
-  const deleteProfile = useCallback(async (id) => {
-    if (id === 1) throw new Error('Cannot delete the default profile');
-    const res = await fetch(`/spanish/api/profiles/${id}`, { method: 'DELETE' });
+  const unlockProfile = useCallback(async (id, pin) => {
+    const res = await fetch(`/spanish/api/profiles/${id}/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin }),
+    });
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json();
+      throw new Error(data.error || 'Failed to unlock profile');
+    }
+
+    if (data.unlockToken) {
+      setProfilePinToken(id, data.unlockToken);
+    }
+    if (data.activeProfileToken) {
+      setActiveProfileToken(id, data.activeProfileToken);
+    }
+
+    setProfileViewVersion((prev) => getNextProfileViewVersion(prev, getActiveProfileId(), id));
+
+    return data.profile;
+  }, []);
+
+  const updateProfilePin = useCallback(async (id, newPin, currentPin = '') => {
+    const res = await profileFetch(profileApiUrl(`/spanish/api/profiles/${id}/pin`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newPin, currentPin }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to update profile PIN');
+    }
+
+    if (data.unlockToken) {
+      setProfilePinToken(id, data.unlockToken);
+    } else {
+      clearProfilePinToken(id);
+    }
+    if (data.activeProfileToken) {
+      setActiveProfileToken(id, data.activeProfileToken);
+    }
+    setProfiles((prev) => prev.map((profile) => (profile.id === id ? data.profile : profile)));
+    setProfileViewVersion((prev) => getNextProfileViewVersion(prev, getActiveProfileId(), id));
+    return data.profile;
+  }, []);
+
+  const clearPin = useCallback(async (id, currentPin) => {
+    const res = await profileFetch(profileApiUrl(`/spanish/api/profiles/${id}/pin`), {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPin }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to clear profile PIN');
+    }
+
+    clearProfilePinToken(id);
+    clearActiveProfileToken(id);
+    if (data.activeProfileToken) {
+      setActiveProfileToken(id, data.activeProfileToken);
+    }
+    setProfiles((prev) => prev.map((profile) => (profile.id === id ? data.profile : profile)));
+    setProfileViewVersion((prev) => getNextProfileViewVersion(prev, getActiveProfileId(), id));
+    return data.profile;
+  }, []);
+
+  const deleteProfile = useCallback(async (id, pin = '') => {
+    if (id === 1) throw new Error('Cannot delete the default profile');
+    const res = await fetch(`/spanish/api/profiles/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pin ? { pin } : {}),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
       throw new Error(data.error || 'Failed to delete profile');
     }
-    // If we just deleted the active profile, switch to default
-    if (id === profileId) {
-      switchProfile(1);
-    }
+    clearProfilePinToken(id);
+    clearActiveProfileToken(id);
     setProfiles(prev => prev.filter(p => p.id !== id));
-  }, [profileId, switchProfile]);
+
+    if (id === profileId) {
+      await fetchProfiles();
+    }
+  }, [fetchProfiles, profileId]);
 
   const activeProfile = profiles.find(p => p.id === profileId) || null;
+  const profileViewKey = `${profileId}:${profileViewVersion}`;
 
   return (
     <ProfileContext.Provider value={{
       profileId,
+      profileViewKey,
       profiles,
       activeProfile,
       loading,
-      switchProfile,
-      createProfile,
-      deleteProfile,
-      avatarOptions: AVATAR_OPTIONS,
-    }}>
+        switchProfile,
+        createProfile,
+        unlockProfile,
+        updateProfilePin,
+        clearPin,
+        deleteProfile,
+        avatarOptions: AVATAR_OPTIONS,
+      }}>
       {children}
     </ProfileContext.Provider>
   );

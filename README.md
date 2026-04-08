@@ -199,9 +199,13 @@ npm run dev
 | `GET` | `/api/health` | Health/status/readiness probe for monitoring |
 | `POST` | `/api/settings` | Update settings |
 | `DELETE` | `/api/chat/clear` | Clear chat history |
-| `GET` | `/api/vocabulary` | Get vocabulary cards |
+| `GET` | `/api/vocabulary` | Get vocabulary entries, card summaries, and legacy `words` compatibility data |
+| `GET` | `/api/vocabulary/review-queue` | Get the cards v2 review queue |
+| `GET` | `/api/vocabulary/due` | Legacy due alias (`words`) plus cards v2 queue data |
 | `POST` | `/api/vocabulary` | Add new word |
-| `PUT` | `/api/vocabulary/:id/review` | Record review result |
+| `POST` / `PUT` | `/api/vocabulary/:id/review` | Legacy entry-based review alias (defaults to the Spanish → Translation card) |
+| `POST` | `/api/vocabulary/review-cards/:id/review` | Review a specific cards v2 review card |
+| `POST` | `/api/vocabulary/review-cards/:id/learned` | Hide a cards v2 review card for 15 days |
 | `DELETE` | `/api/vocabulary/:id` | Delete word |
 | `GET` | `/api/reader/hpmor/chapter/:chapterNumber` | Import an HPMOR chapter with estimated audiobook window |
 
@@ -481,9 +485,13 @@ npm run dev
 | `GET` | `/api/settings` | Получить настройки пользователя |
 | `POST` | `/api/settings` | Обновить настройки |
 | `DELETE` | `/api/chat/clear` | Очистить историю чата |
-| `GET` | `/api/vocabulary` | Получить словарные карточки |
+| `GET` | `/api/vocabulary` | Получить словарные записи, сводку по карточкам и legacy-совместимый `words` |
+| `GET` | `/api/vocabulary/review-queue` | Получить очередь повторения cards v2 |
+| `GET` | `/api/vocabulary/due` | Legacy-алиас для due (`words`) + данные очереди cards v2 |
 | `POST` | `/api/vocabulary` | Добавить новое слово |
-| `PUT` | `/api/vocabulary/:id/review` | Записать результат повторения |
+| `POST` / `PUT` | `/api/vocabulary/:id/review` | Legacy-алиас повторения по записи (по умолчанию Spanish → Translation) |
+| `POST` | `/api/vocabulary/review-cards/:id/review` | Повторить конкретную карточку cards v2 |
+| `POST` | `/api/vocabulary/review-cards/:id/learned` | Скрыть карточку cards v2 на 15 дней |
 | `DELETE` | `/api/vocabulary/:id` | Удалить слово |
 
 ---

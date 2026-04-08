@@ -10,6 +10,9 @@ english/server/__pycache__/
 *.db
 *.db-wal
 *.db-shm
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
 
 # Build output
 dist/

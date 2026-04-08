@@ -283,7 +283,8 @@ describe('Profile isolation (DB)', async () => {
         next_review TEXT DEFAULT CURRENT_TIMESTAMP,
         profile_id INTEGER DEFAULT 1
       );
-      CREATE UNIQUE INDEX idx_vocabulary_word_profile ON vocabulary(word COLLATE NOCASE, profile_id);
+      CREATE UNIQUE INDEX idx_vocabulary_word_profile
+        ON vocabulary(word COLLATE NOCASE, translation COLLATE NOCASE, profile_id);
 
       INSERT INTO profiles (name, avatar_emoji) VALUES ('Default', '👤');
       INSERT INTO profiles (name, avatar_emoji) VALUES ('Alice', '👧');
@@ -317,17 +318,30 @@ describe('Profile isolation (DB)', async () => {
     db.close();
   });
 
-  it('duplicate word in same profile is rejected', () => {
+  it('same word with different translation can exist in the same profile', () => {
+    const db = createTestDb();
+    db.prepare('INSERT INTO vocabulary (word, translation, profile_id) VALUES (?, ?, ?)').run('hola', 'hello', 1);
+    db.prepare('INSERT INTO vocabulary (word, translation, profile_id) VALUES (?, ?, ?)').run('hola', 'hi', 1);
+
+    const all = db.prepare('SELECT translation FROM vocabulary WHERE word = ? AND profile_id = ? ORDER BY translation ASC').all('hola', 1);
+    assert.deepEqual(all, [
+      { translation: 'hello' },
+      { translation: 'hi' },
+    ]);
+    db.close();
+  });
+
+  it('duplicate word and translation in same profile is rejected', () => {
     const db = createTestDb();
     db.prepare('INSERT INTO vocabulary (word, translation, profile_id) VALUES (?, ?, ?)').run('hola', 'hello', 1);
     assert.throws(
-      () => db.prepare('INSERT INTO vocabulary (word, translation, profile_id) VALUES (?, ?, ?)').run('hola', 'hi', 1),
+      () => db.prepare('INSERT INTO vocabulary (word, translation, profile_id) VALUES (?, ?, ?)').run('hola', 'hello', 1),
       /UNIQUE constraint/
     );
     db.close();
   });
 
-  it('case-variant duplicate in same profile is rejected', () => {
+  it('case-variant exact duplicate in same profile is rejected', () => {
     const db = createTestDb();
     db.prepare('INSERT INTO vocabulary (word, translation, profile_id) VALUES (?, ?, ?)').run('madrugada', 'dawn', 1);
     assert.throws(
