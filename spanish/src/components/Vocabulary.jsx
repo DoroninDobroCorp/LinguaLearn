@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   BookMarked,
@@ -7,14 +7,25 @@ import {
   Clock3,
   Download,
   Languages,
+  Mic,
+  Play,
   Plus,
   RotateCcw,
+  Shield,
+  Square,
   Trash2,
   TrendingUp,
   Upload,
+  Volume2,
   X,
 } from 'lucide-react';
+import { useSpeechPractice } from '../hooks/useSpeechPractice';
 import { profileApiUrl, profileFetch } from '../utils/api';
+import {
+  getVoicePracticeSpanishContent,
+  getVisibleSpanishContent,
+  shouldStopSpeakingOnCardFlip,
+} from '../utils/speechPractice';
 
 const INITIAL_STATS = {
   total_entries: 0,
@@ -121,6 +132,29 @@ function statusLabel(status) {
   }
 }
 
+function VoiceActionButton({
+  icon: Icon,
+  label,
+  onClick,
+  disabled = false,
+  title,
+  className = '',
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title || label}
+      aria-label={title || label}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+    >
+      <Icon className="h-4 w-4" />
+      <span>{label}</span>
+    </button>
+  );
+}
+
 function Vocabulary() {
   const [entries, setEntries] = useState([]);
   const [reviewQueue, setReviewQueue] = useState([]);
@@ -134,8 +168,57 @@ function Vocabulary() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const fileInputRef = useRef(null);
+  const {
+    capabilities: speechCapabilities,
+    selectedVoice,
+    playbackSupport,
+    isSpeaking,
+    ttsError,
+    speakText,
+    stopSpeaking,
+    isRecording,
+    isRecordingStarting,
+    hasRecording,
+    recordingError,
+    startRecording,
+    stopRecording,
+    playRecording,
+    clearRecording,
+    resetPractice,
+  } = useSpeechPractice();
 
   const currentCard = reviewQueue[0] || null;
+  const visibleSpanish = useMemo(
+    () => getVisibleSpanishContent(currentCard, showAnswer),
+    [currentCard, showAnswer],
+  );
+  const isVoicePracticeBusy = isRecording || isRecordingStarting;
+  const practiceSpanish = useMemo(
+    () => getVoicePracticeSpanishContent({
+      card: currentCard,
+      showAnswer,
+      isRecording,
+      isStarting: isRecordingStarting,
+    }),
+    [currentCard, isRecording, isRecordingStarting, showAnswer],
+  );
+
+  const toggleShowAnswer = useCallback(() => {
+    if (isVoicePracticeBusy) {
+      return;
+    }
+
+    const nextShowAnswer = !showAnswer;
+    if (shouldStopSpeakingOnCardFlip({
+      card: currentCard,
+      showAnswer,
+      isSpeaking,
+    })) {
+      stopSpeaking();
+    }
+
+    setShowAnswer(nextShowAnswer);
+  }, [currentCard, isSpeaking, isVoicePracticeBusy, showAnswer, stopSpeaking]);
 
   const refreshVocabulary = async () => {
     const [entriesResponse, queueResponse] = await Promise.all([
@@ -192,12 +275,20 @@ function Vocabulary() {
     };
   }, []);
 
+  useEffect(() => {
+    resetPractice();
+  }, [currentCard?.id, resetPractice]);
+
   const dueLabel = useMemo(() => {
     if (queueStats.total_due > reviewQueue.length) {
       return `${reviewQueue.length} loaded of ${queueStats.total_due} due`;
     }
     return `${queueStats.total_due} due now`;
   }, [queueStats.total_due, reviewQueue.length]);
+
+  const speechVoiceLabel = selectedVoice
+    ? `${selectedVoice.name}${selectedVoice.lang ? ` (${selectedVoice.lang})` : ''}`
+    : 'a local Spanish voice on this device';
 
   const addWord = async () => {
     if (!newWord.word.trim() || !newWord.translation.trim()) return;
@@ -246,6 +337,7 @@ function Vocabulary() {
         throw new Error(data.error || 'Failed to update review card');
       }
 
+      resetPractice();
       await refreshVocabulary();
       setShowAnswer(false);
     } catch (reviewError) {
@@ -577,14 +669,18 @@ function Vocabulary() {
           <div
             role="button"
             tabIndex={0}
-            onClick={() => setShowAnswer((value) => !value)}
+            onClick={toggleShowAnswer}
             onKeyDown={(event) => {
+              if (isVoicePracticeBusy) {
+                return;
+              }
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
-                setShowAnswer((value) => !value);
+                toggleShowAnswer();
               }
             }}
-            className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-10 min-h-[320px] flex flex-col items-center justify-center cursor-pointer border-4 border-indigo-200 hover:border-indigo-400 transition-all text-center"
+            aria-disabled={isVoicePracticeBusy}
+            className={`bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-10 min-h-[320px] flex flex-col items-center justify-center border-4 border-indigo-200 transition-all text-center ${isVoicePracticeBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:border-indigo-400'}`}
           >
             <p className="text-sm uppercase tracking-wide text-indigo-600 font-semibold mb-3">
               {currentCard.prompt_label}
@@ -619,6 +715,84 @@ function Vocabulary() {
             )}
           </div>
 
+          {practiceSpanish.text ? (
+            <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-4">
+              <div className="flex flex-wrap gap-2">
+                <VoiceActionButton
+                  icon={Volume2}
+                  label={isSpeaking ? 'Replay Spanish' : 'Listen in Spanish'}
+                  onClick={() => speakText(practiceSpanish.text)}
+                  disabled={isSubmitting || isVoicePracticeBusy || !playbackSupport.supported}
+                  className="bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
+                />
+                {isSpeaking && (
+                  <VoiceActionButton
+                    icon={Square}
+                    label="Stop audio"
+                    onClick={stopSpeaking}
+                    disabled={isSubmitting}
+                    className="bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
+                  />
+                )}
+                <VoiceActionButton
+                  icon={Mic}
+                  label={hasRecording ? 'Record a new take' : 'Repeat aloud'}
+                  onClick={startRecording}
+                  disabled={isSubmitting || isVoicePracticeBusy || !speechCapabilities.recordingSupported}
+                  className="bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                />
+                {isVoicePracticeBusy && (
+                  <VoiceActionButton
+                    icon={Square}
+                    label={isRecording ? 'Stop recording' : 'Cancel mic setup'}
+                    onClick={stopRecording}
+                    disabled={isSubmitting}
+                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                  />
+                )}
+                <VoiceActionButton
+                  icon={Play}
+                  label="Play my take"
+                  onClick={playRecording}
+                  disabled={isSubmitting || isVoicePracticeBusy || !hasRecording}
+                  className="bg-white text-purple-700 border border-purple-200 hover:bg-purple-100"
+                />
+                <VoiceActionButton
+                  icon={Trash2}
+                  label="Clear take"
+                  onClick={clearRecording}
+                  disabled={isSubmitting || isVoicePracticeBusy || !hasRecording}
+                  className="bg-white text-rose-700 border border-rose-200 hover:bg-rose-100"
+                />
+              </div>
+
+              <div className="mt-3 space-y-2 text-sm text-slate-600">
+                {isRecordingStarting && (
+                  <p className="text-emerald-700">Waiting for microphone access… keep this Spanish side open or cancel setup.</p>
+                )}
+                <p className="flex items-start gap-2">
+                  <Shield className="h-4 w-4 mt-0.5 text-emerald-600" />
+                  <span>Private on this device: your microphone take stays in this browser until you clear it.</span>
+                </p>
+                <p>
+                  Listen only uses {speechVoiceLabel}. This free version is for listen, repeat aloud, and playback only.
+                </p>
+                {!playbackSupport.supported && (
+                  <p className="text-amber-700">{playbackSupport.message}</p>
+                )}
+                {!speechCapabilities.recordingSupported && (
+                  <p className="text-amber-700">Local recording needs microphone permission plus MediaRecorder support.</p>
+                )}
+                {ttsError && <p className="text-red-700">{ttsError}</p>}
+                {recordingError && <p className="text-red-700">{recordingError}</p>}
+              </div>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-gray-500">
+              Reveal the Spanish side to listen or record a private repeat-aloud take.
+            </p>
+          )}
+
           {showAnswer && (
             <div className="mt-6 space-y-4">
               <div className="grid gap-3 md:grid-cols-5">
@@ -629,7 +803,7 @@ function Vocabulary() {
                       key={action.key}
                       type="button"
                       onClick={() => handleReview(action.key)}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isVoicePracticeBusy}
                       className={`px-4 py-4 text-white rounded-xl transition-all shadow-md font-bold flex flex-col items-center space-y-1 disabled:opacity-60 ${action.className}`}
                     >
                       <Icon className="h-6 w-6" />
@@ -642,7 +816,7 @@ function Vocabulary() {
               <button
                 type="button"
                 onClick={handleLearned}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isVoicePracticeBusy}
                 className="w-full px-4 py-4 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-all shadow-md font-bold flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 <RotateCcw className="h-5 w-5" />
@@ -680,6 +854,16 @@ function Vocabulary() {
                   <div className="flex-1">
                     <div className="flex flex-wrap items-center gap-3 mb-2">
                       <p className="font-bold text-gray-900 text-xl">{entry.word}</p>
+                      <button
+                        type="button"
+                        onClick={() => speakText(entry.word)}
+                        disabled={isVoicePracticeBusy || !playbackSupport.supported}
+                        className="inline-flex items-center justify-center rounded-full border border-indigo-200 bg-white p-2 text-indigo-700 transition-colors hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={playbackSupport.supported ? `Listen to ${entry.word}` : playbackSupport.message}
+                        aria-label={playbackSupport.supported ? `Listen to ${entry.word}` : playbackSupport.message}
+                      >
+                        <Volume2 className="h-4 w-4" />
+                      </button>
                       <span className="text-gray-400">→</span>
                       <p className="text-gray-700 text-lg">{entry.translation || 'Missing translation'}</p>
                       {entry.needs_completion && (

@@ -19,6 +19,7 @@ Status snapshot
 - Spanish Phase 2 is done: vocabulary entries and review cards are split.
 - Spanish Phase 3 is done: bidirectional review UX and the 15-day learned flow are live.
 - Spanish Phase 4 is done: import/export, richer direction-aware stats, and optional profile PIN protection are implemented and hardened.
+- Post-phase Spanish voice v1 is done: browser TTS plus local repeat-aloud recording/playback is available in vocabulary review.
 - English parity is still future work and is no longer a blocker for the Spanish rollout.
 
 Recommended approach

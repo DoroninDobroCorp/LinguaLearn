@@ -34,6 +34,7 @@ LinguaLearn is a full-stack web application that acts as your personal AI langua
 - 📊 **Smart progress tracking** that automatically detects your weak areas
 - 🎯 **Personalized exercises** generated based on your mistakes
 - 🎴 **Spaced repetition vocabulary** system (like Anki, but smarter)
+- 🔊 **Spanish voice practice** with browser TTS and local repeat-aloud recording
 - 🗺️ **Full CEFR curriculum** with 150 topics from A1 to C2
 - 🌓 **Dark/Light mode** with beautiful glassmorphism UI
 
@@ -60,6 +61,7 @@ Three exercise types with instant feedback:
 - Flip cards with translations
 - Smart scheduling: Don't Know → today, Hard → 1 day, Good → exponential growth, Easy → accelerated
 - Add words manually or auto-collect from chat
+- In the Spanish app, listen with browser TTS and record local repeat-aloud takes without uploading audio
 
 ### 🎧 Sync Reader
 - Load any text + audio pair for intensive reading practice
