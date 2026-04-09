@@ -733,6 +733,7 @@ export function listVocabularyEntries(db, profileId, now = new Date()) {
 
   const stats = {
     total_entries: entries.length,
+    due_entries: 0,
     total_cards: 0,
     reviewable_cards: 0,
     unreviewable_cards: 0,
@@ -771,6 +772,10 @@ export function listVocabularyEntries(db, profileId, now = new Date()) {
     const reviewableCards = entry.cards.filter((card) => card.is_reviewable);
     if (entry.needs_completion) {
       stats.pending_completion_entries += 1;
+    }
+
+    if (reviewableCards.some((card) => card.is_due)) {
+      stats.due_entries += 1;
     }
 
     if (
@@ -1278,6 +1283,11 @@ function selectLegacyCompatibleCard(entry) {
 
 function buildLegacyWordPresentation(entry, now = new Date()) {
   const primaryCard = selectLegacyCompatibleCard(entry);
+  const dueCards = entry.cards
+    .filter((card) => card.is_reviewable && card.is_due)
+    .sort(compareDueCards);
+  const defaultMeta = DIRECTION_META.source_to_target;
+  const primaryMeta = primaryCard ? DIRECTION_META[primaryCard.direction] : defaultMeta;
 
   return {
     id: entry.id,
@@ -1287,14 +1297,27 @@ function buildLegacyWordPresentation(entry, now = new Date()) {
     example: entry.example,
     level: deriveLegacyLevelFromCard(primaryCard, now),
     next_review: primaryCard?.next_review_at ?? null,
+    next_review_at: primaryCard?.next_review_at ?? null,
     review_count: primaryCard?.review_count ?? 0,
     last_reviewed: primaryCard?.last_reviewed_at ?? null,
+    last_reviewed_at: primaryCard?.last_reviewed_at ?? null,
     due: Boolean(primaryCard?.is_due),
     state: primaryCard?.status ?? 'new',
+    status: primaryCard?.status ?? 'new',
     card_id: primaryCard?.id ?? null,
     reviewable: Boolean(primaryCard?.is_reviewable),
     needs_completion: entry.needs_completion,
     created_at: entry.created_at,
+    learned_until: primaryCard?.learned_until ?? null,
+    direction: primaryCard?.direction ?? 'source_to_target',
+    direction_label: primaryCard?.direction_label ?? primaryMeta.label,
+    prompt_label: primaryCard?.prompt_label ?? primaryMeta.promptLabel,
+    answer_label: primaryCard?.answer_label ?? primaryMeta.answerLabel,
+    prompt: primaryCard?.prompt ?? entry.word,
+    answer: primaryCard?.answer ?? entry.translation,
+    due_card_count: dueCards.length,
+    source_due: dueCards.some((card) => card.direction === 'source_to_target'),
+    reverse_due: dueCards.some((card) => card.direction === 'target_to_source'),
   };
 }
 
@@ -1370,6 +1393,24 @@ export function listLegacyDueVocabularyWords(db, profileId, now = new Date()) {
     });
 }
 
+export function listDueReviewEntries(db, profileId, options = {}) {
+  const now = options.now instanceof Date ? options.now : new Date();
+  const requestedLimit = Number.parseInt(options.limit ?? '40', 10);
+  const limit = Number.isFinite(requestedLimit) ? clamp(requestedLimit, 1, 200) : 40;
+  const dueEntries = listLegacyDueVocabularyWords(db, profileId, now);
+  const limitedEntries = dueEntries.slice(0, limit);
+
+  return {
+    cards: limitedEntries,
+    entries: limitedEntries,
+    stats: {
+      total_due: dueEntries.length,
+      returned: limitedEntries.length,
+      limit,
+    },
+  };
+}
+
 export function reviewLegacyVocabularyEntry(db, profileId, entryId, payload = {}, now = new Date()) {
   const direction = typeof payload.direction === 'string' && REVIEW_CARD_DIRECTIONS.includes(payload.direction.trim())
     ? payload.direction.trim()
@@ -1388,6 +1429,85 @@ export function reviewLegacyVocabularyEntry(db, profileId, entryId, payload = {}
   return {
     ...buildLegacyWordPresentation(entry, now),
     review_card: updatedCard,
+    entry,
+  };
+}
+
+function scheduleEntryLearned(card, now = new Date()) {
+  const learnedUntil = toIso(addDays(now, LEARNED_SUPPRESSION_DAYS), now);
+  const wasDue = isCardDue(card, now);
+
+  return {
+    state: wasDue ? (Number(card.review_count) >= 1 ? 'review' : 'learning') : card.state,
+    interval_days: Math.max(Number(card.interval_days) || 0, LEARNED_SUPPRESSION_DAYS),
+    ease_factor: clamp(Number(card.ease_factor) || DEFAULT_EASE_FACTOR, 1.3, 3.8),
+    next_review_at: learnedUntil,
+    learned_until: learnedUntil,
+    last_reviewed_at: wasDue ? toIso(now) : (card.last_reviewed_at ? toIso(card.last_reviewed_at, now) : null),
+    review_count: (Number(card.review_count) || 0) + (wasDue ? 1 : 0),
+    lapse_count: Number(card.lapse_count) || 0,
+  };
+}
+
+function persistScheduledCardUpdate(db, profileId, cardId, next, now = new Date()) {
+  db.prepare(`
+    UPDATE vocabulary_review_cards
+    SET state = ?,
+        review_count = ?,
+        lapse_count = ?,
+        interval_days = ?,
+        ease_factor = ?,
+        next_review_at = ?,
+        learned_until = ?,
+        last_reviewed_at = ?,
+        updated_at = ?
+    WHERE id = ? AND profile_id = ?
+  `).run(
+    next.state,
+    next.review_count,
+    next.lapse_count,
+    next.interval_days,
+    next.ease_factor,
+    next.next_review_at,
+    next.learned_until,
+    next.last_reviewed_at,
+    toIso(now),
+    cardId,
+    profileId,
+  );
+}
+
+export function markVocabularyEntryLearned(db, profileId, entryId, now = new Date()) {
+  const mark = db.transaction(() => {
+    const entry = fetchEntryById(db, profileId, entryId, now);
+    const reviewableCards = entry.cards.filter((card) => card.is_reviewable);
+    if (reviewableCards.length === 0) {
+      throw new VocabularyApiError(
+        409,
+        'Vocabulary entry is missing required prompt or answer text. Complete it before reviewing.',
+        'CARD_NOT_REVIEWABLE',
+      );
+    }
+
+    const dueCards = reviewableCards.filter((card) => card.is_due);
+    if (dueCards.length === 0) {
+      throw new VocabularyApiError(
+        409,
+        'Vocabulary entry is not currently due for review.',
+        'ENTRY_NOT_DUE',
+      );
+    }
+
+    for (const card of reviewableCards) {
+      persistScheduledCardUpdate(db, profileId, card.id, scheduleEntryLearned(card, now), now);
+    }
+
+    return fetchEntryById(db, profileId, entryId, now);
+  });
+
+  const entry = mark();
+  return {
+    ...buildLegacyWordPresentation(entry, now),
     entry,
   };
 }

@@ -5,9 +5,11 @@ import {
   createVocabularyEntry,
   deleteVocabularyEntry,
   ensureVocabularyReviewSchema,
+  listDueReviewEntries,
   listLegacyDueVocabularyWords,
   listDueReviewCards,
   listVocabularyEntries,
+  markVocabularyEntryLearned,
   markVocabularyCardLearned,
   reviewLegacyVocabularyEntry,
   reviewVocabularyCard,
@@ -125,6 +127,35 @@ describe('Vocabulary review cards', () => {
     const profileOneAfterLearned = listDueReviewCards(db, 1, { now: fixedNow });
     assert.equal(profileOneAfterLearned.cards.length, 1);
     assert.equal(listDueReviewCards(db, 2, { now: fixedNow }).cards.length, 2);
+
+    db.close();
+  });
+
+  it('counts a due word once even when both practice directions are due', () => {
+    const db = createTestDb();
+    ensureVocabularyReviewSchema(db);
+
+    const fixedNow = new Date('2030-02-02T09:00:00.000Z');
+    const entry = createVocabularyEntry(db, 1, {
+      word: 'gato',
+      translation: 'cat',
+      example: 'El gato duerme.',
+    }, fixedNow);
+
+    const vocabulary = listVocabularyEntries(db, 1, fixedNow);
+    const queue = listDueReviewEntries(db, 1, { now: fixedNow });
+
+    assert.equal(vocabulary.stats.total_entries, 1);
+    assert.equal(vocabulary.stats.total_cards, 2);
+    assert.equal(vocabulary.stats.due_cards, 2);
+    assert.equal(vocabulary.stats.due_entries, 1);
+    assert.equal(queue.stats.total_due, 1);
+    assert.equal(queue.cards.length, 1);
+    assert.equal(queue.cards[0].id, entry.id);
+    assert.equal(queue.cards[0].card_id, entry.cards.find((card) => card.direction === 'source_to_target').id);
+    assert.equal(queue.cards[0].due_card_count, 2);
+    assert.equal(queue.cards[0].prompt, 'gato');
+    assert.equal(queue.cards[0].answer, 'cat');
 
     db.close();
   });
@@ -423,6 +454,37 @@ describe('Vocabulary review cards', () => {
     ).get(dueCard.id);
     assert.equal(storedCard.review_count, 1);
     assert.equal(storedCard.learned_until, learnedCard.learned_until);
+
+    db.close();
+  });
+
+  it('marks a whole vocabulary entry learned and suppresses both directions together', () => {
+    const db = createTestDb();
+    ensureVocabularyReviewSchema(db);
+    const fixedNow = new Date('2030-04-02T12:00:00.000Z');
+    const entry = createVocabularyEntry(db, 1, {
+      word: 'luna',
+      translation: 'moon',
+      example: 'La luna brilla.',
+    }, fixedNow);
+
+    const markedEntry = markVocabularyEntryLearned(db, 1, entry.id, fixedNow);
+    const refreshedEntry = listVocabularyEntries(db, 1, fixedNow).entries[0];
+
+    assert.equal(markedEntry.id, entry.id);
+    assert.equal(markedEntry.due, false);
+    assert.equal(markedEntry.due_card_count, 0);
+    assert.equal(listDueReviewEntries(db, 1, { now: fixedNow }).cards.length, 0);
+    assert.equal(refreshedEntry.cards.every((card) => card.status === 'learned'), true);
+    assert.equal(refreshedEntry.cards.every((card) => card.is_due === false), true);
+    assert.equal(
+      refreshedEntry.cards.every((card) => {
+        const learnedUntil = new Date(card.learned_until).getTime();
+        return Number.isFinite(learnedUntil)
+          && Math.round((learnedUntil - fixedNow.getTime()) / (1000 * 60 * 60 * 24)) === 15;
+      }),
+      true,
+    );
 
     db.close();
   });

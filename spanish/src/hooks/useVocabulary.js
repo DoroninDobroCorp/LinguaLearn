@@ -4,6 +4,7 @@ import { profileApiUrl, profileFetch } from '../utils/api';
 const API_BASE = '/spanish/api';
 const INITIAL_STATS = {
   total_entries: 0,
+  due_entries: 0,
   total_cards: 0,
   due_cards: 0,
   learned_cards: 0,
@@ -102,8 +103,8 @@ export function useVocabulary() {
     return entry;
   }, [refreshVocabulary]);
 
-  const reviewCard = useCallback(async (cardId, grade) => {
-    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/review-cards/${cardId}/review`), {
+  const reviewCard = useCallback(async (entryId, grade) => {
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/${entryId}/review`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ grade }),
@@ -116,13 +117,12 @@ export function useVocabulary() {
 
     const data = await response.json();
     await refreshVocabulary();
-    return data.card;
+    return data.review_card ?? data.card ?? data;
   }, [refreshVocabulary]);
 
-  const markCardLearned = useCallback(async (cardId) => {
-    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/review-cards/${cardId}/learned`), {
+  const markCardLearned = useCallback(async (entryId) => {
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/${entryId}/learned`), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {
@@ -132,7 +132,7 @@ export function useVocabulary() {
 
     const data = await response.json();
     await refreshVocabulary();
-    return data.card;
+    return data.entry ?? data.word ?? data;
   }, [refreshVocabulary]);
 
   const deleteEntry = useCallback(async (entryId) => {

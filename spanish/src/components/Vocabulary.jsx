@@ -29,6 +29,7 @@ import {
 
 const INITIAL_STATS = {
   total_entries: 0,
+  due_entries: 0,
   total_cards: 0,
   due_cards: 0,
   learned_cards: 0,
@@ -277,14 +278,18 @@ function Vocabulary() {
 
   useEffect(() => {
     resetPractice();
-  }, [currentCard?.id, resetPractice]);
+  }, [currentCard?.card_id, currentCard?.direction, resetPractice]);
+
+  const effectiveDueTotal = Number.isFinite(stats.due_entries)
+    ? stats.due_entries
+    : queueStats.total_due;
 
   const dueLabel = useMemo(() => {
-    if (queueStats.total_due > reviewQueue.length) {
-      return `${reviewQueue.length} loaded of ${queueStats.total_due} due`;
+    if (effectiveDueTotal > reviewQueue.length) {
+      return `${reviewQueue.length} loaded of ${effectiveDueTotal} due`;
     }
-    return `${queueStats.total_due} due now`;
-  }, [queueStats.total_due, reviewQueue.length]);
+    return `${effectiveDueTotal} due now`;
+  }, [effectiveDueTotal, reviewQueue.length]);
 
   const speechVoiceLabel = selectedVoice
     ? `${selectedVoice.name}${selectedVoice.lang ? ` (${selectedVoice.lang})` : ''}`
@@ -350,16 +355,16 @@ function Vocabulary() {
 
   const handleReview = async (grade) => {
     if (!currentCard) return;
-    await submitReview(`/spanish/api/vocabulary/review-cards/${currentCard.id}/review`, { grade });
+    await submitReview(`/spanish/api/vocabulary/${currentCard.id}/review`, { grade });
   };
 
   const handleLearned = async () => {
     if (!currentCard) return;
-    await submitReview(`/spanish/api/vocabulary/review-cards/${currentCard.id}/learned`);
+    await submitReview(`/spanish/api/vocabulary/${currentCard.id}/learned`);
   };
 
   const deleteWord = async (entryId) => {
-    if (!window.confirm('Delete this vocabulary entry and both review cards?')) return;
+    if (!window.confirm('Delete this vocabulary entry and its review progress?')) return;
 
     setIsSubmitting(true);
     setError('');
@@ -472,7 +477,7 @@ function Vocabulary() {
               Vocabulary Cards
             </h2>
             <p className="text-gray-600">
-              Review each word in both directions with separate card progress.
+              Each word stays one learning card. Reverse prompts appear inside practice when they are due.
             </p>
           </div>
 
@@ -512,12 +517,12 @@ function Vocabulary() {
             <p className="text-3xl font-bold text-indigo-900">{stats.total_entries}</p>
           </div>
           <div className="bg-gradient-to-r from-purple-100 to-purple-200 rounded-xl p-4">
-            <p className="text-sm text-purple-700">Review cards</p>
-            <p className="text-3xl font-bold text-purple-900">{stats.total_cards}</p>
+            <p className="text-sm text-purple-700">Learning cards</p>
+            <p className="text-3xl font-bold text-purple-900">{stats.total_entries}</p>
           </div>
           <div className="bg-gradient-to-r from-orange-100 to-orange-200 rounded-xl p-4">
             <p className="text-sm text-orange-700">Due now</p>
-            <p className="text-3xl font-bold text-orange-900">{stats.due_cards}</p>
+            <p className="text-3xl font-bold text-orange-900">{effectiveDueTotal}</p>
           </div>
           <div className="bg-gradient-to-r from-green-100 to-green-200 rounded-xl p-4">
             <p className="text-sm text-green-700">Fully snoozed / learned</p>
@@ -536,11 +541,11 @@ function Vocabulary() {
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-700">{directionStats.label}</p>
-                    <p className="text-xs text-slate-500">{directionStats.total_cards} cards tracked</p>
+                    <p className="text-xs text-slate-500">{directionStats.total_cards} words available in this direction</p>
                   </div>
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-sm font-semibold">
                     <Clock3 className="h-4 w-4" />
-                    {directionStats.due_cards} due
+                    {directionStats.due_cards} words due
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2 text-sm">
@@ -620,7 +625,7 @@ function Vocabulary() {
               disabled={isSubmitting || !newWord.word.trim() || !newWord.translation.trim()}
               className="flex-1 px-4 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
             >
-              Add entry + 2 cards
+              Add entry
             </button>
             <button
               type="button"
@@ -641,7 +646,7 @@ function Vocabulary() {
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
             <div>
-              <p className="text-sm text-gray-500">Fast drill queue</p>
+              <p className="text-sm text-gray-500">Word review queue</p>
               <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <Brain className="h-6 w-6 text-indigo-600" />
                 {dueLabel}
@@ -653,6 +658,12 @@ function Vocabulary() {
                 <Languages className="h-4 w-4" />
                 {currentCard.direction_label}
               </span>
+              {currentCard.due_card_count > 1 && (
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold">
+                  <RotateCcw className="h-4 w-4" />
+                  {currentCard.due_card_count} practice directions due
+                </span>
+              )}
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${STATUS_STYLES[currentCard.status] || STATUS_STYLES.review}`}>
                 {statusLabel(currentCard.status)}
               </span>
@@ -820,7 +831,7 @@ function Vocabulary() {
                 className="w-full px-4 py-4 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-all shadow-md font-bold flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 <RotateCcw className="h-5 w-5" />
-                Learned — hide this card for 15 days
+                Learned — hide this word for 15 days
               </button>
             </div>
           )}
@@ -829,7 +840,7 @@ function Vocabulary() {
         <div className="bg-white rounded-2xl shadow-2xl p-12 text-center">
           <RotateCcw className="h-16 w-16 mx-auto text-green-500 mb-4" />
           <h3 className="text-2xl font-bold text-gray-800 mb-2">All caught up! 🎉</h3>
-          <p className="text-gray-600">No review cards are due right now.</p>
+          <p className="text-gray-600">No words are due right now.</p>
         </div>
       )}
 
@@ -837,7 +848,7 @@ function Vocabulary() {
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
           <h3 className="text-2xl font-bold text-gray-800">Vocabulary entries ({entries.length})</h3>
           <p className="text-sm text-gray-500">
-            Each entry creates separate Spanish → Translation and Translation → Spanish cards.
+            Each entry is one learning card. Spanish and reverse prompts are tracked inside the same word.
           </p>
         </div>
 
@@ -891,7 +902,7 @@ function Vocabulary() {
                       </span>
                       <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border border-gray-200">
                         <Clock3 className="h-4 w-4 text-orange-500" />
-                        {entry.card_summary.due_cards} due
+                        {entry.card_summary.due_cards} practice directions due
                       </span>
                     </div>
 

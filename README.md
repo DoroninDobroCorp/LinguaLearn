@@ -201,13 +201,14 @@ npm run dev
 | `GET` | `/api/health` | Health/status/readiness probe for monitoring |
 | `POST` | `/api/settings` | Update settings |
 | `DELETE` | `/api/chat/clear` | Clear chat history |
-| `GET` | `/api/vocabulary` | Get vocabulary entries, card summaries, and legacy `words` compatibility data |
-| `GET` | `/api/vocabulary/review-queue` | Get the cards v2 review queue |
+| `GET` | `/api/vocabulary` | Get vocabulary entries, direction-aware review summaries, and legacy `words` compatibility data |
+| `GET` | `/api/vocabulary/review-queue` | Get the one-word review queue (next due direction per word) |
 | `GET` | `/api/vocabulary/due` | Legacy due alias (`words`) plus cards v2 queue data |
 | `POST` | `/api/vocabulary` | Add new word |
-| `POST` / `PUT` | `/api/vocabulary/:id/review` | Legacy entry-based review alias (defaults to the Spanish → Translation card) |
-| `POST` | `/api/vocabulary/review-cards/:id/review` | Review a specific cards v2 review card |
-| `POST` | `/api/vocabulary/review-cards/:id/learned` | Hide a cards v2 review card for 15 days |
+| `POST` / `PUT` | `/api/vocabulary/:id/review` | Review the next due direction for a word |
+| `POST` | `/api/vocabulary/:id/learned` | Hide a whole word for 15 days |
+| `POST` | `/api/vocabulary/review-cards/:id/review` | Review a specific internal cards v2 direction record |
+| `POST` | `/api/vocabulary/review-cards/:id/learned` | Hide one internal cards v2 direction record for 15 days |
 | `DELETE` | `/api/vocabulary/:id` | Delete word |
 | `GET` | `/api/reader/hpmor/chapter/:chapterNumber` | Import an HPMOR chapter with estimated audiobook window |
 
@@ -487,13 +488,14 @@ npm run dev
 | `GET` | `/api/settings` | Получить настройки пользователя |
 | `POST` | `/api/settings` | Обновить настройки |
 | `DELETE` | `/api/chat/clear` | Очистить историю чата |
-| `GET` | `/api/vocabulary` | Получить словарные записи, сводку по карточкам и legacy-совместимый `words` |
-| `GET` | `/api/vocabulary/review-queue` | Получить очередь повторения cards v2 |
+| `GET` | `/api/vocabulary` | Получить словарные записи, сводку по направлению повторения и legacy-совместимый `words` |
+| `GET` | `/api/vocabulary/review-queue` | Получить очередь повторения по словам (следующее due-направление на слово) |
 | `GET` | `/api/vocabulary/due` | Legacy-алиас для due (`words`) + данные очереди cards v2 |
 | `POST` | `/api/vocabulary` | Добавить новое слово |
-| `POST` / `PUT` | `/api/vocabulary/:id/review` | Legacy-алиас повторения по записи (по умолчанию Spanish → Translation) |
-| `POST` | `/api/vocabulary/review-cards/:id/review` | Повторить конкретную карточку cards v2 |
-| `POST` | `/api/vocabulary/review-cards/:id/learned` | Скрыть карточку cards v2 на 15 дней |
+| `POST` / `PUT` | `/api/vocabulary/:id/review` | Повторить следующее due-направление для слова |
+| `POST` | `/api/vocabulary/:id/learned` | Скрыть все повторения слова на 15 дней |
+| `POST` | `/api/vocabulary/review-cards/:id/review` | Повторить конкретное внутреннее направление cards v2 |
+| `POST` | `/api/vocabulary/review-cards/:id/learned` | Скрыть конкретное внутреннее направление cards v2 на 15 дней |
 | `DELETE` | `/api/vocabulary/:id` | Удалить слово |
 
 ---

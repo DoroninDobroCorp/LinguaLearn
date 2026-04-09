@@ -14,10 +14,12 @@ import {
   exportVocabularyArchive,
   getVocabularyStats,
   importVocabularyArchive,
+  listDueReviewEntries,
   listLegacyDueVocabularyWords,
   listLegacyVocabularyWords,
   listDueReviewCards,
   listVocabularyEntries,
+  markVocabularyEntryLearned,
   markVocabularyCardLearned,
   reviewLegacyVocabularyEntry,
   reviewVocabularyCard,
@@ -1609,7 +1611,7 @@ app.post('/api/vocabulary/import', (req, res) => {
 app.get('/api/vocabulary/review-queue', (req, res) => {
   try {
     const profileId = getProfileId(req);
-    res.json(listDueReviewCards(db, profileId, { limit: req.query.limit, now: new Date() }));
+    res.json(listDueReviewEntries(db, profileId, { limit: req.query.limit, now: new Date() }));
   } catch (error) {
     handleVocabularyError(res, error, 'Error fetching review queue:');
   }
@@ -1685,6 +1687,21 @@ app.post('/api/vocabulary/review-cards/:id/learned', (req, res) => {
     res.json({ card: updatedCard });
   } catch (error) {
     handleVocabularyError(res, error, 'Error marking card learned:');
+  }
+});
+
+app.post('/api/vocabulary/:id/learned', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const entryId = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(entryId) || entryId <= 0) {
+      throw new VocabularyApiError(400, 'Vocabulary id must be a positive integer', 'INVALID_VOCAB_ID');
+    }
+
+    const markedWord = markVocabularyEntryLearned(db, profileId, entryId, new Date());
+    res.json(markedWord);
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error marking vocabulary entry learned:');
   }
 });
 
