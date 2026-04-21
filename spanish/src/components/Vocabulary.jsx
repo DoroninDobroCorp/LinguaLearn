@@ -30,7 +30,10 @@ import {
 import { scoreTypedAnswer } from '../utils/answerMatching';
 
 const TYPING_MODE_STORAGE_KEY = 'spanishVocabTypingMode';
-const VOCABULARY_UI_BUILD = '37b94f1';
+
+function isAutomaticSpanishTypingCard(card) {
+  return card?.direction === 'target_to_source';
+}
 
 function readStoredTypingMode() {
   if (typeof window === 'undefined') return false;
@@ -217,6 +220,8 @@ function Vocabulary() {
   } = useSpeechPractice();
 
   const currentCard = reviewQueue[0] || null;
+  const automaticTypingStage = isAutomaticSpanishTypingCard(currentCard);
+  const typingStageActive = automaticTypingStage || typingMode;
   const visibleSpanish = useMemo(
     () => getVisibleSpanishContent(currentCard, showAnswer),
     [currentCard, showAnswer],
@@ -314,10 +319,10 @@ function Vocabulary() {
   }, [currentCard?.card_id, currentCard?.direction]);
 
   useEffect(() => {
-    if (typingMode && !showAnswer && currentCard && typingInputRef.current) {
+    if (typingStageActive && !showAnswer && currentCard && typingInputRef.current) {
       typingInputRef.current.focus();
     }
-  }, [currentCard?.card_id, currentCard?.direction, typingMode, showAnswer, currentCard]);
+  }, [currentCard?.card_id, currentCard?.direction, typingStageActive, showAnswer, currentCard]);
 
   const toggleTypingMode = useCallback(() => {
     setTypingMode((prev) => {
@@ -392,12 +397,15 @@ function Vocabulary() {
     <button
       type="button"
       onClick={toggleTypingMode}
-      aria-pressed={typingMode}
-      title="Type the answer instead of flipping the card"
-      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold border transition-colors ${typingMode ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'}`}
+      aria-pressed={typingMode || automaticTypingStage}
+      disabled={automaticTypingStage}
+      title={automaticTypingStage
+        ? 'Translation to Spanish cards always use a typing step.'
+        : 'Type the answer instead of flipping the card'}
+      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold border transition-colors disabled:opacity-70 disabled:cursor-not-allowed ${typingStageActive ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'}`}
     >
       <Keyboard className="h-4 w-4" />
-      {typingMode ? 'Typing mode: on' : 'Typing mode: off'}
+      {automaticTypingStage ? 'Typing mode: auto' : (typingMode ? 'Typing mode: on' : 'Typing mode: off')}
     </button>
   );
 
@@ -750,11 +758,12 @@ function Vocabulary() {
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">Practice mode</p>
               <p className="text-sm text-slate-600">
-                {currentCard
-                  ? 'Typing mode is active on the current review card when you want to answer before revealing.'
-                  : 'Typing mode is ready and will appear as soon as a due review card is available.'}
+                {automaticTypingStage
+                  ? 'Translation to Spanish cards now include an automatic typing step before reveal.'
+                  : currentCard
+                    ? 'Translation to Spanish cards always include a typing step. Turn on typing mode if you also want typed answers on the other direction.'
+                    : 'Translation to Spanish cards use an automatic typing step. Turn on typing mode if you also want typing on Spanish to Translation cards.'}
               </p>
-              <p className="mt-2 text-xs font-mono text-slate-400">Vocabulary UI build: {VOCABULARY_UI_BUILD}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {typingModeToggle}
@@ -803,10 +812,10 @@ function Vocabulary() {
           </div>
 
           <div
-            role={typingMode ? undefined : 'button'}
-            tabIndex={typingMode ? -1 : 0}
-            onClick={typingMode ? undefined : toggleShowAnswer}
-            onKeyDown={typingMode ? undefined : (event) => {
+            role={typingStageActive ? undefined : 'button'}
+            tabIndex={typingStageActive ? -1 : 0}
+            onClick={typingStageActive ? undefined : toggleShowAnswer}
+            onKeyDown={typingStageActive ? undefined : (event) => {
               if (isVoicePracticeBusy) {
                 return;
               }
@@ -816,7 +825,7 @@ function Vocabulary() {
               }
             }}
             aria-disabled={isVoicePracticeBusy}
-            className={`bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-10 min-h-[320px] flex flex-col items-center justify-center border-4 border-indigo-200 transition-all text-center ${typingMode ? 'cursor-default' : (isVoicePracticeBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:border-indigo-400')}`}
+            className={`bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-10 min-h-[320px] flex flex-col items-center justify-center border-4 border-indigo-200 transition-all text-center ${typingStageActive ? 'cursor-default' : (isVoicePracticeBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:border-indigo-400')}`}
           >
             <p className="text-sm uppercase tracking-wide text-indigo-600 font-semibold mb-3">
               {currentCard.prompt_label}
@@ -825,7 +834,7 @@ function Vocabulary() {
               {currentCard.prompt}
             </p>
 
-            {typingMode && !showAnswer && (
+            {typingStageActive && !showAnswer && (
               <form
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -907,7 +916,7 @@ function Vocabulary() {
                 </div>
               </div>
             ) : (
-              !typingMode && <p className="text-gray-500 text-lg">Click to reveal the answer</p>
+              !typingStageActive && <p className="text-gray-500 text-lg">Click to reveal the answer</p>
             )}
           </div>
 
