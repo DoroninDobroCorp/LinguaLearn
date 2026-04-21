@@ -387,6 +387,19 @@ function Vocabulary() {
     ? `${selectedVoice.name}${selectedVoice.lang ? ` (${selectedVoice.lang})` : ''}`
     : 'a local Spanish voice on this device';
 
+  const typingModeToggle = (
+    <button
+      type="button"
+      onClick={toggleTypingMode}
+      aria-pressed={typingMode}
+      title="Type the answer instead of flipping the card"
+      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold border transition-colors ${typingMode ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'}`}
+    >
+      <Keyboard className="h-4 w-4" />
+      {typingMode ? 'Typing mode: on' : 'Typing mode: off'}
+    </button>
+  );
+
   const addWord = async () => {
     if (!newWord.word.trim() || !newWord.translation.trim()) return;
 
@@ -730,6 +743,24 @@ function Vocabulary() {
         </div>
       )}
 
+      {!isLoading && (
+        <div className="bg-white rounded-2xl shadow-2xl p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">Practice mode</p>
+              <p className="text-sm text-slate-600">
+                {currentCard
+                  ? 'Typing mode is active on the current review card when you want to answer before revealing.'
+                  : 'Typing mode is ready and will appear as soon as a due review card is available.'}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {typingModeToggle}
+            </div>
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="bg-white rounded-2xl shadow-2xl p-12 text-center text-gray-600">
           Loading vocabulary cards...
@@ -746,16 +777,6 @@ function Vocabulary() {
             </div>
 
             <div className="flex flex-wrap gap-2 items-center">
-              <button
-                type="button"
-                onClick={toggleTypingMode}
-                aria-pressed={typingMode}
-                title="Type the answer instead of flipping the card"
-                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold border transition-colors ${typingMode ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'}`}
-              >
-                <Keyboard className="h-4 w-4" />
-                {typingMode ? 'Typing mode: on' : 'Typing mode: off'}
-              </button>
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-semibold">
                 <Languages className="h-4 w-4" />
                 {currentCard.direction_label}
@@ -1003,6 +1024,7 @@ function Vocabulary() {
           <RotateCcw className="h-16 w-16 mx-auto text-green-500 mb-4" />
           <h3 className="text-2xl font-bold text-gray-800 mb-2">All caught up! 🎉</h3>
           <p className="text-gray-600">No words are due right now.</p>
+          <p className="mt-3 text-sm text-slate-500">When the next review card appears, typing mode will let you answer before revealing the solution.</p>
         </div>
       )}
 
