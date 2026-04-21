@@ -1,7 +1,7 @@
 // Lightweight helpers for the "type the answer" review mode.
 // Kept plain and side-effect free so they can be exercised from node:test.
 
-const PUNCTUATION_PATTERN = /[.,;:!?¡¿"'`´()[\]{}«»—–\-_/\\]+/g;
+const PUNCTUATION_PATTERN = /[.,;:!?¡¿"'‘’ʼ`´()[\]{}«»—–\-_/\\]+/g;
 
 export function stripDiacritics(value = '') {
   // Separate characters from combining marks so accents can be dropped cleanly.

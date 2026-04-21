@@ -30,6 +30,12 @@ describe('answer matching helpers', () => {
     assert.equal(result.distance, 0);
   });
 
+  it('ignores typographic apostrophes while typing', () => {
+    const result = scoreTypedAnswer('l enfant', 'l’enfant');
+    assert.equal(result.status, 'correct');
+    assert.equal(result.grade, 'good');
+  });
+
   it('treats tiny typos as close (hard grade)', () => {
     const result = scoreTypedAnswer('cancin', 'canción');
     assert.equal(result.status, 'close');
