@@ -121,6 +121,69 @@ const STATUS_STYLES = {
   learned: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
 };
 
+const ENTRY_FILTERS = {
+  all: {
+    label: 'All',
+    description: 'Every vocabulary entry',
+  },
+  unlearned: {
+    label: 'Unlearned',
+    description: 'Still active or not fully mastered',
+  },
+  due: {
+    label: 'Due',
+    description: 'Have at least one due card now',
+  },
+  learned: {
+    label: 'Learned',
+    description: 'Fully snoozed or learned in both directions',
+  },
+  blocked: {
+    label: 'Blocked',
+    description: 'Need completion before review',
+  },
+};
+
+function isEntryLearned(entry) {
+  const reviewableCards = Number(entry?.card_summary?.reviewable_cards) || 0;
+  if (reviewableCards === 0) {
+    return false;
+  }
+
+  const learnedOrSnoozedCards = (Number(entry?.card_summary?.learned_cards) || 0)
+    + (Number(entry?.card_summary?.snoozed_cards) || 0);
+
+  return learnedOrSnoozedCards === reviewableCards && (Number(entry?.card_summary?.due_cards) || 0) === 0;
+}
+
+function isEntryBlocked(entry) {
+  return Boolean(entry?.needs_completion) || (Number(entry?.card_summary?.unreviewable_cards) || 0) > 0;
+}
+
+function isEntryDue(entry) {
+  return (Number(entry?.card_summary?.due_cards) || 0) > 0;
+}
+
+function isEntryUnlearned(entry) {
+  return !isEntryBlocked(entry) && !isEntryLearned(entry);
+}
+
+function matchesEntryFilter(entry, filter) {
+  switch (filter) {
+    case 'unlearned':
+      return isEntryUnlearned(entry);
+    case 'due':
+      return isEntryDue(entry);
+    case 'learned':
+      return isEntryLearned(entry);
+    case 'blocked':
+      return isEntryBlocked(entry);
+    case 'all':
+    default:
+      return true;
+  }
+}
+
 function formatRelativeTime(value) {
   if (!value) return 'Not scheduled';
 
@@ -194,6 +257,7 @@ function Vocabulary() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [entryFilter, setEntryFilter] = useState('all');
   const [typingMode, setTypingMode] = useState(() => readStoredTypingMode());
   const [typedAnswer, setTypedAnswer] = useState('');
   const [typingFeedback, setTypingFeedback] = useState(null);
@@ -382,6 +446,38 @@ function Vocabulary() {
     ? stats.due_entries
     : queueStats.total_due;
 
+  const entryCounts = useMemo(() => {
+    return entries.reduce((accumulator, entry) => {
+      accumulator.all += 1;
+      if (isEntryBlocked(entry)) {
+        accumulator.blocked += 1;
+      }
+      if (isEntryDue(entry)) {
+        accumulator.due += 1;
+      }
+      if (isEntryLearned(entry)) {
+        accumulator.learned += 1;
+      }
+      if (isEntryUnlearned(entry)) {
+        accumulator.unlearned += 1;
+      }
+      return accumulator;
+    }, {
+      all: 0,
+      unlearned: 0,
+      due: 0,
+      learned: 0,
+      blocked: 0,
+    });
+  }, [entries]);
+
+  const filteredEntries = useMemo(
+    () => entries.filter((entry) => matchesEntryFilter(entry, entryFilter)),
+    [entries, entryFilter],
+  );
+
+  const filteredEntryLabel = ENTRY_FILTERS[entryFilter]?.label || ENTRY_FILTERS.all.label;
+
   const dueLabel = useMemo(() => {
     if (effectiveDueTotal > reviewQueue.length) {
       return `${reviewQueue.length} loaded of ${effectiveDueTotal} due`;
@@ -392,6 +488,41 @@ function Vocabulary() {
   const speechVoiceLabel = selectedVoice
     ? `${selectedVoice.name}${selectedVoice.lang ? ` (${selectedVoice.lang})` : ''}`
     : 'a local Spanish voice on this device';
+
+  const summaryCards = [
+    {
+      key: 'all',
+      title: 'Entries',
+      count: entryCounts.all,
+      valueClassName: 'text-indigo-900',
+      cardClassName: 'bg-gradient-to-r from-indigo-100 to-indigo-200',
+      textClassName: 'text-indigo-700',
+    },
+    {
+      key: 'unlearned',
+      title: 'Unlearned',
+      count: entryCounts.unlearned,
+      valueClassName: 'text-purple-900',
+      cardClassName: 'bg-gradient-to-r from-purple-100 to-purple-200',
+      textClassName: 'text-purple-700',
+    },
+    {
+      key: 'due',
+      title: 'Due now',
+      count: entryCounts.due,
+      valueClassName: 'text-orange-900',
+      cardClassName: 'bg-gradient-to-r from-orange-100 to-orange-200',
+      textClassName: 'text-orange-700',
+    },
+    {
+      key: 'learned',
+      title: 'Learned',
+      count: entryCounts.learned,
+      valueClassName: 'text-green-900',
+      cardClassName: 'bg-gradient-to-r from-green-100 to-green-200',
+      textClassName: 'text-green-700',
+    },
+  ];
 
   const typingModeToggle = (
     <button
@@ -626,22 +757,20 @@ function Vocabulary() {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-          <div className="bg-gradient-to-r from-indigo-100 to-indigo-200 rounded-xl p-4">
-            <p className="text-sm text-indigo-700">Entries</p>
-            <p className="text-3xl font-bold text-indigo-900">{stats.total_entries}</p>
-          </div>
-          <div className="bg-gradient-to-r from-purple-100 to-purple-200 rounded-xl p-4">
-            <p className="text-sm text-purple-700">Learning cards</p>
-            <p className="text-3xl font-bold text-purple-900">{stats.total_entries}</p>
-          </div>
-          <div className="bg-gradient-to-r from-orange-100 to-orange-200 rounded-xl p-4">
-            <p className="text-sm text-orange-700">Due now</p>
-            <p className="text-3xl font-bold text-orange-900">{effectiveDueTotal}</p>
-          </div>
-          <div className="bg-gradient-to-r from-green-100 to-green-200 rounded-xl p-4">
-            <p className="text-sm text-green-700">Fully snoozed / learned</p>
-            <p className="text-3xl font-bold text-green-900">{stats.mastered_entries}</p>
-          </div>
+          {summaryCards.map((card) => {
+            const isSelected = entryFilter === card.key;
+            return (
+              <button
+                key={card.key}
+                type="button"
+                onClick={() => setEntryFilter(card.key)}
+                className={`${card.cardClassName} rounded-xl p-4 text-left transition-all border-2 ${isSelected ? 'border-slate-900 shadow-md scale-[1.02]' : 'border-transparent hover:border-slate-300'}`}
+              >
+                <p className={`text-sm ${card.textClassName}`}>{card.title}</p>
+                <p className={`text-3xl font-bold ${card.valueClassName}`}>{card.count}</p>
+              </button>
+            );
+          })}
         </div>
 
         <div className="grid gap-4 mt-4 md:grid-cols-2">
@@ -1041,17 +1170,37 @@ function Vocabulary() {
 
       <div className="bg-white rounded-2xl shadow-2xl p-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
-          <h3 className="text-2xl font-bold text-gray-800">Vocabulary entries ({entries.length})</h3>
-          <p className="text-sm text-gray-500">
-            Each entry is one learning card. Spanish and reverse prompts are tracked inside the same word.
-          </p>
+          <div>
+            <h3 className="text-2xl font-bold text-gray-800">Vocabulary entries ({filteredEntries.length})</h3>
+            <p className="text-sm text-gray-500">
+              Showing {filteredEntryLabel.toLowerCase()} entries. Each word stays one learning card with both directions tracked together.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(ENTRY_FILTERS).map(([key, config]) => {
+              const isSelected = entryFilter === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setEntryFilter(key)}
+                  title={config.description}
+                  className={`px-3 py-2 rounded-full text-sm font-semibold transition-colors border ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
+                >
+                  {config.label} ({entryCounts[key] ?? 0})
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {entries.length === 0 ? (
           <p className="text-gray-600 text-center py-8">No vocabulary yet. Add your first entry above.</p>
+        ) : filteredEntries.length === 0 ? (
+          <p className="text-gray-600 text-center py-8">No {filteredEntryLabel.toLowerCase()} entries right now.</p>
         ) : (
           <div className="space-y-3 max-h-[34rem] overflow-y-auto">
-            {entries.map((entry) => (
+            {filteredEntries.map((entry) => (
               <div
                 key={entry.id}
                 className="p-4 rounded-2xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all"
