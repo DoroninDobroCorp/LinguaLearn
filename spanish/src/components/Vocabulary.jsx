@@ -6,6 +6,7 @@ import {
   Check,
   Clock3,
   Download,
+  Keyboard,
   Languages,
   Mic,
   Play,
@@ -26,6 +27,27 @@ import {
   getVisibleSpanishContent,
   shouldStopSpeakingOnCardFlip,
 } from '../utils/speechPractice';
+import { scoreTypedAnswer } from '../utils/answerMatching';
+
+const TYPING_MODE_STORAGE_KEY = 'spanishVocabTypingMode';
+
+function readStoredTypingMode() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(TYPING_MODE_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function persistTypingMode(value) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(TYPING_MODE_STORAGE_KEY, value ? 'true' : 'false');
+  } catch {
+    // Storage may be unavailable (private mode); non-fatal.
+  }
+}
 
 const INITIAL_STATS = {
   total_entries: 0,
@@ -168,7 +190,12 @@ function Vocabulary() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [typingMode, setTypingMode] = useState(() => readStoredTypingMode());
+  const [typedAnswer, setTypedAnswer] = useState('');
+  const [typingFeedback, setTypingFeedback] = useState(null);
   const fileInputRef = useRef(null);
+  const autoPlayedCardKeyRef = useRef('');
+  const typingInputRef = useRef(null);
   const {
     capabilities: speechCapabilities,
     selectedVoice,
@@ -279,6 +306,71 @@ function Vocabulary() {
   useEffect(() => {
     resetPractice();
   }, [currentCard?.card_id, currentCard?.direction, resetPractice]);
+
+  useEffect(() => {
+    setTypedAnswer('');
+    setTypingFeedback(null);
+  }, [currentCard?.card_id, currentCard?.direction]);
+
+  useEffect(() => {
+    if (typingMode && !showAnswer && currentCard && typingInputRef.current) {
+      typingInputRef.current.focus();
+    }
+  }, [currentCard?.card_id, currentCard?.direction, typingMode, showAnswer, currentCard]);
+
+  const toggleTypingMode = useCallback(() => {
+    setTypingMode((prev) => {
+      const next = !prev;
+      persistTypingMode(next);
+      return next;
+    });
+    setTypedAnswer('');
+    setTypingFeedback(null);
+  }, []);
+
+  const checkTypedAnswer = useCallback(() => {
+    if (!currentCard) return;
+    const result = scoreTypedAnswer(typedAnswer, currentCard.answer);
+    if (result.status === 'empty') {
+      return;
+    }
+    setTypingFeedback(result);
+    setShowAnswer(true);
+  }, [currentCard, typedAnswer]);
+
+  useEffect(() => {
+    const currentCardKey = currentCard
+      ? `${currentCard.card_id ?? currentCard.id ?? 'unknown'}:${currentCard.direction ?? 'unknown'}`
+      : '';
+
+    if (!currentCardKey) {
+      autoPlayedCardKeyRef.current = '';
+      return;
+    }
+
+    if (autoPlayedCardKeyRef.current === currentCardKey) {
+      return;
+    }
+
+    if (!visibleSpanish.text) {
+      autoPlayedCardKeyRef.current = currentCardKey;
+      return;
+    }
+
+    if (isVoicePracticeBusy || !playbackSupport.supported) {
+      return;
+    }
+
+    if (speakText(visibleSpanish.text)) {
+      autoPlayedCardKeyRef.current = currentCardKey;
+    }
+  }, [
+    currentCard,
+    isVoicePracticeBusy,
+    playbackSupport.supported,
+    speakText,
+    visibleSpanish.text,
+  ]);
 
   const effectiveDueTotal = Number.isFinite(stats.due_entries)
     ? stats.due_entries
@@ -653,7 +745,17 @@ function Vocabulary() {
               </h3>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
+              <button
+                type="button"
+                onClick={toggleTypingMode}
+                aria-pressed={typingMode}
+                title="Type the answer instead of flipping the card"
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold border transition-colors ${typingMode ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'}`}
+              >
+                <Keyboard className="h-4 w-4" />
+                {typingMode ? 'Typing mode: on' : 'Typing mode: off'}
+              </button>
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-semibold">
                 <Languages className="h-4 w-4" />
                 {currentCard.direction_label}
@@ -678,10 +780,10 @@ function Vocabulary() {
           </div>
 
           <div
-            role="button"
-            tabIndex={0}
-            onClick={toggleShowAnswer}
-            onKeyDown={(event) => {
+            role={typingMode ? undefined : 'button'}
+            tabIndex={typingMode ? -1 : 0}
+            onClick={typingMode ? undefined : toggleShowAnswer}
+            onKeyDown={typingMode ? undefined : (event) => {
               if (isVoicePracticeBusy) {
                 return;
               }
@@ -691,7 +793,7 @@ function Vocabulary() {
               }
             }}
             aria-disabled={isVoicePracticeBusy}
-            className={`bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-10 min-h-[320px] flex flex-col items-center justify-center border-4 border-indigo-200 transition-all text-center ${isVoicePracticeBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:border-indigo-400'}`}
+            className={`bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-10 min-h-[320px] flex flex-col items-center justify-center border-4 border-indigo-200 transition-all text-center ${typingMode ? 'cursor-default' : (isVoicePracticeBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:border-indigo-400')}`}
           >
             <p className="text-sm uppercase tracking-wide text-indigo-600 font-semibold mb-3">
               {currentCard.prompt_label}
@@ -700,8 +802,68 @@ function Vocabulary() {
               {currentCard.prompt}
             </p>
 
+            {typingMode && !showAnswer && (
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  checkTypedAnswer();
+                }}
+                className="w-full max-w-xl flex flex-col items-center gap-3"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <label className="text-sm uppercase tracking-wide text-indigo-600 font-semibold">
+                  Type the {currentCard.answer_label.toLowerCase()}
+                </label>
+                <input
+                  ref={typingInputRef}
+                  type="text"
+                  autoFocus
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  value={typedAnswer}
+                  onChange={(event) => setTypedAnswer(event.target.value)}
+                  placeholder={`Your ${currentCard.answer_label.toLowerCase()}…`}
+                  className="w-full px-4 py-3 text-xl text-center text-indigo-900 bg-white border-2 border-indigo-200 rounded-xl focus:outline-none focus:border-indigo-500"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={!typedAnswer.trim() || isSubmitting || isVoicePracticeBusy}
+                    className="px-5 py-2 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    Check
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setTypingFeedback(null); setShowAnswer(true); }}
+                    disabled={isSubmitting || isVoicePracticeBusy}
+                    className="px-5 py-2 rounded-xl bg-white text-indigo-700 border border-indigo-200 font-semibold hover:bg-indigo-50 disabled:opacity-50"
+                  >
+                    Show answer
+                  </button>
+                </div>
+              </form>
+            )}
+
             {showAnswer ? (
-              <div className="space-y-4 max-w-2xl animate-fadeIn">
+              <div className="space-y-4 max-w-2xl animate-fadeIn mt-2">
+                {typingFeedback && (
+                  <div
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold ${
+                      typingFeedback.status === 'correct'
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : typingFeedback.status === 'close'
+                          ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                          : 'bg-rose-100 text-rose-800 border border-rose-200'
+                    }`}
+                  >
+                    {typingFeedback.status === 'correct' && '¡Correcto! Nicely typed.'}
+                    {typingFeedback.status === 'close' && 'Almost — watch the spelling / accent.'}
+                    {typingFeedback.status === 'wrong' && 'Not quite — study the answer below.'}
+                  </div>
+                )}
                 <div>
                   <p className="text-sm uppercase tracking-wide text-purple-600 font-semibold mb-2">
                     {currentCard.answer_label}
@@ -722,7 +884,7 @@ function Vocabulary() {
                 </div>
               </div>
             ) : (
-              <p className="text-gray-500 text-lg">Click to reveal the answer</p>
+              !typingMode && <p className="text-gray-500 text-lg">Click to reveal the answer</p>
             )}
           </div>
 

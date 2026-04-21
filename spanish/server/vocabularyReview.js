@@ -7,6 +7,11 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const DEFAULT_EASE_FACTOR = 2.3;
 const LEARNED_SUPPRESSION_DAYS = 15;
 const IMPORT_TIMESTAMP_FUTURE_SKEW_MS = 48 * 60 * 60 * 1000;
+// Relearning / short-learning steps are expressed in days to match the
+// existing interval_days schema. They keep a lapsed card out of the due queue
+// for a short window so the very same word does not pop up as the next card.
+const LAPSE_STEP_DAYS = 1 / (24 * 60); // 1 minute
+const LEARNING_HARD_STEP_DAYS = 6 / (24 * 60); // 6 minutes
 
 export const REVIEW_CARD_DIRECTIONS = ['source_to_target', 'target_to_source'];
 export const REVIEW_GRADES = ['dont_know', 'hard', 'good', 'easy'];
@@ -378,13 +383,15 @@ function scheduleGrade(card, grade, now = new Date()) {
   switch (grade) {
     case 'dont_know':
       nextEaseFactor = clamp(easeFactor - 0.2, 1.3, 3.4);
-      nextIntervalDays = 0;
+      nextIntervalDays = LAPSE_STEP_DAYS;
       nextState = 'learning';
       lapseIncrement = 1;
       break;
     case 'hard':
       nextEaseFactor = clamp(easeFactor - 0.05, 1.3, 3.6);
-      nextIntervalDays = previousInterval < 0.5 ? 0.25 : Math.max(0.5, Number((previousInterval * 1.2).toFixed(2)));
+      nextIntervalDays = previousInterval < 0.5
+        ? LEARNING_HARD_STEP_DAYS
+        : Math.max(0.5, Number((previousInterval * 1.2).toFixed(2)));
       nextState = 'learning';
       break;
     case 'good':
