@@ -400,12 +400,12 @@ function Vocabulary() {
       aria-pressed={typingMode || automaticTypingStage}
       disabled={automaticTypingStage}
       title={automaticTypingStage
-        ? 'Translation to Spanish cards always use a typing step.'
+        ? 'This card already requires a typed Spanish answer.'
         : 'Type the answer instead of flipping the card'}
       className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold border transition-colors disabled:opacity-70 disabled:cursor-not-allowed ${typingStageActive ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'}`}
     >
       <Keyboard className="h-4 w-4" />
-      {automaticTypingStage ? 'Typing mode: auto' : (typingMode ? 'Typing mode: on' : 'Typing mode: off')}
+      {automaticTypingStage ? 'Typing step: required' : (typingMode ? 'Extra typing: on' : 'Extra typing: off')}
     </button>
   );
 
@@ -756,13 +756,13 @@ function Vocabulary() {
         <div className="bg-white rounded-2xl shadow-2xl p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">Practice mode</p>
+              <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">Typing practice</p>
               <p className="text-sm text-slate-600">
                 {automaticTypingStage
-                  ? 'Translation to Spanish cards now include an automatic typing step before reveal.'
+                  ? 'This card requires you to type the Spanish answer before you reveal it.'
                   : currentCard
-                    ? 'Translation to Spanish cards always include a typing step. Turn on typing mode if you also want typed answers on the other direction.'
-                    : 'Translation to Spanish cards use an automatic typing step. Turn on typing mode if you also want typing on Spanish to Translation cards.'}
+                    ? 'Translation to Spanish cards require typing automatically. Turn on extra typing if you also want typing on Spanish to Translation cards.'
+                    : 'Translation to Spanish cards use typing automatically. Turn on extra typing if you also want typing on Spanish to Translation cards.'}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
