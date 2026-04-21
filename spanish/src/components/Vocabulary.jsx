@@ -35,6 +35,10 @@ function isAutomaticSpanishTypingCard(card) {
   return card?.direction === 'target_to_source';
 }
 
+function hasSpanishAnswer(card) {
+  return card?.direction === 'target_to_source';
+}
+
 function readStoredTypingMode() {
   if (typeof window === 'undefined') return false;
   try {
@@ -284,8 +288,9 @@ function Vocabulary() {
   } = useSpeechPractice();
 
   const currentCard = reviewQueue[0] || null;
+  const spanishAnswerCard = hasSpanishAnswer(currentCard);
   const automaticTypingStage = isAutomaticSpanishTypingCard(currentCard);
-  const typingStageActive = automaticTypingStage || typingMode;
+  const typingStageActive = spanishAnswerCard && (automaticTypingStage || typingMode);
   const visibleSpanish = useMemo(
     () => getVisibleSpanishContent(currentCard, showAnswer),
     [currentCard, showAnswer],
@@ -389,6 +394,9 @@ function Vocabulary() {
   }, [currentCard?.card_id, currentCard?.direction, typingStageActive, showAnswer, currentCard]);
 
   const toggleTypingMode = useCallback(() => {
+    if (!spanishAnswerCard) {
+      return;
+    }
     setTypingMode((prev) => {
       const next = !prev;
       persistTypingMode(next);
@@ -396,7 +404,7 @@ function Vocabulary() {
     });
     setTypedAnswer('');
     setTypingFeedback(null);
-  }, []);
+  }, [spanishAnswerCard]);
 
   const checkTypedAnswer = useCallback(() => {
     if (!currentCard) return;
@@ -532,11 +540,13 @@ function Vocabulary() {
       disabled={automaticTypingStage}
       title={automaticTypingStage
         ? 'This card already requires a typed Spanish answer.'
-        : 'Type the answer instead of flipping the card'}
+        : (spanishAnswerCard ? 'Type the Spanish answer instead of flipping the card' : 'Typing is only available when the answer is Spanish')}
       className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold border transition-colors disabled:opacity-70 disabled:cursor-not-allowed ${typingStageActive ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'}`}
     >
       <Keyboard className="h-4 w-4" />
-      {automaticTypingStage ? 'Typing step: required' : (typingMode ? 'Extra typing: on' : 'Extra typing: off')}
+      {automaticTypingStage
+        ? 'Typing step: required'
+        : (spanishAnswerCard ? (typingMode ? 'Spanish typing: on' : 'Spanish typing: off') : 'Typing: Spanish only')}
     </button>
   );
 

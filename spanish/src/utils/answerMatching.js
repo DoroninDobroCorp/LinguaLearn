@@ -3,13 +3,21 @@
 
 const PUNCTUATION_PATTERN = /[.,;:!?¡¿"'‘’ʼ`´()[\]{}«»—–\-_/\\]+/g;
 
+function collapseSpanishLetterVariants(value = '') {
+  return String(value)
+    .replace(/ñ/g, 'n')
+    .replace(/ü/g, 'u');
+}
+
 export function stripDiacritics(value = '') {
   // Separate characters from combining marks so accents can be dropped cleanly.
   return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 export function normalizeAnswer(value = '') {
-  const withoutDiacritics = stripDiacritics(String(value).toLowerCase());
+  const lowered = String(value).toLowerCase();
+  const simplifiedLetters = collapseSpanishLetterVariants(lowered);
+  const withoutDiacritics = stripDiacritics(simplifiedLetters);
   return withoutDiacritics
     .replace(PUNCTUATION_PATTERN, ' ')
     .replace(/\s+/g, ' ')
@@ -54,7 +62,8 @@ function levenshtein(a, b) {
 function closeThresholdFor(length) {
   if (length <= 3) return 0;
   if (length <= 6) return 1;
-  return 2;
+  if (length <= 10) return 2;
+  return 3;
 }
 
 export function scoreTypedAnswer(typed, expected) {

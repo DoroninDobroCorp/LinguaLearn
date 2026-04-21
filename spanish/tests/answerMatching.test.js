@@ -36,11 +36,22 @@ describe('answer matching helpers', () => {
     assert.equal(result.grade, 'good');
   });
 
+  it('does not fail on n versus enye or dieresis differences', () => {
+    assert.equal(scoreTypedAnswer('ano', 'año').status, 'correct');
+    assert.equal(scoreTypedAnswer('pinguino', 'pingüino').status, 'correct');
+  });
+
   it('treats tiny typos as close (hard grade)', () => {
     const result = scoreTypedAnswer('cancin', 'canción');
     assert.equal(result.status, 'close');
     assert.equal(result.grade, 'hard');
     assert.ok(result.distance > 0 && result.distance <= 2);
+  });
+
+  it('is a bit more tolerant for longer Spanish answers', () => {
+    const result = scoreTypedAnswer('biblioteka', 'biblioteca');
+    assert.equal(result.status, 'close');
+    assert.equal(result.grade, 'hard');
   });
 
   it('flags unrelated input as wrong (dont_know grade)', () => {
