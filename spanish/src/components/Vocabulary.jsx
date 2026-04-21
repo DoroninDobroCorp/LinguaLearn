@@ -30,6 +30,7 @@ import {
 import { scoreTypedAnswer } from '../utils/answerMatching';
 
 const TYPING_MODE_STORAGE_KEY = 'spanishVocabTypingMode';
+const VOCABULARY_UI_BUILD = '37b94f1';
 
 function readStoredTypingMode() {
   if (typeof window === 'undefined') return false;
@@ -753,6 +754,7 @@ function Vocabulary() {
                   ? 'Typing mode is active on the current review card when you want to answer before revealing.'
                   : 'Typing mode is ready and will appear as soon as a due review card is available.'}
               </p>
+              <p className="mt-2 text-xs font-mono text-slate-400">Vocabulary UI build: {VOCABULARY_UI_BUILD}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {typingModeToggle}
