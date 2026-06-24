@@ -13,7 +13,6 @@ import ProfileSelector from './components/ProfileSelector';
 function NavBar() {
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   
   const navItems = [
     { path: '/', icon: MessageCircle, label: 'Chat' },
@@ -63,7 +62,7 @@ function NavBar() {
             </button>
           </div>
 
-          {/* Mobile Navigation */}
+          {/* Mobile Header Controls (Simple & clean) */}
           <div className="flex md:hidden items-center space-x-2">
             <ProfileSelector />
             <button
@@ -73,44 +72,43 @@ function NavBar() {
             >
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg hover:bg-pink-100 dark:hover:bg-gray-700"
-              aria-label="Menu"
-            >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden pb-4 space-y-2 animate-slide-up">
-            {navItems.map(({ path, icon: Icon, label }) => (
-              <Link
-                key={path}
-                to={path}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
-                  location.pathname === path
-                    ? 'bg-gradient-to-r from-fuchsia-400 to-purple-400 text-gray-900 shadow-lg'
-                    : 'text-current hover:bg-pink-100 dark:hover:bg-gray-700'
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="font-medium">{label}</span>
-              </Link>
-            ))}
-          </div>
-        )}
       </div>
     </nav>
+  );
+}
+
+function BottomNavBar() {
+  const location = useLocation();
+  const navItems = [
+    { path: '/', icon: MessageCircle, label: 'Chat' },
+    { path: '/curriculum', icon: Map, label: 'Curriculum' },
+    { path: '/exercises', icon: Brain, label: 'Exercises' },
+    { path: '/vocabulary', icon: BookMarked, label: 'Vocabulary' },
+    { path: '/settings', icon: Settings, label: 'Settings' },
+  ];
+
+  return (
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-strong border-t shadow-lg h-16 flex items-center justify-around px-2 pb-safe">
+      {navItems.map(({ path, icon: Icon, label }) => {
+        const isActive = location.pathname === path;
+        return (
+          <Link
+            key={path}
+            to={path}
+            className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+              isActive
+                ? 'text-fuchsia-500 font-bold scale-105'
+                : 'text-slate-500 dark:text-slate-400 font-medium hover:text-fuchsia-400'
+            }`}
+          >
+            <Icon className={`h-5 w-5 mb-0.5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+            <span className="text-[10px] sm:text-xs leading-none">{label}</span>
+          </Link>
+        );
+      })}
+    </div>
   );
 }
 
@@ -128,7 +126,7 @@ function AppContent() {
       
       {/* key={profileViewKey} forces a full remount whenever the active profile changes
           or regains session access, preventing stale locked/error states from sticking. */}
-      <main key={profileViewKey} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+      <main key={profileViewKey} className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 pt-4 pb-20 md:py-8 animate-fade-in">
         <Routes>
           <Route path="/" element={<Chat />} />
           <Route path="/curriculum" element={<CurriculumMap />} />
@@ -138,6 +136,8 @@ function AppContent() {
           <Route path="/settings" element={<SettingsPanel />} />
         </Routes>
       </main>
+      
+      <BottomNavBar />
     </div>
   );
 }

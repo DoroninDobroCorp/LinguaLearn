@@ -18,6 +18,9 @@ import {
   Upload,
   Volume2,
   X,
+  Settings,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { useSpeechPractice } from '../hooks/useSpeechPractice';
 import { profileApiUrl, profileFetch } from '../utils/api';
@@ -518,6 +521,15 @@ function Vocabulary() {
   const [entryFilter, setEntryFilter] = useState('all');
   const [typedAnswer, setTypedAnswer] = useState('');
   const [typingFeedback, setTypingFeedback] = useState(null);
+  const [showTools, setShowTools] = useState(false);
+  const [expandedEntries, setExpandedEntries] = useState({});
+
+  const toggleEntryExpanded = (entryId) => {
+    setExpandedEntries((prev) => ({
+      ...prev,
+      [entryId]: !prev[entryId],
+    }));
+  };
   const fileInputRef = useRef(null);
   const autoPlayedCardKeyRef = useRef('');
   const typingInputRef = useRef(null);
@@ -1110,35 +1122,49 @@ function Vocabulary() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setShowAddForm((value) => !value)}
+              className="flex-1 sm:flex-initial px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md font-semibold flex items-center justify-center space-x-2 text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              <span>{showAddForm ? 'Hide form' : 'Add vocabulary'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTools((value) => !value)}
+              className="px-4 py-2.5 bg-white text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm font-semibold flex items-center justify-center space-x-1.5 text-sm"
+              title="Import/Export JSON"
+            >
+              <Settings className="h-4 w-4 text-slate-500" />
+              <span>Tools</span>
+            </button>
+          </div>
+        </div>
+
+        {showTools && (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-wrap gap-3 animate-fade-in mt-4">
             <button
               type="button"
               onClick={handleExport}
               disabled={isSubmitting}
-              className="px-4 py-3 bg-white text-indigo-700 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all shadow-sm font-semibold flex items-center justify-center space-x-2 disabled:opacity-60"
+              className="px-4 py-2 bg-white text-indigo-700 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all shadow-sm font-semibold flex items-center justify-center space-x-2 disabled:opacity-60 text-sm"
             >
-              <Download className="h-5 w-5" />
+              <Download className="h-4 w-4" />
               <span>Export JSON</span>
             </button>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isSubmitting}
-              className="px-4 py-3 bg-white text-purple-700 border border-purple-200 rounded-xl hover:bg-purple-50 transition-all shadow-sm font-semibold flex items-center justify-center space-x-2 disabled:opacity-60"
+              className="px-4 py-2 bg-white text-purple-700 border border-purple-200 rounded-xl hover:bg-purple-50 transition-all shadow-sm font-semibold flex items-center justify-center space-x-2 disabled:opacity-60 text-sm"
             >
-              <Upload className="h-5 w-5" />
+              <Upload className="h-4 w-4" />
               <span>Import JSON</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setShowAddForm((value) => !value)}
-              className="px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md font-semibold flex items-center justify-center space-x-2"
-            >
-              <Plus className="h-5 w-5" />
-              <span>{showAddForm ? 'Hide form' : 'Add vocabulary'}</span>
-            </button>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
           {summaryCards.map((card) => {
@@ -1346,14 +1372,14 @@ function Vocabulary() {
               }
             }}
             aria-disabled={isVoicePracticeBusy}
-            className={`bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-10 min-h-[320px] flex flex-col items-center justify-center border-4 border-indigo-200 transition-all text-center ${typingStageActive ? 'cursor-default' : (isVoicePracticeBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:border-indigo-400')}`}
+            className={`bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 md:p-10 min-h-[220px] md:min-h-[320px] flex flex-col items-center justify-center border-2 md:border-4 border-indigo-200 transition-all text-center ${typingStageActive ? 'cursor-default' : (isVoicePracticeBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:border-indigo-400')}`}
           >
             {!hidePromptOnSpanishAnswer && (
               <>
-                <p className="text-sm uppercase tracking-wide text-indigo-600 font-semibold mb-3">
+                <p className="text-xs sm:text-sm uppercase tracking-wide text-indigo-600 font-semibold mb-2 sm:mb-3">
                   {currentCard.prompt_label}
                 </p>
-                <p className="text-4xl md:text-5xl font-bold text-indigo-900 mb-6 break-words">
+                <p className="text-2xl sm:text-3xl md:text-5xl font-bold text-indigo-900 mb-4 md:mb-6 break-words">
                   {currentCard.prompt}
                 </p>
               </>
@@ -1422,10 +1448,10 @@ function Vocabulary() {
                   </div>
                 )}
                 <div>
-                  <p className="text-sm uppercase tracking-wide text-purple-600 font-semibold mb-2">
+                  <p className="text-xs sm:text-sm uppercase tracking-wide text-purple-600 font-semibold mb-2">
                     {currentCard.answer_label}
                   </p>
-                  <p className="text-3xl text-purple-800 font-semibold break-words">{currentCard.answer}</p>
+                  <p className="text-2xl sm:text-3xl text-purple-800 font-semibold break-words">{currentCard.answer}</p>
                 </div>
 
                 {currentCard.example && (
@@ -1638,12 +1664,13 @@ function Vocabulary() {
                 return badges;
               }, []);
 
+              const isExpanded = expandedEntries[entry.id];
               return (
                 <div
                   key={entry.id}
-                  className="p-4 rounded-2xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all"
+                  className="p-4 rounded-2xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all shadow-sm"
                 >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-3 mb-2">
                         <p className="font-bold text-gray-900 text-xl">{entry.word}</p>
@@ -1711,44 +1738,56 @@ function Vocabulary() {
                         </div>
                       )}
 
-                      <div className="grid gap-2 md:grid-cols-2">
-                        {entry.cards.map((card) => (
-                          <div key={card.id} className="rounded-xl bg-white border border-gray-200 p-3">
-                            <div className="flex items-start justify-between gap-3 mb-2">
-                              <p className="font-semibold text-gray-800 text-sm">{card.direction_label}</p>
-                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[card.status] || STATUS_STYLES.review}`}>
-                                {statusLabel(card.status)}
-                              </span>
+                      {isExpanded && (
+                        <div className="grid gap-2 md:grid-cols-2 mt-3 animate-fade-in">
+                          {entry.cards.map((card) => (
+                            <div key={card.id} className="rounded-xl bg-white border border-gray-200 p-3">
+                              <div className="flex items-start justify-between gap-3 mb-2">
+                                <p className="font-semibold text-gray-800 text-sm">{card.direction_label}</p>
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[card.status] || STATUS_STYLES.review}`}>
+                                  {statusLabel(card.status)}
+                                </span>
+                              </div>
+                              <div className="text-sm text-gray-600 space-y-1">
+                                <p>Reviews: <span className="font-semibold text-gray-800">{card.review_count}</span></p>
+                                <p>Next: <span className="font-semibold text-gray-800">{formatRelativeTime(card.next_review_at)}</span></p>
+                                {card.last_grade && (
+                                  <p>
+                                    Last answer:{' '}
+                                    <span className="font-semibold text-gray-800">
+                                      {REVIEW_GRADE_META[card.last_grade]?.label || card.last_grade}
+                                    </span>
+                                  </p>
+                                )}
+                                {card.learned_until && card.status === 'learned' && (
+                                  <p>Suppressed until <span className="font-semibold text-gray-800">{formatRelativeTime(card.learned_until)}</span></p>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-600 space-y-1">
-                              <p>Reviews: <span className="font-semibold text-gray-800">{card.review_count}</span></p>
-                              <p>Next: <span className="font-semibold text-gray-800">{formatRelativeTime(card.next_review_at)}</span></p>
-                              {card.last_grade && (
-                                <p>
-                                  Last answer:{' '}
-                                  <span className="font-semibold text-gray-800">
-                                    {REVIEW_GRADE_META[card.last_grade]?.label || card.last_grade}
-                                  </span>
-                                </p>
-                              )}
-                              {card.learned_until && card.status === 'learned' && (
-                                <p>Suppressed until <span className="font-semibold text-gray-800">{formatRelativeTime(card.learned_until)}</span></p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => deleteWord(entry.id)}
-                      disabled={isSubmitting}
-                      className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors self-start disabled:opacity-60"
-                      title="Delete entry"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
+                    <div className="flex items-center gap-2 self-end lg:self-start">
+                      <button
+                        type="button"
+                        onClick={() => toggleEntryExpanded(entry.id)}
+                        className="p-2 text-slate-500 hover:bg-slate-200 rounded-lg transition-colors flex items-center justify-center"
+                        title={isExpanded ? 'Hide details' : 'Show details'}
+                      >
+                        {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteWord(entry.id)}
+                        disabled={isSubmitting}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-60"
+                        title="Delete entry"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

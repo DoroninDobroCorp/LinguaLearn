@@ -121,13 +121,13 @@ function VerbConjugationDrills() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-4 mb-5">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Drill</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
             {Object.entries(DRILL_TYPES).map(([type, config]) => (
               <button
                 key={type}
                 type="button"
                 onClick={() => resetSession(type, runMode)}
-                className={`px-4 py-3 rounded-xl border-2 font-bold transition-all ${
+                className={`px-2 py-2 sm:px-4 sm:py-3 rounded-xl border-2 font-bold transition-all text-xs sm:text-sm ${
                   drillType === type
                     ? 'bg-fuchsia-500 border-fuchsia-600 text-white shadow-md'
                     : 'bg-white border-pink-200 text-gray-800 hover:border-fuchsia-400'
@@ -160,14 +160,18 @@ function VerbConjugationDrills() {
         </div>
       </div>
 
-      <div className="bg-fuchsia-50 border-2 border-fuchsia-200 rounded-xl p-4 mb-5">
-        <p className="text-sm font-bold text-fuchsia-900 mb-2">Rules</p>
-        <div className="space-y-1">
+      <details className="group bg-fuchsia-50 border border-fuchsia-200 rounded-xl p-3 mb-5 cursor-pointer focus:outline-none">
+        <summary className="list-none [&::-webkit-details-marker]:hidden flex items-center justify-between text-sm font-bold text-fuchsia-900">
+          <span>Conjugation Rules</span>
+          <span className="text-xs text-fuchsia-500 group-open:hidden">Show rules ▾</span>
+          <span className="text-xs text-fuchsia-500 hidden group-open:block">Hide rules ▴</span>
+        </summary>
+        <div className="space-y-1 mt-2 pl-1 cursor-default" onClick={(event) => event.stopPropagation()}>
           {rules.map((rule) => (
             <p key={rule} className="text-sm text-gray-800">{rule}</p>
           ))}
         </div>
-      </div>
+      </details>
 
       {!sessionActive && !currentQuestion && (
         <button
@@ -181,18 +185,18 @@ function VerbConjugationDrills() {
       )}
 
       {currentQuestion && (
-        <div className="bg-gradient-to-r from-pink-50 to-indigo-50 border-2 border-indigo-200 rounded-2xl p-6">
+        <div className="bg-gradient-to-r from-pink-50 to-indigo-50 border-2 border-indigo-200 rounded-2xl p-5 sm:p-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-5">
             <div>
-              <p className="text-sm font-semibold text-gray-600">
+              <p className="text-xs sm:text-sm font-semibold text-gray-600">
                 {currentQuestion.instruction || 'Write the correct form'}
               </p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">
                 {currentQuestion.prompt || `${currentQuestion.pronoun} + ${currentQuestion.verb}`}
               </p>
               <p className="text-sm text-gray-600 mt-1">{currentQuestion.translation}</p>
             </div>
-            <span className="px-4 py-2 bg-white border border-indigo-200 rounded-full text-sm font-bold text-indigo-800 w-fit">
+            <span className="px-4 py-2 bg-white border border-indigo-200 rounded-full text-xs sm:text-sm font-bold text-indigo-800 w-fit">
               {DRILL_TYPES[drillType].label}
             </span>
           </div>
@@ -209,7 +213,7 @@ function VerbConjugationDrills() {
               }}
               disabled={showResult}
               placeholder="Type Spanish form..."
-              className={`w-full px-5 py-4 rounded-xl border-2 text-lg font-semibold ${
+              className={`w-full px-4 py-3 sm:px-5 sm:py-4 rounded-xl border-2 text-base sm:text-lg font-semibold ${
                 showResult
                   ? isCorrect
                     ? 'bg-green-100 border-green-500 text-green-950'
@@ -223,18 +227,18 @@ function VerbConjugationDrills() {
                 type="button"
                 onClick={checkDrillAnswer}
                 disabled={!answer.trim()}
-                className="px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-bold flex items-center justify-center space-x-2"
+                className="px-5 py-3 sm:px-6 sm:py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-bold flex items-center justify-center space-x-2 text-sm sm:text-base"
               >
-                <CheckCircle className="h-5 w-5" />
+                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span>Check</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={nextQuestion}
-                className="px-6 py-4 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-bold flex items-center justify-center space-x-2"
+                className="px-5 py-3 sm:px-6 sm:py-4 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-bold flex items-center justify-center space-x-2 text-sm sm:text-base"
               >
-                <RefreshCw className="h-5 w-5" />
+                <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span>{finished ? 'Finish' : 'Next'}</span>
               </button>
             )}
@@ -248,17 +252,17 @@ function VerbConjugationDrills() {
             }`}>
               <div className="flex items-start space-x-3">
                 {isCorrect ? (
-                  <CheckCircle className="h-7 w-7 text-green-700 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="h-6 w-6 sm:h-7 sm:w-7 text-green-700 flex-shrink-0 mt-0.5" />
                 ) : (
-                  <XCircle className="h-7 w-7 text-orange-700 flex-shrink-0 mt-0.5" />
+                  <XCircle className="h-6 w-6 sm:h-7 sm:w-7 text-orange-700 flex-shrink-0 mt-0.5" />
                 )}
                 <div>
-                  <p className="text-xl font-bold">{isCorrect ? 'Correct' : 'Not quite'}</p>
-                  <p className="text-base">
+                  <p className="text-lg sm:text-xl font-bold">{isCorrect ? 'Correct' : 'Not quite'}</p>
+                  <p className="text-sm sm:text-base">
                     Correct answer: <span className="font-bold underline">{getVerbDrillDisplayAnswer(currentQuestion)}</span>
                   </p>
                   {currentQuestion.reason && (
-                    <p className="text-sm mt-1">{currentQuestion.reason}</p>
+                    <p className="text-xs sm:text-sm mt-1">{currentQuestion.reason}</p>
                   )}
                 </div>
               </div>
@@ -549,24 +553,22 @@ function Exercises() {
 
       {/* Упражнение */}
       {currentExercise && (
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-4 border-purple-300 rounded-2xl p-8 shadow-2xl">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <span className="px-4 py-2 bg-purple-300 text-purple-900 rounded-full text-sm font-bold">
-                {currentExercise.type === 'multiple-choice' ? '📝 Quiz' : 
-                 currentExercise.type === 'fill-blank' ? '✍️ Fill-in' : '💭 Open'}
-              </span>
-              <span className="px-4 py-2 bg-pink-300 text-pink-900 rounded-full text-sm font-bold">
-                {currentExercise.level}
-              </span>
-              <span className="px-4 py-2 bg-indigo-300 text-indigo-900 rounded-full text-sm font-bold">
-                {currentExercise.topic}
-              </span>
-            </div>
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 md:border-4 border-purple-300 rounded-2xl p-5 md:p-8 shadow-2xl">
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            <span className="px-3 py-1 sm:px-4 sm:py-2 bg-purple-300 text-purple-900 rounded-full text-xs sm:text-sm font-bold">
+              {currentExercise.type === 'multiple-choice' ? '📝 Quiz' : 
+               currentExercise.type === 'fill-blank' ? '✍️ Fill-in' : '💭 Open'}
+            </span>
+            <span className="px-3 py-1 sm:px-4 sm:py-2 bg-pink-300 text-pink-900 rounded-full text-xs sm:text-sm font-bold">
+              {currentExercise.level}
+            </span>
+            <span className="px-3 py-1 sm:px-4 sm:py-2 bg-indigo-300 text-indigo-900 rounded-full text-xs sm:text-sm font-bold">
+              {currentExercise.topic}
+            </span>
           </div>
           
-          <div className="bg-white rounded-xl p-6 mb-6 border-2 border-purple-200">
-            <p className="text-2xl font-bold text-gray-800 leading-relaxed">
+          <div className="bg-white rounded-xl p-4 sm:p-6 mb-6 border-2 border-purple-200">
+            <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-relaxed">
               {currentExercise.question}
             </p>
           </div>
@@ -578,13 +580,13 @@ function Exercises() {
                 <button
                   key={idx}
                   onClick={() => setSelectedOption(option)}
-                  className={`w-full text-left px-6 py-4 rounded-xl transition-all text-lg font-medium border-3 ${
+                  className={`w-full text-left px-4 py-3 sm:px-6 sm:py-4 rounded-xl transition-all text-base sm:text-lg font-medium border-2 sm:border-3 ${
                     selectedOption === option
-                      ? 'bg-purple-300 border-purple-600 text-purple-900 scale-105 shadow-lg'
-                      : 'bg-white border-purple-300 hover:border-purple-500 text-gray-800 hover:scale-102'
+                      ? 'bg-purple-300 border-purple-600 text-purple-900 scale-[1.02] shadow-md'
+                      : 'bg-white border-purple-300 hover:border-purple-500 text-gray-800 hover:scale-[1.01]'
                   }`}
                 >
-                  <span className="font-bold mr-3 text-xl">{String.fromCharCode(65 + idx)}.</span>
+                  <span className="font-bold mr-2 sm:mr-3 text-lg sm:text-xl">{String.fromCharCode(65 + idx)}.</span>
                   {option}
                 </button>
               ))}
@@ -597,7 +599,7 @@ function Exercises() {
               {currentExercise.options.map((option, idx) => (
                 <div
                   key={idx}
-                  className={`w-full text-left px-6 py-4 rounded-xl text-lg font-medium border-3 ${
+                  className={`w-full text-left px-4 py-3 sm:px-6 sm:py-4 rounded-xl text-base sm:text-lg font-medium border-2 sm:border-3 ${
                     option.toLowerCase() === currentExercise.correctAnswer.toLowerCase()
                       ? 'bg-green-200 border-green-600 text-green-900'
                       : option === selectedOption
@@ -605,13 +607,13 @@ function Exercises() {
                       : 'bg-gray-100 border-gray-300 text-gray-600'
                   }`}
                 >
-                  <span className="font-bold mr-3 text-xl">{String.fromCharCode(65 + idx)}.</span>
+                  <span className="font-bold mr-2 sm:mr-3 text-lg sm:text-xl">{String.fromCharCode(65 + idx)}.</span>
                   {option}
                   {option.toLowerCase() === currentExercise.correctAnswer.toLowerCase() && (
-                    <CheckCircle className="inline ml-3 h-6 w-6 text-green-700" />
+                    <CheckCircle className="inline ml-2 h-5 w-5 sm:h-6 sm:w-6 text-green-700 align-middle" />
                   )}
                   {option === selectedOption && option.toLowerCase() !== currentExercise.correctAnswer.toLowerCase() && (
-                    <XCircle className="inline ml-3 h-6 w-6 text-red-700" />
+                    <XCircle className="inline ml-2 h-5 w-5 sm:h-6 sm:w-6 text-red-700 align-middle" />
                   )}
                 </div>
               ))}
@@ -628,7 +630,7 @@ function Exercises() {
                 onKeyPress={(e) => e.key === 'Enter' && !showResult && checkAnswer()}
                 disabled={showResult}
                 placeholder="Type your answer here..."
-                className={`w-full px-6 py-4 rounded-xl border-3 text-lg font-medium ${
+                className={`w-full px-4 py-3 sm:px-6 sm:py-4 rounded-xl border-2 sm:border-3 text-base sm:text-lg font-medium ${
                   showResult
                     ? isCorrect
                       ? 'bg-green-100 border-green-600 text-green-900'
@@ -647,32 +649,32 @@ function Exercises() {
                 (currentExercise.type === 'multiple-choice' && !selectedOption) ||
                 ((currentExercise.type === 'fill-blank' || currentExercise.type === 'open') && !userAnswer.trim())
               }
-              className="w-full px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg font-bold text-xl"
+              className="w-full px-6 py-3.5 sm:px-8 sm:py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg font-bold text-lg sm:text-xl"
             >
               ✓ Check Answer
             </button>
           ) : (
             <div className="space-y-4">
               {/* Результат */}
-              <div className={`p-6 rounded-xl border-3 ${
+              <div className={`p-4 sm:p-6 rounded-xl border-2 sm:border-3 ${
                 isCorrect
                   ? 'bg-green-100 border-green-500 text-green-900'
                   : 'bg-orange-100 border-orange-500 text-orange-900'
               }`}>
                 {isCorrect ? (
                   <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-10 w-10 text-green-600" />
+                    <CheckCircle className="h-8 w-8 sm:h-10 sm:w-10 text-green-600" />
                     <div>
-                      <p className="text-2xl font-bold">Correct! 🎉</p>
-                      <p className="text-lg">Great job! Keep it up!</p>
+                      <p className="text-xl sm:text-2xl font-bold">Correct! 🎉</p>
+                      <p className="text-sm sm:text-lg">Great job! Keep it up!</p>
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-3">
-                    <XCircle className="h-10 w-10 text-orange-600" />
+                    <XCircle className="h-8 w-8 sm:h-10 sm:w-10 text-orange-600" />
                     <div>
-                      <p className="text-2xl font-bold">Not quite right</p>
-                      <p className="text-lg">
+                      <p className="text-xl sm:text-2xl font-bold">Not quite right</p>
+                      <p className="text-sm sm:text-lg">
                         The correct answer is: <span className="font-bold underline">{currentExercise.correctAnswer}</span>
                       </p>
                     </div>
@@ -683,9 +685,9 @@ function Exercises() {
               {/* Следующее упражнение */}
               <button
                 onClick={resetExercise}
-                className="w-full px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg font-bold text-xl flex items-center justify-center space-x-3"
+                className="w-full px-6 py-3.5 sm:px-8 sm:py-4 bg-gradient-to-r from-purple-50 to-pink-50 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg font-bold text-lg sm:text-xl flex items-center justify-center space-x-2 sm:space-x-3"
               >
-                <RefreshCw className="h-6 w-6" />
+                <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6" />
                 <span>Next Exercise</span>
               </button>
             </div>
