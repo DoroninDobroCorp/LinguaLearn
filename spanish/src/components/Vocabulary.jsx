@@ -533,6 +533,7 @@ function Vocabulary() {
   const fileInputRef = useRef(null);
   const autoPlayedCardKeyRef = useRef('');
   const typingInputRef = useRef(null);
+  const latestRefreshIdRef = useRef(0);
   const {
     capabilities: speechCapabilities,
     selectedVoice,
@@ -590,10 +591,15 @@ function Vocabulary() {
   }, [currentCard, isSpeaking, isVoicePracticeBusy, showAnswer, stopSpeaking]);
 
   const refreshVocabulary = async () => {
+    const refreshId = ++latestRefreshIdRef.current;
     const [entriesResponse, queueResponse] = await Promise.all([
       profileFetch(profileApiUrl('/spanish/api/vocabulary')),
       profileFetch(profileApiUrl('/spanish/api/vocabulary/review-queue?limit=40')),
     ]);
+
+    if (refreshId !== latestRefreshIdRef.current) {
+      return;
+    }
 
     if (!entriesResponse.ok) {
       const data = await entriesResponse.json().catch(() => ({}));
@@ -908,32 +914,31 @@ function Vocabulary() {
       return true;
     }
 
-    setIsSubmitting(true);
     setError('');
     setNotice('');
-    try {
-      const response = await profileFetch(profileApiUrl(endpoint), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: body ? JSON.stringify(body) : undefined,
+
+    // Fire the POST request asynchronously in the background
+    profileFetch(profileApiUrl(endpoint), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || 'Failed to update review card');
+        }
+        await refreshVocabulary();
+      })
+      .catch((reviewError) => {
+        console.error('Error updating review card in background:', reviewError);
+        setError(`Sync error: ${reviewError.message || 'Failed to save progress'}`);
       });
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to update review card');
-      }
-
-      resetPractice();
-      await refreshVocabulary();
-      setShowAnswer(false);
-      return true;
-    } catch (reviewError) {
-      console.error('Error updating review card:', reviewError);
-      setError(reviewError.message || 'Failed to update review card');
-      return false;
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Instantly reset the practice UI state to be ready for the next card
+    resetPractice();
+    setShowAnswer(false);
+    return true;
   };
 
   const handleReview = async (grade) => {
