@@ -1,0 +1,20 @@
+{
+  "name": "LinguaLearn Spanish",
+  "short_name": "Spanish",
+  "description": "Offline Spanish vocabulary cards and grammar drills.",
+  "id": "/spanish/",
+  "start_url": "/spanish/exercises",
+  "scope": "/spanish/",
+  "display": "standalone",
+  "background_color": "#fdf2f8",
+  "theme_color": "#c026d3",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/spanish/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

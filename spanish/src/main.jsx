@@ -11,3 +11,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </React.StrictMode>
 );
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/spanish/sw.js', { scope: '/spanish/' }).catch((error) => {
+      console.error('Spanish offline service worker registration failed:', error);
+    });
+  });
+}

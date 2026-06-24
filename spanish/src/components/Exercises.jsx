@@ -1,7 +1,291 @@
 import React, { useState, useEffect } from 'react';
-import { Brain, Target, RefreshCw, CheckCircle, XCircle, Award, TrendingUp } from 'lucide-react';
+import { Brain, Target, RefreshCw, CheckCircle, XCircle, Award, TrendingUp, Play, RotateCcw } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
 import { parseExerciseTag } from '../utils/exerciseParser';
+import {
+  createVerbDrillQuestion,
+  DRILL_RUN_MODES,
+  DRILL_TYPES,
+  getVerbDrillDisplayAnswer,
+  getVerbDrillProgressTopic,
+  isVerbDrillAnswerCorrect,
+  isVerbDrillFinished,
+} from '../utils/verbDrills';
+
+function VerbConjugationDrills() {
+  const [drillType, setDrillType] = useState('regular');
+  const [runMode, setRunMode] = useState('ten');
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [answer, setAnswer] = useState('');
+  const [showResult, setShowResult] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [sessionActive, setSessionActive] = useState(false);
+  const [stats, setStats] = useState({ correct: 0, incorrect: 0, completed: 0 });
+
+  const resetSession = (nextDrillType = drillType, nextRunMode = runMode) => {
+    setDrillType(nextDrillType);
+    setRunMode(nextRunMode);
+    setCurrentQuestion(null);
+    setAnswer('');
+    setShowResult(false);
+    setIsCorrect(false);
+    setSessionActive(false);
+    setStats({ correct: 0, incorrect: 0, completed: 0 });
+  };
+
+  const startSession = () => {
+    setStats({ correct: 0, incorrect: 0, completed: 0 });
+    setCurrentQuestion(createVerbDrillQuestion(drillType));
+    setAnswer('');
+    setShowResult(false);
+    setIsCorrect(false);
+    setSessionActive(true);
+  };
+
+  const checkDrillAnswer = async () => {
+    if (!currentQuestion || showResult || !answer.trim()) return;
+
+    const correct = isVerbDrillAnswerCorrect(answer, currentQuestion);
+    const nextStats = {
+      correct: stats.correct + (correct ? 1 : 0),
+      incorrect: stats.incorrect + (correct ? 0 : 1),
+      completed: stats.completed + 1,
+    };
+
+    setIsCorrect(correct);
+    setStats(nextStats);
+    setShowResult(true);
+
+    try {
+      await profileFetch(profileApiUrl('/spanish/api/topics/update'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: getVerbDrillProgressTopic(currentQuestion),
+          category: 'Practice',
+          level: DRILL_TYPES[drillType].level,
+          success: correct,
+        }),
+      });
+    } catch (error) {
+      console.error('Error updating verb drill topic:', error);
+    }
+  };
+
+  const nextQuestion = () => {
+    if (isVerbDrillFinished(runMode, stats.completed)) {
+      setSessionActive(false);
+      return;
+    }
+
+    setCurrentQuestion(createVerbDrillQuestion(drillType));
+    setAnswer('');
+    setShowResult(false);
+    setIsCorrect(false);
+  };
+
+  const finished = isVerbDrillFinished(runMode, stats.completed);
+  const total = stats.correct + stats.incorrect;
+  const accuracy = total === 0 ? 0 : Math.round((stats.correct / total) * 100);
+  const rules = DRILL_TYPES[drillType].rules;
+
+  return (
+    <section className="bg-white rounded-2xl shadow-2xl p-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-6">
+        <div>
+          <h2 className="text-3xl font-bold text-gray-800 flex items-center">
+            <Target className="h-8 w-8 mr-3 text-fuchsia-600" />
+            Verb Conjugation Practice
+          </h2>
+          <p className="text-gray-600 mt-2">
+            Read the rule, then write the correct present-tense form.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 min-w-full lg:min-w-[360px]">
+          <div className="bg-pink-100 rounded-xl p-3">
+            <p className="text-xs font-semibold text-pink-700">Tasks</p>
+            <p className="text-2xl font-bold text-pink-950">{stats.completed}</p>
+          </div>
+          <div className="bg-green-100 rounded-xl p-3">
+            <p className="text-xs font-semibold text-green-700">Correct</p>
+            <p className="text-2xl font-bold text-green-950">{stats.correct}</p>
+          </div>
+          <div className="bg-violet-100 rounded-xl p-3">
+            <p className="text-xs font-semibold text-violet-700">Accuracy</p>
+            <p className="text-2xl font-bold text-violet-950">{accuracy}%</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-4 mb-5">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Drill</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+            {Object.entries(DRILL_TYPES).map(([type, config]) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => resetSession(type, runMode)}
+                className={`px-4 py-3 rounded-xl border-2 font-bold transition-all ${
+                  drillType === type
+                    ? 'bg-fuchsia-500 border-fuchsia-600 text-white shadow-md'
+                    : 'bg-white border-pink-200 text-gray-800 hover:border-fuchsia-400'
+                }`}
+              >
+                {config.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Mode</label>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.entries(DRILL_RUN_MODES).map(([mode, config]) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => resetSession(drillType, mode)}
+                className={`px-3 py-3 rounded-xl border-2 font-bold transition-all ${
+                  runMode === mode
+                    ? 'bg-indigo-500 border-indigo-600 text-white shadow-md'
+                    : 'bg-white border-indigo-200 text-gray-800 hover:border-indigo-400'
+                }`}
+              >
+                {config.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-fuchsia-50 border-2 border-fuchsia-200 rounded-xl p-4 mb-5">
+        <p className="text-sm font-bold text-fuchsia-900 mb-2">Rules</p>
+        <div className="space-y-1">
+          {rules.map((rule) => (
+            <p key={rule} className="text-sm text-gray-800">{rule}</p>
+          ))}
+        </div>
+      </div>
+
+      {!sessionActive && !currentQuestion && (
+        <button
+          type="button"
+          onClick={startSession}
+          className="w-full px-6 py-4 bg-gradient-to-r from-fuchsia-500 to-indigo-500 text-white rounded-xl hover:from-fuchsia-600 hover:to-indigo-600 transition-all shadow-md hover:shadow-lg font-bold text-lg flex items-center justify-center space-x-3"
+        >
+          <Play className="h-6 w-6" />
+          <span>Start Verb Drill</span>
+        </button>
+      )}
+
+      {currentQuestion && (
+        <div className="bg-gradient-to-r from-pink-50 to-indigo-50 border-2 border-indigo-200 rounded-2xl p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-5">
+            <div>
+              <p className="text-sm font-semibold text-gray-600">
+                {currentQuestion.instruction || 'Write the correct form'}
+              </p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">
+                {currentQuestion.prompt || `${currentQuestion.pronoun} + ${currentQuestion.verb}`}
+              </p>
+              <p className="text-sm text-gray-600 mt-1">{currentQuestion.translation}</p>
+            </div>
+            <span className="px-4 py-2 bg-white border border-indigo-200 rounded-full text-sm font-bold text-indigo-800 w-fit">
+              {DRILL_TYPES[drillType].label}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_180px] gap-3">
+            <input
+              type="text"
+              value={answer}
+              onChange={(event) => setAnswer(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  showResult ? nextQuestion() : checkDrillAnswer();
+                }
+              }}
+              disabled={showResult}
+              placeholder="Type Spanish form..."
+              className={`w-full px-5 py-4 rounded-xl border-2 text-lg font-semibold ${
+                showResult
+                  ? isCorrect
+                    ? 'bg-green-100 border-green-500 text-green-950'
+                    : 'bg-orange-100 border-orange-500 text-orange-950'
+                  : 'bg-white border-indigo-300 focus:border-indigo-600 focus:outline-none text-gray-900'
+              }`}
+            />
+
+            {!showResult ? (
+              <button
+                type="button"
+                onClick={checkDrillAnswer}
+                disabled={!answer.trim()}
+                className="px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-bold flex items-center justify-center space-x-2"
+              >
+                <CheckCircle className="h-5 w-5" />
+                <span>Check</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={nextQuestion}
+                className="px-6 py-4 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-bold flex items-center justify-center space-x-2"
+              >
+                <RefreshCw className="h-5 w-5" />
+                <span>{finished ? 'Finish' : 'Next'}</span>
+              </button>
+            )}
+          </div>
+
+          {showResult && (
+            <div className={`mt-4 p-4 rounded-xl border-2 ${
+              isCorrect
+                ? 'bg-green-100 border-green-500 text-green-950'
+                : 'bg-orange-100 border-orange-500 text-orange-950'
+            }`}>
+              <div className="flex items-start space-x-3">
+                {isCorrect ? (
+                  <CheckCircle className="h-7 w-7 text-green-700 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <XCircle className="h-7 w-7 text-orange-700 flex-shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <p className="text-xl font-bold">{isCorrect ? 'Correct' : 'Not quite'}</p>
+                  <p className="text-base">
+                    Correct answer: <span className="font-bold underline">{getVerbDrillDisplayAnswer(currentQuestion)}</span>
+                  </p>
+                  {currentQuestion.reason && (
+                    <p className="text-sm mt-1">{currentQuestion.reason}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!sessionActive && currentQuestion && finished && (
+        <div className="mt-5 bg-indigo-50 border-2 border-indigo-200 rounded-xl p-5">
+          <p className="text-xl font-bold text-indigo-950">10-task session complete</p>
+          <p className="text-indigo-900 mt-1">
+            Score: {stats.correct}/10 correct, {stats.incorrect} incorrect.
+          </p>
+          <button
+            type="button"
+            onClick={startSession}
+            className="mt-4 px-5 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-bold inline-flex items-center space-x-2"
+          >
+            <RotateCcw className="h-5 w-5" />
+            <span>Restart 10 Tasks</span>
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
 
 function Exercises() {
   const [topics, setTopics] = useState([]);
@@ -20,16 +304,27 @@ function Exercises() {
   }, []);
 
   const fetchTopics = async () => {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return;
+    }
+
     try {
       const response = await profileFetch(profileApiUrl('/spanish/api/topics'));
       const data = await response.json();
       setTopics(data.topics);
     } catch (error) {
-      console.error('Error fetching topics:', error);
+      if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+        console.error('Error fetching topics:', error);
+      }
     }
   };
 
   const generateExercise = async () => {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      alert('AI-generated exercises need internet. Verb drills work offline.');
+      return;
+    }
+
     setLoading(true);
     setShowResult(false);
     setUserAnswer('');
@@ -143,6 +438,8 @@ function Exercises() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <VerbConjugationDrills />
+
       {/* Статистика */}
       <div className="bg-white rounded-2xl shadow-2xl p-6">
         <h2 className="text-3xl font-bold text-gray-800 mb-4 flex items-center">

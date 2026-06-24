@@ -64,6 +64,17 @@ export function ProfileProvider({ children }) {
 
   const fetchProfiles = useCallback(async () => {
     try {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        const offlineProfileId = getActiveProfileId();
+        setProfileId(offlineProfileId);
+        setProfiles((prev) => (
+          prev.length > 0
+            ? prev
+            : [{ id: offlineProfileId, name: offlineProfileId === 1 ? 'Default' : `Profile ${offlineProfileId}`, avatar_emoji: '👤', is_locked: false }]
+        ));
+        return;
+      }
+
       const res = await fetch('/spanish/api/profiles');
       if (!res.ok) throw new Error('Failed to fetch profiles');
       const data = await res.json();
@@ -72,11 +83,17 @@ export function ProfileProvider({ children }) {
       const nextProfileId = resolveProfileSelection(data.profiles, profileId, hasProfilePinToken);
       const selectedProfile = data.profiles.find((profile) => profile.id === nextProfileId) || null;
 
-      if (selectedProfile && (!selectedProfile.is_locked || hasProfilePinToken(selectedProfile.id))) {
+      if (
+        selectedProfile
+        && (!selectedProfile.is_locked || hasProfilePinToken(selectedProfile.id))
+        && (typeof navigator === 'undefined' || navigator.onLine !== false)
+      ) {
         try {
           await selectProfileSession(selectedProfile.id);
         } catch (error) {
-          console.error('Error syncing active profile session:', error);
+          if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+            console.error('Error syncing active profile session:', error);
+          }
         }
       }
 
@@ -85,7 +102,9 @@ export function ProfileProvider({ children }) {
         setActiveProfileId(nextProfileId);
       }
     } catch (err) {
-      console.error('Error fetching profiles:', err);
+      if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+        console.error('Error fetching profiles:', err);
+      }
     } finally {
       setLoading(false);
     }

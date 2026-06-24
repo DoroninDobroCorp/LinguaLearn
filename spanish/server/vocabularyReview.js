@@ -17,7 +17,14 @@ export const REVIEW_CARD_DIRECTIONS = ['source_to_target', 'target_to_source'];
 export const REVIEW_GRADES = ['dont_know', 'hard', 'good', 'easy'];
 export const VOCABULARY_EXPORT_FORMAT_VERSION = 1;
 
+const REVIEW_CARD_COLUMNS = [
+  { name: 'last_grade', sql: 'ALTER TABLE vocabulary_review_cards ADD COLUMN last_grade TEXT' },
+];
+
 const REVIEW_CARD_STATES = ['new', 'learning', 'review'];
+const CYRILLIC_CHARACTER_PATTERN = /[\u0400-\u04FF]/;
+const CYRILLIC_CHARACTER_RUN_PATTERN = /[\u0400-\u04FF]+/g;
+const BRACKETED_CYRILLIC_HINT_PATTERN = /\s*[([{][^()\[\]{}]*[\u0400-\u04FF][^()\[\]{}]*[)\]}]\s*/g;
 
 const DIRECTION_META = {
   source_to_target: {
@@ -42,6 +49,11 @@ export class VocabularyApiError extends Error {
     this.status = status;
     this.code = code;
   }
+}
+
+function normalizeReviewGrade(value) {
+  const candidate = typeof value === 'string' ? value.trim() : '';
+  return REVIEW_GRADES.includes(candidate) ? candidate : null;
 }
 
 function clamp(value, min, max) {
@@ -89,6 +101,16 @@ function sanitizeImportedTimestamp(value, now = new Date(), {
   }
 
   return parsed.toISOString();
+}
+
+function ensureReviewCardColumns(db) {
+  for (const column of REVIEW_CARD_COLUMNS) {
+    try {
+      db.prepare(`SELECT ${column.name} FROM vocabulary_review_cards LIMIT 1`).get();
+    } catch {
+      db.exec(column.sql);
+    }
+  }
 }
 
 function addDays(baseDate, days) {
@@ -208,10 +230,44 @@ function assertCardDue(card, now = new Date()) {
   }
 }
 
+function normalizeStudyHintFragment(value = '') {
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s,;:|/\\\-–—()[\]{}]+|[\s,;:|/\\\-–—()[\]{}]+$/g, '')
+    .trim();
+}
+
+function stripStudyHints(value = '') {
+  const original = String(value || '').trim();
+  if (!original || !CYRILLIC_CHARACTER_PATTERN.test(original)) {
+    return original;
+  }
+
+  const withoutBracketedHints = original
+    .replace(BRACKETED_CYRILLIC_HINT_PATTERN, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!CYRILLIC_CHARACTER_PATTERN.test(withoutBracketedHints)) {
+    return withoutBracketedHints;
+  }
+
+  const fragments = withoutBracketedHints
+    .split(CYRILLIC_CHARACTER_RUN_PATTERN)
+    .map((fragment) => normalizeStudyHintFragment(fragment))
+    .filter(Boolean);
+
+  const cleaned = Array.from(new Set(fragments)).join(' / ');
+
+  return cleaned || original;
+}
+
 function buildCardPresentation(row, now = new Date()) {
   const meta = DIRECTION_META[row.direction];
-  const prompt = row[meta.promptField] || '';
-  const answer = row[meta.answerField] || '';
+  const promptRaw = row[meta.promptField] || '';
+  const answerRaw = row[meta.answerField] || '';
+  const prompt = stripStudyHints(promptRaw);
+  const answer = stripStudyHints(answerRaw);
   const status = getCardStatus(row, now);
   const reviewable = isCardReviewable(row);
   const due = reviewable && isCardDue(row, now);
@@ -227,8 +283,8 @@ function buildCardPresentation(row, now = new Date()) {
     prompt,
     answer,
     is_reviewable: reviewable,
-    word: row.word,
-    translation: row.translation,
+    word: stripStudyHints(row.word),
+    translation: stripStudyHints(row.translation),
     example: row.example,
     state: row.state,
     status,
@@ -240,6 +296,7 @@ function buildCardPresentation(row, now = new Date()) {
     next_review_at: toIso(row.next_review_at),
     learned_until: row.learned_until ? toIso(row.learned_until) : null,
     last_reviewed_at: row.last_reviewed_at ? toIso(row.last_reviewed_at) : null,
+    last_grade: normalizeReviewGrade(row.last_grade),
     created_at: row.created_at ? toIso(row.created_at) : null,
     updated_at: row.updated_at ? toIso(row.updated_at) : null,
   };
@@ -276,6 +333,102 @@ function compareDueCards(left, right) {
   }
 
   return (Number(left.id) || 0) - (Number(right.id) || 0);
+}
+
+function rotateArray(values = [], offset = 0) {
+  if (values.length <= 1) {
+    return values;
+  }
+
+  const normalizedOffset = ((offset % values.length) + values.length) % values.length;
+  if (normalizedOffset === 0) {
+    return values;
+  }
+
+  return values.slice(normalizedOffset).concat(values.slice(0, normalizedOffset));
+}
+
+function getDueRotationSeed(now = new Date(), profileId = 0) {
+  return now.getUTCDate() + now.getUTCHours() + (Number(profileId) || 0);
+}
+
+function interleaveDueCards(cards = [], options = {}) {
+  if (cards.length <= 2) {
+    return cards;
+  }
+
+  const rotationSeed = Number(options.rotationSeed) || 0;
+
+  const sortedCards = [...cards].sort(compareDueCards);
+  const buckets = new Map();
+
+  for (const card of sortedCards) {
+    const priority = getDueSortPriority(card);
+    if (!buckets.has(priority)) {
+      buckets.set(priority, []);
+    }
+    buckets.get(priority).push(card);
+  }
+
+  const result = [];
+  for (const priority of [...buckets.keys()].sort((left, right) => left - right)) {
+    const bucketCards = buckets.get(priority) || [];
+    const groups = new Map();
+
+    for (const card of bucketCards) {
+      const groupKey = card.vocabulary_id ?? card.id;
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, {
+          cards: [],
+          firstCard: card,
+        });
+      }
+      groups.get(groupKey).cards.push(card);
+    }
+
+    const descriptors = [...groups.entries()].map(([groupKey, group]) => ({
+      groupKey,
+      cards: group.cards,
+      firstCard: group.firstCard,
+    }));
+
+    descriptors.sort((left, right) => {
+      if (left.cards.length !== right.cards.length) {
+        return right.cards.length - left.cards.length;
+      }
+      return compareDueCards(left.firstCard, right.firstCard);
+    });
+
+    const groupOrder = [];
+    for (let index = 0; index < descriptors.length;) {
+      const segmentStart = index;
+      const segmentLength = descriptors[index].cards.length;
+      while (index < descriptors.length && descriptors[index].cards.length === segmentLength) {
+        index += 1;
+      }
+
+      const rotatedSegment = rotateArray(
+        descriptors.slice(segmentStart, index),
+        rotationSeed,
+      );
+      groupOrder.push(...rotatedSegment.map((descriptor) => descriptor.groupKey));
+    }
+
+    let remaining = bucketCards.length;
+    while (remaining > 0) {
+      for (const groupKey of groupOrder) {
+        const group = groups.get(groupKey);
+        if (!group || group.cards.length === 0) {
+          continue;
+        }
+
+        result.push(group.cards.shift());
+        remaining -= 1;
+      }
+    }
+  }
+
+  return result;
 }
 
 function summarizeEntryCards(cards) {
@@ -434,6 +587,7 @@ function scheduleLearned(card, now = new Date()) {
     next_review_at: learnedUntil,
     learned_until: learnedUntil,
     last_reviewed_at: toIso(now),
+    last_grade: null,
     review_count: (Number(card.review_count) || 0) + 1,
     lapse_count: Number(card.lapse_count) || 0,
   };
@@ -460,6 +614,7 @@ function fetchEntryRows(db, profileId) {
       c.next_review_at,
       c.learned_until,
       c.last_reviewed_at,
+      c.last_grade,
       c.created_at,
       c.updated_at
     FROM vocabulary v
@@ -509,6 +664,7 @@ function fetchEntryById(db, profileId, entryId, now = new Date()) {
       c.next_review_at,
       c.learned_until,
       c.last_reviewed_at,
+      c.last_grade,
       c.created_at,
       c.updated_at
     FROM vocabulary v
@@ -537,8 +693,8 @@ function buildVocabularyEntries(rows, now = new Date()) {
       grouped.set(key, {
         id: row.entry_id,
         profile_id: row.entry_profile_id,
-        word: row.word,
-        translation: row.translation,
+        word: stripStudyHints(row.word),
+        translation: stripStudyHints(row.translation),
         example: row.example,
         created_at: toIso(row.entry_created_at),
         cards: [],
@@ -632,6 +788,7 @@ export function ensureVocabularyReviewSchema(db) {
       next_review_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       learned_until TEXT,
       last_reviewed_at TEXT,
+      last_grade TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(vocabulary_id, direction)
@@ -642,6 +799,8 @@ export function ensureVocabularyReviewSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_review_cards_vocabulary
       ON vocabulary_review_cards(vocabulary_id);
   `);
+
+  ensureReviewCardColumns(db);
 
   const insertCard = db.prepare(`
     INSERT OR IGNORE INTO vocabulary_review_cards (
@@ -834,8 +993,11 @@ export function listDueReviewCards(db, profileId, options = {}) {
       AND (c.learned_until IS NULL OR c.learned_until <= ?)
   `).get(profileId, nowIso, nowIso).count;
 
+  const dueCards = dueRows.map((row) => buildCardPresentation(row, now));
+  const rotationSeed = getDueRotationSeed(now, profileId);
+
   return {
-    cards: dueRows.map((row) => buildCardPresentation(row, now)),
+    cards: interleaveDueCards(dueCards, { rotationSeed }),
     stats: {
       total_due: totalDue,
       returned: dueRows.length,
@@ -845,8 +1007,8 @@ export function listDueReviewCards(db, profileId, options = {}) {
 }
 
 export function reviewVocabularyCard(db, profileId, cardId, grade, now = new Date()) {
-  const normalizedGrade = typeof grade === 'string' ? grade.trim() : '';
-  if (!REVIEW_GRADES.includes(normalizedGrade)) {
+  const normalizedGrade = normalizeReviewGrade(grade);
+  if (!normalizedGrade) {
     throw new VocabularyApiError(400, 'grade must be one of dont_know, hard, good, easy', 'INVALID_GRADE');
   }
 
@@ -866,6 +1028,7 @@ export function reviewVocabularyCard(db, profileId, cardId, grade, now = new Dat
           next_review_at = ?,
           learned_until = ?,
           last_reviewed_at = ?,
+          last_grade = ?,
           updated_at = ?
       WHERE id = ? AND profile_id = ?
     `).run(
@@ -877,6 +1040,7 @@ export function reviewVocabularyCard(db, profileId, cardId, grade, now = new Dat
       next.next_review_at,
       next.learned_until,
       next.last_reviewed_at,
+      normalizedGrade,
       next.last_reviewed_at,
       cardId,
       profileId,
@@ -905,6 +1069,7 @@ export function markVocabularyCardLearned(db, profileId, cardId, now = new Date(
           next_review_at = ?,
           learned_until = ?,
           last_reviewed_at = ?,
+          last_grade = ?,
           updated_at = ?
       WHERE id = ? AND profile_id = ?
     `).run(
@@ -916,6 +1081,7 @@ export function markVocabularyCardLearned(db, profileId, cardId, now = new Date(
       next.next_review_at,
       next.learned_until,
       next.last_reviewed_at,
+      next.last_grade,
       next.last_reviewed_at,
       cardId,
       profileId,
@@ -992,6 +1158,7 @@ function normalizeImportedCard(card, direction, now = new Date()) {
     fallback: lastReviewedAt ?? createdAt ?? now,
   }) ?? toIso(now);
   const state = REVIEW_CARD_STATES.includes(card.state) ? card.state : 'new';
+  const lastGrade = normalizeReviewGrade(card.last_grade);
 
   return {
     direction,
@@ -1003,6 +1170,7 @@ function normalizeImportedCard(card, direction, now = new Date()) {
     next_review_at: learnedUntil ?? nextReviewAt,
     learned_until: learnedUntil,
     last_reviewed_at: lastReviewedAt,
+    last_grade: lastGrade,
     created_at: createdAt,
     updated_at: updatedAt,
   };
@@ -1103,6 +1271,7 @@ function applyImportedCardSnapshot(db, profileId, entryId, cardSnapshot, now = n
         ease_factor = ?,
         next_review_at = ?,
         learned_until = ?,
+        last_grade = ?,
         last_reviewed_at = ?,
         created_at = ?,
         updated_at = ?
@@ -1115,6 +1284,7 @@ function applyImportedCardSnapshot(db, profileId, entryId, cardSnapshot, now = n
     selectedSnapshot.ease_factor,
     selectedSnapshot.next_review_at,
     selectedSnapshot.learned_until,
+    selectedSnapshot.last_grade,
     lastReviewedAt,
     createdAt,
     updatedAt,
@@ -1154,6 +1324,7 @@ export function exportVocabularyArchive(db, profile, now = new Date()) {
         next_review_at: card.next_review_at,
         learned_until: card.learned_until,
         last_reviewed_at: card.last_reviewed_at,
+        last_grade: card.last_grade,
         created_at: card.created_at,
         updated_at: card.updated_at,
       }])),
@@ -1308,6 +1479,7 @@ function buildLegacyWordPresentation(entry, now = new Date()) {
     review_count: primaryCard?.review_count ?? 0,
     last_reviewed: primaryCard?.last_reviewed_at ?? null,
     last_reviewed_at: primaryCard?.last_reviewed_at ?? null,
+    last_grade: primaryCard?.last_grade ?? null,
     due: Boolean(primaryCard?.is_due),
     state: primaryCard?.status ?? 'new',
     status: primaryCard?.status ?? 'new',
@@ -1451,6 +1623,7 @@ function scheduleEntryLearned(card, now = new Date()) {
     next_review_at: learnedUntil,
     learned_until: learnedUntil,
     last_reviewed_at: wasDue ? toIso(now) : (card.last_reviewed_at ? toIso(card.last_reviewed_at, now) : null),
+    last_grade: null,
     review_count: (Number(card.review_count) || 0) + (wasDue ? 1 : 0),
     lapse_count: Number(card.lapse_count) || 0,
   };
@@ -1467,6 +1640,7 @@ function persistScheduledCardUpdate(db, profileId, cardId, next, now = new Date(
         next_review_at = ?,
         learned_until = ?,
         last_reviewed_at = ?,
+        last_grade = ?,
         updated_at = ?
     WHERE id = ? AND profile_id = ?
   `).run(
@@ -1478,6 +1652,7 @@ function persistScheduledCardUpdate(db, profileId, cardId, next, now = new Date(
     next.next_review_at,
     next.learned_until,
     next.last_reviewed_at,
+    next.last_grade,
     toIso(now),
     cardId,
     profileId,
@@ -1493,15 +1668,6 @@ export function markVocabularyEntryLearned(db, profileId, entryId, now = new Dat
         409,
         'Vocabulary entry is missing required prompt or answer text. Complete it before reviewing.',
         'CARD_NOT_REVIEWABLE',
-      );
-    }
-
-    const dueCards = reviewableCards.filter((card) => card.is_due);
-    if (dueCards.length === 0) {
-      throw new VocabularyApiError(
-        409,
-        'Vocabulary entry is not currently due for review.',
-        'ENTRY_NOT_DUE',
       );
     }
 

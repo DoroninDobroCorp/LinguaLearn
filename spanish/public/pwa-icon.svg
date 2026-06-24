@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Spanish Learning">
+  <rect width="512" height="512" rx="112" fill="#ffffff"/>
+  <rect x="36" y="36" width="440" height="440" rx="92" fill="#fdf2f8" stroke="#c026d3" stroke-width="16"/>
+  <circle cx="256" cy="256" r="156" fill="#4f46e5"/>
+  <path fill="#ffffff" d="M165 167h182v42H235v42h96v40h-96v54h-70V167Zm61 206c23 18 50 27 82 27 45 0 73-22 73-58 0-31-21-47-61-59l-24-7c-19-6-27-12-27-24 0-13 12-21 31-21 22 0 39 8 55 22l24-34c-21-19-47-29-79-29-43 0-73 24-73 60 0 30 19 48 59 60l24 7c20 6 27 12 27 24 0 14-13 22-33 22-25 0-46-10-63-26l-15 36Z"/>
+</svg>

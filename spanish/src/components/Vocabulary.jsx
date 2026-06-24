@@ -6,7 +6,6 @@ import {
   Check,
   Clock3,
   Download,
-  Keyboard,
   Languages,
   Mic,
   Play,
@@ -28,33 +27,14 @@ import {
   shouldStopSpeakingOnCardFlip,
 } from '../utils/speechPractice';
 import { scoreTypedAnswer } from '../utils/answerMatching';
-
-const TYPING_MODE_STORAGE_KEY = 'spanishVocabTypingMode';
+import {
+  formatOfflineCacheTime,
+  readOfflineVocabularyCache,
+  writeOfflineVocabularyCache,
+} from '../utils/offlineVocabularyCache';
 
 function isAutomaticSpanishTypingCard(card) {
-  return card?.direction === 'target_to_source';
-}
-
-function hasSpanishAnswer(card) {
-  return card?.direction === 'target_to_source';
-}
-
-function readStoredTypingMode() {
-  if (typeof window === 'undefined') return false;
-  try {
-    return window.localStorage.getItem(TYPING_MODE_STORAGE_KEY) === 'true';
-  } catch {
-    return false;
-  }
-}
-
-function persistTypingMode(value) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(TYPING_MODE_STORAGE_KEY, value ? 'true' : 'false');
-  } catch {
-    // Storage may be unavailable (private mode); non-fatal.
-  }
+  return card?.response_mode === 'typing';
 }
 
 const INITIAL_STATS = {
@@ -125,21 +105,64 @@ const STATUS_STYLES = {
   learned: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
 };
 
+const REVIEW_GRADE_META = {
+  dont_know: {
+    label: "Don't Know",
+    chipClassName: 'bg-rose-100 text-rose-700 border border-rose-200',
+  },
+  hard: {
+    label: 'Hard',
+    chipClassName: 'bg-orange-100 text-orange-700 border border-orange-200',
+  },
+  good: {
+    label: 'Good',
+    chipClassName: 'bg-sky-100 text-sky-700 border border-sky-200',
+  },
+  easy: {
+    label: 'Easy',
+    chipClassName: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+  },
+};
+
 const ENTRY_FILTERS = {
   all: {
     label: 'All',
     description: 'Every vocabulary entry',
   },
-  unlearned: {
-    label: 'Unlearned',
-    description: 'Still active or not fully mastered',
-  },
   due: {
     label: 'Due',
     description: 'Have at least one due card now',
   },
+  snoozed: {
+    label: 'Snoozed',
+    description: 'Answered already and waiting for the next review time',
+  },
   learned: {
     label: 'Learned',
+    description: 'Explicitly hidden with the Learned button',
+  },
+  hard: {
+    label: 'Hard',
+    description: 'At least one direction was last answered as Hard',
+  },
+  good: {
+    label: 'Good',
+    description: 'At least one direction was last answered as Good',
+  },
+  easy: {
+    label: 'Easy',
+    description: 'At least one direction was last answered as Easy',
+  },
+  dont_know: {
+    label: "Don't Know",
+    description: "At least one direction was last answered as Don't Know",
+  },
+  unlearned: {
+    label: 'Unlearned',
+    description: 'Still active or not fully mastered',
+  },
+  mastered: {
+    label: 'Mastered',
     description: 'Fully snoozed or learned in both directions',
   },
   blocked: {
@@ -148,7 +171,7 @@ const ENTRY_FILTERS = {
   },
 };
 
-function isEntryLearned(entry) {
+function isEntryMastered(entry) {
   const reviewableCards = Number(entry?.card_summary?.reviewable_cards) || 0;
   if (reviewableCards === 0) {
     return false;
@@ -160,6 +183,14 @@ function isEntryLearned(entry) {
   return learnedOrSnoozedCards === reviewableCards && (Number(entry?.card_summary?.due_cards) || 0) === 0;
 }
 
+function isEntryLearned(entry) {
+  return (Number(entry?.card_summary?.learned_cards) || 0) > 0;
+}
+
+function isEntrySnoozed(entry) {
+  return (Number(entry?.card_summary?.snoozed_cards) || 0) > 0;
+}
+
 function isEntryBlocked(entry) {
   return Boolean(entry?.needs_completion) || (Number(entry?.card_summary?.unreviewable_cards) || 0) > 0;
 }
@@ -168,18 +199,31 @@ function isEntryDue(entry) {
   return (Number(entry?.card_summary?.due_cards) || 0) > 0;
 }
 
+function hasEntryLastGrade(entry, grade) {
+  return Array.isArray(entry?.cards) && entry.cards.some((card) => card.last_grade === grade);
+}
+
 function isEntryUnlearned(entry) {
-  return !isEntryBlocked(entry) && !isEntryLearned(entry);
+  return !isEntryBlocked(entry) && !isEntryMastered(entry);
 }
 
 function matchesEntryFilter(entry, filter) {
   switch (filter) {
-    case 'unlearned':
-      return isEntryUnlearned(entry);
     case 'due':
       return isEntryDue(entry);
+    case 'snoozed':
+      return isEntrySnoozed(entry);
     case 'learned':
       return isEntryLearned(entry);
+    case 'hard':
+    case 'good':
+    case 'easy':
+    case 'dont_know':
+      return hasEntryLastGrade(entry, filter);
+    case 'unlearned':
+      return isEntryUnlearned(entry);
+    case 'mastered':
+      return isEntryMastered(entry);
     case 'blocked':
       return isEntryBlocked(entry);
     case 'all':
@@ -226,6 +270,214 @@ function statusLabel(status) {
   }
 }
 
+const INITIAL_REVIEW_SESSION = {
+  mode: 'due',
+  entries: [],
+  totalEntries: 0,
+  lastEntryId: null,
+  isComplete: false,
+};
+
+function findEntryCard(entry, direction) {
+  if (!Array.isArray(entry?.cards)) {
+    return null;
+  }
+
+  return entry.cards.find((card) => card.direction === direction && card.is_reviewable) || null;
+}
+
+function isEntryEligibleForRandomStudy(entry) {
+  return !isEntryBlocked(entry)
+    && Array.isArray(entry?.cards)
+    && entry.cards.some((card) => card.is_reviewable && card.is_due);
+}
+
+function isEntryEligibleForPracticeAll(entry) {
+  return !isEntryBlocked(entry)
+    && Array.isArray(entry?.cards)
+    && entry.cards.some((card) => card.is_reviewable)
+    && !entry.cards.every((card) => card.status === 'learned');
+}
+
+function buildSessionVariant(card, {
+  key,
+  responseMode = 'reveal',
+  directionLabel = card?.direction_label,
+  practiceOnly = false,
+} = {}) {
+  const submitsReview = !practiceOnly && responseMode === 'reveal' && Boolean(card?.is_due);
+
+  return {
+    key,
+    direction: card.direction,
+    direction_label: directionLabel,
+    prompt_label: card.prompt_label,
+    answer_label: card.answer_label,
+    prompt: card.prompt,
+    answer: card.answer,
+    card_id: card.id,
+    status: card.status,
+    review_count: card.review_count,
+    next_review_at: card.next_review_at,
+    response_mode: responseMode,
+    practice_only: practiceOnly || !submitsReview,
+    submits_review: submitsReview,
+  };
+}
+
+function buildStudyVariantsForEntry(entry, { practiceOnly = false } = {}) {
+  const sourceCard = findEntryCard(entry, 'source_to_target');
+  const reverseCard = findEntryCard(entry, 'target_to_source');
+  const variants = [];
+
+  if (sourceCard) {
+    variants.push(buildSessionVariant(sourceCard, {
+      key: 'source_to_target_reveal',
+      responseMode: 'reveal',
+      practiceOnly,
+    }));
+  }
+
+  if (reverseCard) {
+    variants.push(buildSessionVariant(reverseCard, {
+      key: 'target_to_source_reveal',
+      responseMode: 'reveal',
+      practiceOnly,
+    }));
+    variants.push(buildSessionVariant(reverseCard, {
+      key: 'target_to_source_typing',
+      responseMode: 'typing',
+      directionLabel: 'Type Spanish from Translation',
+      practiceOnly: true,
+    }));
+  }
+
+  return variants;
+}
+
+function chooseRandomItem(values = []) {
+  if (values.length === 0) {
+    return null;
+  }
+
+  return values[Math.floor(Math.random() * values.length)] || values[0];
+}
+
+function buildReviewSessionEntries(entries, mode = 'due') {
+  const practiceOnly = mode === 'practice_all';
+  const eligibleEntries = entries.filter(
+    practiceOnly ? isEntryEligibleForPracticeAll : isEntryEligibleForRandomStudy,
+  );
+
+  return eligibleEntries
+    .map((entry) => {
+      const variants = buildStudyVariantsForEntry(entry, { practiceOnly });
+      return {
+        entryId: entry.id,
+        word: entry.word,
+        translation: entry.translation,
+        example: entry.example,
+        dueCardCount: Number(entry?.card_summary?.due_cards) || 0,
+        totalVariants: variants.length,
+        remainingVariants: variants,
+      };
+    })
+    .filter((entry) => entry.remainingVariants.length > 0);
+}
+
+function pickNextSessionCard(sessionEntries, sessionMode = 'due', previousEntryId = null) {
+  const activeEntries = sessionEntries.filter((entry) => entry.remainingVariants.length > 0);
+  if (activeEntries.length === 0) {
+    return null;
+  }
+
+  const candidateEntries = activeEntries.length > 1
+    ? activeEntries.filter((entry) => entry.entryId !== previousEntryId)
+    : activeEntries;
+  const selectedEntry = chooseRandomItem(candidateEntries.length > 0 ? candidateEntries : activeEntries);
+  const selectedVariant = chooseRandomItem(selectedEntry?.remainingVariants || []);
+
+  if (!selectedEntry || !selectedVariant) {
+    return null;
+  }
+
+  return {
+    entryId: selectedEntry.entryId,
+    card: {
+      id: selectedEntry.entryId,
+      entry_id: selectedEntry.entryId,
+      word: selectedEntry.word,
+      translation: selectedEntry.translation,
+      example: selectedEntry.example,
+      due_card_count: selectedEntry.dueCardCount,
+      total_forms_for_word: selectedEntry.totalVariants,
+      forms_remaining_for_word: selectedEntry.remainingVariants.length,
+      current_form_index: (selectedEntry.totalVariants - selectedEntry.remainingVariants.length) + 1,
+      session_mode: sessionMode,
+      study_variant: selectedVariant.key,
+      ...selectedVariant,
+    },
+  };
+}
+
+function createReviewSession(entries, mode = 'due') {
+  const sessionEntries = buildReviewSessionEntries(entries, mode);
+  const selection = pickNextSessionCard(sessionEntries, mode);
+
+  return {
+    session: {
+      mode,
+      entries: sessionEntries,
+      totalEntries: sessionEntries.length,
+      lastEntryId: selection?.entryId || null,
+      isComplete: sessionEntries.length === 0,
+    },
+    currentCard: selection?.card || null,
+  };
+}
+
+function advanceReviewSession(session, completedCard) {
+  const nextEntries = session.entries
+    .map((entry) => {
+      if (entry.entryId !== completedCard?.id) {
+        return entry;
+      }
+
+      return {
+        ...entry,
+        remainingVariants: entry.remainingVariants.filter((variant) => variant.key !== completedCard.study_variant),
+      };
+    })
+    .filter((entry) => entry.remainingVariants.length > 0);
+
+  const selection = pickNextSessionCard(nextEntries, session.mode, completedCard?.id || null);
+
+  return {
+    session: {
+      ...session,
+      entries: nextEntries,
+      lastEntryId: selection?.entryId || completedCard?.id || null,
+      isComplete: nextEntries.length === 0,
+    },
+    currentCard: selection?.card || null,
+  };
+}
+
+function removeEntryFromReviewSession(session, entryId) {
+  const nextEntries = session.entries.filter((entry) => entry.entryId !== entryId);
+  const selection = pickNextSessionCard(nextEntries, session.mode, entryId);
+
+  return {
+    session: {
+      ...session,
+      entries: nextEntries,
+      lastEntryId: selection?.entryId || entryId || null,
+      isComplete: nextEntries.length === 0,
+    },
+    currentCard: selection?.card || null,
+  };
+}
+
 function VoiceActionButton({
   icon: Icon,
   label,
@@ -252,6 +504,7 @@ function VoiceActionButton({
 function Vocabulary() {
   const [entries, setEntries] = useState([]);
   const [reviewQueue, setReviewQueue] = useState([]);
+  const [reviewSession, setReviewSession] = useState(INITIAL_REVIEW_SESSION);
   const [stats, setStats] = useState(INITIAL_STATS);
   const [queueStats, setQueueStats] = useState({ total_due: 0, returned: 0, limit: 40 });
   const [showAnswer, setShowAnswer] = useState(false);
@@ -261,8 +514,8 @@ function Vocabulary() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [offlineSnapshot, setOfflineSnapshot] = useState(null);
   const [entryFilter, setEntryFilter] = useState('all');
-  const [typingMode, setTypingMode] = useState(() => readStoredTypingMode());
   const [typedAnswer, setTypedAnswer] = useState('');
   const [typingFeedback, setTypingFeedback] = useState(null);
   const fileInputRef = useRef(null);
@@ -288,9 +541,10 @@ function Vocabulary() {
   } = useSpeechPractice();
 
   const currentCard = reviewQueue[0] || null;
-  const spanishAnswerCard = hasSpanishAnswer(currentCard);
+  const isOfflineRuntime = () => Boolean(offlineSnapshot) || (typeof navigator !== 'undefined' && navigator.onLine === false);
   const automaticTypingStage = isAutomaticSpanishTypingCard(currentCard);
-  const typingStageActive = spanishAnswerCard && (automaticTypingStage || typingMode);
+  const typingStageActive = automaticTypingStage;
+  const hidePromptOnSpanishAnswer = showAnswer && currentCard?.response_mode === 'typing';
   const visibleSpanish = useMemo(
     () => getVisibleSpanishContent(currentCard, showAnswer),
     [currentCard, showAnswer],
@@ -341,12 +595,61 @@ function Vocabulary() {
 
     const entriesData = await entriesResponse.json();
     const queueData = await queueResponse.json();
+    const nextEntries = entriesData.entries || [];
+    const nextStats = entriesData.stats || INITIAL_STATS;
+    const nextQueueStats = queueData.stats || { total_due: 0, returned: 0, limit: 40 };
 
-    setEntries(entriesData.entries || []);
-    setStats(entriesData.stats || INITIAL_STATS);
-    setReviewQueue(queueData.cards || []);
-    setQueueStats(queueData.stats || { total_due: 0, returned: 0, limit: 40 });
+    setEntries(nextEntries);
+    setStats(nextStats);
+    setQueueStats(nextQueueStats);
+    setOfflineSnapshot(null);
+    writeOfflineVocabularyCache({
+      entries: nextEntries,
+      stats: nextStats,
+      queueStats: nextQueueStats,
+    });
   };
+
+  const loadOfflineVocabularySnapshot = useCallback(() => {
+    const cached = readOfflineVocabularyCache();
+    if (!cached) {
+      return false;
+    }
+
+    setEntries(cached.entries || []);
+    setStats(cached.stats || INITIAL_STATS);
+    setQueueStats(cached.queueStats || { total_due: 0, returned: 0, limit: 40 });
+    setOfflineSnapshot(cached);
+    setNotice(`Offline vocabulary loaded from ${formatOfflineCacheTime(cached.cachedAt)}. Review progress changes need internet.`);
+    return true;
+  }, []);
+
+  const startReviewSession = useCallback((mode = 'due', sourceEntries = entries) => {
+    const nextState = createReviewSession(sourceEntries, mode);
+    setReviewSession(nextState.session);
+    setReviewQueue(nextState.currentCard ? [nextState.currentCard] : []);
+    resetPractice();
+    setShowAnswer(false);
+    setTypedAnswer('');
+    setTypingFeedback(null);
+  }, [entries, resetPractice]);
+
+  const advanceCurrentSessionCard = useCallback((completedCard = currentCard, { removeEntry = false } = {}) => {
+    if (!completedCard) {
+      return;
+    }
+
+    const nextState = removeEntry
+      ? removeEntryFromReviewSession(reviewSession, completedCard.id)
+      : advanceReviewSession(reviewSession, completedCard);
+
+    setReviewSession(nextState.session);
+    setReviewQueue(nextState.currentCard ? [nextState.currentCard] : []);
+    resetPractice();
+    setShowAnswer(false);
+    setTypedAnswer('');
+    setTypingFeedback(null);
+  }, [currentCard, resetPractice, reviewSession]);
 
   useEffect(() => {
     let cancelled = false;
@@ -356,6 +659,10 @@ function Vocabulary() {
       setError('');
       setNotice('');
       try {
+        if (typeof navigator !== 'undefined' && navigator.onLine === false && loadOfflineVocabularySnapshot()) {
+          return;
+        }
+
         await refreshVocabulary();
         if (!cancelled) {
           setShowAnswer(false);
@@ -363,7 +670,9 @@ function Vocabulary() {
       } catch (loadError) {
         if (!cancelled) {
           console.error('Error loading vocabulary:', loadError);
-          setError(loadError.message || 'Failed to load vocabulary');
+          if (!loadOfflineVocabularySnapshot()) {
+            setError(loadError.message || 'Failed to load vocabulary');
+          }
         }
       } finally {
         if (!cancelled) {
@@ -376,35 +685,36 @@ function Vocabulary() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadOfflineVocabularySnapshot]);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (reviewQueue.length > 0 || reviewSession.totalEntries > 0 || reviewSession.isComplete) {
+      return;
+    }
+
+    const nextState = createReviewSession(entries, 'due');
+    setReviewSession(nextState.session);
+    setReviewQueue(nextState.currentCard ? [nextState.currentCard] : []);
+  }, [entries, isLoading, reviewQueue.length, reviewSession.isComplete, reviewSession.totalEntries]);
 
   useEffect(() => {
     resetPractice();
-  }, [currentCard?.card_id, currentCard?.direction, resetPractice]);
+  }, [currentCard?.card_id, currentCard?.direction, currentCard?.study_variant, resetPractice]);
 
   useEffect(() => {
     setTypedAnswer('');
     setTypingFeedback(null);
-  }, [currentCard?.card_id, currentCard?.direction]);
+  }, [currentCard?.card_id, currentCard?.direction, currentCard?.study_variant]);
 
   useEffect(() => {
     if (typingStageActive && !showAnswer && currentCard && typingInputRef.current) {
       typingInputRef.current.focus();
     }
-  }, [currentCard?.card_id, currentCard?.direction, typingStageActive, showAnswer, currentCard]);
-
-  const toggleTypingMode = useCallback(() => {
-    if (!spanishAnswerCard) {
-      return;
-    }
-    setTypingMode((prev) => {
-      const next = !prev;
-      persistTypingMode(next);
-      return next;
-    });
-    setTypedAnswer('');
-    setTypingFeedback(null);
-  }, [spanishAnswerCard]);
+  }, [currentCard?.card_id, currentCard?.direction, currentCard?.study_variant, typingStageActive, showAnswer, currentCard]);
 
   const checkTypedAnswer = useCallback(() => {
     if (!currentCard) return;
@@ -418,7 +728,7 @@ function Vocabulary() {
 
   useEffect(() => {
     const currentCardKey = currentCard
-      ? `${currentCard.card_id ?? currentCard.id ?? 'unknown'}:${currentCard.direction ?? 'unknown'}`
+      ? `${currentCard.card_id ?? currentCard.id ?? 'unknown'}:${currentCard.direction ?? 'unknown'}:${currentCard.study_variant ?? 'base'}`
       : '';
 
     if (!currentCardKey) {
@@ -453,30 +763,32 @@ function Vocabulary() {
   const effectiveDueTotal = Number.isFinite(stats.due_entries)
     ? stats.due_entries
     : queueStats.total_due;
+  const dueStudyCandidateCount = useMemo(
+    () => entries.filter((entry) => isEntryEligibleForRandomStudy(entry)).length,
+    [entries],
+  );
+  const practiceAllCandidateCount = useMemo(
+    () => entries.filter((entry) => isEntryEligibleForPracticeAll(entry)).length,
+    [entries],
+  );
+  const remainingSessionEntries = reviewSession.entries.length;
+  const completedSessionEntries = Math.max(0, reviewSession.totalEntries - remainingSessionEntries);
+  const reviewProgressPercent = reviewSession.totalEntries > 0
+    ? Math.min(100, Math.round((completedSessionEntries / reviewSession.totalEntries) * 100))
+    : 100;
+  const reviewRoundCompleted = reviewSession.isComplete && reviewSession.mode === 'due' && reviewSession.totalEntries > 0;
+  const practiceRoundCompleted = reviewSession.isComplete && reviewSession.mode === 'practice_all' && reviewSession.totalEntries > 0;
 
   const entryCounts = useMemo(() => {
+    const filterKeys = Object.keys(ENTRY_FILTERS);
     return entries.reduce((accumulator, entry) => {
-      accumulator.all += 1;
-      if (isEntryBlocked(entry)) {
-        accumulator.blocked += 1;
-      }
-      if (isEntryDue(entry)) {
-        accumulator.due += 1;
-      }
-      if (isEntryLearned(entry)) {
-        accumulator.learned += 1;
-      }
-      if (isEntryUnlearned(entry)) {
-        accumulator.unlearned += 1;
+      for (const filterKey of filterKeys) {
+        if (matchesEntryFilter(entry, filterKey)) {
+          accumulator[filterKey] += 1;
+        }
       }
       return accumulator;
-    }, {
-      all: 0,
-      unlearned: 0,
-      due: 0,
-      learned: 0,
-      blocked: 0,
-    });
+    }, Object.fromEntries(filterKeys.map((filterKey) => [filterKey, 0])));
   }, [entries]);
 
   const filteredEntries = useMemo(
@@ -487,11 +799,23 @@ function Vocabulary() {
   const filteredEntryLabel = ENTRY_FILTERS[entryFilter]?.label || ENTRY_FILTERS.all.label;
 
   const dueLabel = useMemo(() => {
-    if (effectiveDueTotal > reviewQueue.length) {
-      return `${reviewQueue.length} loaded of ${effectiveDueTotal} due`;
+    if (reviewSession.totalEntries > 0 && currentCard) {
+      const wordLabel = `${remainingSessionEntries} ${remainingSessionEntries === 1 ? 'word' : 'words'} left`;
+      return reviewSession.mode === 'practice_all'
+        ? `${wordLabel} in random practice`
+        : `${wordLabel} in this round`;
     }
+
+    if (reviewRoundCompleted) {
+      return 'All available words repeated';
+    }
+
+    if (practiceRoundCompleted) {
+      return 'Practice-all round finished';
+    }
+
     return `${effectiveDueTotal} due now`;
-  }, [effectiveDueTotal, reviewQueue.length]);
+  }, [currentCard, effectiveDueTotal, practiceRoundCompleted, remainingSessionEntries, reviewRoundCompleted, reviewSession.mode, reviewSession.totalEntries]);
 
   const speechVoiceLabel = selectedVoice
     ? `${selectedVoice.name}${selectedVoice.lang ? ` (${selectedVoice.lang})` : ''}`
@@ -507,20 +831,20 @@ function Vocabulary() {
       textClassName: 'text-indigo-700',
     },
     {
-      key: 'unlearned',
-      title: 'Unlearned',
-      count: entryCounts.unlearned,
-      valueClassName: 'text-purple-900',
-      cardClassName: 'bg-gradient-to-r from-purple-100 to-purple-200',
-      textClassName: 'text-purple-700',
-    },
-    {
       key: 'due',
       title: 'Due now',
       count: entryCounts.due,
       valueClassName: 'text-orange-900',
       cardClassName: 'bg-gradient-to-r from-orange-100 to-orange-200',
       textClassName: 'text-orange-700',
+    },
+    {
+      key: 'snoozed',
+      title: 'Snoozed',
+      count: entryCounts.snoozed,
+      valueClassName: 'text-slate-900',
+      cardClassName: 'bg-gradient-to-r from-slate-100 to-slate-200',
+      textClassName: 'text-slate-700',
     },
     {
       key: 'learned',
@@ -532,26 +856,12 @@ function Vocabulary() {
     },
   ];
 
-  const typingModeToggle = (
-    <button
-      type="button"
-      onClick={toggleTypingMode}
-      aria-pressed={typingMode || automaticTypingStage}
-      disabled={automaticTypingStage}
-      title={automaticTypingStage
-        ? 'This card already requires a typed Spanish answer.'
-        : (spanishAnswerCard ? 'Type the Spanish answer instead of flipping the card' : 'Typing is only available when the answer is Spanish')}
-      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold border transition-colors disabled:opacity-70 disabled:cursor-not-allowed ${typingStageActive ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'}`}
-    >
-      <Keyboard className="h-4 w-4" />
-      {automaticTypingStage
-        ? 'Typing step: required'
-        : (spanishAnswerCard ? (typingMode ? 'Spanish typing: on' : 'Spanish typing: off') : 'Typing: Spanish only')}
-    </button>
-  );
-
   const addWord = async () => {
     if (!newWord.word.trim() || !newWord.translation.trim()) return;
+    if (isOfflineRuntime()) {
+      setError('Adding vocabulary needs internet. Offline mode can review the last synced words.');
+      return;
+    }
 
     setIsSubmitting(true);
     setError('');
@@ -580,7 +890,11 @@ function Vocabulary() {
   };
 
   const submitReview = async (endpoint, body) => {
-    if (!currentCard) return;
+    if (!currentCard) return false;
+    if (isOfflineRuntime()) {
+      setNotice('Offline practice only: this answer does not change the spaced repetition timer.');
+      return true;
+    }
 
     setIsSubmitting(true);
     setError('');
@@ -600,9 +914,11 @@ function Vocabulary() {
       resetPractice();
       await refreshVocabulary();
       setShowAnswer(false);
+      return true;
     } catch (reviewError) {
       console.error('Error updating review card:', reviewError);
       setError(reviewError.message || 'Failed to update review card');
+      return false;
     } finally {
       setIsSubmitting(false);
     }
@@ -610,15 +926,47 @@ function Vocabulary() {
 
   const handleReview = async (grade) => {
     if (!currentCard) return;
-    await submitReview(`/spanish/api/vocabulary/${currentCard.id}/review`, { grade });
+
+    if (currentCard.submits_review) {
+      const success = await submitReview(`/spanish/api/vocabulary/${currentCard.id}/review`, {
+        grade,
+        direction: currentCard.direction,
+      });
+      if (!success) {
+        return;
+      }
+    } else {
+      setNotice(
+        currentCard.session_mode === 'practice_all'
+          ? 'Practice-only round: this extra repetition does not change the spaced repetition timer.'
+          : 'Extra form completed. The timer changes only for the due directions in this round.',
+      );
+    }
+
+    advanceCurrentSessionCard(currentCard);
   };
 
   const handleLearned = async () => {
     if (!currentCard) return;
-    await submitReview(`/spanish/api/vocabulary/${currentCard.id}/learned`);
+    if (isOfflineRuntime()) {
+      setNotice('Marking cards learned needs internet. You can still continue offline practice.');
+      advanceCurrentSessionCard(currentCard, { removeEntry: true });
+      return;
+    }
+
+    const success = await submitReview(`/spanish/api/vocabulary/${currentCard.id}/learned`);
+    if (!success) {
+      return;
+    }
+
+    advanceCurrentSessionCard(currentCard, { removeEntry: true });
   };
 
   const deleteWord = async (entryId) => {
+    if (isOfflineRuntime()) {
+      setError('Deleting vocabulary needs internet.');
+      return;
+    }
     if (!window.confirm('Delete this vocabulary entry and its review progress?')) return;
 
     setIsSubmitting(true);
@@ -650,6 +998,28 @@ function Vocabulary() {
     setNotice('');
 
     try {
+      if (isOfflineRuntime()) {
+        const cachedEntries = offlineSnapshot?.entries || entries;
+        const payload = {
+          format: 'lingualearn-spanish-offline-cache',
+          exported_at: new Date().toISOString(),
+          profile: { id: offlineSnapshot?.profileId || 'current' },
+          entries: cachedEntries,
+          stats: offlineSnapshot?.stats || stats || null,
+        };
+        const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `spanish-vocabulary-offline-profile-${offlineSnapshot?.profileId || 'cache'}-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.URL.revokeObjectURL(url);
+        setNotice(`Exported offline cache with ${payload.entries.length} entries.`);
+        return;
+      }
+
       const response = await profileFetch(profileApiUrl('/spanish/api/vocabulary/export'));
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
@@ -679,6 +1049,10 @@ function Vocabulary() {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) {
+      return;
+    }
+    if (isOfflineRuntime()) {
+      setError('Import needs internet because the server has to merge duplicates safely.');
       return;
     }
 
@@ -828,6 +1202,16 @@ function Vocabulary() {
         </div>
       )}
 
+      {offlineSnapshot && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-2xl p-4 flex items-start gap-3">
+          <Shield className="h-5 w-5 mt-0.5" />
+          <p>
+            Offline mode: using the last synced vocabulary from {formatOfflineCacheTime(offlineSnapshot.cachedAt)}.
+            Practice works locally; adding, deleting, importing, and syncing review timers need internet.
+          </p>
+        </div>
+      )}
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 flex items-start gap-3">
           <AlertCircle className="h-5 w-5 mt-0.5" />
@@ -891,26 +1275,6 @@ function Vocabulary() {
         </div>
       )}
 
-      {!isLoading && (
-        <div className="bg-white rounded-2xl shadow-2xl p-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">Typing practice</p>
-              <p className="text-sm text-slate-600">
-                {automaticTypingStage
-                  ? 'This card requires you to type the Spanish answer before you reveal it.'
-                  : currentCard
-                    ? 'Translation to Spanish cards require typing automatically. Turn on extra typing if you also want typing on Spanish to Translation cards.'
-                    : 'Translation to Spanish cards use typing automatically. Turn on extra typing if you also want typing on Spanish to Translation cards.'}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {typingModeToggle}
-            </div>
-          </div>
-        </div>
-      )}
-
       {isLoading ? (
         <div className="bg-white rounded-2xl shadow-2xl p-12 text-center text-gray-600">
           Loading vocabulary cards...
@@ -919,7 +1283,9 @@ function Vocabulary() {
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
             <div>
-              <p className="text-sm text-gray-500">Word review queue</p>
+              <p className="text-sm text-gray-500">
+                {currentCard.session_mode === 'practice_all' ? 'Random practice round' : 'Random word round'}
+              </p>
               <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <Brain className="h-6 w-6 text-indigo-600" />
                 {dueLabel}
@@ -931,10 +1297,20 @@ function Vocabulary() {
                 <Languages className="h-4 w-4" />
                 {currentCard.direction_label}
               </span>
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-sm font-semibold">
+                <RotateCcw className="h-4 w-4" />
+                Form {currentCard.current_form_index} of {currentCard.total_forms_for_word}
+              </span>
               {currentCard.due_card_count > 1 && (
                 <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold">
                   <RotateCcw className="h-4 w-4" />
                   {currentCard.due_card_count} practice directions due
+                </span>
+              )}
+              {currentCard.practice_only && (
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-sm font-semibold">
+                  <AlertCircle className="h-4 w-4" />
+                  Practice only
                 </span>
               )}
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${STATUS_STYLES[currentCard.status] || STATUS_STYLES.review}`}>
@@ -946,9 +1322,15 @@ function Vocabulary() {
           <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
             <div
               className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all"
-              style={{ width: `${queueStats.total_due ? ((queueStats.total_due - reviewQueue.length + 1) / queueStats.total_due) * 100 : 100}%` }}
+              style={{ width: `${reviewProgressPercent}%` }}
             />
           </div>
+
+          {currentCard.practice_only && (
+            <p className="mb-4 text-sm text-slate-500 text-center">
+              This form keeps the round varied. It counts toward finishing the word, but it does not change the spaced repetition timer.
+            </p>
+          )}
 
           <div
             role={typingStageActive ? undefined : 'button'}
@@ -966,12 +1348,16 @@ function Vocabulary() {
             aria-disabled={isVoicePracticeBusy}
             className={`bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-10 min-h-[320px] flex flex-col items-center justify-center border-4 border-indigo-200 transition-all text-center ${typingStageActive ? 'cursor-default' : (isVoicePracticeBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:border-indigo-400')}`}
           >
-            <p className="text-sm uppercase tracking-wide text-indigo-600 font-semibold mb-3">
-              {currentCard.prompt_label}
-            </p>
-            <p className="text-4xl md:text-5xl font-bold text-indigo-900 mb-6 break-words">
-              {currentCard.prompt}
-            </p>
+            {!hidePromptOnSpanishAnswer && (
+              <>
+                <p className="text-sm uppercase tracking-wide text-indigo-600 font-semibold mb-3">
+                  {currentCard.prompt_label}
+                </p>
+                <p className="text-4xl md:text-5xl font-bold text-indigo-900 mb-6 break-words">
+                  {currentCard.prompt}
+                </p>
+              </>
+            )}
 
             {typingStageActive && !showAnswer && (
               <form
@@ -1059,6 +1445,38 @@ function Vocabulary() {
             )}
           </div>
 
+          {showAnswer && (
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                {REVIEW_ACTIONS.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.key}
+                      type="button"
+                      onClick={() => handleReview(action.key)}
+                      disabled={isSubmitting || isVoicePracticeBusy}
+                      className={`rounded-xl px-3 py-2.5 text-xs font-semibold text-white transition-all shadow-md flex min-h-[3.25rem] items-center justify-center gap-1.5 text-center leading-tight disabled:opacity-60 sm:min-h-[4rem] sm:flex-col sm:gap-1 sm:px-3 sm:py-3 sm:text-sm ${action.className}`}
+                    >
+                      <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span>{action.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleLearned}
+                disabled={isSubmitting || isVoicePracticeBusy}
+                className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-700 transition-all shadow-md flex items-center justify-center gap-2 leading-tight disabled:opacity-60 sm:text-base"
+              >
+                <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
+                Learned — hide this word for 15 days
+              </button>
+            </div>
+          )}
+
           {practiceSpanish.text ? (
             <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-4">
               <div className="flex flex-wrap gap-2">
@@ -1136,45 +1554,41 @@ function Vocabulary() {
               Reveal the Spanish side to listen or record a private repeat-aloud take.
             </p>
           )}
-
-          {showAnswer && (
-            <div className="mt-6 space-y-4">
-              <div className="grid gap-3 md:grid-cols-5">
-                {REVIEW_ACTIONS.map((action) => {
-                  const Icon = action.icon;
-                  return (
-                    <button
-                      key={action.key}
-                      type="button"
-                      onClick={() => handleReview(action.key)}
-                      disabled={isSubmitting || isVoicePracticeBusy}
-                      className={`px-4 py-4 text-white rounded-xl transition-all shadow-md font-bold flex flex-col items-center space-y-1 disabled:opacity-60 ${action.className}`}
-                    >
-                      <Icon className="h-6 w-6" />
-                      <span>{action.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <button
-                type="button"
-                onClick={handleLearned}
-                disabled={isSubmitting || isVoicePracticeBusy}
-                className="w-full px-4 py-4 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-all shadow-md font-bold flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                <RotateCcw className="h-5 w-5" />
-                Learned — hide this word for 15 days
-              </button>
-            </div>
-          )}
         </div>
       ) : (
         <div className="bg-white rounded-2xl shadow-2xl p-12 text-center">
           <RotateCcw className="h-16 w-16 mx-auto text-green-500 mb-4" />
-          <h3 className="text-2xl font-bold text-gray-800 mb-2">All caught up! 🎉</h3>
-          <p className="text-gray-600">No words are due right now.</p>
-          <p className="mt-3 text-sm text-slate-500">When the next review card appears, typing mode will let you answer before revealing the solution.</p>
+          <h3 className="text-2xl font-bold text-gray-800 mb-2">
+            {reviewRoundCompleted
+              ? 'Round finished!'
+              : practiceRoundCompleted
+                ? 'Practice round finished!'
+                : 'All caught up! 🎉'}
+          </h3>
+          <p className="text-gray-600">
+            {reviewRoundCompleted
+              ? 'You went through every currently available word in random order and kept each word in the round until all three forms were done.'
+              : practiceRoundCompleted
+                ? 'You repeated every active word in random order.'
+                : 'No words are due right now.'}
+          </p>
+          {practiceAllCandidateCount > 0 && (
+            <button
+              type="button"
+              onClick={() => startReviewSession('practice_all')}
+              className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md transition-colors hover:bg-indigo-700"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Practice All Active Words Randomly
+            </button>
+          )}
+          <p className="mt-3 text-sm text-slate-500">
+            {practiceAllCandidateCount > 0
+              ? 'This extra round skips words already marked Learned, but includes the rest in random order.'
+              : dueStudyCandidateCount > 0
+                ? 'Start the random round to mix words and forms again.'
+                : 'When the next word becomes available, the round will randomize both the word and the form.'}
+          </p>
         </div>
       )}
 
@@ -1183,7 +1597,7 @@ function Vocabulary() {
           <div>
             <h3 className="text-2xl font-bold text-gray-800">Vocabulary entries ({filteredEntries.length})</h3>
             <p className="text-sm text-gray-500">
-              Showing {filteredEntryLabel.toLowerCase()} entries. Each word stays one learning card with both directions tracked together.
+              Showing {filteredEntryLabel.toLowerCase()} entries. Filter by review state or by the last answer grade across both directions.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1210,89 +1624,135 @@ function Vocabulary() {
           <p className="text-gray-600 text-center py-8">No {filteredEntryLabel.toLowerCase()} entries right now.</p>
         ) : (
           <div className="space-y-3 max-h-[34rem] overflow-y-auto">
-            {filteredEntries.map((entry) => (
-              <div
-                key={entry.id}
-                className="p-4 rounded-2xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all"
-              >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-3 mb-2">
-                      <p className="font-bold text-gray-900 text-xl">{entry.word}</p>
-                      <button
-                        type="button"
-                        onClick={() => speakText(entry.word)}
-                        disabled={isVoicePracticeBusy || !playbackSupport.supported}
-                        className="inline-flex items-center justify-center rounded-full border border-indigo-200 bg-white p-2 text-indigo-700 transition-colors hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={playbackSupport.supported ? `Listen to ${entry.word}` : playbackSupport.message}
-                        aria-label={playbackSupport.supported ? `Listen to ${entry.word}` : playbackSupport.message}
-                      >
-                        <Volume2 className="h-4 w-4" />
-                      </button>
-                      <span className="text-gray-400">→</span>
-                      <p className="text-gray-700 text-lg">{entry.translation || 'Missing translation'}</p>
-                      {entry.needs_completion && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold border border-amber-200">
-                          <AlertCircle className="h-3.5 w-3.5" />
-                          Needs translation
-                        </span>
+            {filteredEntries.map((entry) => {
+              const lastGradeBadges = REVIEW_ACTIONS.reduce((badges, action) => {
+                const count = entry.cards.filter((card) => card.last_grade === action.key).length;
+                if (count > 0) {
+                  badges.push({
+                    key: action.key,
+                    label: REVIEW_GRADE_META[action.key]?.label || action.label,
+                    count,
+                    className: REVIEW_GRADE_META[action.key]?.chipClassName || 'bg-slate-100 text-slate-700 border border-slate-200',
+                  });
+                }
+                return badges;
+              }, []);
+
+              return (
+                <div
+                  key={entry.id}
+                  className="p-4 rounded-2xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <p className="font-bold text-gray-900 text-xl">{entry.word}</p>
+                        <button
+                          type="button"
+                          onClick={() => speakText(entry.word)}
+                          disabled={isVoicePracticeBusy || !playbackSupport.supported}
+                          className="inline-flex items-center justify-center rounded-full border border-indigo-200 bg-white p-2 text-indigo-700 transition-colors hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={playbackSupport.supported ? `Listen to ${entry.word}` : playbackSupport.message}
+                          aria-label={playbackSupport.supported ? `Listen to ${entry.word}` : playbackSupport.message}
+                        >
+                          <Volume2 className="h-4 w-4" />
+                        </button>
+                        <span className="text-gray-400">→</span>
+                        <p className="text-gray-700 text-lg">{entry.translation || 'Missing translation'}</p>
+                        {entry.needs_completion && (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold border border-amber-200">
+                            <AlertCircle className="h-3.5 w-3.5" />
+                            Needs translation
+                          </span>
+                        )}
+                      </div>
+
+                      {entry.example && (
+                        <p className="text-sm text-gray-500 italic mb-3">“{entry.example}”</p>
                       )}
-                    </div>
 
-                    {entry.example && (
-                      <p className="text-sm text-gray-500 italic mb-3">“{entry.example}”</p>
-                    )}
+                      {entry.needs_completion && (
+                        <p className="text-sm text-amber-700 mb-3">
+                          This legacy entry is hidden from due counts until it has both sides filled in.
+                        </p>
+                      )}
 
-                    {entry.needs_completion && (
-                      <p className="text-sm text-amber-700 mb-3">
-                        This legacy entry is hidden from due counts until it has both sides filled in.
-                      </p>
-                    )}
+                      <div className="flex flex-wrap gap-2 text-sm text-gray-600 mb-3">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border border-gray-200">
+                          <Brain className="h-4 w-4 text-indigo-500" />
+                          {entry.card_summary.total_reviews} reviews
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border border-gray-200">
+                          <Clock3 className="h-4 w-4 text-orange-500" />
+                          {entry.card_summary.due_cards} practice directions due
+                        </span>
+                      </div>
 
-                    <div className="flex flex-wrap gap-2 text-sm text-gray-600 mb-3">
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border border-gray-200">
-                        <Brain className="h-4 w-4 text-indigo-500" />
-                        {entry.card_summary.total_reviews} reviews
-                      </span>
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border border-gray-200">
-                        <Clock3 className="h-4 w-4 text-orange-500" />
-                        {entry.card_summary.due_cards} practice directions due
-                      </span>
-                    </div>
-
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {entry.cards.map((card) => (
-                        <div key={card.id} className="rounded-xl bg-white border border-gray-200 p-3">
-                          <div className="flex items-start justify-between gap-3 mb-2">
-                            <p className="font-semibold text-gray-800 text-sm">{card.direction_label}</p>
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[card.status] || STATUS_STYLES.review}`}>
-                              {statusLabel(card.status)}
+                      {(entry.card_summary.learned_cards > 0 || entry.card_summary.snoozed_cards > 0 || lastGradeBadges.length > 0) && (
+                        <div className="flex flex-wrap gap-2 text-xs text-gray-600 mb-3">
+                          {entry.card_summary.learned_cards > 0 && (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold">
+                              Learned {entry.card_summary.learned_cards}
                             </span>
-                          </div>
-                          <div className="text-sm text-gray-600 space-y-1">
-                            <p>Reviews: <span className="font-semibold text-gray-800">{card.review_count}</span></p>
-                            <p>Next: <span className="font-semibold text-gray-800">{formatRelativeTime(card.next_review_at)}</span></p>
-                            {card.learned_until && card.status === 'learned' && (
-                              <p>Suppressed until <span className="font-semibold text-gray-800">{formatRelativeTime(card.learned_until)}</span></p>
-                            )}
-                          </div>
+                          )}
+                          {entry.card_summary.snoozed_cards > 0 && (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-semibold">
+                              Snoozed {entry.card_summary.snoozed_cards}
+                            </span>
+                          )}
+                          {lastGradeBadges.map((badge) => (
+                            <span
+                              key={badge.key}
+                              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full font-semibold ${badge.className}`}
+                            >
+                              {badge.label} {badge.count}
+                            </span>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      )}
 
-                  <button
-                    type="button"
-                    onClick={() => deleteWord(entry.id)}
-                    disabled={isSubmitting}
-                    className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors self-start disabled:opacity-60"
-                    title="Delete entry"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
+                      <div className="grid gap-2 md:grid-cols-2">
+                        {entry.cards.map((card) => (
+                          <div key={card.id} className="rounded-xl bg-white border border-gray-200 p-3">
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <p className="font-semibold text-gray-800 text-sm">{card.direction_label}</p>
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[card.status] || STATUS_STYLES.review}`}>
+                                {statusLabel(card.status)}
+                              </span>
+                            </div>
+                            <div className="text-sm text-gray-600 space-y-1">
+                              <p>Reviews: <span className="font-semibold text-gray-800">{card.review_count}</span></p>
+                              <p>Next: <span className="font-semibold text-gray-800">{formatRelativeTime(card.next_review_at)}</span></p>
+                              {card.last_grade && (
+                                <p>
+                                  Last answer:{' '}
+                                  <span className="font-semibold text-gray-800">
+                                    {REVIEW_GRADE_META[card.last_grade]?.label || card.last_grade}
+                                  </span>
+                                </p>
+                              )}
+                              {card.learned_until && card.status === 'learned' && (
+                                <p>Suppressed until <span className="font-semibold text-gray-800">{formatRelativeTime(card.learned_until)}</span></p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => deleteWord(entry.id)}
+                      disabled={isSubmitting}
+                      className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors self-start disabled:opacity-60"
+                      title="Delete entry"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

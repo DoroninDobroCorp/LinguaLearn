@@ -6,7 +6,7 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "node server/index.js",
     "client": "vite",
-    "build": "vite build",
+    "build": "vite build && chmod -R a+rX dist",
     "test": "node --test 'tests/**/*.test.js'"
   },
   "dependencies": {

@@ -78,8 +78,10 @@ describe('Vocabulary import/export', () => {
 
     assert.equal(importedSource.review_count, 1);
     assert.equal(importedSource.state, 'learning');
+    assert.equal(importedSource.last_grade, 'good');
     assert.equal(importedReverse.review_count, 1);
     assert.equal(importedReverse.status, 'learned');
+    assert.equal(importedReverse.last_grade, null);
     assert.equal(listDueReviewCards(db, 2, { now: fixedNow }).cards.length, 0);
 
     db.close();
@@ -111,6 +113,7 @@ describe('Vocabulary import/export', () => {
     const summary = importVocabularyArchive(db, 1, exported, later);
     const refreshedEntry = listVocabularyEntries(db, 1, new Date('2030-06-07T09:00:00.000Z')).entries[0];
     const refreshedSource = refreshedEntry.cards.find((card) => card.direction === 'source_to_target');
+    const refreshedReverse = refreshedEntry.cards.find((card) => card.direction === 'target_to_source');
 
     assert.equal(summary.created_entries, 0);
     assert.equal(summary.merged_entries, 1);
@@ -118,6 +121,8 @@ describe('Vocabulary import/export', () => {
     assert.equal(listVocabularyEntries(db, 1, later).entries.length, 1);
     assert.equal(refreshedEntry.example, 'Un río muy largo.');
     assert.equal(refreshedSource.review_count, 2);
+    assert.equal(refreshedSource.last_grade, 'easy');
+    assert.equal(refreshedReverse.last_grade, 'easy');
 
     db.close();
   });

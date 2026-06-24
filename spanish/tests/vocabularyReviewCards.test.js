@@ -63,7 +63,7 @@ describe('Vocabulary review cards', () => {
     ensureVocabularyReviewSchema(db);
 
     const cards = db.prepare(`
-      SELECT direction, state, review_count, next_review_at
+      SELECT direction, state, review_count, next_review_at, last_grade
       FROM vocabulary_review_cards
       ORDER BY direction ASC
     `).all();
@@ -76,9 +76,11 @@ describe('Vocabulary review cards', () => {
     assert.ok(reverseCard);
     assert.equal(sourceCard.review_count, 4);
     assert.equal(sourceCard.state, 'review');
+    assert.equal(sourceCard.last_grade, null);
     assert.ok(!Number.isNaN(Date.parse(sourceCard.next_review_at)));
     assert.equal(reverseCard.review_count, 0);
     assert.equal(reverseCard.state, 'new');
+    assert.equal(reverseCard.last_grade, null);
     assert.ok(!Number.isNaN(Date.parse(reverseCard.next_review_at)));
 
     db.close();
@@ -127,6 +129,39 @@ describe('Vocabulary review cards', () => {
     const profileOneAfterLearned = listDueReviewCards(db, 1, { now: fixedNow });
     assert.equal(profileOneAfterLearned.cards.length, 1);
     assert.equal(listDueReviewCards(db, 2, { now: fixedNow }).cards.length, 2);
+
+    db.close();
+  });
+
+  it('stores the last review grade per card and clears it when the entry is marked learned', () => {
+    const db = createTestDb();
+    ensureVocabularyReviewSchema(db);
+
+    const fixedNow = new Date('2030-02-01T09:00:00.000Z');
+    const entry = createVocabularyEntry(db, 1, {
+      word: 'puerta',
+      translation: 'door',
+      example: 'La puerta está abierta.',
+    }, fixedNow);
+
+    const sourceCard = entry.cards.find((card) => card.direction === 'source_to_target');
+    reviewVocabularyCard(db, 1, sourceCard.id, 'hard', fixedNow);
+
+    let refreshedEntry = listVocabularyEntries(db, 1, new Date('2030-02-01T09:01:00.000Z')).entries[0];
+    assert.equal(
+      refreshedEntry.cards.find((card) => card.direction === 'source_to_target').last_grade,
+      'hard',
+    );
+    assert.equal(
+      refreshedEntry.cards.find((card) => card.direction === 'target_to_source').last_grade,
+      null,
+    );
+
+    markVocabularyEntryLearned(db, 1, entry.id, new Date('2030-02-01T09:02:00.000Z'));
+    refreshedEntry = listVocabularyEntries(db, 1, new Date('2030-02-01T09:02:00.000Z')).entries[0];
+
+    assert.equal(refreshedEntry.cards.every((card) => card.last_grade === null), true);
+    assert.equal(refreshedEntry.cards.every((card) => card.status === 'learned'), true);
 
     db.close();
   });
@@ -191,6 +226,129 @@ describe('Vocabulary review cards', () => {
 
     const entries = listVocabularyEntries(db, 1, fixedNow);
     assert.equal(entries.entries.length, 2);
+
+    db.close();
+  });
+
+  it('removes cyrillic hint notes from Spanish review text', () => {
+    const db = createTestDb();
+    ensureVocabularyReviewSchema(db);
+
+    const fixedNow = new Date('2030-02-02T09:00:00.000Z');
+    createVocabularyEntry(db, 1, {
+      word: 'que (ке)',
+      translation: 'that / what',
+      example: 'No sé qué pasó.',
+    }, fixedNow);
+
+    const queue = listDueReviewCards(db, 1, { now: fixedNow });
+    const sourceCard = queue.cards.find((card) => card.direction === 'source_to_target');
+    const reverseCard = queue.cards.find((card) => card.direction === 'target_to_source');
+
+    assert.equal(sourceCard.prompt, 'que');
+    assert.equal(reverseCard.answer, 'que');
+    assert.equal(sourceCard.word, 'que');
+
+    db.close();
+  });
+
+  it('removes unbracketed cyrillic hints from review words and translations', () => {
+    const db = createTestDb();
+    ensureVocabularyReviewSchema(db);
+
+    const fixedNow = new Date('2030-02-03T09:00:00.000Z');
+    createVocabularyEntry(db, 1, {
+      word: 'casa каса',
+      translation: 'house дом',
+      example: 'La casa es grande.',
+    }, fixedNow);
+
+    const queue = listDueReviewCards(db, 1, { now: fixedNow });
+    const sourceCard = queue.cards.find((card) => card.direction === 'source_to_target');
+    const reverseCard = queue.cards.find((card) => card.direction === 'target_to_source');
+    const entries = listVocabularyEntries(db, 1, fixedNow);
+
+    assert.equal(sourceCard.prompt, 'casa');
+    assert.equal(sourceCard.answer, 'house');
+    assert.equal(reverseCard.prompt, 'house');
+    assert.equal(reverseCard.answer, 'casa');
+    assert.equal(entries.entries[0].word, 'casa');
+    assert.equal(entries.entries[0].translation, 'house');
+
+    db.close();
+  });
+
+  it('interleaves due cards across words before returning reverse directions', () => {
+    const db = createTestDb();
+    ensureVocabularyReviewSchema(db);
+
+    const fixedNow = new Date('2030-02-10T09:00:00.000Z');
+    createVocabularyEntry(db, 1, { word: 'gato', translation: 'cat', example: 'El gato duerme.' }, fixedNow);
+    createVocabularyEntry(db, 1, { word: 'perro', translation: 'dog', example: 'El perro corre.' }, fixedNow);
+    createVocabularyEntry(db, 1, { word: 'casa', translation: 'house', example: 'La casa es grande.' }, fixedNow);
+
+    const queue = listDueReviewCards(db, 1, { now: fixedNow, limit: 6 });
+
+    assert.deepEqual(
+      queue.cards.map((card) => `${card.word}:${card.direction}`),
+      [
+        'casa:source_to_target',
+        'gato:source_to_target',
+        'perro:source_to_target',
+        'casa:target_to_source',
+        'gato:target_to_source',
+        'perro:target_to_source',
+      ],
+    );
+
+    db.close();
+  });
+
+  it('rotates the starting word for equally ranked review rounds', () => {
+    const db = createTestDb();
+    ensureVocabularyReviewSchema(db);
+
+    const fixedNow = new Date('2030-02-10T09:00:00.000Z');
+    const rotatedNow = new Date('2030-02-10T10:00:00.000Z');
+    createVocabularyEntry(db, 1, { word: 'gato', translation: 'cat', example: 'El gato duerme.' }, fixedNow);
+    createVocabularyEntry(db, 1, { word: 'perro', translation: 'dog', example: 'El perro corre.' }, fixedNow);
+    createVocabularyEntry(db, 1, { word: 'casa', translation: 'house', example: 'La casa es grande.' }, fixedNow);
+
+    const firstQueue = listDueReviewCards(db, 1, { now: fixedNow, limit: 6 });
+    const secondQueue = listDueReviewCards(db, 1, { now: rotatedNow, limit: 6 });
+
+    assert.notEqual(firstQueue.cards[0].word, secondQueue.cards[0].word);
+    assert.deepEqual(
+      new Set(firstQueue.cards.slice(0, 3).map((card) => card.word)),
+      new Set(['gato', 'perro', 'casa']),
+    );
+    assert.deepEqual(
+      new Set(secondQueue.cards.slice(0, 3).map((card) => card.word)),
+      new Set(['gato', 'perro', 'casa']),
+    );
+
+    db.close();
+  });
+
+  it('keeps a reverse card behind other available words after one direction is reviewed', () => {
+    const db = createTestDb();
+    ensureVocabularyReviewSchema(db);
+
+    const fixedNow = new Date('2030-02-10T09:00:00.000Z');
+    createVocabularyEntry(db, 1, { word: 'gato', translation: 'cat', example: 'El gato duerme.' }, fixedNow);
+    createVocabularyEntry(db, 1, { word: 'perro', translation: 'dog', example: 'El perro corre.' }, fixedNow);
+    createVocabularyEntry(db, 1, { word: 'casa', translation: 'house', example: 'La casa es grande.' }, fixedNow);
+
+    const firstQueue = listDueReviewCards(db, 1, { now: fixedNow, limit: 6 });
+    const firstCard = firstQueue.cards[0];
+    reviewVocabularyCard(db, 1, firstCard.id, 'good', fixedNow);
+
+    const secondQueue = listDueReviewCards(db, 1, { now: fixedNow, limit: 5 });
+
+    assert.notEqual(secondQueue.cards[0].word, firstCard.word);
+    assert.notEqual(secondQueue.cards[1].word, firstCard.word);
+    assert.equal(secondQueue.cards.some((card) => card.word === firstCard.word), true);
+    assert.equal(secondQueue.cards.findIndex((card) => card.word === firstCard.word) >= 2, true);
 
     db.close();
   });
@@ -485,6 +643,30 @@ describe('Vocabulary review cards', () => {
       }),
       true,
     );
+
+    db.close();
+  });
+
+  it('allows marking a whole vocabulary entry learned even after it is already snoozed', () => {
+    const db = createTestDb();
+    ensureVocabularyReviewSchema(db);
+    const fixedNow = new Date('2030-04-03T12:00:00.000Z');
+    const later = new Date('2030-04-04T12:00:00.000Z');
+    const entry = createVocabularyEntry(db, 1, {
+      word: 'estrella',
+      translation: 'star',
+      example: 'La estrella brilla.',
+    }, fixedNow);
+
+    reviewLegacyVocabularyEntry(db, 1, entry.id, { grade: 'good', direction: 'source_to_target' }, fixedNow);
+    reviewLegacyVocabularyEntry(db, 1, entry.id, { grade: 'good', direction: 'target_to_source' }, fixedNow);
+
+    const markedEntry = markVocabularyEntryLearned(db, 1, entry.id, later);
+    const refreshedEntry = listVocabularyEntries(db, 1, later).entries[0];
+
+    assert.equal(markedEntry.id, entry.id);
+    assert.equal(refreshedEntry.cards.every((card) => card.status === 'learned'), true);
+    assert.equal(refreshedEntry.cards.every((card) => card.is_due === false), true);
 
     db.close();
   });
