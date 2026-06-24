@@ -436,7 +436,7 @@ test('imports an HPMOR chapter via mocked backend response', async ({ page }) =>
 
   await page.goto(readerUrl, { waitUntil: 'networkidle' });
 
-  await page.getByPlaceholder('Chapter number').fill('7');
+  await page.getByPlaceholder(/Chapter\(s\)/i).fill('7');
   await page.getByRole('button', { name: 'Import chapter' }).click();
 
   await expect(page.getByRole('heading', { name: 'Chapter 7: The Stanford Prison Experiment' })).toBeVisible();
@@ -487,7 +487,7 @@ test('imports a timed HPMOR chapter via mocked backend response', async ({ page 
 
   await page.goto(readerUrl, { waitUntil: 'networkidle' });
 
-  await page.getByPlaceholder('Chapter number').fill('12');
+  await page.getByPlaceholder(/Chapter\(s\)/i).fill('12');
   await page.getByRole('button', { name: 'Import chapter' }).click();
 
   await expect(page.getByRole('heading', { name: 'Chapter 12: Impulse Control' })).toBeVisible();
@@ -534,7 +534,7 @@ test('re-importing the same HPMOR chapter replaces the existing library item', a
 
   await page.goto(readerUrl, { waitUntil: 'networkidle' });
 
-  await page.getByPlaceholder('Chapter number').fill('7');
+  await page.getByPlaceholder(/Chapter\(s\)/i).fill('7');
   await page.getByRole('button', { name: 'Import chapter' }).click();
   await expect(page.getByText('Harry stepped forward.').first()).toBeVisible();
 
@@ -544,6 +544,44 @@ test('re-importing the same HPMOR chapter replaces the existing library item', a
   await expect(
     page.getByRole('button', { name: 'Chapter 7: The Stanford Prison Experiment' }),
   ).toHaveCount(1);
+});
+
+test('imports multiple HPMOR chapters as a batch range', async ({ page }) => {
+  let requestedChapters = [];
+  await page.route('**/english/api/reader/hpmor/chapter/*', async (route) => {
+    const url = route.request().url();
+    const chapterMatch = url.match(/\/chapter\/(\d+)/);
+    const chapterNumber = chapterMatch ? Number(chapterMatch[1]) : 0;
+    requestedChapters.push(chapterNumber);
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        chapterNumber,
+        title: `Chapter ${chapterNumber}: Test Chapter Title`,
+        text: `Harry did something in chapter ${chapterNumber}.`,
+        audioUrl: tinyAudioDataUrl,
+        audioDurationEstimate: 180,
+        audioLabel: `HPMOR audiobook part 1`,
+        audioSourceType: 'episode-group',
+        syncHint: 'Estimated sync',
+        source: 'hpmor',
+      }),
+    });
+  });
+
+  await page.goto(readerUrl, { waitUntil: 'networkidle' });
+
+  await page.getByPlaceholder(/Chapter\(s\)/i).fill('4, 5');
+  await page.getByRole('button', { name: 'Import chapter' }).click();
+
+  await expect(page.getByText('Successfully imported 2 chapter(s)!')).toBeVisible();
+
+  await expect(page.getByRole('button', { name: 'Chapter 4: Test Chapter Title' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Chapter 5: Test Chapter Title' })).toBeVisible();
+
+  expect(requestedChapters).toEqual([4, 5]);
 });
 
 test('shows continuous timed text with current word highlight and a shared bookmark', async ({ page }) => {
@@ -652,13 +690,10 @@ test('switching projects saves progress for the project you were listening to', 
 });
 
 test('scrubbing and switching projects restores the correct line', async ({ page }) => {
-  await createTimedReaderProject(page, 'First scrub drill');
-  await createTimedReaderProject(page, 'Second scrub drill');
+  page.on('console', msg => console.log('BROWSER LOG:', msg.text()));
 
-  await page.getByRole('button', { name: /First scrub drill/ }).click();
-  await page.locator('audio').evaluate((audio) => {
-    audio.dataset.mockCurrentTime = '0';
-    Object.defineProperty(audio, 'currentTime', {
+  await page.addInitScript(() => {
+    Object.defineProperty(HTMLAudioElement.prototype, 'currentTime', {
       configurable: true,
       get() {
         return Number(this.dataset.mockCurrentTime || '0');
@@ -667,32 +702,31 @@ test('scrubbing and switching projects restores the correct line', async ({ page
         this.dataset.mockCurrentTime = String(value);
       },
     });
+    Object.defineProperty(HTMLAudioElement.prototype, 'duration', {
+      configurable: true,
+      get() {
+        return 10;
+      },
+    });
   });
+
+  await createTimedReaderProject(page, 'First scrub drill');
+  await createTimedReaderProject(page, 'Second scrub drill');
+
+  await page.getByRole('button', { name: /First scrub drill/ }).click();
+  await expect(page.getByRole('heading', { name: 'First scrub drill' })).toBeVisible();
 
   await page.locator('audio').evaluate((audio) => {
     audio.currentTime = 1.05;
   });
 
   await page.getByRole('button', { name: /Second scrub drill/ }).click();
+  await expect(page.getByRole('heading', { name: 'Second scrub drill' })).toBeVisible();
+
   await page.getByRole('button', { name: /First scrub drill/ }).click();
+  await expect(page.getByRole('heading', { name: 'First scrub drill' })).toBeVisible();
 
   await page.locator('audio').evaluate((audio) => {
-    audio.dataset.mockCurrentTime = '0';
-    Object.defineProperty(audio, 'currentTime', {
-      configurable: true,
-      get() {
-        return Number(this.dataset.mockCurrentTime || '0');
-      },
-      set(value) {
-        this.dataset.mockCurrentTime = String(value);
-      },
-    });
-    Object.defineProperty(audio, 'duration', {
-      configurable: true,
-      get() {
-        return 10;
-      },
-    });
     audio.dispatchEvent(new Event('loadedmetadata'));
   });
 

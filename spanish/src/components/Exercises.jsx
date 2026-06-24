@@ -685,7 +685,7 @@ function Exercises() {
               {/* Следующее упражнение */}
               <button
                 onClick={resetExercise}
-                className="w-full px-6 py-3.5 sm:px-8 sm:py-4 bg-gradient-to-r from-purple-50 to-pink-50 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg font-bold text-lg sm:text-xl flex items-center justify-center space-x-2 sm:space-x-3"
+                className="w-full px-6 py-3.5 sm:px-8 sm:py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg font-bold text-lg sm:text-xl flex items-center justify-center space-x-2 sm:space-x-3"
               >
                 <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6" />
                 <span>Next Exercise</span>

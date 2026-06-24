@@ -1723,108 +1723,202 @@ function SyncReader() {
     }
   }
 
+  // Parse chapter inputs like "4", "5,6", "10-12", "1, 2, 4-6"
+  function parseChapterInput(inputString) {
+    const chapters = new Set();
+    const parts = String(inputString || '').split(/[\s,]+/);
+
+    for (const part of parts) {
+      if (!part.trim()) continue;
+
+      if (part.includes('-')) {
+        const rangeParts = part.split('-');
+        if (rangeParts.length === 2) {
+          const start = Number.parseInt(rangeParts[0], 10);
+          const end = Number.parseInt(rangeParts[1], 10);
+          if (Number.isInteger(start) && Number.isInteger(end) && start <= end) {
+            for (let i = start; i <= end; i++) {
+              if (i >= 1 && i <= 122 && i !== 64) {
+                chapters.add(i);
+              }
+            }
+          }
+        }
+      } else {
+        const ch = Number.parseInt(part, 10);
+        if (Number.isInteger(ch) && ch >= 1 && ch <= 122 && ch !== 64) {
+          chapters.add(ch);
+        }
+      }
+    }
+
+    return Array.from(chapters).sort((a, b) => a - b);
+  }
+
   async function handleImportHpmor(importMode = 'timed', options = {}) {
     setIsBusy(true);
     clearBusyProgress();
 
     try {
-      const chapterNumber = Number.parseInt(options.chapterNumber ?? hpmorChapter, 10);
-      if (!Number.isInteger(chapterNumber)) {
-        throw new Error('Enter a valid HPMOR chapter number.');
+      let chapterNumbers = [];
+      if (options.chapterNumber) {
+        if (Array.isArray(options.chapterNumber)) {
+          chapterNumbers = options.chapterNumber;
+        } else {
+          chapterNumbers = [Number.parseInt(options.chapterNumber, 10)];
+        }
+      } else {
+        chapterNumbers = parseChapterInput(hpmorChapter);
       }
 
-      if (importMode === 'timed') {
-        startBusyProgress({
-          label: `Transcribing chapter ${chapterNumber} locally`,
-          detail: 'The server is fetching the official audio and running local Whisper. First run can take a couple of minutes.',
-          percent: null,
-        });
+      if (chapterNumbers.length === 0) {
+        throw new Error('Enter a valid HPMOR chapter number or range (e.g. 4, 5, 12-15). Note that Chapter 64 is not available.');
       }
 
-      const data = await fetchReaderApiJson(`/api/reader/hpmor/chapter/${chapterNumber}`, {
-        headers:
-          importMode === 'timed'
-            ? {
-                'x-lingualearn-import-mode': 'timed',
-              }
-            : {},
-      });
+      const importedProjects = [];
+      const failedChapters = [];
+      const total = chapterNumbers.length;
 
-      const now = new Date().toISOString();
-      const matchingProjects = findMatchingHpmorProjects(options.currentProjects || projects, chapterNumber);
-      const importedTimedSegments =
-        data.timingMode === 'timed' && Array.isArray(data.segments) ? data.segments : [];
+      for (let index = 0; index < total; index++) {
+        const chapterNumber = chapterNumbers[index];
+        const progressLabel = total > 1 ? ` (${index + 1} of ${total})` : '';
 
-      if (importedTimedSegments.length > 0) {
-        const project = buildTimedReaderProject({
-          title: data.title,
-          transcriptData: data,
-          audioUrl: data.audioUrl,
-          audioName: data.audioLabel,
-          textName: `HPMOR chapter ${chapterNumber}`,
-          now,
-          extra: {
-            source: data.source,
-            sourceChapterNumber: chapterNumber,
-            audioSourceType: data.audioSourceType,
-            syncHint: data.syncHint,
-          },
-        });
+        if (importMode === 'timed') {
+          startBusyProgress({
+            label: `Transcribing chapter ${chapterNumber} locally${progressLabel}`,
+            detail: 'The server is fetching the official audio and running local Whisper. First run can take a couple of minutes.',
+            percent: Math.round((index / total) * 100),
+          });
+        } else {
+          startBusyProgress({
+            label: `Importing chapter ${chapterNumber} in rough sync${progressLabel}`,
+            detail: 'The server is downloading the text and locating the audio source...',
+            percent: Math.round((index / total) * 100),
+          });
+        }
 
-        await persistProject(project, {
-          removeProjectIds: matchingProjects.map((matchingProject) => matchingProject.id),
-        });
-        setStatus({
-          type: 'success',
-          message: `${matchingProjects.length > 0 ? 'Replaced the existing Library item for this HPMOR chapter. ' : ''}${data.syncHint}`,
-        });
-        return project;
+        try {
+          const data = await fetchReaderApiJson(`/api/reader/hpmor/chapter/${chapterNumber}`, {
+            headers:
+              importMode === 'timed'
+                ? {
+                    'x-lingualearn-import-mode': 'timed',
+                  }
+                : {},
+          });
+
+          const now = new Date().toISOString();
+          const currentProjects = await getAllReaderProjects();
+          const normalizedCurrentProjects = currentProjects.map((p) => normalizeLoadedProject(p));
+          const matchingProjects = findMatchingHpmorProjects(
+            options.currentProjects || normalizedCurrentProjects,
+            chapterNumber,
+          );
+          const importedTimedSegments =
+            data.timingMode === 'timed' && Array.isArray(data.segments) ? data.segments : [];
+
+          let project;
+          if (importedTimedSegments.length > 0) {
+            project = buildTimedReaderProject({
+              title: data.title,
+              transcriptData: data,
+              audioUrl: data.audioUrl,
+              audioName: data.audioLabel,
+              textName: `HPMOR chapter ${chapterNumber}`,
+              now,
+              extra: {
+                source: data.source,
+                sourceChapterNumber: chapterNumber,
+                audioSourceType: data.audioSourceType,
+                syncHint: data.syncHint,
+              },
+            });
+          } else {
+            const rawSegments = splitTextIntoSegments(data.text, 'sentence');
+            const draftProject = {
+              id: generateProjectId(),
+              title: data.title,
+              rawText: data.text,
+              segmentationMode: 'sentence',
+              timingMode: 'estimated',
+              audioUrl: data.audioUrl,
+              audioBlob: null,
+              audioName: data.audioLabel,
+              textName: `HPMOR chapter ${chapterNumber}`,
+              timingsName: `Estimated from ${data.audioSourceType === 'audiobook-part-fallback' ? 'the official audiobook part' : 'the narrowest official podcast episode'}`,
+              manualAnchors: {},
+              bookmark: null,
+              readingProgress: null,
+              estimatedWindow: data.estimatedWindow || null,
+              segments: [],
+              audioDuration: data.audioDurationEstimate,
+              needsSync: true,
+              needsInitialSeek: true,
+              source: data.source,
+              sourceChapterNumber: chapterNumber,
+              audioSourceType: data.audioSourceType,
+              syncHint: data.syncHint,
+              createdAt: now,
+              updatedAt: now,
+            };
+            project = {
+              ...draftProject,
+              segments: estimateSegmentBoundaries(
+                rawSegments,
+                data.audioDurationEstimate,
+                buildCombinedAnchors(draftProject, data.audioDurationEstimate, rawSegments.length),
+              ),
+            };
+          }
+
+          await persistProject(project, {
+            removeProjectIds: matchingProjects.map((matchingProject) => matchingProject.id),
+          });
+          importedProjects.push(project);
+        } catch (chapterError) {
+          console.error(`Error importing chapter ${chapterNumber}:`, chapterError);
+          failedChapters.push({ chapter: chapterNumber, error: chapterError.message });
+        }
       }
 
-      const rawSegments = splitTextIntoSegments(data.text, 'sentence');
-      const draftProject = {
-        id: generateProjectId(),
-        title: data.title,
-        rawText: data.text,
-        segmentationMode: 'sentence',
-        timingMode: 'estimated',
-        audioUrl: data.audioUrl,
-        audioBlob: null,
-        audioName: data.audioLabel,
-        textName: `HPMOR chapter ${chapterNumber}`,
-        timingsName: `Estimated from ${data.audioSourceType === 'audiobook-part-fallback' ? 'the official audiobook part' : 'the narrowest official podcast episode'}`,
-        manualAnchors: {},
-        bookmark: null,
-        readingProgress: null,
-        estimatedWindow: data.estimatedWindow || null,
-        segments: [],
-        audioDuration: data.audioDurationEstimate,
-        needsSync: true,
-        needsInitialSeek: true,
-        source: data.source,
-        sourceChapterNumber: chapterNumber,
-        audioSourceType: data.audioSourceType,
-        syncHint: data.syncHint,
-        createdAt: now,
-        updatedAt: now,
-      };
-      const project = {
-        ...draftProject,
-        segments: estimateSegmentBoundaries(
-          rawSegments,
-          data.audioDurationEstimate,
-          buildCombinedAnchors(draftProject, data.audioDurationEstimate, rawSegments.length),
-        ),
-      };
+      // Refresh project list after batch finishes
+      const savedProjects = await getAllReaderProjects();
+      const normalizedProjects = savedProjects.map((project) => normalizeLoadedProject(project));
+      setProjects(normalizedProjects);
 
-      await persistProject(project, {
-        removeProjectIds: matchingProjects.map((matchingProject) => matchingProject.id),
-      });
-      setStatus({
-        type: 'success',
-        message: `${matchingProjects.length > 0 ? 'Replaced the existing Library item for this HPMOR chapter. ' : ''}${data.syncHint} LinguaLearn will jump the audio near the estimated chapter start as soon as the metadata loads.`,
-      });
-      return project;
+      if (importedProjects.length > 0) {
+        setActiveProjectId(importedProjects[0].id);
+      }
+
+      if (total === 1) {
+        if (failedChapters.length > 0) {
+          throw new Error(failedChapters[0].error);
+        } else {
+          const project = importedProjects[0];
+          const isTimed = project.timingMode === 'timed';
+          const suffix = isTimed ? '' : ' LinguaLearn will jump the audio near the estimated chapter start as soon as the metadata loads.';
+          const initialMatching = findMatchingHpmorProjects(options.currentProjects || projects, chapterNumbers[0]);
+          const prefix = initialMatching.length > 0 ? 'Replaced the existing Library item for this HPMOR chapter. ' : '';
+          setStatus({
+            type: 'success',
+            message: `${prefix}${project.syncHint}${suffix}`,
+          });
+        }
+      } else {
+        if (failedChapters.length > 0) {
+          setStatus({
+            type: 'error',
+            message: `Imported ${importedProjects.length} chapters, but failed on: ${failedChapters.map((fc) => `Chapter ${fc.chapter} (${fc.error})`).join(', ')}.`,
+          });
+        } else {
+          setStatus({
+            type: 'success',
+            message: `Successfully imported ${importedProjects.length} chapter(s)!`,
+          });
+        }
+      }
+
+      return importedProjects.length > 0 ? importedProjects[0] : null;
     } catch (error) {
       setStatus({ type: 'error', message: error.message });
       return null;
@@ -2197,14 +2291,12 @@ function SyncReader() {
                 HPMOR audio file available. Use rough import only when you explicitly want manual pinning.
               </p>
               <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-                <input
-                  type="number"
-                  min="1"
-                  max="122"
+                 <input
+                  type="text"
                   value={hpmorChapter}
                   onChange={(event) => setHpmorChapter(event.target.value)}
                   className={`w-full rounded-xl border-2 px-4 py-3 focus:outline-none focus:border-yellow-400 ${inputClass}`}
-                  placeholder="Chapter number"
+                  placeholder="Chapter(s) e.g., 4, 5, 12-15"
                 />
                 <button
                   type="button"
