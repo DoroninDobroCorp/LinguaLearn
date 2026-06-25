@@ -2294,7 +2294,15 @@ function SyncReader() {
             >
               {visibleText}
             </span>
-    const togglePlayback = () => {
+          ) : (
+            visibleText
+          )}
+        </React.Fragment>
+      );
+    });
+  }
+
+  const togglePlayback = () => {
     if (!audioRef.current || !audioSource) return;
     if (audioRef.current.paused) {
       audioRef.current.play().catch((e) => setStatus({ type: 'error', message: e.message }));
