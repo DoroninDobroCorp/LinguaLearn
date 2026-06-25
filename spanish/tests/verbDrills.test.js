@@ -24,15 +24,14 @@ describe('verb drill helpers', () => {
 
   it('conjugates the top regular verbs in present tense', () => {
     assert.equal(conjugateVerb('regular', byInfinitive.hablar, 'yo'), 'hablo');
-    assert.equal(conjugateVerb('regular', byInfinitive.trabajar, 'tu'), 'trabajas');
+    assert.equal(conjugateVerb('regular', byInfinitive.trabajar, 'vos'), 'trabajás');
     assert.equal(conjugateVerb('regular', byInfinitive.estudiar, 'el'), 'estudia');
     assert.equal(conjugateVerb('regular', byInfinitive.comprar, 'nosotros'), 'compramos');
     assert.equal(conjugateVerb('regular', byInfinitive.llamar, 'ellos'), 'llaman');
     assert.equal(conjugateVerb('regular', byInfinitive.comer, 'yo'), 'como');
-    assert.equal(conjugateVerb('regular', byInfinitive.beber, 'vosotros'), 'bebéis');
     assert.equal(conjugateVerb('regular', byInfinitive.aprender, 'ellos'), 'aprenden');
     assert.equal(conjugateVerb('regular', byInfinitive.vivir, 'nosotros'), 'vivimos');
-    assert.equal(conjugateVerb('regular', byInfinitive.escribir, 'tu'), 'escribes');
+    assert.equal(conjugateVerb('regular', byInfinitive.escribir, 'vos'), 'escribís');
   });
 
   it('conjugates ser and estar separately', () => {
@@ -41,45 +40,41 @@ describe('verb drill helpers', () => {
     assert.equal(conjugateVerb('ser', { infinitive: 'ser' }, 'ellos'), 'son');
 
     assert.equal(conjugateVerb('estar', { infinitive: 'estar' }, 'yo'), 'estoy');
-    assert.equal(conjugateVerb('estar', { infinitive: 'estar' }, 'tu'), 'estás');
-    assert.equal(conjugateVerb('estar', { infinitive: 'estar' }, 'vosotros'), 'estáis');
+    assert.equal(conjugateVerb('estar', { infinitive: 'estar' }, 'vos'), 'estás');
 
     assert.equal(conjugateVerb('tener', { infinitive: 'tener' }, 'yo'), 'tengo');
-    assert.equal(conjugateVerb('tener', { infinitive: 'tener' }, 'tu'), 'tienes');
+    assert.equal(conjugateVerb('tener', { infinitive: 'tener' }, 'vos'), 'tenés');
     assert.equal(conjugateVerb('tener', { infinitive: 'tener' }, 'el'), 'tiene');
     assert.equal(conjugateVerb('tener', { infinitive: 'tener' }, 'nosotros'), 'tenemos');
-    assert.equal(conjugateVerb('tener', { infinitive: 'tener' }, 'vosotros'), 'tenéis');
     assert.equal(conjugateVerb('tener', { infinitive: 'tener' }, 'ellos'), 'tienen');
   });
 
   it('checks answers case-insensitively and tolerates missing accent marks', () => {
     assert.equal(isVerbDrillAnswerCorrect(' ESTAS ', 'estás'), true);
-    assert.equal(isVerbDrillAnswerCorrect('estais', 'estáis'), true);
     assert.equal(isVerbDrillAnswerCorrect('manana', 'mañana'), true);
     assert.equal(isVerbDrillAnswerCorrect('soy', 'somos'), false);
   });
 
   it('accepts either the verb form or the pronoun plus verb form', () => {
     const question = {
-      correctAnswer: 'estudias',
-      pronounAliases: ['tú', 'tu'],
+      correctAnswer: 'estudiás',
+      pronounAliases: ['vos'],
     };
 
     assert.deepEqual(
       getVerbDrillAcceptedAnswers(question),
-      ['estudias', 'tu estudias'],
+      ['estudiás', 'vos estudiás'],
     );
-    assert.equal(isVerbDrillAnswerCorrect('estudias', question), true);
-    assert.equal(isVerbDrillAnswerCorrect('tu estudias', question), true);
-    assert.equal(isVerbDrillAnswerCorrect('tú estudias', question), true);
-    assert.equal(isVerbDrillAnswerCorrect('yo estudias', question), false);
+    assert.equal(isVerbDrillAnswerCorrect('estudiás', question), true);
+    assert.equal(isVerbDrillAnswerCorrect('vos estudiás', question), true);
+    assert.equal(isVerbDrillAnswerCorrect('yo estudiás', question), false);
   });
 
   it('shows the correction with the prompt pronoun included', () => {
     assert.equal(getVerbDrillDisplayAnswer({
-      correctAnswer: 'vives',
-      pronounAliases: ['tú', 'tu'],
-    }), 'tú vives');
+      correctAnswer: 'vivís',
+      pronounAliases: ['vos'],
+    }), 'vos vivís');
 
     assert.equal(getVerbDrillDisplayAnswer({
       correctAnswer: 'estudian',
