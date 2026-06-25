@@ -291,7 +291,7 @@ const CURRICULUM_DATA = [
   { name: 'Gender and articles (el/la/los/las)', category: 'Grammar', level: 'A1' },
   { name: 'Indefinite articles (un/una/unos/unas)', category: 'Grammar', level: 'A1' },
   { name: 'Plural nouns (-s/-es)', category: 'Grammar', level: 'A1' },
-  { name: 'Subject pronouns (yo/tú/él/ella)', category: 'Grammar', level: 'A1' },
+  { name: 'Subject pronouns (yo/vos/él/ella)', category: 'Grammar', level: 'A1' },
   { name: 'Possessive adjectives (mi/tu/su)', category: 'Grammar', level: 'A1' },
   { name: 'Demonstratives (este/ese/aquel)', category: 'Grammar', level: 'A1' },
   { name: 'Hay (there is / there are)', category: 'Grammar', level: 'A1' },

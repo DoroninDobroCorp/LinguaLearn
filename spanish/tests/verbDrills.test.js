@@ -63,7 +63,7 @@ describe('verb drill helpers', () => {
 
     assert.deepEqual(
       getVerbDrillAcceptedAnswers(question),
-      ['estudiás', 'vos estudiás'],
+      ['estudias', 'vos estudias'],
     );
     assert.equal(isVerbDrillAnswerCorrect('estudiás', question), true);
     assert.equal(isVerbDrillAnswerCorrect('vos estudiás', question), true);
