@@ -18,6 +18,17 @@ import {
   Sparkles,
   Trash2,
   Upload,
+  Play,
+  Pause,
+  FolderOpen,
+  Globe,
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  BookOpen,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -669,6 +680,10 @@ function SyncReader() {
   const [projectTranslations, setProjectTranslations] = useState(() => readReaderTranslationMap());
   const [isTranslationBusy, setIsTranslationBusy] = useState(false);
   const [translationError, setTranslationError] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [readerFontSize, setReaderFontSize] = useState(20);
+  const [isImportDrawerOpen, setIsImportDrawerOpen] = useState(false);
+  const [visibleTranslationIndex, setVisibleTranslationIndex] = useState(null);
   const segmentRefs = useRef({});
   const segmentsContainerRef = useRef(null);
   const splitEnglishSegmentRefs = useRef({});
@@ -866,6 +881,55 @@ function SyncReader() {
     setIsTranslationFirst(false);
     setTranslationError('');
   }, [activeProjectId]);
+
+  useEffect(() => {
+    if (!hasLoadedProjects) return;
+    
+    const missingChapters = [12, 13, 14, 15].filter(
+      (ch) => !projects.some((p) => p.source === 'hpmor' && p.sourceChapterNumber === ch)
+    );
+
+    if (missingChapters.length > 0) {
+      const runAutoImport = async () => {
+        setIsBusy(true);
+        for (const ch of missingChapters) {
+          try {
+            startBusyProgress({
+              label: `Pre-loading HPMOR Chapter ${ch}`,
+              detail: `Fetching timed transcript and audio for Chapter ${ch}...`,
+              percent: null,
+            });
+            const data = await fetchReaderApiJson(`/api/reader/hpmor/chapter/${ch}`, {
+              headers: { 'x-lingualearn-import-mode': 'timed' },
+            });
+            const now = new Date().toISOString();
+            const project = buildTimedReaderProject({
+              title: data.title,
+              transcriptData: data,
+              audioUrl: data.audioUrl,
+              audioName: data.audioLabel,
+              textName: `HPMOR chapter ${ch}`,
+              now,
+              extra: {
+                source: data.source,
+                sourceChapterNumber: ch,
+                audioSourceType: data.audioSourceType,
+                syncHint: data.syncHint,
+              },
+            });
+            await persistProject(project);
+          } catch (e) {
+            console.error(`Failed to auto-import chapter ${ch}:`, e);
+          }
+        }
+        const saved = await getAllReaderProjects();
+        setProjects(saved.map(normalizeLoadedProject));
+        setIsBusy(false);
+        clearBusyProgress();
+      };
+      runAutoImport();
+    }
+  }, [hasLoadedProjects, projects]);
 
   useEffect(() => {
     if (!activeProject) {
@@ -2230,384 +2294,185 @@ function SyncReader() {
             >
               {visibleText}
             </span>
-          ) : (
-            visibleText
-          )}
-        </React.Fragment>
-      );
-    });
-  }
+    const togglePlayback = () => {
+    if (!audioRef.current || !audioSource) return;
+    if (audioRef.current.paused) {
+      audioRef.current.play().catch((e) => setStatus({ type: 'error', message: e.message }));
+    } else {
+      audioRef.current.pause();
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <section className={`${cardClass} rounded-2xl shadow-2xl p-6`}>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h2 className="text-3xl font-bold flex items-center gap-3">
-              <Headphones className="h-8 w-8 text-yellow-500" />
-              Sync Reader
-            </h2>
-            <p className={`${subtextClass} mt-2 max-w-3xl`}>
-              Build a synced reading experience from any text + audio pair. The MVP starts with rough
-              timing based on text length, then lets you pin manual anchors or import exact timings from
-              JSON, SRT, or VTT. For clean English audio, you can also generate a local timed transcript
-              directly in the reader.
-            </p>
-          </div>
-
-          <div className={`rounded-2xl border p-4 ${softCardClass}`}>
-            <p className="font-semibold flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-yellow-500" />
-              HPMOR quick start
-            </p>
-            <ol className={`mt-2 list-decimal list-inside text-sm space-y-1 ${subtextClass}`}>
-              <li>Copy one chapter from the official HPMOR mirror.</li>
-              <li>Paste the matching podcast MP3 URL or upload the audio file.</li>
-              <li>Use sentence mode for tighter rough sync, then pin anchors where it drifts.</li>
-            </ol>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <a
-                href={HPMOR_TEXT_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="px-3 py-2 rounded-lg bg-gradient-to-r from-yellow-400 to-lime-400 text-gray-900 font-semibold"
-              >
-                Open HPMOR text
-              </a>
-              <a
-                href={HPMOR_AUDIO_URL}
-                target="_blank"
-                rel="noreferrer"
-                className={`px-3 py-2 rounded-lg border font-semibold ${borderClass}`}
-              >
-                Open HPMOR audio
-              </a>
+    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+      {/* Top Header & Chapter Switcher */}
+      <header className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50 z-30 px-6 py-4">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl text-white shadow-md">
+              <BookOpen className="h-6 w-6" />
             </div>
-
-            <div className={`mt-4 rounded-xl border p-4 ${softCardClass}`}>
-              <p className="text-sm font-semibold">One-click HPMOR import</p>
-              <p className={`mt-1 text-xs ${subtextClass}`}>
-                Import chapter now uses local Whisper to build a timed transcript from the narrowest official
-                HPMOR audio file available. Use rough import only when you explicitly want manual pinning.
-              </p>
-              <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-                 <input
-                  type="text"
-                  value={hpmorChapter}
-                  onChange={(event) => setHpmorChapter(event.target.value)}
-                  className={`w-full rounded-xl border-2 px-4 py-3 focus:outline-none focus:border-yellow-400 ${inputClass}`}
-                  placeholder="Chapter(s) e.g., 4, 5, 12-15"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleImportHpmor('timed')}
-                  disabled={isBusy}
-                  className="rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900 whitespace-nowrap disabled:opacity-60"
-                >
-                  Import chapter
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleImportHpmor('rough')}
-                  disabled={isBusy}
-                  className={`rounded-xl border px-4 py-3 font-semibold whitespace-nowrap disabled:opacity-60 ${borderClass}`}
-                >
-                  Import rough sync
-                </button>
-              </div>
-              <p className={`mt-2 text-xs ${subtextClass}`}>
-                Note: timed import can take a while on the first run because local Whisper has to
-                transcribe the audio once, then the result is cached on the server.
-              </p>
-            </div>
-
-            <div className={`mt-4 rounded-xl border p-4 ${softCardClass}`}>
-              <p className="text-sm font-semibold">Ready examples: chapters 4 and 12</p>
-              <p className={`mt-1 text-xs ${subtextClass}`}>
-                Skip transcript prep. These open instantly with prepared transcripts and keep your
-                progress in this browser.
-              </p>
-              <div className="mt-3 flex flex-col gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleOpenReadyReaderExample('hpmor-chapter-4')}
-                  disabled={isBusy}
-                  className="rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900 disabled:opacity-60"
-                >
-                  Open ready chapter 4
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOpenReadyReaderExample('hpmor-chapter-12')}
-                  disabled={isBusy}
-                  className="rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900 disabled:opacity-60"
-                >
-                  Open ready chapter 12
-                </button>
-                <a
-                  href={readyChapter4Href}
-                  className={`rounded-xl border px-4 py-3 text-sm font-semibold text-center ${borderClass}`}
-                >
-                  Direct link for ready chapter 4
-                </a>
-                <a
-                  href={readyChapter12Href}
-                  className={`rounded-xl border px-4 py-3 text-sm font-semibold text-center ${borderClass}`}
-                >
-                  Direct link for ready chapter 12
-                </a>
-              </div>
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Sync Reader</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Premium Bilingual Audio Reading</p>
             </div>
           </div>
+
+          {/* Chapter Quick Switcher */}
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-200/50 dark:border-slate-800/50">
+            <span className="text-xs font-semibold px-2.5 text-slate-400 dark:text-slate-500 uppercase tracking-wider">HPMOR Chapters:</span>
+            {[12, 13, 14, 15].map((ch) => {
+              const project = projects.find(p => p.source === 'hpmor' && p.sourceChapterNumber === ch);
+              const isCurrent = activeProject?.source === 'hpmor' && activeProject?.sourceChapterNumber === ch;
+              return (
+                <button
+                  key={ch}
+                  type="button"
+                  disabled={isBusy}
+                  onClick={async () => {
+                    if (project) {
+                      handleSelectProject(project.id);
+                    } else {
+                      await handleImportHpmor('timed', { chapterNumber: ch });
+                    }
+                  }}
+                  className={`px-4 py-1.5 rounded-xl text-sm font-semibold transition-all ${
+                    isCurrent
+                      ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Ch {ch}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Library Button */}
+          <button
+            onClick={() => setIsImportDrawerOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-semibold transition-all border border-slate-200 dark:border-slate-700 shadow-sm"
+          >
+            <FolderOpen className="h-4 w-4 text-purple-500" />
+            Library & Custom Imports
+          </button>
         </div>
+      </header>
 
+      {/* Main Content Workspace */}
+      <main className="flex-1 w-full max-w-4xl mx-auto px-6 py-8 pb-36">
         {status.message && (
           <div
-            className={`mt-4 rounded-xl px-4 py-3 text-sm font-medium ${
+            className={`mb-6 rounded-2xl p-4 text-sm font-semibold flex items-center justify-between border ${
               status.type === 'error'
-                ? 'bg-red-100 text-red-800'
+                ? 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
                 : status.type === 'success'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-blue-100 text-blue-800'
+                  ? 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400'
+                  : 'bg-sky-500/10 border-sky-500/30 text-sky-600 dark:text-sky-400'
             }`}
           >
-            {status.message}
+            <span>{status.message}</span>
+            <button onClick={() => setStatus({ type: 'idle', message: '' })} className="hover:opacity-75">✕</button>
           </div>
         )}
 
-        {busyProgress && (
-          <div
-            data-testid="reader-progress"
-            className={`mt-4 rounded-xl border px-4 py-4 ${softCardClass}`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold">{busyProgress.label}</p>
-              <span className={`text-xs font-semibold ${accentTextClass}`}>
-                {Number.isFinite(busyProgress.percent) ? `${Math.round(busyProgress.percent)}%` : 'In progress'}
-              </span>
+        {isBusy && busyProgress && (
+          <div className="mb-6 p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg animate-pulse">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{busyProgress.label}</p>
+              {Number.isFinite(busyProgress.percent) && (
+                <span className="text-xs font-bold text-purple-600">{Math.round(busyProgress.percent)}%</span>
+              )}
             </div>
-            {busyProgress.detail && (
-              <p className={`mt-1 text-xs ${subtextClass}`}>{busyProgress.detail}</p>
-            )}
-            <div
-              className={`mt-3 h-2 overflow-hidden rounded-full ${isDark ? 'bg-slate-700' : 'bg-yellow-100'}`}
-            >
+            {busyProgress.detail && <p className="text-xs text-slate-400 mb-3">{busyProgress.detail}</p>}
+            <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <div
-                data-testid="reader-progress-bar"
-                className={`h-full rounded-full bg-gradient-to-r from-yellow-400 to-lime-400 transition-all duration-300 ${
-                  Number.isFinite(busyProgress.percent) ? '' : 'animate-pulse'
-                }`}
+                className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full transition-all duration-300"
                 style={{ width: `${Number.isFinite(busyProgress.percent) ? Math.max(busyProgress.percent, 6) : 42}%` }}
-              />
+              ></div>
             </div>
-            <p className={`mt-2 text-xs ${subtextClass}`}>
-              {Number.isFinite(busyProgress.percent)
-                ? 'Uploading audio to the server.'
-                : 'Processing on the server. The exact percent is not available yet.'}
-            </p>
           </div>
         )}
-      </section>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-        <div className="space-y-6">
-          <section className={`${cardClass} rounded-2xl shadow-2xl p-6`}>
-            <h3 className="text-2xl font-bold flex items-center gap-2">
-              <Plus className="h-6 w-6 text-yellow-500" />
-              Create Reader Project
-            </h3>
-            <p className={`${subtextClass} mt-2 text-sm`}>
-              Import a chapter, article, podcast transcript, or audiobook slice. Timings are optional,
-              and for clean English audio you can ask the server to transcribe it locally into a timed
-              project.
+        {!activeProject ? (
+          <div className="flex flex-col items-center justify-center text-center py-20 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50 rounded-3xl p-8 shadow-sm">
+            <div className="p-4 bg-purple-500/10 rounded-full text-purple-600 mb-4 animate-bounce">
+              <BookOpen className="h-10 w-10" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white">Ready to study English?</h3>
+            <p className="text-sm text-slate-500 mt-2 max-w-md">
+              Select one of the pre-loaded chapters (12-15) from the top bar to read with Whisper audio timings, or open the Library drawer to import custom content.
             </p>
-
-            <form className="mt-5 space-y-4" onSubmit={handleCreateProject}>
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold">Project title</span>
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                  placeholder="HPMOR - Chapter 1"
-                  className={`w-full rounded-xl border-2 px-4 py-3 focus:outline-none focus:border-yellow-400 ${inputClass}`}
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-yellow-500" />
-                  Text
-                </span>
-                <textarea
-                  value={form.text}
-                  onChange={(event) => setForm((current) => ({ ...current, text: event.target.value }))}
-                  placeholder="Paste chapter text here, or upload a .txt/.md file below."
-                  rows="6"
-                  className={`w-full rounded-xl border-2 px-4 py-3 focus:outline-none focus:border-yellow-400 ${inputClass}`}
-                />
-              </label>
-              <p className={`text-xs ${subtextClass}`}>
-                If you use local transcription below, pasted text is optional. The synced reader will use
-                the spoken transcript returned from the audio itself.
-              </p>
-
-              <label className={`block rounded-xl border-2 border-dashed px-4 py-3 ${borderClass}`}>
-                <span className="text-sm font-semibold flex items-center gap-2">
-                  <Upload className="h-4 w-4 text-yellow-500" />
-                  Upload text file
-                </span>
-                <input
-                  type="file"
-                  accept=".txt,.md"
-                  className="mt-2 block w-full text-sm"
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, textFile: event.target.files?.[0] || null }))
-                  }
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold flex items-center gap-2">
-                  <Link2 className="h-4 w-4 text-yellow-500" />
-                  Audio URL
-                </span>
-                <input
-                  type="url"
-                  value={form.audioUrl}
-                  onChange={(event) => setForm((current) => ({ ...current, audioUrl: event.target.value }))}
-                  placeholder="https://..."
-                  className={`w-full rounded-xl border-2 px-4 py-3 focus:outline-none focus:border-yellow-400 ${inputClass}`}
-                />
-              </label>
-
-              <label className={`block rounded-xl border-2 border-dashed px-4 py-3 ${borderClass}`}>
-                <span className="text-sm font-semibold flex items-center gap-2">
-                  <FileAudio className="h-4 w-4 text-yellow-500" />
-                  Upload audio file
-                </span>
-                <input
-                  type="file"
-                  accept="audio/*"
-                  className="mt-2 block w-full text-sm"
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, audioFile: event.target.files?.[0] || null }))
-                  }
-                />
-              </label>
-
-              <label className={`block rounded-xl border-2 border-dashed px-4 py-3 ${borderClass}`}>
-                <span className="text-sm font-semibold flex items-center gap-2">
-                  <Clock3 className="h-4 w-4 text-yellow-500" />
-                  Optional timings (JSON, SRT, VTT)
-                </span>
-                <input
-                  type="file"
-                  accept=".json,.srt,.vtt"
-                  className="mt-2 block w-full text-sm"
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, timingsFile: event.target.files?.[0] || null }))
-                  }
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold">Segmentation mode</span>
-                <select
-                  value={form.segmentationMode}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, segmentationMode: event.target.value }))
-                  }
-                  className={`w-full rounded-xl border-2 px-4 py-3 focus:outline-none focus:border-yellow-400 ${inputClass}`}
-                >
-                  <option value="paragraph">Paragraphs (best for chapters)</option>
-                  <option value="sentence">Sentences (best for HPMOR/audio drilling)</option>
-                </select>
-              </label>
-
-              <div className="space-y-3">
-                <button
-                  type="submit"
-                  disabled={isBusy}
-                  className="w-full rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900 shadow-md disabled:opacity-60"
-                >
-                  {isBusy ? 'Working...' : 'Create Reader Project'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCreateTimedTranscriptProject}
-                  disabled={isBusy}
-                  className={`w-full rounded-xl border px-4 py-3 font-semibold shadow-sm disabled:opacity-60 ${borderClass}`}
-                >
-                  {isBusy ? 'Working...' : 'Transcribe Audio Locally'}
-                </button>
-              </div>
-              <p className={`text-xs ${subtextClass}`}>
-                `Transcribe Audio Locally` works best for clear English speech. First run on a new audio
-                file can take a couple of minutes on CPU, then you can export the timings JSON and reuse it.
-              </p>
-            </form>
-          </section>
-
-          <section className={`${cardClass} rounded-2xl shadow-2xl p-6`}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <button
+              onClick={() => setIsImportDrawerOpen(true)}
+              className="mt-6 px-6 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl font-bold text-sm shadow-lg transition-transform hover:scale-105"
+            >
+              Open Library Drawer
+            </button>
+          </div>
+        ) : (
+          <div className="animate-fadeIn">
+            {/* Project Header */}
+            <div className="mb-8 pb-6 border-b border-slate-200/60 dark:border-slate-800/60 flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
-                <h3 className="text-2xl font-bold">Library</h3>
-                <p className={`${subtextClass} mt-2 text-sm`}>
-                  Saved locally in your browser with text, timings, uploaded audio files, and your reading
-                  progress.
+                <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest">Active Chapter</span>
+                <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white mt-1 leading-tight font-sans">
+                  {activeProject.title}
+                </h1>
+                <p className="text-xs text-slate-400 mt-2 flex items-center gap-1.5 font-sans">
+                  <span>Source: {activeProject.textName}</span>
+                  <span>•</span>
+                  <span>Audio: {activeProject.audioName}</span>
                 </p>
               </div>
 
-              {hpmorProjectCount > 0 && (
+              {/* Translation Trigger Banner */}
+              {!activeProjectHasTranslations && (
                 <button
-                  type="button"
-                  onClick={handleResetHpmorProjects}
-                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100"
+                  onClick={() => handleLoadProjectTranslations()}
+                  disabled={isTranslationBusy}
+                  className="px-4 py-2 border border-purple-500/30 hover:border-purple-500 bg-purple-500/5 text-purple-600 dark:text-purple-400 rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  Reset HPMOR chapters ({hpmorProjectCount})
+                  <Globe className="h-3.5 w-3.5" />
+                  {isTranslationBusy ? 'Translating...' : 'Translate Chapter (AI)'}
                 </button>
               )}
             </div>
 
-            <div className="mt-4 space-y-3">
-              {projects.length === 0 && (
-                <div className={`rounded-xl border p-4 text-sm ${softCardClass}`}>
-                  No reader projects yet. Create your first HPMOR chapter above.
-                </div>
-              )}
+            {/* Reading Viewport */}
+            <div
+              ref={segmentsContainerRef}
+              className="overflow-y-auto max-h-[62vh] pr-4 space-y-6 scroll-smooth pb-32"
+            >
+              {activeProject.segments.map((segment, index) => {
+                const isActive = index === activeSegmentIndex;
+                const isSelected = index === selectedSegmentIndex;
+                const segmentWordIndex = isActive ? activeWordIndex : -1;
 
-              {projects.map((project) => {
-                const badges = getSegmentBadges(project);
-                const summary = buildProjectSummary(project);
-                const isActive = project.id === activeProjectId;
+                const showTranslation = isBilingualMode || visibleTranslationIndex === index;
+                const translatedText = activeProjectTranslations ? activeProjectTranslations[index] : null;
 
                 return (
-                  <button
-                    key={project.id}
-                    type="button"
-                    onClick={() => handleSelectProject(project.id)}
-                    className={`w-full rounded-xl border p-4 text-left transition-all ${
+                  <div
+                    key={segment.id}
+                    ref={(el) => {
+                      segmentRefs.current[index] = el;
+                    }}
+                    onClick={() => {
+                      if (Number.isFinite(segment.start)) {
+                        seekToSegment(index);
+                      } else {
+                        setSelectedSegmentIndex(index);
+                      }
+                      setVisibleTranslationIndex(visibleTranslationIndex === index ? null : index);
+                    }}
+                    className={`group transition-all duration-300 py-3 px-4 rounded-2xl cursor-pointer border ${
                       isActive
-                        ? 'border-yellow-400 bg-gradient-to-r from-yellow-100 to-lime-100 text-gray-900 shadow-lg'
-                        : `${softCardClass} hover:border-yellow-300`
+                        ? 'bg-purple-500/5 dark:bg-purple-400/5 border-purple-200 dark:border-purple-800/80 opacity-100 shadow-sm'
+                        : isSelected
+                          ? 'bg-slate-100/50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-90'
+                          : 'border-transparent opacity-50 hover:opacity-85'
                     }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold">{project.title}</p>
-                          <p className={`mt-1 text-xs ${isActive ? 'text-gray-700' : subtextClass}`}>
-                            {badges.modeLabel} · {badges.segmentCount} segments · {summary.firstTime} →{' '}
-                            {summary.lastTime}
-                          </p>
-                          {project.readingProgress && (
-                            <p className={`mt-2 text-xs font-semibold ${isActive ? 'text-sky-800' : 'text-sky-700'}`}>
-                              Resume from {formatTime(project.readingProgress.time)}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          {project.readingProgress && (
                             <span className="rounded-full bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-900">
                               progress {formatTime(project.readingProgress.time)}
                             </span>
