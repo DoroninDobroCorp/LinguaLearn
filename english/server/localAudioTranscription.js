@@ -148,9 +148,9 @@ async function runLocalWhisper({ audioUrl, audioPath, modelName, includeWordTime
   ];
 
   if (audioUrl) {
-    args.unshift('--audio-url', audioUrl);
+    args.push('--audio-url', audioUrl);
   } else if (audioPath) {
-    args.unshift('--audio-path', audioPath);
+    args.push('--audio-path', audioPath);
   } else {
     throw createTranscriptionError('Provide either an audio URL or an audio file for local transcription.', 400);
   }
