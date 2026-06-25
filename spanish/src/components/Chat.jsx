@@ -159,7 +159,7 @@ function Chat() {
           // Приветственное сообщение только если история пустая
           setMessages([{
             role: 'assistant',
-            content: 'Hey there! I\'m your Spanish learning assistant. Ready to help you practice, give you exercises, or just chat in Spanish. What would you like to work on today?'
+            content: '¡Hola! I\'m your Argentine Spanish learning assistant. Ready to help you practice voseo, give you exercises, or just chat in Rioplatense Spanish. What would you like to work on today?'
           }]);
         }
       } catch (error) {
@@ -171,7 +171,7 @@ function Chat() {
         // Приветственное сообщение в случае ошибки
         setMessages([{
           role: 'assistant',
-          content: 'Hey there! I\'m your Spanish learning assistant. Ready to help you practice, give you exercises, or just chat in Spanish. What would you like to work on today?'
+          content: '¡Hola! I\'m your Argentine Spanish learning assistant. Ready to help you practice voseo, give you exercises, or just chat in Rioplatense Spanish. What would you like to work on today?'
         }]);
       }
     };
