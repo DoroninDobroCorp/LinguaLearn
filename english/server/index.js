@@ -4,16 +4,30 @@ import cors from 'cors';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
 import { buildHpmorChapterImport } from './hpmor.js';
 import { transcribeAudioLocally } from './localAudioTranscription.js';
 import { translateSegmentsWithGemini } from './geminiSegmentTranslation.js';
+import { attachLiveChatBridge } from './liveChatBridge.js';
+import {
+  createCaptureAuthMiddleware,
+  createGeminiWritingAnalyzer,
+  createWritingAnalysisService,
+  createWritingAnalyzeHandler,
+  createWritingSamplesHandler,
+} from './writingAnalysis.js';
+import {
+  createChatIdempotencyStore,
+  normalizeGeminiChatHistory,
+  normalizeOptionalMessageId,
+} from './chatIdempotency.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = Number.parseInt(process.env.PORT || '3001', 10);
+const HOST = String(process.env.HOST || '127.0.0.1').trim();
 const SERVICE_NAME = 'english-api';
 const hpmorChapterHtmlCache = new Map();
 const hpmorPodcastPostHtmlCache = new Map();
@@ -31,7 +45,13 @@ if (!geminiEnabled) {
 }
 
 // Инициализация базы данных
-const db = new Database(join(__dirname, 'english_learning.db'));
+const configuredDatabasePath = String(process.env.ENGLISH_DB_PATH || '').trim();
+const databasePath = configuredDatabasePath === ':memory:'
+  ? ':memory:'
+  : configuredDatabasePath
+    ? resolve(configuredDatabasePath)
+    : join(__dirname, 'english_learning.db');
+const db = new Database(databasePath);
 
 // Создание таблиц
 db.exec(`
@@ -310,7 +330,41 @@ const seedCurriculum = db.transaction(() => {
 });
 seedCurriculum();
 
-app.use(cors());
+const chatIdempotencyStore = createChatIdempotencyStore(db);
+const writingAnalysisService = createWritingAnalysisService({
+  db,
+  analyzer: createGeminiWritingAnalyzer({ genAI }),
+});
+const captureAuth = createCaptureAuthMiddleware({
+  token: process.env.CAPTURE_API_TOKEN,
+});
+
+const configuredCorsOrigins = String(process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const productionCors = {
+  origin(origin, callback) {
+    if (!origin || configuredCorsOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(null, false);
+  },
+};
+
+app.use(cors(process.env.NODE_ENV === 'production' ? productionCors : undefined));
+app.post(
+  '/api/writing/analyze',
+  captureAuth,
+  express.json({ limit: '32kb' }),
+  createWritingAnalyzeHandler({ service: writingAnalysisService }),
+);
+app.get(
+  '/api/writing/samples',
+  captureAuth,
+  createWritingSamplesHandler({ service: writingAnalysisService }),
+);
 app.use(express.json({ limit: '5mb' }));
 
 function buildHealthResponse() {
@@ -327,6 +381,7 @@ function buildHealthResponse() {
     },
     features: {
       aiChat: geminiEnabled,
+      writingCapture: Boolean(String(process.env.CAPTURE_API_TOKEN || '').trim()),
       readerTranslation: geminiEnabled,
       readerImport: true,
       curriculum: true,
@@ -429,19 +484,103 @@ IMPORTANT: Track BOTH mistakes AND successes in ALL interactions. Be gentle when
   return context;
 }
 
-// API: Чат с ЛЛМ
-app.post('/api/chat', async (req, res) => {
-  if (!ensureGeminiAvailable(res, ['aiChat'])) {
-    return;
+function extractTaggedObject(text, tagName) {
+  const prefixPattern = new RegExp(`\\[${tagName}:\\s*`, 'g');
+  const match = prefixPattern.exec(text);
+  if (!match) return null;
+
+  const jsonStart = match.index + match[0].length;
+  let braceCount = 0;
+  let insideString = false;
+  let escaped = false;
+
+  for (let index = jsonStart; index < text.length; index += 1) {
+    const character = text[index];
+    if (insideString) {
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') insideString = false;
+      continue;
+    }
+    if (character === '"') {
+      insideString = true;
+      continue;
+    }
+    if (character === '{') braceCount += 1;
+    if (character !== '}') continue;
+
+    braceCount -= 1;
+    if (braceCount === 0) {
+      const closingBracket = text.indexOf(']', index + 1);
+      const end = closingBracket === index + 1 ? closingBracket + 1 : index + 1;
+      return {
+        json: text.slice(jsonStart, index + 1),
+        start: match.index,
+        end,
+      };
+    }
   }
 
+  return null;
+}
+
+function dedupeChatTopicUpdates(updates) {
+  const byTopic = new Map();
+  for (const update of Array.isArray(updates) ? updates : []) {
+    if (!update || typeof update.topic !== 'string' || !update.topic.trim()) continue;
+    const normalized = {
+      topic: update.topic.trim(),
+      category: typeof update.category === 'string' && update.category.trim()
+        ? update.category.trim()
+        : 'Grammar',
+      level: /^(A1|A2|B1|B2|C1|C2)$/.test(update.level) ? update.level : 'B2',
+      success: update.success === true,
+    };
+    const canonicalTopic = findCurriculumTopic(normalized.topic);
+    if (canonicalTopic) {
+      normalized.topic = canonicalTopic.name;
+      normalized.category = canonicalTopic.category;
+      normalized.level = canonicalTopic.level;
+    }
+    const key = canonicalTopic
+      ? `curriculum:${canonicalTopic.id}`
+      : `new:${normalized.topic.toLocaleLowerCase('en-US')}`;
+    const existing = byTopic.get(key);
+    if (!existing || (!normalized.success && existing.success)) byTopic.set(key, normalized);
+  }
+  return [...byTopic.values()];
+}
+
+// API: Чат с ЛЛМ
+app.post('/api/chat', async (req, res) => {
+  let reservedMessageId = null;
   try {
-    const { message } = req.body;
-    
-    // Сохранение сообщения пользователя
-    db.prepare('INSERT INTO chat_history (role, content) VALUES (?, ?)').run('user', message);
-    
-    // Получение истории чата (последние 10 сообщений)
+    const { message, messageId: rawMessageId } = req.body || {};
+    if (typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ error: 'message must be a non-empty string.' });
+    }
+    const messageId = normalizeOptionalMessageId(rawMessageId);
+    const reservation = chatIdempotencyStore.begin(messageId, message);
+    if (reservation.state === 'cached') {
+      res.set('X-Idempotent-Replay', 'true');
+      return res.json(reservation.response);
+    }
+    if (reservation.state === 'processing') {
+      res.set('Retry-After', '1');
+      return res.status(409).json({
+        error: 'This chat message is already being processed.',
+        code: 'MESSAGE_IN_PROGRESS',
+      });
+    }
+    if (reservation.state === 'reserved') reservedMessageId = messageId;
+
+    if (!ensureGeminiAvailable(res, ['aiChat'])) {
+      chatIdempotencyStore.release(reservedMessageId);
+      reservedMessageId = null;
+      return;
+    }
+
+    // Последние 10 завершенных сообщений; текущее сохраняется только после успешного AI-ответа.
     const history = db.prepare('SELECT role, content FROM chat_history ORDER BY id DESC LIMIT 10').all().reverse();
     
     const systemPrompt = `You are a friendly and professional English language tutor. Your tasks:
@@ -568,10 +707,7 @@ IMPORTANT RULES:
     });
 
     const chat = model.startChat({
-      history: history.slice(0, -1).map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.content }]
-      }))
+      history: normalizeGeminiChatHistory(history),
     });
     
     // Таймаут и retry логика
@@ -602,86 +738,95 @@ IMPORTANT RULES:
       throw new Error('Failed to get response from AI');
     }
     
-    // Парсинг обновлений тем
-    const topicChanges = [];
-    
-    // Extract JSON by finding balanced braces
-    const tagIndex = responseText.indexOf('[TOPICS_UPDATE: ');
-    if (tagIndex !== -1) {
-      const jsonStart = tagIndex + '[TOPICS_UPDATE: '.length;
-      let braceCount = 0;
-      let jsonEnd = -1;
-      
-      for (let i = jsonStart; i < responseText.length; i++) {
-        if (responseText[i] === '{') braceCount++;
-        else if (responseText[i] === '}') {
-          braceCount--;
-          if (braceCount === 0) {
-            jsonEnd = i + 1;
-            break;
-          }
-        }
-      }
-      
-      if (jsonEnd !== -1) {
-        const jsonStr = responseText.substring(jsonStart, jsonEnd);
-        
-        try {
-          const updates = JSON.parse(jsonStr);
-          if (updates.updates) {
-            for (const update of updates.updates) {
-              const result = updateTopic(update.topic, update.category, update.level, update.success);
-              if (result) {
-                topicChanges.push(result);
-              }
-            }
-          }
-        } catch (e) {
-          console.error('Error parsing topic updates:', e);
-          console.error('Failed to parse:', jsonStr);
-        }
+    const topicTag = extractTaggedObject(responseText, 'TOPICS_UPDATE');
+    let pendingTopicUpdates = [];
+    if (topicTag) {
+      try {
+        pendingTopicUpdates = dedupeChatTopicUpdates(JSON.parse(topicTag.json).updates);
+      } catch (error) {
+        console.error('Error parsing topic updates:', error);
       }
     }
-    
-    // Парсинг добавления слов в словарь
-    const vocabMatch = responseText.match(/\[VOCAB_ADD: ({.*?})\]/s);
-    if (vocabMatch) {
+
+    const vocabTag = extractTaggedObject(responseText, 'VOCAB_ADD');
+    let pendingVocabulary = null;
+    if (vocabTag) {
       try {
-        const vocab = JSON.parse(vocabMatch[1]);
-        // Проверка на существование
-        const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ?').get(vocab.word);
+        const vocab = JSON.parse(vocabTag.json);
+        if (
+          vocab &&
+          typeof vocab.word === 'string' && vocab.word.trim() &&
+          typeof vocab.translation === 'string' && vocab.translation.trim()
+        ) {
+          pendingVocabulary = {
+            word: vocab.word.trim(),
+            translation: vocab.translation.trim(),
+            example: typeof vocab.example === 'string' ? vocab.example.trim() : null,
+          };
+        }
+      } catch (error) {
+        console.error('Error parsing vocab add:', error);
+      }
+    }
+
+    const metadataRanges = [topicTag, vocabTag]
+      .filter(Boolean)
+      .sort((left, right) => right.start - left.start);
+    let cleanResponse = responseText;
+    for (const range of metadataRanges) {
+      cleanResponse = cleanResponse.slice(0, range.start) + cleanResponse.slice(range.end);
+    }
+    cleanResponse = cleanResponse.trim();
+
+    const commitChatResponse = db.transaction(() => {
+      db.prepare('INSERT INTO chat_history (role, content) VALUES (?, ?)').run('user', message);
+
+      const topicChanges = [];
+      for (const update of pendingTopicUpdates) {
+        const result = updateTopic(update.topic, update.category, update.level, update.success);
+        if (result) topicChanges.push(result);
+      }
+
+      if (pendingVocabulary) {
+        const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ?').get(pendingVocabulary.word);
         if (!existing) {
           db.prepare(`
             INSERT INTO vocabulary (word, translation, example, level, next_review)
             VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP)
-          `).run(vocab.word, vocab.translation, vocab.example || null);
+          `).run(
+            pendingVocabulary.word,
+            pendingVocabulary.translation,
+            pendingVocabulary.example || null,
+          );
         }
-      } catch (e) {
-        console.error('Error parsing vocab add:', e);
       }
-    }
-    
-    // Удаление метаданных из ответа
-    const cleanResponse = responseText
-      .replace(/\[TOPICS_UPDATE: ({.*?})\]/s, '')
-      .replace(/\[VOCAB_ADD: ({.*?})\]/s, '')
-      .trim();
-    
-    // Сохранение ответа ассистента
-    db.prepare('INSERT INTO chat_history (role, content) VALUES (?, ?)').run('assistant', cleanResponse);
-    
-    res.json({ 
-      response: cleanResponse,
-      topicChanges: topicChanges.length > 0 ? topicChanges : undefined
+
+      db.prepare('INSERT INTO chat_history (role, content) VALUES (?, ?)').run('assistant', cleanResponse);
+      const responsePayload = {
+        response: cleanResponse,
+        ...(topicChanges.length > 0 ? { topicChanges } : {}),
+      };
+      chatIdempotencyStore.complete(reservedMessageId, responsePayload);
+      return responsePayload;
     });
+
+    const responsePayload = commitChatResponse();
+    reservedMessageId = null;
+    res.set('X-Idempotent-Replay', 'false');
+    res.json(responsePayload);
   } catch (error) {
+    chatIdempotencyStore.release(reservedMessageId);
     console.error('Chat error:', error);
-    res.status(500).json({ error: error.message });
+    const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
+    res.status(statusCode).json({
+      error: error.message,
+      ...(error.code ? { code: error.code } : {}),
+    });
   }
 });
 
 // Функция обновления темы — writes directly to curriculum_topics
-function updateTopic(name, category, level, success) {
+function findCurriculumTopic(name) {
   // Try exact match in curriculum_topics first
   let existing = db.prepare(
     'SELECT * FROM curriculum_topics WHERE LOWER(name) = LOWER(?)'
@@ -696,6 +841,12 @@ function updateTopic(name, category, level, success) {
        LIMIT 1`
     ).get(name, name);
   }
+
+  return existing || null;
+}
+
+function updateTopic(name, category, level, success) {
+  const existing = findCurriculumTopic(name);
 
   if (existing) {
     const scoreChange = success ? 5 : -10;
@@ -1192,6 +1343,63 @@ app.use((error, req, res, next) => {
   res.status(statusCode).json({ error: message });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+export function startServer() {
+  const httpServer = app.listen(PORT, HOST, () => {
+    console.log(`🚀 Server running on http://${HOST}:${PORT}`);
+
+    // Mount the realtime voice-chat WebSocket endpoint. Each browser connection
+    // owns one Gemini Live API session and shares the SAME persistence layer as
+    // the text chat (chat_history, curriculum_topics, vocabulary), so voice and
+    // text mode stay perfectly in sync.
+    if (geminiEnabled) {
+      attachLiveChatBridge({
+        server: httpServer,
+        path: '/api/live-chat',
+        db,
+        getLiveContext: () => {
+          // Same DB reads as getTopicsContext(), but returns structured data so
+          // the Live API module can format it cleanly (without the text-chat
+          // tag references that destabilise the native-audio model).
+          const settings = db.prepare('SELECT max_level FROM user_settings WHERE id = 1').get();
+          const maxLevel = settings?.max_level || 'B2';
+          const maxLevelPriority = LEVEL_PRIORITY[maxLevel] || 1;
+          const activeTopics = db
+            .prepare("SELECT name, category, level, score, success_count, failure_count FROM curriculum_topics WHERE status != 'not_started' ORDER BY score ASC, level DESC")
+            .all()
+            .filter((t) => LEVEL_PRIORITY[t.level] >= maxLevelPriority);
+          const curriculumNames = db.prepare('SELECT name, level, category FROM curriculum_topics ORDER BY level, category').all();
+          const curriculumByLevel = {};
+          for (const ct of curriculumNames) {
+            if (!curriculumByLevel[ct.level]) curriculumByLevel[ct.level] = [];
+            curriculumByLevel[ct.level].push(ct.name);
+          }
+          return { maxLevel, activeTopics, curriculumByLevel };
+        },
+        updateTopicFromCall: (args) => updateTopic(args.topic, args.category, args.level, args.success),
+        addVocabularyFromCall: (args) => {
+          if (!args || !args.word || !args.translation) return null;
+          const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ?').get(args.word);
+          if (!existing) {
+            db.prepare(`
+              INSERT INTO vocabulary (word, translation, example, level, next_review)
+              VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP)
+            `).run(args.word, args.translation, args.example || null);
+          }
+          return { word: args.word, translation: args.translation, example: args.example || null, isNew: !existing };
+        },
+        geminiApiKey,
+      });
+    } else {
+      console.warn('⚠️ Voice chat disabled: GEMINI_API_KEY not configured.');
+    }
+  });
+
+  return httpServer;
+}
+
+const invokedAsMainModule = Boolean(process.argv[1]) && resolve(process.argv[1]) === __filename;
+if (invokedAsMainModule && process.env.NODE_ENV !== 'test') {
+  startServer();
+}
+
+export { app, db, writingAnalysisService, databasePath };

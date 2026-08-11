@@ -1,0 +1,35 @@
+{
+  "apiURL": "https://YOUR_LINGUALEARN_HOST/english/api/writing/analyze",
+  "bearerToken": "CHANGE_ME",
+  "appURL": "https://YOUR_LINGUALEARN_HOST/english",
+  "ingressPort": 43119,
+  "ingressToken": "GENERATED_BY_INSTALLER",
+  "captureEnabled": true,
+  "allowAllNonDenied": true,
+  "allowedBundleIdentifiers": [
+    "org.telegram.desktop",
+    "com.tdesktop.Telegram",
+    "net.whatsapp.WhatsApp",
+    "com.openai.codex",
+    "com.google.Chrome",
+    "com.apple.Safari"
+  ],
+  "deniedBundleIdentifiers": [
+    "com.apple.Terminal",
+    "com.googlecode.iterm2",
+    "dev.warp.*",
+    "com.microsoft.VSCode*",
+    "com.apple.dt.Xcode*",
+    "com.jetbrains.*",
+    "com.sublimetext.*",
+    "com.agilebits.*",
+    "com.1password.*",
+    "com.bitwarden.*",
+    "org.keepassxc.*"
+  ],
+  "minimumEnglishWords": 2,
+  "dedupeWindowSeconds": 2,
+  "composerClearTimeoutMilliseconds": 900,
+  "showOnlyWhenChanged": false,
+  "maxQueueDepth": 1000
+}

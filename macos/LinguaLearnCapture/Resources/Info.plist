@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleDisplayName</key>
+    <string>LinguaLearn Capture</string>
+    <key>CFBundleExecutable</key>
+    <string>LinguaLearnCapture</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.lingualearn.capture</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>LinguaLearnCapture</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>LSMultipleInstancesProhibited</key>
+	<true/>
+	<key>NSAccessibilityUsageDescription</key>
+	<string>LinguaLearn reads the focused message field only after Return or a Send-button click, then waits for it to clear before analyzing the sent English sentence.</string>
+	<key>NSInputMonitoringUsageDescription</key>
+	<string>LinguaLearn observes Return and Send-button clicks to detect when an English sentence was sent; it does not record keystrokes.</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSHumanReadableCopyright</key>
+    <string>LinguaLearn</string>
+</dict>
+</plist>

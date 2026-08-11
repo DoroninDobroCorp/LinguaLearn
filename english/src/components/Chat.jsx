@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Send, Loader2, Trash2, CheckCircle, XCircle, MessageCircle, Mic } from 'lucide-react';
+import VoiceChat from './VoiceChat';
 
 // Компонент интерактивного упражнения
 function ExerciseWidget({ exercise, onAnswer }) {
@@ -114,12 +115,14 @@ function ExerciseWidget({ exercise, onAnswer }) {
   );
 }
 
-function Chat() {
+function TextChat({ showToast }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [toasts, setToasts] = useState([]);
   const messagesEndRef = useRef(null);
+  // React state updates are asynchronous, so `loading` alone cannot prevent two
+  // Enter events in the same tick from submitting the same practice turn twice.
+  const sendInFlightRef = useRef(false);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -162,40 +165,69 @@ function Chat() {
     loadHistory();
   }, []);
   
-  const showToast = (message, type = 'info') => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 4000);
-  };
+  // showToast comes from the parent wrapper so toasts are shared between
+  // text and voice modes. Fall back to a no-op if rendered standalone.
+  const showToast_ = showToast || (() => {});
+  const notify = (message, type = 'info') => showToast_(message, type);
   
   const sendMessage = async (messageText) => {
     const userMessage = messageText || input.trim();
-    if (!userMessage || loading) return;
+    if (!userMessage || sendInFlightRef.current) return;
+
+    const messageId = crypto.randomUUID();
+    sendInFlightRef.current = true;
     
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setLoading(true);
     
     try {
-      const response = await fetch('/english/api/chat', {
+      const request = () => fetch('/english/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ message: userMessage, messageId }),
       });
-      
-      const data = await response.json();
+
+      let response;
+      let data;
+      let transportRetries = 0;
+      let processingPolls = 0;
+
+      while (true) {
+        try {
+          response = await request();
+        } catch (error) {
+          if (transportRetries >= 1) throw error;
+          transportRetries += 1;
+          // A dropped response can happen after the server has already applied
+          // a score change. Retrying the same messageId is intentional.
+          continue;
+        }
+
+        data = await response.json();
+        if (response.status !== 409 || data.code !== 'MESSAGE_IN_PROGRESS') break;
+        if (processingPolls >= 65) {
+          throw new Error('The previous request is still being processed.');
+        }
+
+        processingPolls += 1;
+        const retryAfterSeconds = Number(response.headers.get('Retry-After')) || 1;
+        await new Promise((resolve) => setTimeout(resolve, Math.min(2, Math.max(0.25, retryAfterSeconds)) * 1000));
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || `API request failed (${response.status})`);
+      }
       
       // Обработка изменений тем
       if (data.topicChanges && data.topicChanges.length > 0) {
         data.topicChanges.forEach(change => {
           if (change.isNew) {
-            showToast(`🆕 New topic: ${change.name} (${change.level})`, 'new');
+            notify(`🆕 New topic: ${change.name} (${change.level})`, 'new');
           } else if (change.success) {
-            showToast(`✅ ${change.name} +${change.scoreChange} (${change.newScore}/100)`, 'success');
+            notify(`✅ ${change.name} +${change.scoreChange} (${change.newScore}/100)`, 'success');
           } else {
-            showToast(`❌ ${change.name} ${change.scoreChange} (${change.newScore}/100)`, 'error');
+            notify(`❌ ${change.name} ${change.scoreChange} (${change.newScore}/100)`, 'error');
           }
         });
       }
@@ -240,8 +272,9 @@ function Chat() {
         { role: 'assistant', content: errorMessage }
       ]);
       
-      showToast('⚠️ Error occurred. Check console for details.', 'error');
+      notify('⚠️ Error occurred. Check console for details.', 'error');
     } finally {
+      sendInFlightRef.current = false;
       setLoading(false);
     }
   };
@@ -269,7 +302,7 @@ function Chat() {
         stack: error.stack,
         timestamp: new Date().toISOString()
       });
-      showToast('⚠️ Failed to clear chat. Please try again.', 'error');
+      notify('⚠️ Failed to clear chat. Please try again.', 'error');
     }
   };
   
@@ -282,24 +315,6 @@ function Chat() {
   
   return (
     <div className="flex flex-col h-[calc(100vh-180px)] bg-white rounded-2xl shadow-2xl overflow-hidden relative">
-      {/* Toast notifications */}
-      <div className="absolute top-4 right-4 z-50 space-y-2">
-        {toasts.map(toast => (
-          <div
-            key={toast.id}
-            className={`px-4 py-3 rounded-lg shadow-lg animate-slideIn flex items-center space-x-2 min-w-[250px] ${
-              toast.type === 'new' 
-                ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
-                : toast.type === 'success'
-                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
-                : 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
-            }`}
-          >
-            <span className="font-semibold text-sm">{toast.message}</span>
-          </div>
-        ))}
-      </div>
-      
       {/* Header */}
       <div className="bg-gradient-to-r from-yellow-300 to-lime-300 px-6 py-4 flex justify-between items-center">
         <h2 className="text-xl font-bold text-yellow-900">Chat with Assistant</h2>
@@ -376,6 +391,114 @@ function Chat() {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Chat() {
+  const [mode, setMode] = useState('text'); // 'text' | 'voice'
+  const [toasts, setToasts] = useState([]);
+
+  const showToast = useCallback((message, type = 'info') => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  }, []);
+
+  // Voice-mode handlers: surface topic/vocab/exercise events through the same
+  // toast layer the text chat uses, so the UX is identical between modes.
+  const handleVoiceTopicChange = useCallback(
+    (change) => {
+      if (!change) return;
+      if (change.isNew) {
+        showToast(`🆕 New topic: ${change.name} (${change.level})`, 'new');
+      } else if (change.success) {
+        showToast(`✅ ${change.name} +${change.scoreChange} (${change.newScore}/100)`, 'success');
+      } else {
+        showToast(`❌ ${change.name} ${change.scoreChange} (${change.newScore}/100)`, 'error');
+      }
+    },
+    [showToast],
+  );
+
+  const handleVoiceVocabAdded = useCallback(
+    (entry) => {
+      if (!entry?.word) return;
+      showToast(`📚 Added word: ${entry.word}${entry.isNew === false ? ' (already saved)' : ''}`, 'new');
+    },
+    [showToast],
+  );
+
+  const handleVoiceExercise = useCallback(
+    (exercise) => {
+      if (!exercise) return;
+      showToast(`📝 New ${exercise.type === 'multiple-choice' ? 'quiz' : exercise.type === 'fill-blank' ? 'fill-in' : 'open question'}: ${exercise.question?.slice(0, 40) || ''}…`, 'new');
+    },
+    [showToast],
+  );
+
+  return (
+    <div className="relative">
+      {/* Shared toast layer */}
+      <div className="fixed top-20 right-4 z-50 space-y-2 pointer-events-none">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`px-4 py-3 rounded-lg shadow-lg animate-slideIn flex items-center space-x-2 min-w-[250px] ${
+              toast.type === 'new'
+                ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+                : toast.type === 'success'
+                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                : 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
+            }`}
+          >
+            <span className="font-semibold text-sm">{toast.message}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Mode switch */}
+      <div className="flex justify-center mb-4">
+        <div className="inline-flex bg-white shadow-md rounded-xl p-1 border border-gray-200">
+          <button
+            onClick={() => setMode('text')}
+            className={`flex items-center space-x-2 px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+              mode === 'text'
+                ? 'bg-gradient-to-r from-yellow-400 to-lime-400 text-yellow-900 shadow'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <MessageCircle className="h-4 w-4" />
+            <span>Text</span>
+          </button>
+          <button
+            onClick={() => setMode('voice')}
+            className={`flex items-center space-x-2 px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+              mode === 'voice'
+                ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Mic className="h-4 w-4" />
+            <span>Voice</span>
+            <span className="text-[10px] uppercase tracking-wide bg-pink-100 text-pink-700 rounded px-1.5 py-0.5">Live</span>
+          </button>
+        </div>
+      </div>
+
+      {mode === 'text' ? (
+        <TextChat showToast={showToast} />
+      ) : (
+        <div className="h-[calc(100vh-220px)]">
+          <VoiceChat
+            onTopicChange={handleVoiceTopicChange}
+            onVocabAdded={handleVoiceVocabAdded}
+            onExercise={handleVoiceExercise}
+          />
+        </div>
+      )}
     </div>
   );
 }

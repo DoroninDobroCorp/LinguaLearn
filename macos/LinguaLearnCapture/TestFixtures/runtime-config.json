@@ -1,0 +1,16 @@
+{
+  "apiURL": "https://example.invalid/english/api/writing/analyze",
+  "bearerToken": "runtime-test-token",
+  "appURL": "https://example.invalid/english",
+  "ingressPort": 43129,
+  "ingressToken": "runtime-loopback-test-token",
+  "captureEnabled": false,
+  "allowAllNonDenied": true,
+  "allowedBundleIdentifiers": [],
+  "deniedBundleIdentifiers": [],
+  "minimumEnglishWords": 2,
+  "dedupeWindowSeconds": 12,
+  "composerClearTimeoutMilliseconds": 900,
+  "showOnlyWhenChanged": true,
+  "maxQueueDepth": 10
+}

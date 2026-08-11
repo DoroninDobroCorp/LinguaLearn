@@ -1,0 +1,29 @@
+{
+  "description": "Existing user hooks must survive the merge.",
+  "customMetadata": {
+    "keep": true
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/true",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/true"
+          }
+        ]
+      }
+    ]
+  }
+}
