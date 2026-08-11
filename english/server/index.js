@@ -37,6 +37,9 @@ let hpmorPodcastHtmlCache = null;
 const geminiApiKey = String(process.env.GEMINI_API_KEY || '').trim();
 const geminiEnabled = geminiApiKey.length > 0;
 const genAI = geminiEnabled ? new GoogleGenerativeAI(geminiApiKey) : null;
+const geminiChatModel = String(
+  process.env.GEMINI_CHAT_MODEL || 'gemini-3.5-flash-lite'
+).trim();
 
 if (!geminiEnabled) {
   console.warn(
@@ -702,7 +705,7 @@ IMPORTANT RULES:
 - When tracking topics, try to use exact names from the CEFR curriculum when possible`;
 
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.5-flash',
+      model: geminiChatModel,
       systemInstruction: systemPrompt
     });
 

@@ -1,5 +1,6 @@
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com';
-const DEFAULT_GEMINI_AUDIO_MODEL = process.env.GEMINI_AUDIO_TRANSCRIBE_MODEL || 'gemini-3-flash-preview';
+const DEFAULT_GEMINI_AUDIO_MODEL =
+  process.env.GEMINI_AUDIO_TRANSCRIBE_MODEL || 'gemini-3.5-flash-lite';
 const MAX_GEMINI_AUDIO_SECONDS = 9.5 * 3600;
 
 function createTranscriptionError(message, statusCode = 500) {

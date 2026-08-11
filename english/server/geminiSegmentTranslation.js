@@ -1,6 +1,7 @@
 import { SchemaType } from '@google/generative-ai';
 
-const DEFAULT_TRANSLATION_MODEL = process.env.GEMINI_READER_TRANSLATION_MODEL || 'gemini-2.5-flash';
+const DEFAULT_TRANSLATION_MODEL =
+  process.env.GEMINI_READER_TRANSLATION_MODEL || 'gemini-3.5-flash-lite';
 const TRANSLATION_BATCH_SIZE = Math.max(
   10,
   Number.parseInt(process.env.GEMINI_READER_TRANSLATION_BATCH_SIZE || '30', 10) || 30,

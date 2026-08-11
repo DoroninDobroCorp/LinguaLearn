@@ -609,7 +609,12 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
   };
 }
 
-export function createGeminiWritingAnalyzer({ genAI, modelName = 'gemini-2.5-flash' }) {
+export function createGeminiWritingAnalyzer({
+  genAI,
+  modelName = String(
+    process.env.GEMINI_WRITING_MODEL || 'gemini-3.5-flash-lite'
+  ).trim(),
+}) {
   return async ({ text, canonicalTopics }) => {
     if (!genAI) {
       throw httpError(
@@ -625,7 +630,6 @@ export function createGeminiWritingAnalyzer({ genAI, modelName = 'gemini-2.5-fla
       generationConfig: {
         responseMimeType: 'application/json',
         responseSchema: ANALYSIS_SCHEMA,
-        temperature: 0.1,
       },
       systemInstruction: `You analyze a single message written by an English learner.
 Return only JSON matching the supplied response schema.
