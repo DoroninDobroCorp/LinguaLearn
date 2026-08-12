@@ -27,6 +27,7 @@ import { parseCookies } from './auth.js';
 import { getOwnerId } from './dbMigration.js';
 import { createAuthService, createAuthMiddleware } from './auth.js';
 import { createDeviceTokenService, createDeviceAuthMiddleware } from './deviceTokens.js';
+import { createDailyPracticeService } from './dailyPractice.js';
 import {
   calculateTopicStatus,
   calculateMasteryConfidence,
@@ -351,6 +352,11 @@ app.post('/api/auth/logout', (req, res) => authService.logout(req, res));
 app.post('/api/devices/tokens', authMiddleware, (req, res) => deviceTokenService.handleCreateToken(req, res));
 app.get('/api/devices/tokens', authMiddleware, (req, res) => deviceTokenService.handleListTokens(req, res));
 app.post('/api/devices/tokens/:id/revoke', authMiddleware, (req, res) => deviceTokenService.handleRevokeToken(req, res));
+
+const dailyPracticeService = createDailyPracticeService(db);
+app.get('/api/practice/today', (req, res) => dailyPracticeService.getTodaySession(req, res));
+app.get('/api/practice/sessions/:id', (req, res) => dailyPracticeService.getSessionById(req, res));
+app.post('/api/practice/sessions/:id/complete', (req, res) => dailyPracticeService.completeSession(req, res));
 
 function buildHealthResponse() {
   db.prepare('SELECT 1 AS ok').get();
