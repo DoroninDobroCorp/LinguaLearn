@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
-import { MessageCircle, Headphones, Settings, Brain, BookMarked, Moon, Sun, Sparkles, Map, Inbox, LogOut, User, LayoutDashboard } from "lucide-react";
+import { MessageCircle, Headphones, Settings, Brain, BookMarked, Moon, Sun, Sparkles, Map, Inbox, LogOut, User, LayoutDashboard, MessageSquare } from "lucide-react";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
@@ -8,6 +8,8 @@ import Chat from "./components/Chat";
 import Exercises from "./components/Exercises";
 import Vocabulary from "./components/Vocabulary";
 import SettingsPanel from "./components/Settings";
+import DeviceManagement from "./components/DeviceManagement";
+import FeedbackForm from "./components/FeedbackForm";
 import CurriculumMap from "./components/CurriculumMap";
 import SyncReader from "./components/SyncReader";
 import CorrectionInbox from "./components/CorrectionInbox";
@@ -30,6 +32,7 @@ function NavBar() {
     { path: "/chat", icon: MessageCircle, label: "Chat" },
     { path: "/reader", icon: Headphones, label: "Reader" },
     { path: "/settings", icon: Settings, label: "Settings" },
+    { path: "/feedback", icon: MessageSquare, label: "Feedback" },
   ];
 
   return (
@@ -182,6 +185,8 @@ function AppContent() {
           <Route path="/inbox" element={<Navigate to="/correction-inbox" replace />} />
           <Route path="/reader" element={<ProtectedRoute><SyncReader /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsPanel /></ProtectedRoute>} />
+          <Route path="/settings/devices" element={<ProtectedRoute><DeviceManagement /></ProtectedRoute>} />
+          <Route path="/feedback" element={<ProtectedRoute><FeedbackForm /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Info } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Save, Info, SlidersHorizontal, Laptop } from 'lucide-react';
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
@@ -45,9 +46,27 @@ function Settings() {
   };
   
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-2xl p-8">
-        <h2 className="text-3xl font-bold text-gray-800 mb-6">Settings</h2>
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Sub-Navigation Tabs */}
+      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+        <Link
+          to="/settings"
+          className="px-6 py-3 font-semibold text-yellow-600 dark:text-yellow-400 border-b-2 border-yellow-400 dark:border-yellow-400 flex items-center space-x-2"
+        >
+          <SlidersHorizontal className="h-5 w-5" />
+          <span>General Settings</span>
+        </Link>
+        <Link
+          to="/settings/devices"
+          className="px-6 py-3 font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 border-b-2 border-transparent flex items-center space-x-2"
+        >
+          <Laptop className="h-5 w-5" />
+          <span>Mac Devices & Tokens</span>
+        </Link>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
+        <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-6">General Settings</h2>
         
         <div className="space-y-6">
           {/* Уровень */}

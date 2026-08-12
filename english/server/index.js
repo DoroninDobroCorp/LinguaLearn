@@ -1042,6 +1042,57 @@ app.post('/api/user/settings', handlePostSettings);
 app.get('/api/settings', handleGetSettings);
 app.post('/api/settings', handlePostSettings);
 
+// API: Submit Beta Feedback (VAL-UI-004)
+function handlePostFeedback(req, res) {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { category, message, route, app_version, appVersion } = req.body || {};
+    const trimmedMessage = String(message || '').trim();
+    if (!trimmedMessage) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const feedbackCategory = String(category || 'ux_feedback').trim();
+    const feedbackRoute = String(route || '/feedback').trim();
+    const clientAppVersion = String(app_version || appVersion || '1.0.0-beta').trim();
+
+    const properties = {
+      category: feedbackCategory,
+      message: trimmedMessage,
+      route: feedbackRoute,
+      app_version: clientAppVersion,
+      timestamp: new Date().toISOString(),
+    };
+
+    const result = db.prepare(`
+      INSERT INTO analytics_events (user_id, event_name, properties_json)
+      VALUES (?, 'beta_feedback', ?)
+    `).run(userId, JSON.stringify(properties));
+
+    return res.status(201).json({
+      success: true,
+      message: 'Feedback submitted successfully',
+      feedback: {
+        id: result.lastInsertRowid,
+        category: feedbackCategory,
+        message: trimmedMessage,
+        route: feedbackRoute,
+        app_version: clientAppVersion,
+        created_at: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+app.post('/api/feedback', authMiddleware, handlePostFeedback);
+
 // API: Export My Data (VAL-PRIV-005)
 function handleExportData(req, res) {
   try {
