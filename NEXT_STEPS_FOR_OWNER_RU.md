@@ -1,0 +1,1 @@
+english/NEXT_STEPS_FOR_OWNER_RU.md

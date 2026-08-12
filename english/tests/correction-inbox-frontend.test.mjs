@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import express from 'express';
+import http from 'node:http';
 import { getDb } from '../server/db.js';
-import { createWritingAnalysisService } from '../server/writingAnalysis.js';
-import { createDeviceTokenService } from '../server/deviceTokens.js';
-
-const BASE_URL = 'http://127.0.0.1:3001';
+import {
+  createWritingAnalysisService,
+  createWritingSamplesHandler,
+  createWritingFeedbackHandler,
+} from '../server/writingAnalysis.js';
+import { createDeviceTokenService, createDeviceAuthMiddleware } from '../server/deviceTokens.js';
 
 function setupTestData(db) {
   const email = `inbox-test-${Date.now()}@example.com`;
@@ -71,13 +75,48 @@ function setupTestData(db) {
   return { userId: user.id, token, sample1Id, sample2Id };
 }
 
+async function createTestServer(db) {
+  const writingAnalysisService = createWritingAnalysisService({ db, analyzer: async () => ({}) });
+  const deviceAuth = createDeviceAuthMiddleware(db);
+
+  const app = express();
+  app.get(
+    '/api/writing/samples',
+    deviceAuth,
+    createWritingSamplesHandler({ service: writingAnalysisService }),
+  );
+  app.post(
+    '/api/writing/samples/:id/feedback',
+    deviceAuth,
+    express.json({ limit: '32kb' }),
+    createWritingFeedbackHandler({ service: writingAnalysisService }),
+  );
+
+  let server;
+  let baseUrl;
+  await new Promise((resolve) => {
+    server = http.createServer(app);
+    server.listen(0, '127.0.0.1', () => {
+      const addr = server.address();
+      baseUrl = `http://127.0.0.1:${addr.port}`;
+      resolve();
+    });
+  });
+
+  return { server, baseUrl };
+}
+
 test('VAL-INBOX-001: Correction Inbox data structure returns samples with diffs, Russian explanations, and error tags', async (t) => {
-  const db = getDb();
-  t.after(() => db.close());
+  const db = getDb(':memory:');
+  const { server, baseUrl } = await createTestServer(db);
+  t.after(async () => {
+    if (server) await new Promise((res) => server.close(res));
+    db.close();
+  });
 
   const { userId, token, sample1Id } = setupTestData(db);
 
-  const res = await fetch(`${BASE_URL}/api/writing/samples`, {
+  const res = await fetch(`${baseUrl}/api/writing/samples`, {
     headers: { 'Authorization': `Bearer ${token}` },
   });
 
@@ -98,12 +137,16 @@ test('VAL-INBOX-001: Correction Inbox data structure returns samples with diffs,
 });
 
 test('VAL-INBOX-002: Correction Inbox filtering controls logic correctly narrows sample list', async (t) => {
-  const db = getDb();
-  t.after(() => db.close());
+  const db = getDb(':memory:');
+  const { server, baseUrl } = await createTestServer(db);
+  t.after(async () => {
+    if (server) await new Promise((res) => server.close(res));
+    db.close();
+  });
 
   const { token, sample1Id, sample2Id } = setupTestData(db);
 
-  const res = await fetch(`${BASE_URL}/api/writing/samples`, {
+  const res = await fetch(`${baseUrl}/api/writing/samples`, {
     headers: { 'Authorization': `Bearer ${token}` },
   });
   const data = await res.json();
@@ -131,13 +174,17 @@ test('VAL-INBOX-002: Correction Inbox filtering controls logic correctly narrows
 });
 
 test('VAL-INBOX-003: Interactive feedback controls trigger API calls and record feedback', async (t) => {
-  const db = getDb();
-  t.after(() => db.close());
+  const db = getDb(':memory:');
+  const { server, baseUrl } = await createTestServer(db);
+  t.after(async () => {
+    if (server) await new Promise((res) => server.close(res));
+    db.close();
+  });
 
   const { userId, token, sample1Id } = setupTestData(db);
 
   // 1. Submit helpful feedback
-  const helpfulRes = await fetch(`${BASE_URL}/api/writing/samples/${sample1Id}/feedback`, {
+  const helpfulRes = await fetch(`${baseUrl}/api/writing/samples/${sample1Id}/feedback`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -152,7 +199,7 @@ test('VAL-INBOX-003: Interactive feedback controls trigger API calls and record 
   assert.equal(helpfulJson.feedback.feedback_type, 'helpful');
 
   // 2. Submit undo_progress feedback
-  const undoRes = await fetch(`${BASE_URL}/api/writing/samples/${sample1Id}/feedback`, {
+  const undoRes = await fetch(`${baseUrl}/api/writing/samples/${sample1Id}/feedback`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -166,7 +213,7 @@ test('VAL-INBOX-003: Interactive feedback controls trigger API calls and record 
   assert.equal(undoJson.success, true);
 
   // 3. Fetch samples again and confirm feedback array is populated in sample list response
-  const samplesRes = await fetch(`${BASE_URL}/api/writing/samples`, {
+  const samplesRes = await fetch(`${baseUrl}/api/writing/samples`, {
     headers: { 'Authorization': `Bearer ${token}` },
   });
   const samplesData = await samplesRes.json();

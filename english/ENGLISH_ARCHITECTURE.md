@@ -2,7 +2,7 @@
 
 ## 1. System Overview
 
-LinguaLearn English is a personalized language learning system for B1-B2 English speakers. It captures everyday written English (from Telegram, Slack, WhatsApp, GitHub, email, etc.) via a Mac Desktop Agent or web interface, analyzes grammar and usage errors using Gemini 2.5 Flash, tracks topic-level mastery based on real evidence, and delivers short daily practice sessions.
+LinguaLearn English is a personalized language learning system for B1-B2 English speakers. It captures everyday written English (from Telegram, Slack, WhatsApp, GitHub, email, etc.) via a Mac Desktop Agent, iOS Keyboard Extension, Android IME Keyboard, Windows Desktop Agent, or web interface, analyzes grammar and usage errors using Gemini 3.5 Flash-Lite (with fallback to Gemini 2.5 Flash), tracks topic-level mastery based on real evidence, and delivers short daily practice sessions.
 
 The system is deployed on an Ubuntu Linux server (`serverforvovka`) as a single-repository Node.js Express application with a React SPA frontend and an SQLite database (managed via `better-sqlite3`), running behind an Nginx reverse proxy.
 
@@ -13,13 +13,20 @@ The system is deployed on an Ubuntu Linux server (`serverforvovka`) as a single-
 ```
 +-----------------------------------------------------------------------------------+
 |                                  Client Surface                                   |
-|  +------------------------------------+  +-------------------------------------+  |
-|  |           Vite + React SPA         |  |         Mac Desktop Agent           |  |
-|  |     (Browser Web Interface)        |  |     (Background Writing Capture)    |  |
-|  +-----------------+------------------+  +------------------+------------------+  |
-+--------------------|----------------------------------------|---------------------+
-                     |                                        |
-                     v                                        v
+|  +--------------------+  +--------------------+  +------------------+  +----------+  |
+|  |   Vite React SPA   |  | Mac Desktop Client |  | iOS Keyboard Ext |  | Android  |  |
+|  |   (Web Interface)  |  | (LinguaLearnCapture|  | (LinguaLearn)    |  | IME      |  |
+|  +---------+----------+  +---------+----------+  +--------+---------+  +----+-----+  |
+|            |                       |                      |               |        |
+|            |                       +----------+-----------+               |        |
+|            |                                  |                           |        |
+|            |                       +----------v-----------+               |        |
+|            |                       | Windows Desktop Agent|               |        |
+|            |                       | (LinguaLearnAgent)   |               |        |
+|            |                       +----------+-----------+               |        |
++------------|----------------------------------|---------------------------|--------+
+             |                                  |                           |
+             v                                  v                           v
 +-----------------------------------------------------------------------------------+
 |                                Nginx Reverse Proxy                                |
 |   - /english/     -> /srv/LinguaLearn/english/dist/ (Static SPA Dist)           |
@@ -43,10 +50,10 @@ The system is deployed on an Ubuntu Linux server (`serverforvovka`) as a single-
 |  | Core Controllers & Services                                                 |  |
 |  | - Auth & User Service (Invite signup, bcrypt hashing, session management)   |  |
 |  | - Device Management Service (Token generation, SHA-256 hash, revocation)    |  |
-|  | - Writing Analysis Pipeline (Gemini 2.5 Flash, structured error tagging)    |  |
+|  | - Writing Analysis Pipeline (Gemini 3.5 Flash-Lite, schemaVersion 1 contract) |  |
 |  | - Progress & Evidence Engine (Spaced practice, mastery tracking, undo)      |  |
 |  | - Today Practice Engine (Weak spot selection, short exercise generator)      |  |
-|  | - Privacy & Retention Job (Raw text purge, export, account deletion)        |  |
+|  | - Privacy & Retention Systemd Timer (Raw text purge, export, account delete)|  |
 |  | - Admin & Metrics Service (CLI & aggregated telemetry)                       |  |
 |  +--------------------------------------+--------------------------------------+  |
 +-----------------------------------------|-----------------------------------------+
@@ -158,6 +165,38 @@ Topics progress through statuses based on score, error/success counts, and uniqu
 
 ---
 
-## 8. Spanish Module Isolation Boundary
+## 9. Unified OpenAPI 3.0 Multi-Platform Contract (`schemaVersion: 1`)
 
-The Spanish learning module located at `/srv/LinguaLearn/spanish` and running as `spanish-backend.service` on port **3003** (Nginx route `/spanish/`) is an independent system. The English module makes zero modifications, zero database queries, and zero service calls to the Spanish module, guaranteeing complete non-interference and stability.
+All client applications (Mac, iOS, Android, Windows) communicate with the backend using the unified OpenAPI 3.0 API specification published at `docs/openapi-writing-analysis-v1.json`.
+
+### Contract Features & Invariants:
+1. **Schema Versioning**: All client payloads send `schemaVersion: 1` in `POST /api/writing/analyze`.
+2. **Device Token Authorization**: Clients attach `Authorization: Bearer ll_dev_...` headers. The server hashes the plain-text token with SHA-256 and matches it against `device_tokens` table to scope the writing sample to the owner `user_id`.
+3. **Exact-Once Scoring**: Writing samples enforce `UNIQUE(user_id, event_id)`. Re-submitting an identical `eventId` for a user returns the cached analysis with `replayed: true` without duplicating score deltas or evidence entries.
+4. **Preview Hotkey Mode**: Sending `previewOnly: true` (or `preview_only: 1`) evaluates the text and returns corrections to the client, sets `preview_only = 1` on `writing_samples`, but inserts 0 rows into `grammar_evidence` and leaves `user_topic_progress` untouched.
+5. **Candidate Filtering Parity**: Every client platform enforces strict candidate filtering (excluding non-prose text, code snippets, URLs, email addresses, Cyrillic text, and password/secure input fields) before sending payloads over the network.
+
+---
+
+## 10. Server Hardening, Model Config & Operations
+
+### 10.1. Gemini 3.5 Flash-Lite Configuration
+The writing analysis pipeline uses `GEMINI_WRITING_MODEL=gemini-3.5-flash-lite` by default with an automatic fallback to `gemini-2.5-flash`. Deprecated API parameters have been removed and a synthetic model evaluation harness (`server/scripts/evalGeminiModel.js`) validates accuracy and latency metrics.
+
+### 10.2. SQLite Online Backup Mechanism
+Online database backups are executed via `node server/scripts/backupDatabase.js`. The script uses SQLite Online Backup API (`VACUUM INTO`), verifies database integrity (`PRAGMA integrity_check;` and `PRAGMA foreign_key_check;`), attaches Git SHA metadata, and stores timestamped backups in `/srv/backups/lingualearn/`.
+
+### 10.3. Systemd Retention Cleanup Service & Timer
+Automated raw text retention cleanup is managed by systemd:
+- `lingualearn-retention.service`
+- `lingualearn-retention.timer` (runs daily at 03:00 UTC)
+
+The job purges `original_text` (`original_text = NULL`, `retention_purged = 1`) for samples exceeding the user's configured retention window (0, 7, or 30 days) while preserving `grammar_evidence` for progress tracking.
+
+### 10.4. Automated Cross-Platform Contract Test Harness
+Verification of multi-platform contract alignment, exact-once scoring, preview score isolation, device token lifecycle, and repository file completeness is executed via:
+```bash
+node tests/e2e-cross-platform-contract.test.mjs
+```
+The test harness verifies 100% pass rate across Mac, iOS, Android, and Windows client payloads.
+

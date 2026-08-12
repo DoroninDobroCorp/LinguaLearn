@@ -1,0 +1,278 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LinguaLearn Multi-Platform Writing Analysis API",
+    "description": "Unified OpenAPI 3.0 contract (schemaVersion: 1) for Mac, iOS, Android, and Windows droids.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:3001",
+      "description": "Local English Express Backend"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    },
+    {
+      "CookieAuth": []
+    }
+  ],
+  "paths": {
+    "/api/writing/analyze": {
+      "post": {
+        "summary": "Analyze English writing sample and record grammar evidence",
+        "operationId": "analyzeWriting",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Writing analysis successfully processed",
+            "headers": {
+              "X-Response-Time": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Server processing latency in milliseconds (e.g. 142ms)"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyzeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload format, missing required fields, or unsupported schema version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked Bearer device token or session cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Device token header (Format: Bearer ll_dev_...)"
+      },
+      "CookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "lingua_session",
+        "description": "HttpOnly session cookie"
+      }
+    },
+    "schemas": {
+      "AnalyzeRequest": {
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "eventId",
+          "originalText",
+          "sourceApp"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "enum": [
+              1
+            ],
+            "example": 1,
+            "description": "Unified client contract schema version"
+          },
+          "eventId": {
+            "type": "string",
+            "example": "evt_mac_1710000000_abc123",
+            "description": "Client-side unique event identifier for exact-once deduplication"
+          },
+          "originalText": {
+            "type": "string",
+            "example": "Yesterday I go to the store.",
+            "description": "Captured raw English text sample"
+          },
+          "sourceApp": {
+            "type": "string",
+            "example": "Slack",
+            "description": "Source application identifier (e.g. Slack, Telegram, Email)"
+          },
+          "previewOnly": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "default": 0,
+            "example": 0,
+            "description": "If 1, returns analysis without modifying progress or recording evidence"
+          }
+        }
+      },
+      "AnalyzeResponse": {
+        "type": "object",
+        "required": [
+          "accepted",
+          "schemaVersion",
+          "eventId",
+          "originalText",
+          "correctedText",
+          "changed",
+          "summaryRu",
+          "errors",
+          "topicEvidence"
+        ],
+        "properties": {
+          "accepted": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "example": 1,
+            "description": "1 if sample was accepted, 0 if rejected (e.g. app denied, capture paused)"
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true,
+            "example": null,
+            "description": "Reason for rejection if accepted == 0"
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "example": 1
+          },
+          "eventId": {
+            "type": "string",
+            "example": "evt_mac_1710000000_abc123"
+          },
+          "originalText": {
+            "type": "string",
+            "example": "Yesterday I go to the store."
+          },
+          "correctedText": {
+            "type": "string",
+            "example": "Yesterday I went to the store."
+          },
+          "changed": {
+            "type": "boolean",
+            "example": true
+          },
+          "summaryRu": {
+            "type": "string",
+            "example": "Использована неправильная форма глагола в прошедшем времени."
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            }
+          },
+          "topicEvidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TopicEvidence"
+            }
+          }
+        }
+      },
+      "ErrorDetail": {
+        "type": "object",
+        "required": [
+          "originalSegment",
+          "correctedSegment",
+          "explanationRu",
+          "topic"
+        ],
+        "properties": {
+          "originalSegment": {
+            "type": "string",
+            "example": "go"
+          },
+          "correctedSegment": {
+            "type": "string",
+            "example": "went"
+          },
+          "explanationRu": {
+            "type": "string",
+            "example": "В прошедшем времени Past Simple глагол 'go' меняется на 'went'."
+          },
+          "topic": {
+            "type": "string",
+            "example": "Past Simple"
+          }
+        }
+      },
+      "TopicEvidence": {
+        "type": "object",
+        "required": [
+          "topic",
+          "outcome",
+          "scoreDelta",
+          "confidence"
+        ],
+        "properties": {
+          "topic": {
+            "type": "string",
+            "example": "Past Simple"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "example": "error"
+          },
+          "scoreDelta": {
+            "type": "number",
+            "example": -2.0
+          },
+          "confidence": {
+            "type": "number",
+            "example": 0.95
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Unauthorized"
+          }
+        }
+      }
+    }
+  }
+}

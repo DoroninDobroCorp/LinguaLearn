@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import express from 'express';
+import http from 'node:http';
 import { getDb } from '../server/db.js';
-import { createDeviceTokenService } from '../server/deviceTokens.js';
-
-const BASE_URL = 'http://127.0.0.1:3001';
+import { createDeviceTokenService, createDeviceAuthMiddleware } from '../server/deviceTokens.js';
+import { createWritingAnalysisService, createWritingFeedbackHandler } from '../server/writingAnalysis.js';
 
 function createTestUserAndToken(db) {
   const email = `test-fb-${Date.now()}@example.com`;
@@ -14,8 +15,36 @@ function createTestUserAndToken(db) {
 }
 
 test('HTTP API: VAL-CAPT-007 & VAL-CAPT-008 End-to-End Feedback & Progress Undo via API', async (t) => {
-  const db = getDb();
-  t.after(() => db.close());
+  const db = getDb(':memory:');
+
+  const writingAnalysisService = createWritingAnalysisService({ db, analyzer: async () => ({}) });
+  const deviceAuth = createDeviceAuthMiddleware(db);
+
+  const app = express();
+  app.post(
+    '/api/writing/samples/:id/feedback',
+    deviceAuth,
+    express.json({ limit: '32kb' }),
+    createWritingFeedbackHandler({ service: writingAnalysisService }),
+  );
+
+  let server;
+  let baseUrl;
+  await new Promise((resolve) => {
+    server = http.createServer(app);
+    server.listen(0, '127.0.0.1', () => {
+      const addr = server.address();
+      baseUrl = `http://127.0.0.1:${addr.port}`;
+      resolve();
+    });
+  });
+
+  t.after(async () => {
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+    }
+    db.close();
+  });
 
   const { userId, token } = createTestUserAndToken(db);
 
@@ -26,7 +55,8 @@ test('HTTP API: VAL-CAPT-007 & VAL-CAPT-008 End-to-End Feedback & Progress Undo 
   `).run(userId, `evt-api-fb-${Date.now()}`);
   const sampleId = sampleRes.lastInsertRowid;
 
-  // Fetch existing topic
+  // Ensure topic exists in DB
+  db.prepare("INSERT OR IGNORE INTO curriculum_topics (id, name, category, level) VALUES (1, 'Articles (a/an/the)', 'Grammar', 'A1')").run();
   const topicRow = db.prepare('SELECT id FROM curriculum_topics LIMIT 1').get();
   assert.ok(topicRow, 'Topic should exist in DB');
   const topicId = topicRow.id;
@@ -44,7 +74,7 @@ test('HTTP API: VAL-CAPT-007 & VAL-CAPT-008 End-to-End Feedback & Progress Undo 
   `).run(userId, topicId);
 
   // 1. Unauthenticated feedback request -> HTTP 401
-  const unauthRes = await fetch(`${BASE_URL}/api/writing/samples/${sampleId}/feedback`, {
+  const unauthRes = await fetch(`${baseUrl}/api/writing/samples/${sampleId}/feedback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ feedback_type: 'helpful' }),
@@ -52,7 +82,7 @@ test('HTTP API: VAL-CAPT-007 & VAL-CAPT-008 End-to-End Feedback & Progress Undo 
   assert.equal(unauthRes.status, 401, 'Unauthenticated feedback request should return 401');
 
   // 2. VAL-CAPT-007: Submit helpful feedback via HTTP -> HTTP 200
-  const helpfulRes = await fetch(`${BASE_URL}/api/writing/samples/${sampleId}/feedback`, {
+  const helpfulRes = await fetch(`${baseUrl}/api/writing/samples/${sampleId}/feedback`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -72,7 +102,7 @@ test('HTTP API: VAL-CAPT-007 & VAL-CAPT-008 End-to-End Feedback & Progress Undo 
   assert.ok(fbRow, 'correction_feedback row must exist in DB');
 
   // 3. VAL-CAPT-008: Submit undo_progress feedback via HTTP -> HTTP 200
-  const undoRes1 = await fetch(`${BASE_URL}/api/writing/samples/${sampleId}/feedback`, {
+  const undoRes1 = await fetch(`${baseUrl}/api/writing/samples/${sampleId}/feedback`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -92,7 +122,7 @@ test('HTTP API: VAL-CAPT-007 & VAL-CAPT-008 End-to-End Feedback & Progress Undo 
   assert.equal(progRow1.error_count, 0, 'Error count should be decremented to 0');
 
   // 4. Repeated undo_progress POST -> HTTP 200 (Idempotency)
-  const undoRes2 = await fetch(`${BASE_URL}/api/writing/samples/${sampleId}/feedback`, {
+  const undoRes2 = await fetch(`${baseUrl}/api/writing/samples/${sampleId}/feedback`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

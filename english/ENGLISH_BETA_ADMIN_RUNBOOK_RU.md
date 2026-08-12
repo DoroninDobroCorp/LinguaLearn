@@ -69,35 +69,41 @@ cd /srv/LinguaLearn/english
 
 ## 3. Обслуживание базы данных и резервное копирование
 
-### Создание резервной копии перед любыми изменениями:
-Перед обновлением сервиса, накатыванием миграций или ручными изменениями обязательно создайте снимок базы данных:
+### Транзакционное онлайн-резервное копирование базы данных:
+Перед обновлением сервиса, накатыванием миграций или ручными изменениями выполните скрипт горячего резервного копирования:
 
 ```bash
 cd /srv/LinguaLearn/english
-BACKUP_NAME="server/english_learning.db.backup-$(date +%Y%m%d_%H%M%S)"
-cp server/english_learning.db "$BACKUP_NAME"
-echo "Backup created at: $BACKUP_NAME"
+node server/scripts/backupDatabase.js
 ```
+*Скрипт использует API SQLite Online Backup (`VACUUM INTO`), проверяет `PRAGMA integrity_check;` и `PRAGMA foreign_key_check;`, сохраняет копию с хэшем Git коммита в `/srv/backups/lingualearn/` и подтверждает успешность восстановления.*
 
-### Проверка целостности базы данных:
+### Проверка целостности базы данных вручную:
 ```bash
 sqlite3 server/english_learning.db "PRAGMA integrity_check;"
 sqlite3 server/english_learning.db "PRAGMA foreign_key_check;"
 ```
 
-### Периодическая очистка сырого текста (Retention Cleanup):
-Скрипт удаляет оригинальный текст (`original_text = NULL`, `retention_purged = 1`) для записей, превысивших установленный пользователем срок хранения (`raw_text_retention_days`), сохраняя при этом все связанные грамматические метрики (`grammar_evidence`):
+### Периодическая очистка сырого текста (Retention Cleanup Systemd Service & Timer):
+Очистка устаревшего текста (`original_text = NULL`, `retention_purged = 1`) управляется автоматическим ежедневным таймером `systemd` (запуск в 03:00 UTC):
 
 ```bash
+# Ручной запуск очистки текста при необходимости
 node server/scripts/retentionCleanup.js
-```
-*(Рекомендуется настроить запуск в cron раз в сутки: `0 3 * * * cd /srv/LinguaLearn/english && node server/scripts/retentionCleanup.js >> /var/log/lingualearn-retention.log 2>&1`)*
 
-### Оценка качества анализа (Eval Harness):
-Скрипт для бенчмаркинга качества грамматического анализа и задержек модели Gemini 2.5 Flash на синтетическом датасете:
+# Проверка статуса таймера очистки в systemd
+systemctl status lingualearn-retention.timer
+```
+
+### Оценка качества анализа и модельный бенчмарк (Gemini 3.5 Flash-Lite Eval Harness):
+Скрипты для бенчмаркинга качества грамматического анализа, точности исправлений и задержек моделей Gemini:
 
 ```bash
+# Оценка точности исправлений предложений
 node server/scripts/evalWritingAnalysis.js
+
+# Запуск полного модельного бенчмарка Gemini 3.5 Flash-Lite
+node server/scripts/evalGeminiModel.js
 ```
 
 ---
@@ -109,29 +115,32 @@ node server/scripts/evalWritingAnalysis.js
 ```bash
 cd /srv/LinguaLearn/english
 
-# Шаг 1: Создание резервной копии базы данных
-cp server/english_learning.db "server/english_learning.db.backup-deploy-$(date +%Y%m%d_%H%M%S)"
+# Шаг 1: Создание горячего резервного копирования базы данных
+node server/scripts/backupDatabase.js
 
-# Шаг 2: Прогон полного набора автоматических тестов
+# Шаг 2: Прогон полного набора автоматических тестов бэкенда
 node --test tests/*.test.mjs
 
-# Шаг 3: Прогон сквозных тестов изоляции
+# Шаг 3: Прогон кроссплатформенных контрактов интеграционного тестирования (Mac, iOS, Android, Windows)
+node tests/e2e-cross-platform-contract.test.mjs
+
+# Шаг 4: Прогон сквозных тестов изоляции
 node tests/e2e-beta-isolation.test.mjs
 
-# Шаг 4: Сборка фронтенда Vite (генерация директории dist)
+# Шаг 5: Сборка фронтенда Vite (генерация директории dist)
 npm run build
 
-# Шаг 5: Перезапуск системного сервиса бэкенда
+# Шаг 6: Перезапуск системного сервиса бэкенда
 sudo systemctl restart english-backend.service
 
-# Шаг 6: Проверка статуса сервиса
+# Шаг 7: Проверка статуса сервиса
 systemctl status english-backend.service --no-pager
 
-# Шаг 7: Верификация шлюзов безопасности и API
+# Шаг 8: Верификация шлюзов безопасности и API
 curl -s -o /dev/null -w "Health check status: %{http_code}\n" http://localhost:3001/health
 curl -s -i http://localhost:3001/api/curriculum | head -n 5  # Должен возвращать HTTP 401
 
-# Шаг 8: Верификация сохранности испанского модуля
+# Шаг 9: Верификация сохранности испанского модуля
 curl -s -o /dev/null -w "Spanish backend status: %{http_code}\n" http://localhost:3003/health
 ```
 
