@@ -3,8 +3,10 @@
 ---
 
 > [!IMPORTANT]
-> **Active engineering handoff:** [LinguaLearn English Beta + cross-platform executor specification](LINGUALEARN_CROSS_PLATFORM_EXECUTOR_TZ.md).
-> This is the source of truth for continuing production-server work and building the macOS, iOS, Android, and Windows clients.
+> **Active engineering handoff:**
+> 1. [Base cross-platform executor specification](LINGUALEARN_CROSS_PLATFORM_EXECUTOR_TZ.md)
+> 2. [Mandatory strict-correction and real-client follow-up](LINGUALEARN_FOLLOWUP_STRICT_CORRECTIONS.md)
+> The follow-up has priority where the documents differ. Both must be completed before claiming beta readiness.
 
 ---
 
