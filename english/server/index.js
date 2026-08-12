@@ -27,6 +27,13 @@ import { parseCookies } from './auth.js';
 import { getOwnerId } from './dbMigration.js';
 import { createAuthService, createAuthMiddleware } from './auth.js';
 import { createDeviceTokenService, createDeviceAuthMiddleware } from './deviceTokens.js';
+import {
+  calculateTopicStatus,
+  calculateMasteryConfidence,
+  recordTopicEvidence,
+  recalculateTopicProgress,
+  getUserTopicProgress,
+} from './topicProgress.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -829,50 +836,38 @@ function findCurriculumTopic(name) {
   return existing || null;
 }
 
-function updateTopic(name, category, level, success) {
-  const existing = findCurriculumTopic(name);
+function updateTopic(name, category, level, success, userIdInput = 1) {
+  const userId = userIdInput || 1;
+  let existing = findCurriculumTopic(name);
 
-  if (existing) {
-    const scoreChange = success ? 5 : -10;
-    const newScore = Math.max(0, Math.min(100, existing.score + scoreChange));
-    const newStatus = newScore >= 80 ? 'mastered' : 'in_progress';
-
-    db.prepare(`
-      UPDATE curriculum_topics 
-      SET score = ?, status = ?,
-          success_count = success_count + ?,
-          failure_count = failure_count + ?,
-          last_practiced = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(newScore, newStatus, success ? 1 : 0, success ? 0 : 1, existing.id);
-
-    return { 
-      isNew: false, 
-      name: existing.name, 
-      scoreChange, 
-      newScore: Math.round(newScore),
-      success 
-    };
-  } else {
-    // AI detected a new topic — add to curriculum_topics directly
-    const initialScore = success ? 50 : 0;
-    const status = 'in_progress';
-    db.prepare(`
-      INSERT INTO curriculum_topics (name, category, level, score, status, success_count, failure_count, source, last_practiced)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'ai_detected', CURRENT_TIMESTAMP)
-    `).run(name, category, level, initialScore, status, success ? 1 : 0, success ? 0 : 1);
-
-    return { 
-      isNew: true, 
-      name, 
-      category,
-      level,
-      success 
-    };
+  if (!existing) {
+    // AI detected a new topic — add to curriculum_topics
+    const inserted = db.prepare(`
+      INSERT INTO curriculum_topics (name, category, level, source, created_at)
+      VALUES (?, ?, ?, 'ai_detected', CURRENT_TIMESTAMP)
+    `).run(name, category, level);
+    existing = db.prepare('SELECT * FROM curriculum_topics WHERE id = ?').get(inserted.lastInsertRowid);
   }
+
+  const rec = recordTopicEvidence(db, {
+    userId,
+    curriculumTopicId: existing.id,
+    outcome: success ? 'success' : 'error',
+    confidence: 1.0,
+  });
+
+  return {
+    isNew: existing.source === 'ai_detected' && (existing.success_count || 0) === 0 && (existing.failure_count || 0) === 0,
+    name: existing.name,
+    category: existing.category,
+    level: existing.level,
+    status: rec.status,
+    newScore: Math.round(rec.score),
+    success,
+  };
 }
 
-// API: Получение всех тем (reads from curriculum_topics for backward compatibility)
+// API: Получение всех тем (reads from user_topic_progress)
 app.get('/api/topics', (req, res) => {
   try {
     const userId = getUserId(req);
@@ -885,12 +880,27 @@ app.get('/api/topics', (req, res) => {
              COALESCE(p.score, 0) as score,
              COALESCE(p.success_count, 0) as success_count,
              COALESCE(p.error_count, 0) as failure_count,
-             p.last_practiced
+             COALESCE(p.unique_practice_days, 0) as unique_practice_days,
+             p.last_practiced,
+             p.last_error_at,
+             p.last_success_at
       FROM curriculum_topics c
       JOIN user_topic_progress p ON c.id = p.curriculum_topic_id AND p.user_id = ?
       WHERE p.status != 'not_started'
       ORDER BY p.score ASC, c.level DESC
     `).all(userId);
+
+    for (const t of topics) {
+      t.mastery_confidence = calculateMasteryConfidence({
+        score: t.score,
+        success_count: t.success_count,
+        error_count: t.failure_count,
+        unique_practice_days: t.unique_practice_days,
+        last_error_at: t.last_error_at,
+        last_success_at: t.last_success_at,
+      });
+    }
+
     const relevantTopics = topics.filter(t => LEVEL_PRIORITY[t.level] >= maxLevelPriority);
     
     res.json({ topics: relevantTopics, maxLevel: settings.max_level });
@@ -1122,9 +1132,10 @@ app.delete('/api/user/account', handleDeleteAccount);
 
 // API: Ручное обновление темы
 app.post('/api/topics/update', (req, res) => {
+  const userId = getUserId(req);
   const { topic, category, level, success } = req.body;
-  updateTopic(topic, category, level, success);
-  res.json({ success: true });
+  const result = updateTopic(topic, category, level, success, userId);
+  res.json({ success: true, result });
 });
 
 // API: Удаление/сброс темы
@@ -1136,7 +1147,7 @@ app.delete('/api/topics/:id', (req, res) => {
     db.prepare('DELETE FROM user_topic_progress WHERE curriculum_topic_id = ?').run(req.params.id);
   } else if (topic) {
     db.prepare(
-      "UPDATE user_topic_progress SET status = 'not_started', score = 0, success_count = 0, error_count = 0, last_practiced = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND curriculum_topic_id = ?"
+      "UPDATE user_topic_progress SET status = 'not_started', score = 0, success_count = 0, error_count = 0, last_practiced = NULL, last_error_at = NULL, last_success_at = NULL, unique_practice_days = 0, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND curriculum_topic_id = ?"
     ).run(userId, req.params.id);
   }
   res.json({ success: true });
@@ -1282,11 +1293,26 @@ app.get('/api/curriculum', (req, res) => {
              COALESCE(p.score, 0) as score,
              COALESCE(p.success_count, 0) as success_count,
              COALESCE(p.error_count, 0) as failure_count,
-             p.last_practiced
+             COALESCE(p.unique_practice_days, 0) as unique_practice_days,
+             p.last_practiced,
+             p.last_error_at,
+             p.last_success_at
       FROM curriculum_topics c
       LEFT JOIN user_topic_progress p ON c.id = p.curriculum_topic_id AND p.user_id = ?
       ORDER BY c.level, c.category, c.name
     `).all(userId);
+
+    for (const t of topics) {
+      t.mastery_confidence = calculateMasteryConfidence({
+        score: t.score,
+        success_count: t.success_count,
+        error_count: t.failure_count,
+        unique_practice_days: t.unique_practice_days,
+        last_error_at: t.last_error_at,
+        last_success_at: t.last_success_at,
+      });
+    }
+
     res.json({ topics, maxLevel: settings.max_level });
   } catch (error) {
     console.error('Error fetching curriculum:', error);
@@ -1302,6 +1328,14 @@ app.get('/api/stats', (req, res) => {
     const topicsLowScore = db.prepare("SELECT COUNT(*) as count FROM user_topic_progress WHERE user_id = ? AND status != 'not_started' AND score < 30").get(userId).count;
     const topicsHighScore = db.prepare("SELECT COUNT(*) as count FROM user_topic_progress WHERE user_id = ? AND score >= 70").get(userId).count;
     
+    const byStatus = {
+      insufficient_evidence: db.prepare("SELECT COUNT(*) as count FROM user_topic_progress WHERE user_id = ? AND status = 'insufficient_evidence'").get(userId).count,
+      improving: db.prepare("SELECT COUNT(*) as count FROM user_topic_progress WHERE user_id = ? AND status = 'improving'").get(userId).count,
+      recurring_problem: db.prepare("SELECT COUNT(*) as count FROM user_topic_progress WHERE user_id = ? AND status = 'recurring_problem'").get(userId).count,
+      stable: db.prepare("SELECT COUNT(*) as count FROM user_topic_progress WHERE user_id = ? AND status = 'stable'").get(userId).count,
+      mastered: db.prepare("SELECT COUNT(*) as count FROM user_topic_progress WHERE user_id = ? AND status = 'mastered'").get(userId).count,
+    };
+
     const vocabTotal = db.prepare('SELECT COUNT(*) as count FROM vocabulary WHERE user_id = ?').get(userId).count;
     const today = new Date().toISOString().split('T')[0];
     const vocabDue = db.prepare('SELECT COUNT(*) as count FROM vocabulary WHERE user_id = ? AND next_review <= ?').get(userId, today + 'T23:59:59').count;
@@ -1313,7 +1347,8 @@ app.get('/api/stats', (req, res) => {
       topics: {
         total: topicsCount,
         needsPractice: topicsLowScore,
-        mastered: topicsHighScore
+        mastered: topicsHighScore,
+        byStatus,
       },
       vocabulary: {
         total: vocabTotal,

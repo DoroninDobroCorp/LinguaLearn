@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { migrateMultiUserSchema } from './dbMigration.js';
+import { recordTopicEvidence, recalculateTopicProgress, getUserTopicProgress } from './topicProgress.js';
 
 export const EXTERNAL_SCORE_WEIGHTS = Object.freeze({
   success: 1,
@@ -448,20 +449,22 @@ function completeAcceptedSample(db, sampleId, input, analysis) {
         : EXTERNAL_SCORE_WEIGHTS.error;
       const scoreDelta = isHighConfidence ? rawDelta : 0;
 
-      const topicHasScore = db.prepare("PRAGMA table_info(curriculum_topics)").all().some(c => c.name === 'score');
       let currentScore = 0;
+      let newScore = 0;
 
       const userProgTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='user_topic_progress'").get();
       if (userProgTableExists) {
         const userProg = db.prepare('SELECT score FROM user_topic_progress WHERE user_id = ? AND curriculum_topic_id = ?').get(userId, topic.id);
         if (userProg) currentScore = Number(userProg.score);
-      } else if (topicHasScore) {
-        const tScore = db.prepare('SELECT score FROM curriculum_topics WHERE id = ?').get(topic.id);
-        if (tScore) currentScore = Number(tScore.score);
+      } else {
+        const topicHasScore = db.prepare("PRAGMA table_info(curriculum_topics)").all().some(c => c.name === 'score');
+        if (topicHasScore) {
+          const tScore = db.prepare('SELECT score FROM curriculum_topics WHERE id = ?').get(topic.id);
+          if (tScore) currentScore = Number(tScore.score);
+        }
       }
 
-      const newScore = Math.max(0, Math.min(100, currentScore + scoreDelta));
-      const newStatus = newScore >= 80 ? 'mastered' : evidence.outcome === 'error' ? 'recurring_problem' : 'improving';
+      newScore = Math.max(0, Math.min(100, currentScore + scoreDelta));
 
       if (!input.previewOnly) {
         const inserted = db.prepare(`
@@ -479,43 +482,15 @@ function completeAcceptedSample(db, sampleId, input, analysis) {
           scoreDelta,
         );
 
-        if (Number(inserted.changes) > 0 && isHighConfidence) {
-          if (userProgTableExists) {
-            db.prepare(`
-              INSERT INTO user_topic_progress (user_id, curriculum_topic_id, status, score, success_count, error_count, last_practiced)
-              VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-              ON CONFLICT(user_id, curriculum_topic_id) DO UPDATE SET
-                status = excluded.status,
-                score = excluded.score,
-                success_count = success_count + excluded.success_count,
-                error_count = error_count + excluded.error_count,
-                last_practiced = CURRENT_TIMESTAMP
-            `).run(
-              userId,
-              topic.id,
-              newStatus,
-              newScore,
-              evidence.outcome === 'success' ? 1 : 0,
-              evidence.outcome === 'error' ? 1 : 0,
-            );
-          }
-
-          if (topicHasScore) {
-            db.prepare(`
-              UPDATE curriculum_topics
-              SET score = ?, status = ?,
-                  success_count = success_count + ?,
-                  failure_count = failure_count + ?,
-                  last_practiced = CURRENT_TIMESTAMP
-              WHERE id = ?
-            `).run(
-              newScore,
-              newStatus,
-              evidence.outcome === 'success' ? 1 : 0,
-              evidence.outcome === 'error' ? 1 : 0,
-              topic.id,
-            );
-          }
+        if (Number(inserted.changes) > 0) {
+          const progressResult = recordTopicEvidence(db, {
+            userId,
+            curriculumTopicId: topic.id,
+            outcome: evidence.outcome,
+            confidence: evidence.confidence,
+            timestamp: input.sentAt || null,
+          });
+          newScore = progressResult.score;
         }
       }
 
@@ -795,23 +770,16 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
                 ? Math.max(0, currentErrorCount - 1)
                 : currentErrorCount;
 
-              const newStatus = newScore >= 80
-                ? 'mastered'
-                : newErrorCount > 1
-                  ? 'recurring_problem'
-                  : (newSuccessCount > 0 || newErrorCount > 0)
-                    ? 'improving'
-                    : 'insufficient_evidence';
-
               db.prepare(`
                 UPDATE user_topic_progress
                 SET score = ?,
-                    status = ?,
                     success_count = ?,
                     error_count = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE user_id = ? AND curriculum_topic_id = ?
-              `).run(newScore, newStatus, newSuccessCount, newErrorCount, normalizedUserId, ev.curriculum_topic_id);
+              `).run(newScore, newSuccessCount, newErrorCount, normalizedUserId, ev.curriculum_topic_id);
+
+              recalculateTopicProgress(db, normalizedUserId, ev.curriculum_topic_id);
             }
           }
 
