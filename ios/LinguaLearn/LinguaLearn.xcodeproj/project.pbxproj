@@ -1,0 +1,313 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 54;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		10000001 /* LinguaLearnApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000001 /* LinguaLearnApp.swift */; };
+		10000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000002 /* ContentView.swift */; };
+		10000003 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000003 /* AuthManager.swift */; };
+		10000004 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000004 /* LoginView.swift */; };
+		10000005 /* DeviceTokenManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000005 /* DeviceTokenManager.swift */; };
+		10000006 /* DeviceTokenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000006 /* DeviceTokenView.swift */; };
+		10000007 /* PrivacyConsentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000007 /* PrivacyConsentManager.swift */; };
+		10000008 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000008 /* SettingsView.swift */; };
+		10000009 /* InboxViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000009 /* InboxViewModel.swift */; };
+		10000010 /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000010 /* InboxView.swift */; };
+		10000011 /* PracticeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000011 /* PracticeViewModel.swift */; };
+		10000012 /* TodayPracticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000012 /* TodayPracticeView.swift */; };
+		10000013 /* RetentionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000013 /* RetentionManager.swift */; };
+		10000014 /* RetentionStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000014 /* RetentionStatusView.swift */; };
+		10000015 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000015 /* KeyboardViewController.swift */; };
+		10000016 /* AppGroupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000016 /* AppGroupManager.swift */; };
+		10000017 /* RetryQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000017 /* RetryQueue.swift */; };
+		10000018 /* CandidateFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000018 /* CandidateFilter.swift */; };
+		10000019 /* PreviewPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000019 /* PreviewPopupView.swift */; };
+		10000020 /* AutoReplaceEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000020 /* AutoReplaceEngine.swift */; };
+		10000021 /* ApiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000021 /* ApiClient.swift */; };
+		10000022 /* NetworkRetryQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000022 /* NetworkRetryQueue.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		20000001 /* LinguaLearnApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinguaLearnApp.swift; sourceTree = "<group>"; };
+		20000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		20000003 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+		20000004 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		20000005 /* DeviceTokenManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenManager.swift; sourceTree = "<group>"; };
+		20000006 /* DeviceTokenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenView.swift; sourceTree = "<group>"; };
+		20000007 /* PrivacyConsentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyConsentManager.swift; sourceTree = "<group>"; };
+		20000008 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		20000009 /* InboxViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxViewModel.swift; sourceTree = "<group>"; };
+		20000010 /* InboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxView.swift; sourceTree = "<group>"; };
+		20000011 /* PracticeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PracticeViewModel.swift; sourceTree = "<group>"; };
+		20000012 /* TodayPracticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayPracticeView.swift; sourceTree = "<group>"; };
+		20000013 /* RetentionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetentionManager.swift; sourceTree = "<group>"; };
+		20000014 /* RetentionStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetentionStatusView.swift; sourceTree = "<group>"; };
+		20000015 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
+		20000016 /* AppGroupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupManager.swift; sourceTree = "<group>"; };
+		20000017 /* RetryQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetryQueue.swift; sourceTree = "<group>"; };
+		20000018 /* CandidateFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CandidateFilter.swift; sourceTree = "<group>"; };
+		20000019 /* PreviewPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewPopupView.swift; sourceTree = "<group>"; };
+		20000020 /* AutoReplaceEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoReplaceEngine.swift; sourceTree = "<group>"; };
+		20000021 /* ApiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiClient.swift; sourceTree = "<group>"; };
+		20000022 /* NetworkRetryQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkRetryQueue.swift; sourceTree = "<group>"; };
+		30000001 /* LinguaLearnContainerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LinguaLearnContainerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		30000002 /* LinguaLearnKeyboardExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LinguaLearnKeyboardExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		40000001 = {
+			isa = PBXGroup;
+			children = (
+				40000002 /* LinguaLearnContainerApp */,
+				40000003 /* LinguaLearnKeyboardExtension */,
+				40000004 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		40000002 /* LinguaLearnContainerApp */ = {
+			isa = PBXGroup;
+			children = (
+				20000001 /* LinguaLearnApp.swift */,
+				20000002 /* ContentView.swift */,
+				20000003 /* AuthManager.swift */,
+				20000004 /* LoginView.swift */,
+				20000005 /* DeviceTokenManager.swift */,
+				20000006 /* DeviceTokenView.swift */,
+				20000007 /* PrivacyConsentManager.swift */,
+				20000008 /* SettingsView.swift */,
+				20000009 /* InboxViewModel.swift */,
+				20000010 /* InboxView.swift */,
+				20000011 /* PracticeViewModel.swift */,
+				20000012 /* TodayPracticeView.swift */,
+				20000013 /* RetentionManager.swift */,
+				20000014 /* RetentionStatusView.swift */,
+			);
+			path = LinguaLearnContainerApp;
+			sourceTree = "<group>";
+		};
+		40000003 /* LinguaLearnKeyboardExtension */ = {
+			isa = PBXGroup;
+			children = (
+				20000015 /* KeyboardViewController.swift */,
+				20000016 /* AppGroupManager.swift */,
+				20000017 /* RetryQueue.swift */,
+				20000018 /* CandidateFilter.swift */,
+				20000019 /* PreviewPopupView.swift */,
+				20000020 /* AutoReplaceEngine.swift */,
+				20000021 /* ApiClient.swift */,
+				20000022 /* NetworkRetryQueue.swift */,
+			);
+			path = LinguaLearnKeyboardExtension;
+			sourceTree = "<group>";
+		};
+		40000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				30000001 /* LinguaLearnContainerApp.app */,
+				30000002 /* LinguaLearnKeyboardExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		50000001 /* LinguaLearnContainerApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 60000001 /* Build configuration list for PBXNativeTarget "LinguaLearnContainerApp" */;
+			buildPhases = (
+				70000001 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LinguaLearnContainerApp;
+			productName = LinguaLearnContainerApp;
+			productReference = 30000001 /* LinguaLearnContainerApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		50000002 /* LinguaLearnKeyboardExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 60000002 /* Build configuration list for PBXNativeTarget "LinguaLearnKeyboardExtension" */;
+			buildPhases = (
+				70000002 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LinguaLearnKeyboardExtension;
+			productName = LinguaLearnKeyboardExtension;
+			productReference = 30000002 /* LinguaLearnKeyboardExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		80000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastSwiftUpdateCheck = 1400;
+				LastUpgradeCheck = 1400;
+			};
+			buildConfigurationList = 60000003 /* Build configuration list for PBXProject "LinguaLearn" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 40000001;
+			productRefGroup = 40000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				50000001 /* LinguaLearnContainerApp */,
+				50000002 /* LinguaLearnKeyboardExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		70000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				10000001 /* LinguaLearnApp.swift in Sources */,
+				10000002 /* ContentView.swift in Sources */,
+				10000003 /* AuthManager.swift in Sources */,
+				10000004 /* LoginView.swift in Sources */,
+				10000005 /* DeviceTokenManager.swift in Sources */,
+				10000006 /* DeviceTokenView.swift in Sources */,
+				10000007 /* PrivacyConsentManager.swift in Sources */,
+				10000008 /* SettingsView.swift in Sources */,
+				10000009 /* InboxViewModel.swift in Sources */,
+				10000010 /* InboxView.swift in Sources */,
+				10000011 /* PracticeViewModel.swift in Sources */,
+				10000012 /* TodayPracticeView.swift in Sources */,
+				10000013 /* RetentionManager.swift in Sources */,
+				10000014 /* RetentionStatusView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		70000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				10000015 /* KeyboardViewController.swift in Sources */,
+				10000016 /* AppGroupManager.swift in Sources */,
+				10000017 /* RetryQueue.swift in Sources */,
+				10000018 /* CandidateFilter.swift in Sources */,
+				10000019 /* PreviewPopupView.swift in Sources */,
+				10000020 /* AutoReplaceEngine.swift in Sources */,
+				10000021 /* ApiClient.swift in Sources */,
+				10000022 /* NetworkRetryQueue.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		90000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.factory.lingualearn.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.7;
+			};
+			name = Debug;
+		};
+		90000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.factory.lingualearn.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.7;
+			};
+			name = Release;
+		};
+		90000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.factory.lingualearn.app.keyboard;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.7;
+			};
+			name = Debug;
+		};
+		90000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.factory.lingualearn.app.keyboard;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.7;
+			};
+			name = Release;
+		};
+		90000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				SWIFT_VERSION = 5.7;
+			};
+			name = Debug;
+		};
+		90000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				SWIFT_VERSION = 5.7;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		60000001 /* Build configuration list for PBXNativeTarget "LinguaLearnContainerApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				90000001 /* Debug */,
+				90000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		60000002 /* Build configuration list for PBXNativeTarget "LinguaLearnKeyboardExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				90000003 /* Debug */,
+				90000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		60000003 /* Build configuration list for PBXProject "LinguaLearn" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				90000005 /* Debug */,
+				90000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 80000001 /* Project object */;
+}

@@ -1,0 +1,44 @@
+name: LinguaLearn
+options:
+  bundleIdPrefix: ai.factory.lingualearn
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "14.0"
+
+settings:
+  PRODUCT_NAME: LinguaLearn
+  SWIFT_VERSION: "5.7"
+
+targets:
+  LinguaLearnContainerApp:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - LinguaLearnContainerApp
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: ai.factory.lingualearn.app
+      INFOPLIST_FILE: LinguaLearnContainerApp/Info.plist
+      ENTITLEMENTS_FILE: LinguaLearnContainerApp/LinguaLearnContainerApp.entitlements
+    dependencies:
+      - target: LinguaLearnKeyboardExtension
+
+  LinguaLearnKeyboardExtension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - LinguaLearnKeyboardExtension
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: ai.factory.lingualearn.app.keyboard
+      INFOPLIST_FILE: LinguaLearnKeyboardExtension/Info.plist
+      ENTITLEMENTS_FILE: LinguaLearnKeyboardExtension/LinguaLearnKeyboardExtension.entitlements
+
+  LinguaLearnTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - LinguaLearnTests
+    dependencies:
+      - target: LinguaLearnContainerApp
