@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "eventId": "sample-evt-001",
+  "sourceApp": "Slack",
+  "originalText": "She don't know the answer to this question.",
+  "sentAt": "2026-08-12T15:00:00Z",
+  "previewOnly": false
+}

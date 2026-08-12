@@ -947,7 +947,7 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
 export function createGeminiWritingAnalyzer({
   genAI,
   modelName = String(
-    process.env.GEMINI_WRITING_MODEL || 'gemini-2.5-flash'
+    process.env.GEMINI_WRITING_MODEL || 'gemini-3.5-flash-lite'
   ).trim(),
 }) {
   return async ({ text, canonicalTopics }) => {

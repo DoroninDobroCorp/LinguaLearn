@@ -1,0 +1,392 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LinguaLearn Multi-Platform Writing Analysis API",
+    "description": "Unified OpenAPI 3.0 contract (schemaVersion: 1) for Mac, iOS, Android, and Windows droids.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:3001",
+      "description": "Local English Express Backend"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    },
+    {
+      "CookieAuth": []
+    }
+  ],
+  "paths": {
+    "/api/writing/analyze": {
+      "post": {
+        "summary": "Analyze English writing sample and record grammar evidence",
+        "operationId": "analyzeWriting",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Writing sample successfully analyzed or candidate filtered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload or parameters"
+          },
+          "401": {
+            "description": "Unauthenticated or invalid device token"
+          },
+          "409": {
+            "description": "Event ID already in progress"
+          }
+        }
+      }
+    },
+    "/api/writing/samples/{id}/feedback": {
+      "post": {
+        "summary": "Submit correction feedback or undo score delta",
+        "operationId": "submitFeedback",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Writing sample ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feedback recorded successfully"
+          },
+          "400": {
+            "description": "Invalid feedback type"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Writing sample not found"
+          }
+        }
+      }
+    },
+    "/api/devices/tokens": {
+      "post": {
+        "summary": "Create device Bearer token with one-time plain text secret display",
+        "operationId": "createDeviceToken",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Device token created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceTokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated session required"
+          }
+        }
+      }
+    },
+    "/api/devices/tokens/{id}/revoke": {
+      "post": {
+        "summary": "Revoke device token",
+        "operationId": "revokeDeviceToken",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device token revoked"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Device token not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "ll_dev_*"
+      },
+      "CookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "lingua_session"
+      }
+    },
+    "schemas": {
+      "AnalysisRequest": {
+        "type": "object",
+        "required": [
+          "schemaVersion",
+          "eventId",
+          "sourceApp",
+          "sentAt"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "example": 1
+          },
+          "eventId": {
+            "type": "string",
+            "example": "uuid-v4-generated-by-client"
+          },
+          "sourceApp": {
+            "type": "string",
+            "example": "Slack"
+          },
+          "originalText": {
+            "type": "string",
+            "example": "She don't know."
+          },
+          "text": {
+            "type": "string",
+            "example": "She don't know."
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-08-12T15:00:00Z"
+          },
+          "previewOnly": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "AnalysisResponse": {
+        "type": "object",
+        "required": [
+          "accepted",
+          "eventId",
+          "sourceApp",
+          "originalText",
+          "correctedText",
+          "changed",
+          "errors",
+          "topicEvidence"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "example": 1
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "sampleId": {
+            "type": "integer"
+          },
+          "previewOnly": {
+            "type": "boolean"
+          },
+          "accepted": {
+            "type": "boolean"
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceApp": {
+            "type": "string"
+          },
+          "originalText": {
+            "type": "string"
+          },
+          "correctedText": {
+            "type": "string"
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "summaryRu": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GrammarError"
+            }
+          },
+          "topicEvidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TopicEvidence"
+            }
+          }
+        }
+      },
+      "GrammarError": {
+        "type": "object",
+        "required": [
+          "original",
+          "correction",
+          "explanationRu"
+        ],
+        "properties": {
+          "original": {
+            "type": "string"
+          },
+          "correction": {
+            "type": "string"
+          },
+          "explanationRu": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string",
+            "nullable": true
+          },
+          "confidence": {
+            "type": "number"
+          }
+        }
+      },
+      "TopicEvidence": {
+        "type": "object",
+        "required": [
+          "topicId",
+          "topic",
+          "outcome",
+          "confidence"
+        ],
+        "properties": {
+          "topicId": {
+            "type": "integer"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ]
+          },
+          "confidence": {
+            "type": "number"
+          },
+          "explanationRu": {
+            "type": "string"
+          },
+          "scoreDelta": {
+            "type": "number"
+          },
+          "newScore": {
+            "type": "number"
+          }
+        }
+      },
+      "FeedbackRequest": {
+        "type": "object",
+        "required": [
+          "feedback_type"
+        ],
+        "properties": {
+          "feedback_type": {
+            "type": "string",
+            "enum": [
+              "helpful",
+              "undo_progress"
+            ]
+          }
+        }
+      },
+      "DeviceTokenRequest": {
+        "type": "object",
+        "required": [
+          "device_name"
+        ],
+        "properties": {
+          "device_name": {
+            "type": "string",
+            "example": "Work MacBook Pro"
+          }
+        }
+      },
+      "DeviceTokenResponse": {
+        "type": "object",
+        "required": [
+          "token",
+          "device_id"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "ll_dev_a1b2c3d4e5f67890"
+          },
+          "device_id": {
+            "type": "integer"
+          },
+          "device_name": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -3,20 +3,40 @@ node_modules/
 
 # Environment variables (NEVER commit secrets!)
 .env
-english/.venv-asr/
-english/server/__pycache__/
+*.env
 
-# Database files
+# Virtual Environments & Python Cache
+.venv*/
+english/.venv*/
+__pycache__/
+*.pyc
+
+# Database files & Backups
 *.db
 *.db-wal
 *.db-shm
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
+*.bak
+*.backup*
 
-# Build output
+# Build output & Caches
 dist/
+.cache/
+english/.cache/
 english/server/.cache/
+.vix/
+english/.vix/
+.pytest_cache/
+english/.pytest_cache/
+
+# Test & Report artifacts
+test-results/
+test-screenshots/
+test-report.*
+reports/
+english/server/reports/
 
 # OS files
 .DS_Store
@@ -25,11 +45,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
-
-# Test artifacts
-test-results/
-test-screenshots/
-test-report.*
 
 # Logs
 *.log
