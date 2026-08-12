@@ -2,6 +2,12 @@
 
 ---
 
+> [!IMPORTANT]
+> **Active engineering handoff:** [LinguaLearn English Beta + cross-platform executor specification](LINGUALEARN_CROSS_PLATFORM_EXECUTOR_TZ.md).
+> This is the source of truth for continuing production-server work and building the macOS, iOS, Android, and Windows clients.
+
+---
+
 # 🇬🇧 English
 
 <div align="center">
