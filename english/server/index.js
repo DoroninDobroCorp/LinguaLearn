@@ -25,6 +25,7 @@ import { getDb, getDatabasePath, initAuthTables } from './db.js';
 import { parseCookies } from './auth.js';
 import { getOwnerId } from './dbMigration.js';
 import { createAuthService, createAuthMiddleware } from './auth.js';
+import { createDeviceTokenService, createDeviceAuthMiddleware } from './deviceTokens.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -268,9 +269,8 @@ const writingAnalysisService = createWritingAnalysisService({
   db,
   analyzer: createGeminiWritingAnalyzer({ genAI }),
 });
-const captureAuth = createCaptureAuthMiddleware({
-  token: process.env.CAPTURE_API_TOKEN,
-});
+const deviceTokenService = createDeviceTokenService(db);
+const deviceAuth = createDeviceAuthMiddleware(db);
 
 const configuredCorsOrigins = String(process.env.CORS_ALLOWED_ORIGINS || '')
   .split(',')
@@ -289,23 +289,28 @@ const productionCors = {
 app.use(cors(process.env.NODE_ENV === 'production' ? productionCors : undefined));
 app.post(
   '/api/writing/analyze',
-  captureAuth,
+  deviceAuth,
   express.json({ limit: '32kb' }),
   createWritingAnalyzeHandler({ service: writingAnalysisService }),
 );
 app.get(
   '/api/writing/samples',
-  captureAuth,
+  deviceAuth,
   createWritingSamplesHandler({ service: writingAnalysisService }),
 );
 app.use(express.json({ limit: '5mb' }));
 
 const authService = createAuthService(db);
+const authMiddleware = createAuthMiddleware(db);
 
 app.post('/api/auth/signup', (req, res) => authService.signup(req, res));
 app.post('/api/auth/login', (req, res) => authService.login(req, res));
 app.get('/api/auth/me', (req, res) => authService.me(req, res));
 app.post('/api/auth/logout', (req, res) => authService.logout(req, res));
+
+app.post('/api/devices/tokens', authMiddleware, (req, res) => deviceTokenService.handleCreateToken(req, res));
+app.get('/api/devices/tokens', authMiddleware, (req, res) => deviceTokenService.handleListTokens(req, res));
+app.post('/api/devices/tokens/:id/revoke', authMiddleware, (req, res) => deviceTokenService.handleRevokeToken(req, res));
 
 function buildHealthResponse() {
   db.prepare('SELECT 1 AS ok').get();

@@ -142,6 +142,7 @@ export function validateWritingPayload(body) {
   }
 
   const userId = Number.isInteger(body.userId) ? body.userId : (body.user_id ? Number(body.user_id) : undefined);
+  const deviceTokenId = Number.isInteger(body.deviceTokenId) ? body.deviceTokenId : (body.device_token_id ? Number(body.device_token_id) : undefined);
 
   return {
     eventId,
@@ -150,6 +151,7 @@ export function validateWritingPayload(body) {
     sentAt: sentAtDate.toISOString(),
     previewOnly: Boolean(body.previewOnly || body.preview_only),
     userId,
+    deviceTokenId,
   };
 }
 
@@ -357,11 +359,12 @@ async function runAnalyzerWithTimeout(analyzer, input, timeoutMs) {
 
 function reserveWritingSample(db, input) {
   const userId = input.userId || 1;
+  const deviceTokenId = input.deviceTokenId || null;
   const result = db.prepare(`
     INSERT OR IGNORE INTO writing_samples (
-      user_id, event_id, source_app, original_text, sent_at, status, preview_only
-    ) VALUES (?, ?, ?, ?, ?, 'processing', ?)
-  `).run(userId, input.eventId, input.sourceApp, input.text, input.sentAt, input.previewOnly ? 1 : 0);
+      user_id, device_token_id, event_id, source_app, original_text, sent_at, status, preview_only
+    ) VALUES (?, ?, ?, ?, ?, ?, 'processing', ?)
+  `).run(userId, deviceTokenId, input.eventId, input.sourceApp, input.text, input.sentAt, input.previewOnly ? 1 : 0);
 
   const row = db.prepare('SELECT * FROM writing_samples WHERE user_id = ? AND event_id = ?').get(userId, input.eventId);
   if (!row) throw httpError(500, 'Could not reserve writing event.', 'RESERVATION_FAILED');
@@ -699,7 +702,12 @@ export function createCaptureAuthMiddleware({ token }) {
 export function createWritingAnalyzeHandler({ service }) {
   return async (req, res) => {
     try {
-      const { response, replayed } = await service.analyze(req.body);
+      const payload = {
+        ...req.body,
+        userId: req.userId || req.user?.id || req.body?.userId,
+        deviceTokenId: req.deviceTokenId || req.body?.deviceTokenId,
+      };
+      const { response, replayed } = await service.analyze(payload);
       res.set('X-Idempotent-Replay', replayed ? 'true' : 'false');
       res.status(200).json(response);
     } catch (error) {
