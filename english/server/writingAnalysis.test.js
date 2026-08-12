@@ -20,6 +20,18 @@ function createTestDatabase() {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(`
     PRAGMA foreign_keys = ON;
+    CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('owner', 'admin', 'user')),
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'deactivated')),
+      cefr_level TEXT DEFAULT 'B1',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    INSERT INTO users (email, password_hash, role) VALUES ('owner@example.com', 'hash', 'owner');
+
     CREATE TABLE curriculum_topics (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
@@ -168,7 +180,7 @@ test('draft preview returns corrections without changing curriculum progress', a
   assert.deepEqual(result.response.topicEvidence, []);
   assert.deepEqual(
     {
-      ...db.prepare(`SELECT score, success_count, failure_count FROM curriculum_topics WHERE name = ?`).get(
+      ...db.prepare(`SELECT p.score, p.success_count, p.error_count AS failure_count FROM user_topic_progress p JOIN curriculum_topics c ON c.id = p.curriculum_topic_id WHERE c.name = ?`).get(
         'Past Simple (irregular verbs)',
       ),
     },
@@ -212,8 +224,8 @@ test('writing analysis stores canonical evidence once and replays without rescor
   assert.equal(first.response.errors[1].topic, null);
 
   const topic = db.prepare(`
-    SELECT score, success_count, failure_count
-    FROM curriculum_topics WHERE name = ?
+    SELECT p.score, p.success_count, p.error_count AS failure_count
+    FROM user_topic_progress p JOIN curriculum_topics c ON c.id = p.curriculum_topic_id WHERE c.name = ?
   `).get('Past Simple (irregular verbs)');
   assert.deepEqual({ ...topic }, { score: 8, success_count: 0, failure_count: 1 });
   assert.equal(db.prepare('SELECT COUNT(*) AS count FROM grammar_evidence').get().count, 1);
@@ -225,7 +237,7 @@ test('writing analysis stores canonical evidence once and replays without rescor
   assert.equal(analyzerCalls, 1);
   assert.deepEqual(
     {
-      ...db.prepare(`SELECT score, success_count, failure_count FROM curriculum_topics WHERE name = ?`).get(
+      ...db.prepare(`SELECT p.score, p.success_count, p.error_count AS failure_count FROM user_topic_progress p JOIN curriculum_topics c ON c.id = p.curriculum_topic_id WHERE c.name = ?`).get(
         'Past Simple (irregular verbs)',
       ),
     },
@@ -263,7 +275,7 @@ test('an erroneous sentence cannot also award unrelated success points', async (
     [['Past Simple (irregular verbs)', 'error']],
   );
   assert.equal(
-    db.prepare('SELECT score FROM curriculum_topics WHERE name = ?').get('Articles (a/an/the)').score,
+    db.prepare('SELECT p.score FROM user_topic_progress p JOIN curriculum_topics c ON c.id = p.curriculum_topic_id WHERE c.name = ?').get('Articles (a/an/the)').score,
     20,
   );
 });

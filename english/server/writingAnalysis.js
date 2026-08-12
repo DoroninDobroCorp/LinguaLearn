@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
+import { migrateMultiUserSchema } from './dbMigration.js';
 
 export const EXTERNAL_SCORE_WEIGHTS = Object.freeze({
   success: 1,
@@ -14,15 +15,10 @@ const ENGLISH_WORD_PATTERN = /[A-Za-z]+(?:['’-][A-Za-z]+)*/g;
 const LETTER_PATTERN = /\p{L}/gu;
 const ASCII_LETTER_PATTERN = /[A-Za-z]/g;
 const CYRILLIC_PATTERN = /\p{Script=Cyrillic}/u;
-// Accept sentence punctuation before closing marks, whitespace, or emoji, but
-// do not treat the decimal point in `1.2` as a sentence terminator.
 const SENTENCE_TERMINATOR_PATTERN = /[.!?](?=$|[^\p{L}\p{N}])/u;
 const URL_OR_EMAIL_PATTERN = /(?:https?:\/\/|www\.|\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b|\b(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}\b)/i;
 const VERSION_ONLY_PATTERN = /^\s*(?:v(?:ersion)?\s*)?\d+(?:\.\d+){1,}\s*[.!?]?\s*$/i;
 const PATH_OR_COMMAND_PATTERN = /^\s*(?:[A-Za-z]:[\\/]|\.{0,2}\/|\/\w|(?:git|npm|pnpm|yarn|cd|ls|rm|cp|mv|curl|ssh)\s+)/i;
-// Programming keywords are a code signal only when followed by code-like syntax. In particular,
-// ordinary learner prose such as "let's try again" must not be rejected because it contains the
-// word boundary `let` before an apostrophe.
 const CODE_SIGNAL_PATTERN = /(?:=>|===|!==|\b(?:const|let|var|function|class|import)\s+[A-Za-z_$]|\b(?:SELECT|INSERT|UPDATE|DELETE)\s+[A-Za-z_*]|[{};]\s*$)/;
 
 const ANALYSIS_SCHEMA = Object.freeze({
@@ -100,43 +96,7 @@ function normalizeTopicName(value, label, { nullable = false } = {}) {
 }
 
 export function migrateWritingAnalysisSchema(db) {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS writing_samples (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      event_id TEXT NOT NULL UNIQUE,
-      source_app TEXT NOT NULL,
-      original_text TEXT NOT NULL,
-      sent_at TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'processing'
-        CHECK (status IN ('processing', 'completed')),
-      accepted INTEGER,
-      rejection_reason TEXT,
-      analysis_json TEXT,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      analyzed_at TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS grammar_evidence (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      writing_sample_id INTEGER NOT NULL,
-      curriculum_topic_id INTEGER NOT NULL,
-      outcome TEXT NOT NULL CHECK (outcome IN ('success', 'error')),
-      confidence REAL NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
-      explanation_ru TEXT NOT NULL,
-      score_delta REAL NOT NULL,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (writing_sample_id) REFERENCES writing_samples(id) ON DELETE CASCADE,
-      FOREIGN KEY (curriculum_topic_id) REFERENCES curriculum_topics(id),
-      UNIQUE (writing_sample_id, curriculum_topic_id)
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_writing_samples_source_sent
-      ON writing_samples(source_app, sent_at);
-    CREATE INDEX IF NOT EXISTS idx_writing_samples_status
-      ON writing_samples(status);
-    CREATE INDEX IF NOT EXISTS idx_grammar_evidence_topic
-      ON grammar_evidence(curriculum_topic_id, created_at);
-  `);
+  migrateMultiUserSchema(db);
 }
 
 export function validateWritingPayload(body) {
@@ -159,114 +119,122 @@ export function validateWritingPayload(body) {
 
   const sourceApp = typeof body.sourceApp === 'string' ? body.sourceApp.trim() : '';
   if (!sourceApp || sourceApp.length > MAX_SOURCE_APP_LENGTH) {
-    throw httpError(400, 'sourceApp must be a non-empty string up to 100 characters.', 'INVALID_SOURCE_APP');
+    throw httpError(
+      400,
+      'sourceApp must be a non-empty string under 100 characters.',
+      'INVALID_SOURCE_APP',
+    );
   }
 
   const text = typeof body.text === 'string' ? body.text.trim() : '';
   if (!text || text.length > MAX_WRITING_TEXT_LENGTH) {
-    throw httpError(400, 'text must be a non-empty string up to 10000 characters.', 'INVALID_TEXT');
+    throw httpError(
+      400,
+      'text must be a non-empty string under 10,000 characters.',
+      'INVALID_WRITING_TEXT',
+    );
   }
 
-  if (typeof body.sentAt !== 'string' || !body.sentAt.trim()) {
-    throw httpError(400, 'sentAt must be an ISO-8601 timestamp.', 'INVALID_SENT_AT');
-  }
-  const sentAtDate = new Date(body.sentAt);
+  const rawSentAt = typeof body.sentAt === 'string' ? body.sentAt.trim() : '';
+  let sentAtDate = rawSentAt ? new Date(rawSentAt) : new Date();
   if (Number.isNaN(sentAtDate.getTime())) {
-    throw httpError(400, 'sentAt must be an ISO-8601 timestamp.', 'INVALID_SENT_AT');
+    sentAtDate = new Date();
   }
-  if (body.previewOnly !== undefined && typeof body.previewOnly !== 'boolean') {
-    throw httpError(400, 'previewOnly must be a boolean.', 'INVALID_PREVIEW_MODE');
-  }
+
+  const userId = Number.isInteger(body.userId) ? body.userId : (body.user_id ? Number(body.user_id) : undefined);
 
   return {
     eventId,
     sourceApp,
     text,
     sentAt: sentAtDate.toISOString(),
-    previewOnly: body.previewOnly === true,
+    previewOnly: Boolean(body.previewOnly || body.preview_only),
+    userId,
   };
 }
 
 export function filterWritingCandidate(text) {
-  const normalized = String(text || '').trim();
-  if (!normalized) return { accepted: false, reason: 'empty_text' };
-
-  const words = normalized.match(ENGLISH_WORD_PATTERN) || [];
-  if (!SENTENCE_TERMINATOR_PATTERN.test(normalized) && words.length < MIN_WORDS_WITHOUT_TERMINATOR) {
-    return { accepted: false, reason: 'no_sentence_terminator' };
-  }
+  const normalized = typeof text === 'string' ? text.trim() : '';
+  if (!normalized) return { accepted: false, reason: 'empty' };
 
   if (CYRILLIC_PATTERN.test(normalized)) {
     return { accepted: false, reason: 'contains_cyrillic' };
   }
-
   if (URL_OR_EMAIL_PATTERN.test(normalized)) {
     return { accepted: false, reason: 'url_or_email' };
   }
-
-  if (
-    VERSION_ONLY_PATTERN.test(normalized) ||
-    PATH_OR_COMMAND_PATTERN.test(normalized) ||
-    CODE_SIGNAL_PATTERN.test(normalized)
-  ) {
-    return { accepted: false, reason: 'looks_like_code_or_command' };
+  if (VERSION_ONLY_PATTERN.test(normalized)) {
+    return { accepted: false, reason: 'version_only' };
+  }
+  if (PATH_OR_COMMAND_PATTERN.test(normalized)) {
+    return { accepted: false, reason: 'path_or_command' };
   }
 
-  if (words.length < 2) {
-    return { accepted: false, reason: 'not_a_sentence' };
-  }
-
-  const allLetters = normalized.match(LETTER_PATTERN) || [];
+  const letters = normalized.match(LETTER_PATTERN) || [];
   const asciiLetters = normalized.match(ASCII_LETTER_PATTERN) || [];
-  if (!allLetters.length || asciiLetters.length / allLetters.length < 0.9) {
-    return { accepted: false, reason: 'not_english_script' };
+  if (!letters.length || asciiLetters.length / letters.length < 0.8) {
+    return { accepted: false, reason: 'non_latin_script' };
+  }
+
+  const words = normalized.match(ENGLISH_WORD_PATTERN) || [];
+  const hasSentenceTerminator = SENTENCE_TERMINATOR_PATTERN.test(normalized);
+  if (!hasSentenceTerminator && words.length < MIN_WORDS_WITHOUT_TERMINATOR) {
+    return { accepted: false, reason: 'no_sentence_terminator' };
+  }
+
+  if (CODE_SIGNAL_PATTERN.test(normalized)) {
+    return { accepted: false, reason: 'code_signal' };
   }
 
   return { accepted: true, reason: null };
 }
 
-export function validateAnalyzerResult(rawResult) {
-  const result = requirePlainObject(rawResult, 'Analyzer response');
-  if (typeof result.isEnglish !== 'boolean') {
-    throw httpError(502, 'Analyzer response isEnglish must be boolean.', 'INVALID_ANALYZER_RESPONSE');
+export function validateAnalyzerResult(response) {
+  const value = requirePlainObject(response, 'Analyzer response');
+
+  const isEnglish = typeof value.isEnglish === 'boolean' ? value.isEnglish : null;
+  if (isEnglish === null) {
+    throw httpError(502, 'isEnglish must be a boolean.', 'INVALID_ANALYZER_RESPONSE');
   }
 
-  if (!Array.isArray(result.errors) || !Array.isArray(result.topicEvidence)) {
-    throw httpError(502, 'Analyzer response errors and topicEvidence must be arrays.', 'INVALID_ANALYZER_RESPONSE');
-  }
+  const correctedText = requireString(value.correctedText, 'correctedText', { allowEmpty: true });
+  const summaryRu = requireString(value.summaryRu, 'summaryRu', { allowEmpty: true });
 
-  const errors = result.errors.map((rawError, index) => {
-    const item = requirePlainObject(rawError, `errors[${index}]`);
+  if (!Array.isArray(value.errors)) {
+    throw httpError(502, 'errors must be an array.', 'INVALID_ANALYZER_RESPONSE');
+  }
+  const errors = value.errors.map((error, index) => {
+    const item = requirePlainObject(error, `errors[${index}]`);
     return {
-      original: requireString(item.original, `errors[${index}].original`, { maxLength: 1000 }),
-      correction: requireString(item.correction, `errors[${index}].correction`, { maxLength: 1000 }),
-      explanationRu: requireString(item.explanationRu, `errors[${index}].explanationRu`, { maxLength: 4000 }),
+      original: requireString(item.original, `errors[${index}].original`),
+      correction: requireString(item.correction, `errors[${index}].correction`),
+      explanationRu: requireString(item.explanationRu, `errors[${index}].explanationRu`),
       topic: normalizeTopicName(item.topic, `errors[${index}].topic`, { nullable: true }),
       confidence: normalizeConfidence(item.confidence, `errors[${index}].confidence`),
     };
   });
 
-  const topicEvidence = result.topicEvidence.map((rawEvidence, index) => {
-    const item = requirePlainObject(rawEvidence, `topicEvidence[${index}]`);
-    if (item.outcome !== 'success' && item.outcome !== 'error') {
+  if (!Array.isArray(value.topicEvidence)) {
+    throw httpError(502, 'topicEvidence must be an array.', 'INVALID_ANALYZER_RESPONSE');
+  }
+  const topicEvidence = value.topicEvidence.map((evidence, index) => {
+    const item = requirePlainObject(evidence, `topicEvidence[${index}]`);
+    const outcome = item.outcome === 'success' || item.outcome === 'error' ? item.outcome : null;
+    if (!outcome) {
       throw httpError(502, `topicEvidence[${index}].outcome is invalid.`, 'INVALID_ANALYZER_RESPONSE');
     }
     return {
       topic: normalizeTopicName(item.topic, `topicEvidence[${index}].topic`),
-      outcome: item.outcome,
+      outcome,
       confidence: normalizeConfidence(item.confidence, `topicEvidence[${index}].confidence`),
-      explanationRu: requireString(
-        item.explanationRu,
-        `topicEvidence[${index}].explanationRu`,
-        { maxLength: 4000 },
-      ),
+      explanationRu: requireString(item.explanationRu, `topicEvidence[${index}].explanationRu`),
     };
   });
 
   return {
-    isEnglish: result.isEnglish,
-    correctedText: requireString(result.correctedText, 'correctedText', { maxLength: MAX_WRITING_TEXT_LENGTH }),
-    summaryRu: requireString(result.summaryRu, 'summaryRu', { allowEmpty: true, maxLength: 4000 }),
+    isEnglish,
+    correctedText,
+    summaryRu,
     errors,
     topicEvidence,
   };
@@ -317,9 +285,6 @@ function normalizeCanonicalEvidence(db, analysis) {
 
   const canonicalEvidence = [...evidenceByTopicId.values()];
   const errorEvidence = canonicalEvidence.filter((evidence) => evidence.outcome === 'error');
-  // Background capture sees far more sentences than an explicit exercise. Do
-  // not let one flawed sentence simultaneously farm unrelated success points,
-  // and cap a correct sentence to its single strongest demonstrated structure.
   const scoreableEvidence = errorEvidence.length
     ? errorEvidence
     : canonicalEvidence
@@ -328,28 +293,34 @@ function normalizeCanonicalEvidence(db, analysis) {
         .slice(0, 1);
 
   return {
-    ...analysis,
+    isEnglish: analysis.isEnglish,
+    correctedText: analysis.correctedText,
+    summaryRu: analysis.summaryRu,
     errors,
     topicEvidence: scoreableEvidence,
   };
 }
 
+function assertSameEventPayload(row, input) {
+  if (
+    row.source_app !== input.sourceApp ||
+    row.original_text !== input.text ||
+    row.sent_at !== input.sentAt
+  ) {
+    throw httpError(
+      409,
+      'eventId is already associated with different writing event payload.',
+      'EVENT_ID_CONFLICT',
+    );
+  }
+}
+
 function storedResponse(row) {
-  if (!row || row.status !== 'completed' || !row.analysis_json) return null;
+  if (row.status !== 'completed' || !row.analysis_json) return null;
   try {
     return JSON.parse(row.analysis_json);
   } catch {
     throw httpError(500, 'Stored writing analysis is corrupt.', 'CORRUPT_STORED_ANALYSIS');
-  }
-}
-
-function assertSameEventPayload(existing, input) {
-  if (
-    existing.source_app !== input.sourceApp ||
-    existing.original_text !== input.text ||
-    existing.sent_at !== input.sentAt
-  ) {
-    throw httpError(409, 'eventId is already associated with different content.', 'EVENT_ID_CONFLICT');
   }
 }
 
@@ -363,6 +334,7 @@ function buildRejectedResponse(input, reason) {
     summaryRu: '',
     errors: [],
     topicEvidence: [],
+    previewOnly: input.previewOnly,
     rejectionReason: reason,
   };
 }
@@ -384,13 +356,14 @@ async function runAnalyzerWithTimeout(analyzer, input, timeoutMs) {
 }
 
 function reserveWritingSample(db, input) {
+  const userId = input.userId || 1;
   const result = db.prepare(`
     INSERT OR IGNORE INTO writing_samples (
-      event_id, source_app, original_text, sent_at, status
-    ) VALUES (?, ?, ?, ?, 'processing')
-  `).run(input.eventId, input.sourceApp, input.text, input.sentAt);
+      user_id, event_id, source_app, original_text, sent_at, status, preview_only
+    ) VALUES (?, ?, ?, ?, ?, 'processing', ?)
+  `).run(userId, input.eventId, input.sourceApp, input.text, input.sentAt, input.previewOnly ? 1 : 0);
 
-  const row = db.prepare('SELECT * FROM writing_samples WHERE event_id = ?').get(input.eventId);
+  const row = db.prepare('SELECT * FROM writing_samples WHERE user_id = ? AND event_id = ?').get(userId, input.eventId);
   if (!row) throw httpError(500, 'Could not reserve writing event.', 'RESERVATION_FAILED');
 
   if (Number(result.changes) === 0) {
@@ -413,15 +386,14 @@ function completeRejectedSample(db, sampleId, response, reason) {
 }
 
 function completeAcceptedSample(db, sampleId, input, analysis) {
+  const userId = input.userId || 1;
   const execute = db.transaction(() => {
     const evidenceResults = [];
 
-    // A hotkey preview corrects a draft before it is sent. It must not change curriculum because
-    // the eventual physical send is the single practice event that owns progress scoring.
     const evidenceToApply = input.previewOnly ? [] : analysis.topicEvidence;
     for (const evidence of evidenceToApply) {
       const topic = db.prepare(`
-        SELECT id, name, category, level, score
+        SELECT id, name, category, level
         FROM curriculum_topics
         WHERE id = ? AND LOWER(category) = 'grammar' AND source = 'preset'
       `).get(evidence.topicId);
@@ -430,15 +402,29 @@ function completeAcceptedSample(db, sampleId, input, analysis) {
       const scoreDelta = evidence.outcome === 'success'
         ? EXTERNAL_SCORE_WEIGHTS.success
         : EXTERNAL_SCORE_WEIGHTS.error;
-      const newScore = Math.max(0, Math.min(100, Number(topic.score) + scoreDelta));
-      const newStatus = newScore >= 80 ? 'mastered' : 'in_progress';
+
+      const topicHasScore = db.prepare("PRAGMA table_info(curriculum_topics)").all().some(c => c.name === 'score');
+      let currentScore = 0;
+
+      const userProgTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='user_topic_progress'").get();
+      if (userProgTableExists) {
+        const userProg = db.prepare('SELECT score FROM user_topic_progress WHERE user_id = ? AND curriculum_topic_id = ?').get(userId, topic.id);
+        if (userProg) currentScore = Number(userProg.score);
+      } else if (topicHasScore) {
+        const tScore = db.prepare('SELECT score FROM curriculum_topics WHERE id = ?').get(topic.id);
+        if (tScore) currentScore = Number(tScore.score);
+      }
+
+      const newScore = Math.max(0, Math.min(100, currentScore + scoreDelta));
+      const newStatus = newScore >= 80 ? 'mastered' : evidence.outcome === 'error' ? 'recurring_problem' : 'improving';
 
       const inserted = db.prepare(`
         INSERT OR IGNORE INTO grammar_evidence (
-          writing_sample_id, curriculum_topic_id, outcome, confidence,
+          user_id, writing_sample_id, curriculum_topic_id, outcome, confidence,
           explanation_ru, score_delta
-        ) VALUES (?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
       `).run(
+        userId,
         sampleId,
         topic.id,
         evidence.outcome,
@@ -449,20 +435,42 @@ function completeAcceptedSample(db, sampleId, input, analysis) {
 
       if (Number(inserted.changes) === 0) continue;
 
-      db.prepare(`
-        UPDATE curriculum_topics
-        SET score = ?, status = ?,
-            success_count = success_count + ?,
-            failure_count = failure_count + ?,
+      if (userProgTableExists) {
+        db.prepare(`
+          INSERT INTO user_topic_progress (user_id, curriculum_topic_id, status, score, success_count, error_count, last_practiced)
+          VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          ON CONFLICT(user_id, curriculum_topic_id) DO UPDATE SET
+            status = excluded.status,
+            score = excluded.score,
+            success_count = success_count + excluded.success_count,
+            error_count = error_count + excluded.error_count,
             last_practiced = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(
-        newScore,
-        newStatus,
-        evidence.outcome === 'success' ? 1 : 0,
-        evidence.outcome === 'error' ? 1 : 0,
-        topic.id,
-      );
+        `).run(
+          userId,
+          topic.id,
+          newStatus,
+          newScore,
+          evidence.outcome === 'success' ? 1 : 0,
+          evidence.outcome === 'error' ? 1 : 0,
+        );
+      }
+
+      if (topicHasScore) {
+        db.prepare(`
+          UPDATE curriculum_topics
+          SET score = ?, status = ?,
+              success_count = success_count + ?,
+              failure_count = failure_count + ?,
+              last_practiced = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).run(
+          newScore,
+          newStatus,
+          evidence.outcome === 'success' ? 1 : 0,
+          evidence.outcome === 'error' ? 1 : 0,
+          topic.id,
+        );
+      }
 
       evidenceResults.push({
         topicId: topic.id,
@@ -514,9 +522,6 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
     throw new TypeError('analysisTimeoutMs must be a positive number');
   }
   migrateWritingAnalysisSchema(db);
-  // A processing row can only survive when the previous server process stopped
-  // before its catch/finalize path. Recovery happens once at service startup,
-  // never while this process has live analyzer calls.
   db.prepare("DELETE FROM writing_samples WHERE status = 'processing'").run();
 
   return {
@@ -571,7 +576,8 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
       }
     },
 
-    listRecent(rawLimit) {
+    listRecent(rawLimit, userIdInput) {
+      const userId = userIdInput || 1;
       const limit = rawLimit === undefined ? 50 : Number(rawLimit);
       if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
         throw httpError(400, 'limit must be an integer between 1 and 100.', 'INVALID_LIMIT');
@@ -581,10 +587,10 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
         SELECT event_id, source_app, original_text, sent_at, status,
                accepted, rejection_reason, analysis_json, created_at, analyzed_at
         FROM writing_samples
-        WHERE status = 'completed'
+        WHERE user_id = ? AND status = 'completed'
         ORDER BY sent_at DESC, id DESC
         LIMIT ?
-      `).all(limit);
+      `).all(userId, limit);
 
       return rows.map((row) => {
         let analysis;
@@ -710,8 +716,9 @@ export function createWritingAnalyzeHandler({ service }) {
 export function createWritingSamplesHandler({ service }) {
   return (req, res) => {
     try {
+      const userId = req.user?.id || (req.query.userId ? Number(req.query.userId) : 1);
       res.set('Cache-Control', 'no-store');
-      res.json({ samples: service.listRecent(req.query.limit) });
+      res.json({ samples: service.listRecent(req.query.limit, userId) });
     } catch (error) {
       const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
       res.status(statusCode).json({

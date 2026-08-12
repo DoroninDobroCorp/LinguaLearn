@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { migrateMultiUserSchema } from './dbMigration.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,6 +65,7 @@ export function getDb(customPath) {
     db.exec('PRAGMA journal_mode = WAL;');
   }
   initAuthTables(db);
+  migrateMultiUserSchema(db);
   return db;
 }
 
