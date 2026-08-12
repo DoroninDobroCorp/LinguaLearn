@@ -45,7 +45,11 @@ export default function Login() {
       }
 
       if (res.success) {
-        navigate("/", { replace: true });
+        if (isSignup || !res.user?.onboarding_completed) {
+          navigate("/onboarding", { replace: true });
+        } else {
+          navigate("/", { replace: true });
+        }
       } else {
         setFormError(res.error || "Authentication failed.");
       }

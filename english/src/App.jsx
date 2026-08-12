@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
-import { MessageCircle, Headphones, Settings, Brain, BookMarked, Moon, Sun, Sparkles, Map, Inbox, LogOut, User } from "lucide-react";
+import { MessageCircle, Headphones, Settings, Brain, BookMarked, Moon, Sun, Sparkles, Map, Inbox, LogOut, User, LayoutDashboard } from "lucide-react";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
@@ -12,6 +12,8 @@ import CurriculumMap from "./components/CurriculumMap";
 import SyncReader from "./components/SyncReader";
 import CorrectionInbox from "./components/CorrectionInbox";
 import Login from "./components/Login";
+import OnboardingWizard from "./components/OnboardingWizard";
+import TodayDashboard from "./components/TodayDashboard";
 
 function NavBar() {
   const location = useLocation();
@@ -20,11 +22,12 @@ function NavBar() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   
   const navItems = [
-    { path: "/", icon: MessageCircle, label: "Chat" },
+    { path: "/", icon: LayoutDashboard, label: "Today" },
     { path: "/correction-inbox", icon: Inbox, label: "Correction Inbox" },
     { path: "/curriculum", icon: Map, label: "Curriculum" },
     { path: "/exercises", icon: Brain, label: "Exercises" },
     { path: "/vocabulary", icon: BookMarked, label: "Vocabulary" },
+    { path: "/chat", icon: MessageCircle, label: "Chat" },
     { path: "/reader", icon: Headphones, label: "Reader" },
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
@@ -166,8 +169,11 @@ function AppContent() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         <Routes>
           <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
+          <Route path="/onboarding" element={<ProtectedRoute><OnboardingWizard /></ProtectedRoute>} />
 
-          <Route path="/" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+          <Route path="/" element={<ProtectedRoute><TodayDashboard /></ProtectedRoute>} />
+          <Route path="/today" element={<ProtectedRoute><TodayDashboard /></ProtectedRoute>} />
+          <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
           <Route path="/curriculum" element={<ProtectedRoute><CurriculumMap /></ProtectedRoute>} />
           <Route path="/topics" element={<Navigate to="/curriculum" replace />} />
           <Route path="/exercises" element={<ProtectedRoute><Exercises /></ProtectedRoute>} />

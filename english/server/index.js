@@ -947,6 +947,7 @@ function handlePostSettings(req, res) {
 
     const {
       maxLevel, max_level,
+      cefrLevel, cefr_level,
       darkMode, dark_mode,
       notificationsEnabled, notifications_enabled,
       externalCaptureEnabled, external_capture_enabled,
@@ -954,9 +955,12 @@ function handlePostSettings(req, res) {
       allowedApps, allowed_apps,
       deniedApps, denied_apps,
       capturePaused, capture_paused,
+      onboardingCompleted, onboarding_completed,
+      onboardingStep, onboarding_step,
     } = req.body || {};
 
-    const levelVal = max_level !== undefined ? max_level : maxLevel;
+    const levelVal = max_level !== undefined ? max_level : (maxLevel !== undefined ? maxLevel : (cefr_level !== undefined ? cefr_level : cefrLevel));
+    const cefrVal = cefr_level !== undefined ? cefr_level : cefrLevel;
     const darkVal = dark_mode !== undefined ? dark_mode : darkMode;
     const notifVal = notifications_enabled !== undefined ? notifications_enabled : notificationsEnabled;
     const extCapVal = external_capture_enabled !== undefined ? external_capture_enabled : externalCaptureEnabled;
@@ -964,10 +968,15 @@ function handlePostSettings(req, res) {
     const allowVal = allowed_apps !== undefined ? allowed_apps : allowedApps;
     const denyVal = denied_apps !== undefined ? denied_apps : deniedApps;
     const pauseVal = capture_paused !== undefined ? capture_paused : capturePaused;
+    const compVal = onboarding_completed !== undefined ? onboarding_completed : onboardingCompleted;
+    const stepVal = onboarding_step !== undefined ? onboarding_step : onboardingStep;
 
     const updates = [];
     const params = [];
 
+    if (cefrVal !== undefined) {
+      db.prepare('UPDATE users SET cefr_level = ? WHERE id = ?').run(String(cefrVal), userId);
+    }
     if (levelVal !== undefined) {
       updates.push('max_level = ?');
       params.push(String(levelVal));
@@ -1004,6 +1013,14 @@ function handlePostSettings(req, res) {
     if (pauseVal !== undefined) {
       updates.push('capture_paused = ?');
       params.push(pauseVal ? 1 : 0);
+    }
+    if (compVal !== undefined) {
+      updates.push('onboarding_completed = ?');
+      params.push(compVal ? 1 : 0);
+    }
+    if (stepVal !== undefined) {
+      updates.push('onboarding_step = ?');
+      params.push(Number(stepVal));
     }
 
     if (updates.length > 0) {

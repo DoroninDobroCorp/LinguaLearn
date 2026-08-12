@@ -48,14 +48,16 @@ export function migrateMultiUserSchema(db) {
           allowed_apps TEXT DEFAULT 'ALL',
           denied_apps TEXT DEFAULT '',
           capture_paused INTEGER DEFAULT 0,
+          onboarding_completed INTEGER DEFAULT 0,
+          onboarding_step INTEGER DEFAULT 1,
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
       `);
       if (currentOwnerId !== null) {
         db.exec(`
-          INSERT INTO _user_settings_new (user_id, max_level, dark_mode, notifications_enabled, created_at)
-          SELECT COALESCE(id, ${currentOwnerId}), max_level, dark_mode, notifications_enabled, created_at
+          INSERT INTO _user_settings_new (user_id, max_level, dark_mode, notifications_enabled, onboarding_completed, onboarding_step, created_at)
+          SELECT COALESCE(id, ${currentOwnerId}), max_level, dark_mode, notifications_enabled, 1, 6, created_at
           FROM user_settings;
         `);
       }
@@ -75,14 +77,25 @@ export function migrateMultiUserSchema(db) {
           allowed_apps TEXT DEFAULT 'ALL',
           denied_apps TEXT DEFAULT '',
           capture_paused INTEGER DEFAULT 0,
+          onboarding_completed INTEGER DEFAULT 0,
+          onboarding_step INTEGER DEFAULT 1,
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
       `);
     }
+
+    const postSettingsCols = db.prepare("PRAGMA table_info(user_settings)").all().map(c => c.name);
+    if (postSettingsCols.length > 0 && !postSettingsCols.includes('onboarding_completed')) {
+      db.exec("ALTER TABLE user_settings ADD COLUMN onboarding_completed INTEGER DEFAULT 0;");
+    }
+    if (postSettingsCols.length > 0 && !postSettingsCols.includes('onboarding_step')) {
+      db.exec("ALTER TABLE user_settings ADD COLUMN onboarding_step INTEGER DEFAULT 1;");
+    }
+
     if (currentOwnerId !== null) {
       db.prepare(`
-        INSERT OR IGNORE INTO user_settings (user_id, max_level) VALUES (?, 'C2')
+        INSERT OR IGNORE INTO user_settings (user_id, max_level, onboarding_completed, onboarding_step) VALUES (?, 'C2', 1, 6)
       `).run(currentOwnerId);
     }
 

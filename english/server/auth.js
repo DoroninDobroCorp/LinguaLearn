@@ -86,6 +86,14 @@ export function createAuthService(db, options = {}) {
       return { user: null, status: 'deactivated', reason: 'deactivated' };
     }
 
+    db.prepare('INSERT OR IGNORE INTO user_settings (user_id) VALUES (?)').run(user.id);
+    const settings = db.prepare('SELECT onboarding_completed, onboarding_step FROM user_settings WHERE user_id = ?').get(user.id);
+    const onboarding_completed = settings ? Number(settings.onboarding_completed || 0) : 0;
+    const onboarding_step = settings ? Number(settings.onboarding_step || 1) : 1;
+
+    user.onboarding_completed = onboarding_completed;
+    user.onboarding_step = onboarding_step;
+
     return { user, session };
   }
 
@@ -152,6 +160,8 @@ export function createAuthService(db, options = {}) {
 
       db.prepare('UPDATE beta_invites SET used_by = ?, used_at = CURRENT_TIMESTAMP WHERE id = ?').run(userId, invite.id);
 
+      db.prepare('INSERT OR IGNORE INTO user_settings (user_id, onboarding_completed, onboarding_step) VALUES (?, 0, 1)').run(userId);
+
       const { sessionId } = createSession(userId);
       setSessionCookie(res, sessionId);
 
@@ -160,7 +170,9 @@ export function createAuthService(db, options = {}) {
           id: userId,
           email: rawEmail,
           role: 'user',
-          cefr_level: 'B1'
+          cefr_level: 'B1',
+          onboarding_completed: 0,
+          onboarding_step: 1
         }
       });
     },
@@ -197,12 +209,17 @@ export function createAuthService(db, options = {}) {
       const { sessionId } = createSession(user.id);
       setSessionCookie(res, sessionId);
 
+      db.prepare('INSERT OR IGNORE INTO user_settings (user_id) VALUES (?)').run(user.id);
+      const settings = db.prepare('SELECT onboarding_completed, onboarding_step FROM user_settings WHERE user_id = ?').get(user.id);
+
       return res.status(200).json({
         user: {
           id: user.id,
           email: user.email,
           role: user.role,
-          cefr_level: user.cefr_level || 'B1'
+          cefr_level: user.cefr_level || 'B1',
+          onboarding_completed: settings ? Number(settings.onboarding_completed || 0) : 0,
+          onboarding_step: settings ? Number(settings.onboarding_step || 1) : 1
         }
       });
     },
@@ -235,7 +252,9 @@ export function createAuthService(db, options = {}) {
           id: authResult.user.id,
           email: authResult.user.email,
           role: authResult.user.role,
-          cefr_level: authResult.user.cefr_level || 'B1'
+          cefr_level: authResult.user.cefr_level || 'B1',
+          onboarding_completed: Number(authResult.user.onboarding_completed || 0),
+          onboarding_step: Number(authResult.user.onboarding_step || 1)
         }
       });
     },
