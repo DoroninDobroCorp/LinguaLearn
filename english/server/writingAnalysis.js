@@ -669,6 +669,188 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
         };
       });
     },
+
+    submitFeedback({ userId, sampleId, feedbackType, notes }) {
+      const parsedSampleId = Number(sampleId);
+      if (!Number.isInteger(parsedSampleId) || parsedSampleId <= 0) {
+        throw httpError(400, 'Invalid writing sample ID.', 'INVALID_SAMPLE_ID');
+      }
+
+      const validTypes = new Set(['helpful', 'wrong_correction', 'explanation_unclear', 'ignore_type', 'undo_progress']);
+      const type = String(feedbackType || '').trim();
+      if (!validTypes.has(type)) {
+        throw httpError(400, 'Invalid feedback_type.', 'INVALID_FEEDBACK_TYPE');
+      }
+
+      const normalizedUserId = Number(userId);
+      if (!Number.isInteger(normalizedUserId) || normalizedUserId <= 0) {
+        throw httpError(401, 'Unauthorized', 'UNAUTHORIZED');
+      }
+
+      const sample = db.prepare('SELECT id FROM writing_samples WHERE id = ? AND user_id = ?').get(parsedSampleId, normalizedUserId);
+      if (!sample) {
+        throw httpError(404, 'Writing sample not found.', 'SAMPLE_NOT_FOUND');
+      }
+
+      const notesText = typeof notes === 'string' ? notes.trim() : null;
+
+      if (type !== 'undo_progress') {
+        const existing = db.prepare(`
+          SELECT * FROM correction_feedback
+          WHERE user_id = ? AND writing_sample_id = ? AND feedback_type = ?
+        `).get(normalizedUserId, parsedSampleId, type);
+
+        if (existing) {
+          return {
+            success: true,
+            feedback: existing,
+            message: 'Feedback recorded',
+          };
+        }
+
+        const inserted = db.prepare(`
+          INSERT INTO correction_feedback (
+            user_id, writing_sample_id, feedback_type, notes, undone_evidence_count
+          ) VALUES (?, ?, ?, ?, 0)
+        `).run(normalizedUserId, parsedSampleId, type, notesText);
+
+        const feedback = db.prepare('SELECT * FROM correction_feedback WHERE id = ?').get(inserted.lastInsertRowid);
+        return {
+          success: true,
+          feedback,
+          message: 'Feedback recorded',
+        };
+      }
+
+      const executeUndo = db.transaction(() => {
+        const existingUndo = db.prepare(`
+          SELECT * FROM correction_feedback
+          WHERE user_id = ? AND writing_sample_id = ? AND feedback_type = 'undo_progress'
+        `).get(normalizedUserId, parsedSampleId);
+
+        if (existingUndo) {
+          return {
+            success: true,
+            feedback: existingUndo,
+            undoneEvidenceCount: existingUndo.undone_evidence_count,
+            message: 'Progress undo already applied',
+          };
+        }
+
+        const evidenceRows = db.prepare(`
+          SELECT * FROM grammar_evidence
+          WHERE user_id = ? AND writing_sample_id = ?
+        `).all(normalizedUserId, parsedSampleId);
+
+        const userProgTableExists = Boolean(
+          db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='user_topic_progress'").get()
+        );
+        const topicHasScore = db.prepare("PRAGMA table_info(curriculum_topics)").all().some((c) => c.name === 'score');
+
+        let undoneCount = 0;
+
+        for (const ev of evidenceRows) {
+          const scoreDelta = Number(ev.score_delta);
+
+          if (userProgTableExists) {
+            const userProg = db.prepare(`
+              SELECT * FROM user_topic_progress
+              WHERE user_id = ? AND curriculum_topic_id = ?
+            `).get(normalizedUserId, ev.curriculum_topic_id);
+
+            if (userProg) {
+              const currentScore = Number(userProg.score || 0);
+              const currentSuccessCount = Number(userProg.success_count || 0);
+              const currentErrorCount = Number(userProg.error_count || 0);
+
+              const newScore = Math.max(0, Math.min(100, currentScore - scoreDelta));
+              const newSuccessCount = ev.outcome === 'success' && scoreDelta !== 0
+                ? Math.max(0, currentSuccessCount - 1)
+                : currentSuccessCount;
+              const newErrorCount = ev.outcome === 'error' && scoreDelta !== 0
+                ? Math.max(0, currentErrorCount - 1)
+                : currentErrorCount;
+
+              const newStatus = newScore >= 80
+                ? 'mastered'
+                : newErrorCount > 1
+                  ? 'recurring_problem'
+                  : (newSuccessCount > 0 || newErrorCount > 0)
+                    ? 'improving'
+                    : 'insufficient_evidence';
+
+              db.prepare(`
+                UPDATE user_topic_progress
+                SET score = ?,
+                    status = ?,
+                    success_count = ?,
+                    error_count = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ? AND curriculum_topic_id = ?
+              `).run(newScore, newStatus, newSuccessCount, newErrorCount, normalizedUserId, ev.curriculum_topic_id);
+            }
+          }
+
+          if (topicHasScore) {
+            const topic = db.prepare(`
+              SELECT score, status, success_count, failure_count
+              FROM curriculum_topics
+              WHERE id = ?
+            `).get(ev.curriculum_topic_id);
+
+            if (topic) {
+              const currentScore = Number(topic.score || 0);
+              const currentSuccessCount = Number(topic.success_count || 0);
+              const currentErrorCount = Number(topic.failure_count || 0);
+
+              const newScore = Math.max(0, Math.min(100, currentScore - scoreDelta));
+              const newSuccessCount = ev.outcome === 'success' && scoreDelta !== 0
+                ? Math.max(0, currentSuccessCount - 1)
+                : currentSuccessCount;
+              const newErrorCount = ev.outcome === 'error' && scoreDelta !== 0
+                ? Math.max(0, currentErrorCount - 1)
+                : currentErrorCount;
+
+              const newStatus = newScore >= 80
+                ? 'mastered'
+                : newErrorCount > 1
+                  ? 'recurring_problem'
+                  : (newSuccessCount > 0 || newErrorCount > 0)
+                    ? 'improving'
+                    : 'insufficient_evidence';
+
+              db.prepare(`
+                UPDATE curriculum_topics
+                SET score = ?,
+                    status = ?,
+                    success_count = ?,
+                    failure_count = ?
+                WHERE id = ?
+              `).run(newScore, newStatus, newSuccessCount, newErrorCount, ev.curriculum_topic_id);
+            }
+          }
+
+          undoneCount += 1;
+        }
+
+        const inserted = db.prepare(`
+          INSERT INTO correction_feedback (
+            user_id, writing_sample_id, feedback_type, notes, undone_evidence_count
+          ) VALUES (?, ?, 'undo_progress', ?, ?)
+        `).run(normalizedUserId, parsedSampleId, notesText, undoneCount);
+
+        const feedback = db.prepare('SELECT * FROM correction_feedback WHERE id = ?').get(inserted.lastInsertRowid);
+
+        return {
+          success: true,
+          feedback,
+          undoneEvidenceCount: undoneCount,
+          message: 'Progress score delta reversed successfully',
+        };
+      });
+
+      return executeUndo();
+    },
   };
 }
 
@@ -785,6 +967,35 @@ export function createWritingSamplesHandler({ service }) {
       const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
       res.status(statusCode).json({
         error: error.message || 'Could not list writing samples.',
+        ...(error.code ? { code: error.code } : {}),
+      });
+    }
+  };
+}
+
+export function createWritingFeedbackHandler({ service }) {
+  return (req, res) => {
+    try {
+      const userId = req.user?.id || req.userId || (req.body?.userId ? Number(req.body.userId) : null);
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const sampleId = req.params.id;
+      const feedbackType = req.body?.feedback_type || req.body?.feedbackType;
+      const notes = req.body?.notes;
+
+      const result = service.submitFeedback({
+        userId,
+        sampleId,
+        feedbackType,
+        notes,
+      });
+
+      res.status(200).json(result);
+    } catch (error) {
+      const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
+      res.status(statusCode).json({
+        error: error.message || 'Could not record feedback.',
         ...(error.code ? { code: error.code } : {}),
       });
     }

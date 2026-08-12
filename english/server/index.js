@@ -15,6 +15,7 @@ import {
   createWritingAnalysisService,
   createWritingAnalyzeHandler,
   createWritingSamplesHandler,
+  createWritingFeedbackHandler,
 } from './writingAnalysis.js';
 import {
   createChatIdempotencyStore,
@@ -326,6 +327,12 @@ app.get(
   '/api/writing/samples',
   deviceAuth,
   createWritingSamplesHandler({ service: writingAnalysisService }),
+);
+app.post(
+  '/api/writing/samples/:id/feedback',
+  deviceAuth,
+  express.json({ limit: '32kb' }),
+  createWritingFeedbackHandler({ service: writingAnalysisService }),
 );
 app.use(express.json({ limit: '5mb' }));
 
