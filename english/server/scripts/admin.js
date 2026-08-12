@@ -2,6 +2,7 @@
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { getDb } from '../db.js';
+import { getSystemMetrics } from '../analytics.js';
 
 function parseArgs(rawArgs) {
   const flags = {};
@@ -52,6 +53,9 @@ Commands:
 
   list-users
       Display formatted list of users (strictly redacting password hashes & tokens).
+
+  metrics
+      Display aggregated non-sensitive system telemetry and usage metrics.
 
 Options:
   --help, -h       Show this help message
@@ -202,6 +206,26 @@ async function main() {
 
         console.log(`Total users: ${users.length}\n`);
         console.table(formatted);
+        break;
+      }
+
+      case 'metrics': {
+        const metrics = getSystemMetrics(db);
+        console.log('LinguaLearn English - Aggregated System Metrics\n');
+        console.log(`Total Users: ${metrics.totalUsers} (Active: ${metrics.activeUsers}, Deactivated: ${metrics.deactivatedUsers})`);
+        console.log(`Active Devices: ${metrics.activeDevices} / ${metrics.totalDevices} total`);
+        console.log(`Total Sentences Analyzed: ${metrics.totalSentencesAnalyzed}`);
+        console.log(`Daily Practice Sessions: ${metrics.dailyPractice.completedSessions} completed / ${metrics.dailyPractice.totalSessions} total (${metrics.dailyPractice.completionRate}% completion rate)`);
+        console.log(`Feedback Submissions: ${metrics.feedback.totalCount}`);
+        if (Object.keys(metrics.feedback.byType || {}).length > 0) {
+          console.log('  Feedback by Type:');
+          for (const [type, count] of Object.entries(metrics.feedback.byType)) {
+            console.log(`    - ${type}: ${count}`);
+          }
+        }
+        console.log(`Telemetry Events Logged: ${metrics.telemetryEventsCount}`);
+        console.log('\nAggregated Metrics Summary (JSON):');
+        console.log(JSON.stringify(metrics, null, 2));
         break;
       }
 

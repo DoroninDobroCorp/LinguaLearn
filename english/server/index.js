@@ -28,6 +28,7 @@ import { getOwnerId } from './dbMigration.js';
 import { createAuthService, createAuthMiddleware } from './auth.js';
 import { createDeviceTokenService, createDeviceAuthMiddleware } from './deviceTokens.js';
 import { createDailyPracticeService } from './dailyPractice.js';
+import { logAnalyticsEvent, getSystemMetrics } from './analytics.js';
 import {
   calculateTopicStatus,
   calculateMasteryConfidence,
@@ -1076,16 +1077,13 @@ function handlePostFeedback(req, res) {
       timestamp: new Date().toISOString(),
     };
 
-    const result = db.prepare(`
-      INSERT INTO analytics_events (user_id, event_name, properties_json)
-      VALUES (?, 'beta_feedback', ?)
-    `).run(userId, JSON.stringify(properties));
+    const result = logAnalyticsEvent(db, userId, 'beta_feedback', properties);
 
     return res.status(201).json({
       success: true,
       message: 'Feedback submitted successfully',
       feedback: {
-        id: result.lastInsertRowid,
+        id: result?.lastInsertRowid || null,
         category: feedbackCategory,
         message: trimmedMessage,
         route: feedbackRoute,
@@ -1100,6 +1098,22 @@ function handlePostFeedback(req, res) {
 }
 
 app.post('/api/feedback', authMiddleware, handlePostFeedback);
+
+// API: Aggregated Admin Metrics (VAL-ADM-002)
+function handleAdminMetrics(req, res) {
+  try {
+    if (!req.user || (req.user.role !== 'owner' && req.user.role !== 'admin')) {
+      return res.status(403).json({ error: 'Forbidden: Admin access required' });
+    }
+    const metrics = getSystemMetrics(db);
+    return res.status(200).json(metrics);
+  } catch (error) {
+    console.error('Error fetching admin metrics:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+app.get('/api/admin/metrics', authMiddleware, handleAdminMetrics);
 
 // API: Export My Data (VAL-PRIV-005)
 function handleExportData(req, res) {
