@@ -1,3 +1,4 @@
+import { createDeviceTokenService } from './deviceTokens.js';
 import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 
@@ -255,8 +256,33 @@ export function createAuthService(db, options = {}) {
 
 export function createAuthMiddleware(db) {
   const { getSessionUser, clearSessionCookie } = createAuthService(db);
+  const deviceTokenService = createDeviceTokenService(db);
 
   return function authMiddleware(req, res, next) {
+    const authorization = String(req.get('authorization') || '');
+    const match = authorization.match(/^Bearer\s+(.+)$/i);
+
+    if (match) {
+      const rawToken = match[1].trim();
+      const authResult = deviceTokenService.authenticateDeviceToken(rawToken);
+
+      if (!authResult.valid) {
+        if (authResult.reason === 'revoked') {
+          return res.status(401).json({ error: 'Device token revoked' });
+        }
+        if (authResult.reason === 'deactivated') {
+          return res.status(403).json({ error: 'Account deactivated' });
+        }
+        return res.status(401).json({ error: 'Invalid device token' });
+      }
+
+      req.user = authResult.user;
+      req.userId = authResult.userId;
+      req.deviceTokenId = authResult.deviceTokenId || null;
+      req.isLegacyToken = Boolean(authResult.isLegacy);
+      return next();
+    }
+
     const cookies = parseCookies(req.headers.cookie);
     const sessionId = cookies.lingua_session;
 
@@ -280,6 +306,7 @@ export function createAuthMiddleware(db) {
     }
 
     req.user = user;
+    req.userId = user.id;
     req.sessionId = sessionId;
     next();
   };

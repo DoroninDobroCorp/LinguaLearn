@@ -59,12 +59,13 @@ const databasePath = getDatabasePath(configuredDatabasePath);
 
 function getUserId(req) {
   if (req && req.user && req.user.id) return req.user.id;
+  if (req && req.userId) return req.userId;
   const cookies = parseCookies(req?.headers?.cookie);
   if (cookies && cookies.lingua_session) {
     const session = db.prepare('SELECT user_id FROM sessions WHERE id = ?').get(cookies.lingua_session);
     if (session) return session.user_id;
   }
-  return getOwnerId(db) || 1;
+  return null;
 }
 
 // Инициализация настроек пользователя
@@ -287,6 +288,34 @@ const productionCors = {
 };
 
 app.use(cors(process.env.NODE_ENV === 'production' ? productionCors : undefined));
+
+const authService = createAuthService(db);
+const authMiddleware = createAuthMiddleware(db);
+
+const publicApiEndpoints = new Set([
+  '/api/auth/signup',
+  '/api/auth/login',
+  '/api/auth/me',
+  '/api/auth/logout',
+  '/api/health',
+  '/api/status',
+  '/api/ready',
+  '/api/live',
+]);
+
+app.use('/api', (req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', 'no-store');
+
+  const pathname = req.originalUrl ? req.originalUrl.split('?')[0] : req.path;
+  if (publicApiEndpoints.has(pathname)) {
+    return next();
+  }
+
+  return authMiddleware(req, res, next);
+});
+
 app.post(
   '/api/writing/analyze',
   deviceAuth,
@@ -299,9 +328,6 @@ app.get(
   createWritingSamplesHandler({ service: writingAnalysisService }),
 );
 app.use(express.json({ limit: '5mb' }));
-
-const authService = createAuthService(db);
-const authMiddleware = createAuthMiddleware(db);
 
 app.post('/api/auth/signup', (req, res) => authService.signup(req, res));
 app.post('/api/auth/login', (req, res) => authService.login(req, res));

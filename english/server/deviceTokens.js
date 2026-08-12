@@ -1,3 +1,4 @@
+import { createAuthMiddleware } from './auth.js';
 import crypto from 'node:crypto';
 import { timingSafeEqual } from 'node:crypto';
 import { parseCookies } from './auth.js';
@@ -198,58 +199,5 @@ export function createDeviceTokenService(db) {
 }
 
 export function createDeviceAuthMiddleware(db) {
-  const deviceTokenService = createDeviceTokenService(db);
-
-  return function deviceAuthMiddleware(req, res, next) {
-    const authorization = String(req.get('authorization') || '');
-    const match = authorization.match(/^Bearer\s+(.+)$/i);
-
-    if (match) {
-      const rawToken = match[1].trim();
-      const authResult = deviceTokenService.authenticateDeviceToken(rawToken);
-
-      if (!authResult.valid) {
-        if (authResult.reason === 'revoked') {
-          return res.status(401).json({ error: 'Device token revoked' });
-        }
-        if (authResult.reason === 'deactivated') {
-          return res.status(403).json({ error: 'Account deactivated' });
-        }
-        return res.status(401).json({ error: 'Invalid device token' });
-      }
-
-      req.user = authResult.user;
-      req.userId = authResult.userId;
-      req.deviceTokenId = authResult.deviceTokenId || null;
-      req.isLegacyToken = Boolean(authResult.isLegacy);
-      return next();
-    }
-
-    // Fallback: check session cookie if Bearer token is not present
-    const cookies = parseCookies(req.headers.cookie);
-    const sessionId = cookies.lingua_session;
-
-    if (sessionId) {
-      const sessionRow = db.prepare('SELECT s.id, s.user_id, s.expires_at, u.email, u.role, u.status FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.id = ?').get(sessionId);
-      if (sessionRow) {
-        const expiresAtMs = new Date(sessionRow.expires_at).getTime();
-        if (!isNaN(expiresAtMs) && expiresAtMs >= Date.now()) {
-          if (sessionRow.status === 'deactivated') {
-            return res.status(403).json({ error: 'Account deactivated' });
-          }
-          req.user = {
-            id: sessionRow.user_id,
-            email: sessionRow.email,
-            role: sessionRow.role,
-            status: sessionRow.status,
-          };
-          req.userId = sessionRow.user_id;
-          req.sessionId = sessionId;
-          return next();
-        }
-      }
-    }
-
-    return res.status(401).json({ error: 'Unauthorized' });
-  };
+  return createAuthMiddleware(db);
 }
