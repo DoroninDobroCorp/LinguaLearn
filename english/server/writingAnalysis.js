@@ -140,7 +140,7 @@ export function validateWritingPayload(body) {
     throw httpError(400, 'Request body must be a JSON object.', 'INVALID_REQUEST');
   }
 
-  const eventId = typeof body.eventId === 'string' ? body.eventId.trim() : '';
+  const eventId = typeof body.eventId === 'string' ? body.eventId.trim() : (typeof body.event_id === 'string' ? body.event_id.trim() : '');
   if (
     !eventId ||
     eventId.length > MAX_EVENT_ID_LENGTH ||
@@ -153,7 +153,7 @@ export function validateWritingPayload(body) {
     );
   }
 
-  const sourceApp = typeof body.sourceApp === 'string' ? body.sourceApp.trim() : '';
+  const sourceApp = typeof body.sourceApp === 'string' ? body.sourceApp.trim() : (typeof body.source_app === 'string' ? body.source_app.trim() : '');
   if (!sourceApp || sourceApp.length > MAX_SOURCE_APP_LENGTH) {
     throw httpError(
       400,
@@ -171,7 +171,7 @@ export function validateWritingPayload(body) {
     );
   }
 
-  const rawSentAt = typeof body.sentAt === 'string' ? body.sentAt.trim() : '';
+  const rawSentAt = typeof body.sentAt === 'string' ? body.sentAt.trim() : (typeof body.sent_at === 'string' ? body.sent_at.trim() : '');
   let sentAtDate = rawSentAt ? new Date(rawSentAt) : new Date();
   if (Number.isNaN(sentAtDate.getTime())) {
     sentAtDate = new Date();
@@ -180,12 +180,15 @@ export function validateWritingPayload(body) {
   const userId = Number.isInteger(body.userId) ? body.userId : (body.user_id ? Number(body.user_id) : undefined);
   const deviceTokenId = Number.isInteger(body.deviceTokenId) ? body.deviceTokenId : (body.device_token_id ? Number(body.device_token_id) : undefined);
 
+  const rawPreview = body.previewOnly !== undefined ? body.previewOnly : body.preview_only;
+  const previewOnly = rawPreview === 1 || rawPreview === '1' || rawPreview === true || rawPreview === 'true';
+
   return {
     eventId,
     sourceApp,
     text,
     sentAt: sentAtDate.toISOString(),
-    previewOnly: Boolean(body.previewOnly || body.preview_only),
+    previewOnly,
     userId,
     deviceTokenId,
   };
@@ -369,10 +372,11 @@ function buildRejectedResponse(input, reason) {
     sourceApp: input.sourceApp,
     originalText: input.text,
     correctedText: input.text,
+    changed: false,
     summaryRu: '',
     errors: [],
     topicEvidence: [],
-    previewOnly: input.previewOnly,
+    previewOnly: Boolean(input.previewOnly),
     rejectionReason: reason,
   };
 }
@@ -438,9 +442,11 @@ function completeAcceptedSample(db, sampleId, input, analysis) {
       `).get(evidence.topicId);
       if (!topic) continue;
 
-      const scoreDelta = evidence.outcome === 'success'
+      const isHighConfidence = evidence.confidence >= 0.7;
+      const rawDelta = evidence.outcome === 'success'
         ? EXTERNAL_SCORE_WEIGHTS.success
         : EXTERNAL_SCORE_WEIGHTS.error;
+      const scoreDelta = isHighConfidence ? rawDelta : 0;
 
       const topicHasScore = db.prepare("PRAGMA table_info(curriculum_topics)").all().some(c => c.name === 'score');
       let currentScore = 0;
@@ -457,58 +463,60 @@ function completeAcceptedSample(db, sampleId, input, analysis) {
       const newScore = Math.max(0, Math.min(100, currentScore + scoreDelta));
       const newStatus = newScore >= 80 ? 'mastered' : evidence.outcome === 'error' ? 'recurring_problem' : 'improving';
 
-      const inserted = db.prepare(`
-        INSERT OR IGNORE INTO grammar_evidence (
-          user_id, writing_sample_id, curriculum_topic_id, outcome, confidence,
-          explanation_ru, score_delta
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        userId,
-        sampleId,
-        topic.id,
-        evidence.outcome,
-        evidence.confidence,
-        evidence.explanationRu,
-        scoreDelta,
-      );
-
-      if (Number(inserted.changes) === 0) continue;
-
-      if (userProgTableExists) {
-        db.prepare(`
-          INSERT INTO user_topic_progress (user_id, curriculum_topic_id, status, score, success_count, error_count, last_practiced)
-          VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-          ON CONFLICT(user_id, curriculum_topic_id) DO UPDATE SET
-            status = excluded.status,
-            score = excluded.score,
-            success_count = success_count + excluded.success_count,
-            error_count = error_count + excluded.error_count,
-            last_practiced = CURRENT_TIMESTAMP
+      if (!input.previewOnly) {
+        const inserted = db.prepare(`
+          INSERT OR IGNORE INTO grammar_evidence (
+            user_id, writing_sample_id, curriculum_topic_id, outcome, confidence,
+            explanation_ru, score_delta
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `).run(
           userId,
+          sampleId,
           topic.id,
-          newStatus,
-          newScore,
-          evidence.outcome === 'success' ? 1 : 0,
-          evidence.outcome === 'error' ? 1 : 0,
+          evidence.outcome,
+          evidence.confidence,
+          evidence.explanationRu,
+          scoreDelta,
         );
-      }
 
-      if (topicHasScore) {
-        db.prepare(`
-          UPDATE curriculum_topics
-          SET score = ?, status = ?,
-              success_count = success_count + ?,
-              failure_count = failure_count + ?,
-              last_practiced = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `).run(
-          newScore,
-          newStatus,
-          evidence.outcome === 'success' ? 1 : 0,
-          evidence.outcome === 'error' ? 1 : 0,
-          topic.id,
-        );
+        if (Number(inserted.changes) > 0 && isHighConfidence) {
+          if (userProgTableExists) {
+            db.prepare(`
+              INSERT INTO user_topic_progress (user_id, curriculum_topic_id, status, score, success_count, error_count, last_practiced)
+              VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+              ON CONFLICT(user_id, curriculum_topic_id) DO UPDATE SET
+                status = excluded.status,
+                score = excluded.score,
+                success_count = success_count + excluded.success_count,
+                error_count = error_count + excluded.error_count,
+                last_practiced = CURRENT_TIMESTAMP
+            `).run(
+              userId,
+              topic.id,
+              newStatus,
+              newScore,
+              evidence.outcome === 'success' ? 1 : 0,
+              evidence.outcome === 'error' ? 1 : 0,
+            );
+          }
+
+          if (topicHasScore) {
+            db.prepare(`
+              UPDATE curriculum_topics
+              SET score = ?, status = ?,
+                  success_count = success_count + ?,
+                  failure_count = failure_count + ?,
+                  last_practiced = CURRENT_TIMESTAMP
+              WHERE id = ?
+            `).run(
+              newScore,
+              newStatus,
+              evidence.outcome === 'success' ? 1 : 0,
+              evidence.outcome === 'error' ? 1 : 0,
+              topic.id,
+            );
+          }
+        }
       }
 
       evidenceResults.push({
@@ -519,10 +527,12 @@ function completeAcceptedSample(db, sampleId, input, analysis) {
         outcome: evidence.outcome,
         confidence: evidence.confidence,
         explanationRu: evidence.explanationRu,
-        scoreDelta,
-        newScore,
+        scoreDelta: input.previewOnly ? 0 : scoreDelta,
+        newScore: input.previewOnly ? currentScore : newScore,
       });
     }
+
+    const changed = input.text.trim() !== analysis.correctedText.trim() || (analysis.errors && analysis.errors.length > 0);
 
     const response = {
       accepted: true,
@@ -530,10 +540,11 @@ function completeAcceptedSample(db, sampleId, input, analysis) {
       sourceApp: input.sourceApp,
       originalText: input.text,
       correctedText: analysis.correctedText,
+      changed,
       summaryRu: analysis.summaryRu,
       errors: analysis.errors,
       topicEvidence: evidenceResults,
-      previewOnly: input.previewOnly,
+      previewOnly: Boolean(input.previewOnly),
       rejectionReason: null,
     };
 
@@ -664,7 +675,7 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
 export function createGeminiWritingAnalyzer({
   genAI,
   modelName = String(
-    process.env.GEMINI_WRITING_MODEL || 'gemini-3.5-flash-lite'
+    process.env.GEMINI_WRITING_MODEL || 'gemini-2.5-flash'
   ).trim(),
 }) {
   return async ({ text, canonicalTopics }) => {
