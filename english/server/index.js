@@ -21,6 +21,7 @@ import {
   normalizeGeminiChatHistory,
   normalizeOptionalMessageId,
 } from './chatIdempotency.js';
+import { initAuthTables } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -55,6 +56,7 @@ const databasePath = configuredDatabasePath === ':memory:'
     ? resolve(configuredDatabasePath)
     : join(__dirname, 'english_learning.db');
 const db = new Database(databasePath);
+initAuthTables(db);
 
 // Создание таблиц
 db.exec(`
