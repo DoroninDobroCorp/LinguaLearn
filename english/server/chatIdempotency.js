@@ -68,6 +68,26 @@ export function createChatIdempotencyStore(db) {
       if (!messageId) return { state: 'legacy' };
       const userId = userIdInput || 1;
 
+      const existing = db.prepare('SELECT * FROM chat_requests WHERE message_id = ?').get(messageId);
+      if (existing) {
+        if (existing.user_id !== userId) {
+          throw chatHttpError(403, 'Access denied to chat request ID.', 'FORBIDDEN');
+        }
+        if (existing.request_text !== requestText) {
+          throw chatHttpError(
+            409,
+            'messageId is already associated with a different message.',
+            'MESSAGE_ID_CONFLICT',
+          );
+        }
+        if (existing.status === 'processing') return { state: 'processing' };
+        try {
+          return { state: 'cached', response: JSON.parse(existing.response_json) };
+        } catch {
+          throw chatHttpError(500, 'Stored chat response is corrupt.', 'CORRUPT_CHAT_RESPONSE');
+        }
+      }
+
       const inserted = db.prepare(`
         INSERT OR IGNORE INTO chat_requests (message_id, user_id, request_text, status)
         VALUES (?, ?, ?, 'processing')
@@ -95,24 +115,26 @@ export function createChatIdempotencyStore(db) {
       }
     },
 
-    complete(messageId, response) {
+    complete(messageId, response, userIdInput) {
       if (!messageId) return;
+      const userId = userIdInput || 1;
       const updated = db.prepare(`
         UPDATE chat_requests
         SET status = 'completed', response_json = ?, completed_at = CURRENT_TIMESTAMP
-        WHERE message_id = ? AND status = 'processing'
-      `).run(JSON.stringify(response), messageId);
+        WHERE message_id = ? AND user_id = ? AND status = 'processing'
+      `).run(JSON.stringify(response), messageId, userId);
       if (Number(updated.changes) !== 1) {
         throw chatHttpError(409, 'Chat request was already finalized.', 'CHAT_ALREADY_FINALIZED');
       }
     },
 
-    release(messageId) {
+    release(messageId, userIdInput) {
       if (!messageId) return;
+      const userId = userIdInput || 1;
       db.prepare(`
         DELETE FROM chat_requests
-        WHERE message_id = ? AND status = 'processing'
-      `).run(messageId);
+        WHERE message_id = ? AND user_id = ? AND status = 'processing'
+      `).run(messageId, userId);
     },
   };
 }

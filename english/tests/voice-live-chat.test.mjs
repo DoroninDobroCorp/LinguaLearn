@@ -25,21 +25,51 @@ function makeDatabase() {
   return {
     rows,
     prepare(sql) {
-      if (sql.startsWith('SELECT role FROM chat_history')) {
+      if (sql.includes('FROM sessions')) {
+        return {
+          get() {
+            return { id: 'test-session', user_id: 1, expires_at: '2099-01-01T00:00:00Z' };
+          },
+        };
+      }
+      if (sql.includes('FROM users')) {
+        return {
+          get() {
+            return { id: 1, email: 'test@user.com', role: 'user', status: 'active', cefr_level: 'B1' };
+          },
+        };
+      }
+      if (sql.includes('FROM device_tokens')) {
+        return {
+          get() {
+            return undefined;
+          },
+        };
+      }
+      if (sql.includes('FROM user_settings')) {
+        return {
+          get() {
+            return { onboarding_completed: 1, onboarding_step: 1 };
+          },
+        };
+      }
+      if (sql.includes('chat_history')) {
         return {
           get() {
             return rows.length ? { role: rows.at(-1).role } : undefined;
           },
-        };
-      }
-      if (sql.startsWith('INSERT INTO chat_history')) {
-        return {
-          run(role, content) {
+          run(...args) {
+            const role = args[args.length - 2];
+            const content = args[args.length - 1];
             rows.push({ role, content });
           },
         };
       }
-      throw new Error(`Unexpected SQL in voice test: ${sql}`);
+      return {
+        get() { return undefined; },
+        run() {},
+        all() { return []; },
+      };
     },
   };
 }
@@ -134,7 +164,9 @@ async function createBridgeHarness({ maxSessionMs = 60_000 } = {}) {
 
   await new Promise((resolve) => httpServer.listen(0, '127.0.0.1', resolve));
   const address = httpServer.address();
-  const ws = new WebSocket(`ws://127.0.0.1:${address.port}/api/live-chat`);
+  const ws = new WebSocket(`ws://127.0.0.1:${address.port}/api/live-chat`, {
+    headers: { Cookie: 'lingua_session=test-session' },
+  });
   const collector = createMessageCollector(ws);
   await new Promise((resolve, reject) => {
     ws.once('open', resolve);

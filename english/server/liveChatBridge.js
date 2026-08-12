@@ -1,5 +1,7 @@
 import { WebSocketServer } from 'ws';
 import { startLiveSession } from './liveChat.js';
+import { createAuthService, parseCookies } from './auth.js';
+import { createDeviceTokenService } from './deviceTokens.js';
 
 // One browser WebSocket owns one Gemini Live session. Voice transcripts share
 // chat_history with text chat, while tool calls update the same curriculum and
@@ -39,6 +41,49 @@ function clientAddress(req) {
 function isLoopbackAddress(value) {
   const address = String(value || '').toLowerCase();
   return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';
+}
+
+export function authenticateWsClient(req, db) {
+  if (!db) return null;
+  const authHeader = String(req?.headers?.authorization || '');
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  let url;
+  try {
+    url = new URL(req?.url || '', 'http://localhost');
+  } catch {
+    url = new URL('/', 'http://localhost');
+  }
+  const tokenParam = url.searchParams.get('token');
+  const sessionParam = url.searchParams.get('session');
+
+  if (match || tokenParam) {
+    const rawToken = match ? match[1].trim() : tokenParam.trim();
+    try {
+      const deviceAuth = createDeviceTokenService(db).authenticateDeviceToken(rawToken);
+      if (deviceAuth.valid && deviceAuth.userId) {
+        return { userId: deviceAuth.userId, user: deviceAuth.user };
+      }
+    } catch {
+      // Ignore token auth errors
+    }
+  }
+
+  const cookieHeader = req?.headers?.cookie || '';
+  const cookies = parseCookies(cookieHeader);
+  const sessionId = cookies.lingua_session || sessionParam;
+
+  if (sessionId) {
+    try {
+      const { user } = createAuthService(db).getSessionUser(sessionId);
+      if (user && user.id) {
+        return { userId: user.id, user };
+      }
+    } catch {
+      // Ignore session auth errors
+    }
+  }
+
+  return null;
 }
 
 // Browsers must originate from the same public host. Origin-less clients are
@@ -217,7 +262,15 @@ export function attachLiveChatBridge({
     maxPayload: CLIENT_MESSAGE_BYTES_LIMIT,
     verifyClient: ({ req }, done) => {
       const allowed = isAllowedLiveUpgrade(req);
-      done(allowed, allowed ? undefined : 403, allowed ? undefined : 'Forbidden');
+      if (!allowed) {
+        return done(false, 403, 'Forbidden');
+      }
+      const authResult = authenticateWsClient(req, db);
+      if (!authResult || !authResult.userId) {
+        return done(false, 401, 'Unauthorized');
+      }
+      req.authResult = authResult;
+      done(true);
     },
   });
 
@@ -225,6 +278,13 @@ export function attachLiveChatBridge({
   let activeConnections = 0;
 
   wss.on('connection', (ws, req) => {
+    const authResult = req.authResult || authenticateWsClient(req, db);
+    if (!authResult || !authResult.userId) {
+      ws.close(4001, 'Unauthorized');
+      return;
+    }
+    const userId = authResult.userId;
+
     const url = new URL(req.url, 'http://localhost');
     const voiceName = normalizeVoiceName(url.searchParams.get('voice') || '');
     const ip = clientAddress(req);
@@ -249,7 +309,7 @@ export function attachLiveChatBridge({
       else activeConnectionsByIP.delete(ip);
     };
     ws.once('close', releaseConnectionCount);
-    logger.info?.(`[live-chat] connection opened (ip=${ip}, voice=${voiceName || 'default'})`);
+    logger.info?.(`[live-chat] connection opened (user_id=${userId}, ip=${ip}, voice=${voiceName || 'default'})`);
 
     let session = null;
     let browserClosed = false;
@@ -279,13 +339,13 @@ export function attachLiveChatBridge({
       const safeContent = cleanString(content, role === 'user' ? 5000 : 8000);
       if (!safeContent) return;
       try {
-        const last = db.prepare('SELECT role FROM chat_history ORDER BY id DESC LIMIT 1').get();
+        const last = db.prepare('SELECT role FROM chat_history WHERE user_id = ? ORDER BY id DESC LIMIT 1').get(userId);
         if (last && last.role === role) {
           const placeholder = role === 'assistant' ? '(voice input)' : '(voice reply)';
           const opposite = role === 'assistant' ? 'user' : 'assistant';
-          db.prepare('INSERT INTO chat_history (role, content) VALUES (?, ?)').run(opposite, placeholder);
+          db.prepare('INSERT INTO chat_history (user_id, role, content) VALUES (?, ?, ?)').run(userId, opposite, placeholder);
         }
-        db.prepare('INSERT INTO chat_history (role, content) VALUES (?, ?)').run(role, safeContent);
+        db.prepare('INSERT INTO chat_history (user_id, role, content) VALUES (?, ?, ?)').run(userId, role, safeContent);
       } catch (err) {
         logger.error?.(`[live-chat] failed to persist ${role} transcript:`, err.message);
       }
@@ -306,7 +366,7 @@ export function attachLiveChatBridge({
 
     let liveContext;
     try {
-      liveContext = getLiveContext?.() || {};
+      liveContext = getLiveContext?.(userId) || {};
       if (!isObject(liveContext)) throw new Error('Voice context must be an object.');
     } catch (err) {
       logger.error?.('[live-chat] failed to build live context:', err.message);
@@ -319,7 +379,7 @@ export function attachLiveChatBridge({
       if (!pendingTopicCalls.size) return;
       for (const args of pendingTopicCalls.values()) {
         try {
-          const change = updateTopicFromCall?.(args);
+          const change = updateTopicFromCall?.(args, userId);
           if (change) safeSend(ws, { type: 'topic_change', change });
         } catch (err) {
           logger.error?.(`[live-chat] topic update failed (${args.topic}):`, err.message);
@@ -369,7 +429,7 @@ export function attachLiveChatBridge({
         if (call.name === 'add_vocabulary') {
           const normalized = normalizeVocabularyCall(args);
           if (!normalized) return { result: 'error', error: 'invalid_vocabulary' };
-          const added = addVocabularyFromCall?.(normalized);
+          const added = addVocabularyFromCall?.(normalized, userId);
           if (added) safeSend(ws, { type: 'vocab_added', entry: added });
           return { result: 'ok' };
         }

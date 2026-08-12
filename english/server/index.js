@@ -551,13 +551,18 @@ function dedupeChatTopicUpdates(updates) {
 // API: Чат с ЛЛМ
 app.post('/api/chat', async (req, res) => {
   let reservedMessageId = null;
+  const userId = getUserId(req);
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   try {
     const { message, messageId: rawMessageId } = req.body || {};
     if (typeof message !== 'string' || !message.trim()) {
       return res.status(400).json({ error: 'message must be a non-empty string.' });
     }
     const messageId = normalizeOptionalMessageId(rawMessageId);
-    const reservation = chatIdempotencyStore.begin(messageId, message);
+    const reservation = chatIdempotencyStore.begin(messageId, message, userId);
     if (reservation.state === 'cached') {
       res.set('X-Idempotent-Replay', 'true');
       return res.json(reservation.response);
@@ -572,13 +577,13 @@ app.post('/api/chat', async (req, res) => {
     if (reservation.state === 'reserved') reservedMessageId = messageId;
 
     if (!ensureGeminiAvailable(res, ['aiChat'])) {
-      chatIdempotencyStore.release(reservedMessageId);
+      chatIdempotencyStore.release(reservedMessageId, userId);
       reservedMessageId = null;
       return;
     }
 
     // Последние 10 завершенных сообщений; текущее сохраняется только после успешного AI-ответа.
-    const history = db.prepare('SELECT role, content FROM chat_history ORDER BY id DESC LIMIT 10').all().reverse();
+    const history = db.prepare('SELECT role, content FROM chat_history WHERE user_id = ? ORDER BY id DESC LIMIT 10').all(userId).reverse();
     
     const systemPrompt = `You are a friendly and professional English language tutor. Your tasks:
 1. Help the user learn English through natural dialogue IN ENGLISH ONLY
@@ -586,7 +591,7 @@ app.post('/api/chat', async (req, res) => {
 3. Track mistakes and successes
 4. After each user's answer to a task, evaluate it and report the result
 
-${getTopicsContext()}
+${getTopicsContext(userId)}
 
 TEACHING APPROACH:
 - VARY your responses: casual conversation → interactive exercises → video/resource recommendations
@@ -776,34 +781,37 @@ IMPORTANT RULES:
     cleanResponse = cleanResponse.trim();
 
     const commitChatResponse = db.transaction(() => {
-      db.prepare('INSERT INTO chat_history (role, content) VALUES (?, ?)').run('user', message);
+      db.prepare('INSERT INTO chat_history (user_id, role, content) VALUES (?, ?, ?)').run(userId, 'user', message);
 
       const topicChanges = [];
       for (const update of pendingTopicUpdates) {
-        const result = updateTopic(update.topic, update.category, update.level, update.success);
+        const result = updateTopic(update.topic, update.category, update.level, update.success, userId);
         if (result) topicChanges.push(result);
       }
 
       if (pendingVocabulary) {
-        const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ?').get(pendingVocabulary.word);
+        const norm = pendingVocabulary.word.toLowerCase();
+        const existing = db.prepare('SELECT id FROM vocabulary WHERE user_id = ? AND normalized_word = ?').get(userId, norm);
         if (!existing) {
           db.prepare(`
-            INSERT INTO vocabulary (word, translation, example, level, next_review)
-            VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP)
+            INSERT INTO vocabulary (user_id, word, normalized_word, translation, example, level, next_review)
+            VALUES (?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
           `).run(
+            userId,
             pendingVocabulary.word,
+            norm,
             pendingVocabulary.translation,
             pendingVocabulary.example || null,
           );
         }
       }
 
-      db.prepare('INSERT INTO chat_history (role, content) VALUES (?, ?)').run('assistant', cleanResponse);
+      db.prepare('INSERT INTO chat_history (user_id, role, content) VALUES (?, ?, ?)').run(userId, 'assistant', cleanResponse);
       const responsePayload = {
         response: cleanResponse,
         ...(topicChanges.length > 0 ? { topicChanges } : {}),
       };
-      chatIdempotencyStore.complete(reservedMessageId, responsePayload);
+      chatIdempotencyStore.complete(reservedMessageId, responsePayload, userId);
       return responsePayload;
     });
 
@@ -812,7 +820,7 @@ IMPORTANT RULES:
     res.set('X-Idempotent-Replay', 'false');
     res.json(responsePayload);
   } catch (error) {
-    chatIdempotencyStore.release(reservedMessageId);
+    chatIdempotencyStore.release(reservedMessageId, userId);
     console.error('Chat error:', error);
     const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
     res.status(statusCode).json({
@@ -1339,6 +1347,36 @@ app.post('/api/vocabulary/:id/review', (req, res) => {
   }
 });
 
+// Обновление карточки слова
+app.put('/api/vocabulary/:id', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { id } = req.params;
+    const existing = db.prepare('SELECT * FROM vocabulary WHERE id = ? AND user_id = ?').get(id, userId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Word not found' });
+    }
+    const { word, translation, example, level } = req.body || {};
+    const wordStr = word !== undefined ? String(word).trim() : existing.word;
+    const norm = wordStr.toLowerCase();
+    const transStr = translation !== undefined ? String(translation).trim() : existing.translation;
+    const exStr = example !== undefined ? String(example).trim() : existing.example;
+    const levelNum = level !== undefined ? Number(level) : existing.level;
+
+    db.prepare(`
+      UPDATE vocabulary
+      SET word = ?, normalized_word = ?, translation = ?, example = ?, level = ?
+      WHERE id = ? AND user_id = ?
+    `).run(wordStr, norm, transStr, exStr, levelNum, id, userId);
+
+    const updated = db.prepare('SELECT * FROM vocabulary WHERE id = ? AND user_id = ?').get(id, userId);
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating word:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Удаление слова
 app.delete('/api/vocabulary/:id', (req, res) => {
   try {
@@ -1503,9 +1541,19 @@ async function fetchHpmorPodcastPostHtml(url) {
   return html;
 }
 
-app.get('/api/reader/hpmor/chapter/:chapterNumber', async (req, res) => {
+const HPMOR_ATTRIBUTION = "Harry Potter and the Methods of Rationality by Eliezer Yudkowsky (hpmor.com). Podcast audiobook by Eneasz Brodski (hpmorpodcast.com).";
+const HPMOR_SOURCE_CREDITS = {
+  author: "Eliezer Yudkowsky",
+  website: "https://hpmor.com",
+  podcast: "Eneasz Brodski (hpmorpodcast.com)",
+  license: "Fanfiction / Open Creative Commons attribution",
+  section: "Labs",
+};
+
+async function handleHpmorChapterRequest(req, res) {
   try {
-    const chapterNumber = Number.parseInt(req.params.chapterNumber, 10);
+    const chapterParam = req.params.chapterNumber || req.params.id;
+    const chapterNumber = Number.parseInt(chapterParam, 10);
     const importMode = String(req.get('x-lingualearn-import-mode') || 'rough').toLowerCase();
 
     if (!Number.isInteger(chapterNumber)) {
@@ -1519,6 +1567,13 @@ app.get('/api/reader/hpmor/chapter/:chapterNumber', async (req, res) => {
       fetchPodcastPostHtml: fetchHpmorPodcastPostHtml,
     });
 
+    const responsePayload = {
+      ...chapterImport,
+      attribution: HPMOR_ATTRIBUTION,
+      source_credits: HPMOR_SOURCE_CREDITS,
+      section: 'Labs',
+    };
+
     if (importMode === 'timed') {
       const transcriptImport = await transcribeAudioLocally({
         audioUrl: chapterImport.audioUrl,
@@ -1529,18 +1584,30 @@ app.get('/api/reader/hpmor/chapter/:chapterNumber', async (req, res) => {
       });
 
       return res.json({
-        ...chapterImport,
+        ...responsePayload,
         ...transcriptImport,
       });
     }
 
-    res.json(chapterImport);
+    res.json(responsePayload);
   } catch (error) {
     console.error('Error importing HPMOR chapter:', error);
     const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
     res.status(statusCode).json({ error: error.message });
   }
+}
+
+app.get('/api/reader/hpmor/chapters', (req, res) => {
+  res.json({
+    totalChapters: 122,
+    attribution: HPMOR_ATTRIBUTION,
+    source_credits: HPMOR_SOURCE_CREDITS,
+    section: 'Labs',
+  });
 });
+
+app.get('/api/reader/hpmor/chapters/:id', handleHpmorChapterRequest);
+app.get('/api/reader/hpmor/chapter/:chapterNumber', handleHpmorChapterRequest);
 
 app.post('/api/reader/transcribe-url', async (req, res) => {
   try {
@@ -1594,28 +1661,58 @@ app.post(
 );
 
 app.post('/api/reader/translate', async (req, res) => {
+  const userId = getUserId(req);
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   if (!ensureGeminiAvailable(res, ['readerTranslation'])) {
     return;
   }
 
   try {
-    const { title, segments, lines } = req.body || {};
-    if ((!Array.isArray(lines) || !lines.length) && (!Array.isArray(segments) || !segments.length)) {
+    const { title, segments, lines, words, targetWords } = req.body || {};
+    if ((!Array.isArray(lines) || !lines.length) && (!Array.isArray(segments) || !segments.length) && (!Array.isArray(words) || !words.length)) {
       return res
         .status(400)
         .json({ error: 'Provide a non-empty lines array for translation.' });
     }
 
-    const translations = await translateSegmentsWithGemini({
-      genAI,
-      title: typeof title === 'string' ? title : '',
-      lines: Array.isArray(lines) ? lines : null,
-      segments,
-      targetLanguage: 'Russian',
-    });
+    let translations = [];
+    if ((Array.isArray(lines) && lines.length) || (Array.isArray(segments) && segments.length)) {
+      translations = await translateSegmentsWithGemini({
+        genAI,
+        title: typeof title === 'string' ? title : '',
+        lines: Array.isArray(lines) ? lines : null,
+        segments,
+        targetLanguage: 'Russian',
+      });
+    }
+
+    const wordsToSave = Array.isArray(words) ? words : (Array.isArray(targetWords) ? targetWords : []);
+    let savedCount = 0;
+    for (const item of wordsToSave) {
+      const wordText = typeof item === 'string' ? item : item?.word;
+      const trText = typeof item === 'object' && item?.translation_ru ? item.translation_ru : (typeof item === 'object' ? item?.translation || '' : '');
+      const exText = typeof item === 'object' ? item?.example || null : null;
+      if (wordText && typeof wordText === 'string' && wordText.trim()) {
+        const norm = wordText.trim().toLowerCase();
+        const existing = db.prepare('SELECT id FROM vocabulary WHERE user_id = ? AND normalized_word = ?').get(userId, norm);
+        if (!existing) {
+          db.prepare(`
+            INSERT INTO vocabulary (user_id, word, normalized_word, translation, example, level, next_review, source)
+            VALUES (?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, 'reader_translate')
+          `).run(userId, wordText.trim(), norm, trText, exText);
+          savedCount += 1;
+        }
+      }
+    }
 
     res.json({
       translations,
+      translation_ru: Array.isArray(translations) ? translations.join('\n') : '',
+      words: wordsToSave,
+      saved_words_count: savedCount,
     });
   } catch (error) {
     console.error('Error translating reader segments:', error);
@@ -1666,16 +1763,23 @@ export function startServer() {
         server: httpServer,
         path: '/api/live-chat',
         db,
-        getLiveContext: () => {
+        getLiveContext: (userIdInput) => {
           // Same DB reads as getTopicsContext(), but returns structured data so
           // the Live API module can format it cleanly (without the text-chat
           // tag references that destabilise the native-audio model).
-          const settings = db.prepare('SELECT max_level FROM user_settings WHERE id = 1').get();
+          const userId = userIdInput || 1;
+          const settings = db.prepare('SELECT max_level FROM user_settings WHERE user_id = ?').get(userId);
           const maxLevel = settings?.max_level || 'B2';
           const maxLevelPriority = LEVEL_PRIORITY[maxLevel] || 1;
           const activeTopics = db
-            .prepare("SELECT name, category, level, score, success_count, failure_count FROM curriculum_topics WHERE status != 'not_started' ORDER BY score ASC, level DESC")
-            .all()
+            .prepare(`
+              SELECT c.name, c.category, c.level, p.score, p.success_count, p.error_count as failure_count
+              FROM curriculum_topics c
+              JOIN user_topic_progress p ON c.id = p.curriculum_topic_id AND p.user_id = ?
+              WHERE p.status != 'not_started'
+              ORDER BY p.score ASC, c.level DESC
+            `)
+            .all(userId)
             .filter((t) => LEVEL_PRIORITY[t.level] >= maxLevelPriority);
           const curriculumNames = db.prepare('SELECT name, level, category FROM curriculum_topics ORDER BY level, category').all();
           const curriculumByLevel = {};
@@ -1685,15 +1789,17 @@ export function startServer() {
           }
           return { maxLevel, activeTopics, curriculumByLevel };
         },
-        updateTopicFromCall: (args) => updateTopic(args.topic, args.category, args.level, args.success),
-        addVocabularyFromCall: (args) => {
+        updateTopicFromCall: (args, userIdInput) => updateTopic(args.topic, args.category, args.level, args.success, userIdInput),
+        addVocabularyFromCall: (args, userIdInput) => {
           if (!args || !args.word || !args.translation) return null;
-          const existing = db.prepare('SELECT id FROM vocabulary WHERE word = ?').get(args.word);
+          const userId = userIdInput || 1;
+          const norm = String(args.word).trim().toLowerCase();
+          const existing = db.prepare('SELECT id FROM vocabulary WHERE user_id = ? AND normalized_word = ?').get(userId, norm);
           if (!existing) {
             db.prepare(`
-              INSERT INTO vocabulary (word, translation, example, level, next_review)
-              VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP)
-            `).run(args.word, args.translation, args.example || null);
+              INSERT INTO vocabulary (user_id, word, normalized_word, translation, example, level, next_review)
+              VALUES (?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
+            `).run(userId, String(args.word).trim(), norm, args.translation, args.example || null);
           }
           return { word: args.word, translation: args.translation, example: args.example || null, isNew: !existing };
         },
