@@ -429,7 +429,7 @@ function completeRejectedSample(db, sampleId, response, reason) {
   `).run(reason, JSON.stringify(response), sampleId);
 }
 
-function completeAcceptedSample(db, sampleId, input, analysis) {
+function completeAcceptedSample(db, sampleId, input, analysis, latencyMs) {
   const userId = input.userId || 1;
   const execute = db.transaction(() => {
     const evidenceResults = [];
@@ -521,6 +521,7 @@ function completeAcceptedSample(db, sampleId, input, analysis) {
       topicEvidence: evidenceResults,
       previewOnly: Boolean(input.previewOnly),
       rejectionReason: null,
+      ...(latencyMs ? { latencyMs } : {}),
     };
 
     const updated = db.prepare(`
@@ -551,11 +552,56 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
 
   return {
     async analyze(body) {
+      const startTime = performance.now();
+      let dbMs = 0;
+      let modelMs = 0;
+
+      const runDb = (fn) => {
+        const t = performance.now();
+        try {
+          return fn();
+        } finally {
+          dbMs += performance.now() - t;
+        }
+      };
+
+      const runModel = async (fn) => {
+        const t = performance.now();
+        try {
+          return await fn();
+        } finally {
+          modelMs += performance.now() - t;
+        }
+      };
+
       const input = validateWritingPayload(body);
-      const reservation = reserveWritingSample(db, input);
+      const reservation = runDb(() => reserveWritingSample(db, input));
+
+      const calcLatency = () => {
+        const totalMs = Math.round((performance.now() - startTime) * 100) / 100;
+        const roundedModelMs = Math.round(modelMs * 100) / 100;
+        const roundedDbMs = Math.round(dbMs * 100) / 100;
+        const queueMs = Math.max(0, Math.round((totalMs - roundedModelMs - roundedDbMs) * 100) / 100);
+        return {
+          queue: queueMs,
+          model: roundedModelMs,
+          db: roundedDbMs,
+          total: totalMs,
+        };
+      };
 
       if (reservation.state === 'cached') {
-        return { response: reservation.response, replayed: true };
+        const response = reservation.response;
+        const latencyMs = response.latencyMs || calcLatency();
+        console.log(JSON.stringify({
+          type: 'writing_analysis_latency',
+          eventId: input.eventId,
+          userId: input.userId || 1,
+          sourceApp: input.sourceApp,
+          latencyMs,
+          replayed: true,
+        }));
+        return { response, replayed: true, latencyMs };
       }
       if (reservation.state === 'processing') {
         throw httpError(409, 'This writing event is already being analyzed.', 'EVENT_IN_PROGRESS');
@@ -563,22 +609,42 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
 
       const sampleId = reservation.row.id;
       try {
-        const privacyReason = checkPrivacySettings(db, input.userId || 1, input.sourceApp);
+        const privacyReason = runDb(() => checkPrivacySettings(db, input.userId || 1, input.sourceApp));
         if (privacyReason) {
           const response = buildRejectedResponse(input, privacyReason);
-          completeRejectedSample(db, sampleId, response, privacyReason);
-          return { response, replayed: false };
+          runDb(() => completeRejectedSample(db, sampleId, response, privacyReason));
+          const latencyMs = calcLatency();
+          response.latencyMs = latencyMs;
+          console.log(JSON.stringify({
+            type: 'writing_analysis_latency',
+            eventId: input.eventId,
+            userId: input.userId || 1,
+            sourceApp: input.sourceApp,
+            latencyMs,
+            replayed: false,
+          }));
+          return { response, replayed: false, latencyMs };
         }
 
         const filterResult = filterWritingCandidate(input.text);
         if (!filterResult.accepted) {
           const response = buildRejectedResponse(input, filterResult.reason);
-          completeRejectedSample(db, sampleId, response, filterResult.reason);
-          return { response, replayed: false };
+          runDb(() => completeRejectedSample(db, sampleId, response, filterResult.reason));
+          const latencyMs = calcLatency();
+          response.latencyMs = latencyMs;
+          console.log(JSON.stringify({
+            type: 'writing_analysis_latency',
+            eventId: input.eventId,
+            userId: input.userId || 1,
+            sourceApp: input.sourceApp,
+            latencyMs,
+            replayed: false,
+          }));
+          return { response, replayed: false, latencyMs };
         }
 
-        const topics = canonicalGrammarTopics(db);
-        const rawAnalysis = await runAnalyzerWithTimeout(
+        const topics = runDb(() => canonicalGrammarTopics(db));
+        const rawAnalysis = await runModel(() => runAnalyzerWithTimeout(
           analyzer,
           {
             text: input.text,
@@ -586,24 +652,56 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
             canonicalTopics: topics.map(({ id, name, level }) => ({ id, name, level })),
           },
           analysisTimeoutMs,
-        );
-        const analysis = normalizeCanonicalEvidence(db, validateAnalyzerResult(rawAnalysis));
+        ));
+        const analysis = runDb(() => normalizeCanonicalEvidence(db, validateAnalyzerResult(rawAnalysis)));
 
         if (!analysis.isEnglish) {
           const response = buildRejectedResponse(input, 'not_english');
-          completeRejectedSample(db, sampleId, response, 'not_english');
-          return { response, replayed: false };
+          runDb(() => completeRejectedSample(db, sampleId, response, 'not_english'));
+          const latencyMs = calcLatency();
+          response.latencyMs = latencyMs;
+          console.log(JSON.stringify({
+            type: 'writing_analysis_latency',
+            eventId: input.eventId,
+            userId: input.userId || 1,
+            sourceApp: input.sourceApp,
+            latencyMs,
+            replayed: false,
+          }));
+          return { response, replayed: false, latencyMs };
         }
 
-        return {
-          response: completeAcceptedSample(db, sampleId, input, analysis),
+        const completedResponse = runDb(() => completeAcceptedSample(db, sampleId, input, analysis, calcLatency()));
+        const latencyMs = completedResponse.latencyMs || calcLatency();
+        console.log(JSON.stringify({
+          type: 'writing_analysis_latency',
+          eventId: input.eventId,
+          userId: input.userId || 1,
+          sourceApp: input.sourceApp,
+          latencyMs,
           replayed: false,
+        }));
+
+        return {
+          response: completedResponse,
+          replayed: false,
+          latencyMs,
         };
       } catch (error) {
-        db.prepare(`
-          DELETE FROM writing_samples
-          WHERE id = ? AND status = 'processing'
-        `).run(sampleId);
+        runDb(() => {
+          db.prepare(`
+            DELETE FROM writing_samples
+            WHERE id = ? AND status = 'processing'
+          `).run(sampleId);
+        });
+        const latencyMs = calcLatency();
+        console.log(JSON.stringify({
+          type: 'writing_analysis_latency_error',
+          eventId: input?.eventId,
+          userId: input?.userId || 1,
+          error: error.message,
+          latencyMs,
+        }));
         throw error;
       }
     },
@@ -929,16 +1027,21 @@ export function createCaptureAuthMiddleware({ token }) {
 
 export function createWritingAnalyzeHandler({ service }) {
   return async (req, res) => {
+    const handlerStart = performance.now();
     try {
       const payload = {
         ...req.body,
         userId: req.userId || req.user?.id || req.body?.userId,
         deviceTokenId: req.deviceTokenId || req.body?.deviceTokenId,
       };
-      const { response, replayed } = await service.analyze(payload);
+      const { response, replayed, latencyMs } = await service.analyze(payload);
+      const durationMs = Math.round(latencyMs?.total ?? (performance.now() - handlerStart));
       res.set('X-Idempotent-Replay', replayed ? 'true' : 'false');
+      res.set('X-Response-Time', `${durationMs}ms`);
       res.status(200).json(response);
     } catch (error) {
+      const durationMs = Math.round(performance.now() - handlerStart);
+      res.set('X-Response-Time', `${durationMs}ms`);
       const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
       if (error.code === 'EVENT_IN_PROGRESS') res.set('Retry-After', '1');
       res.status(statusCode).json({
