@@ -25,8 +25,10 @@ final class PayloadTests: XCTestCase {
 
         let body = try XCTUnwrap(request.httpBody)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["schemaVersion"] as? Int, 1)
         XCTAssertEqual(json["eventId"] as? String, "turn-123")
         XCTAssertEqual(json["sourceApp"] as? String, "codex")
+        XCTAssertEqual(json["originalText"] as? String, "Yesterday I go home.")
         XCTAssertEqual(json["text"] as? String, "Yesterday I go home.")
         XCTAssertEqual(json["sentAt"] as? String, "1970-01-01T00:00:00Z")
         XCTAssertEqual(json["previewOnly"] as? Bool, false)

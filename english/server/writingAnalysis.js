@@ -368,7 +368,9 @@ function storedResponse(row) {
 
 function buildRejectedResponse(input, reason) {
   return {
+    schemaVersion: 1,
     accepted: false,
+    sampleId: null,
     eventId: input.eventId,
     sourceApp: input.sourceApp,
     originalText: input.text,
@@ -510,8 +512,10 @@ function completeAcceptedSample(db, sampleId, input, analysis, latencyMs) {
     const changed = input.text.trim() !== analysis.correctedText.trim() || (analysis.errors && analysis.errors.length > 0);
 
     const response = {
+      schemaVersion: 1,
       accepted: true,
       eventId: input.eventId,
+      sampleId,
       sourceApp: input.sourceApp,
       originalText: input.text,
       correctedText: analysis.correctedText,
