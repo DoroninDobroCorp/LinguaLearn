@@ -99,6 +99,42 @@ export function migrateWritingAnalysisSchema(db) {
   migrateMultiUserSchema(db);
 }
 
+export function checkPrivacySettings(db, userId, sourceApp) {
+  if (!db || !userId) return null;
+  const userSettingsTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='user_settings'").get();
+  if (!userSettingsTable) return null;
+
+  const settings = db.prepare('SELECT * FROM user_settings WHERE user_id = ?').get(userId);
+  if (!settings) return null;
+
+  if (settings.capture_paused === 1) {
+    return 'Capture paused';
+  }
+
+  const app = (sourceApp || '').trim().toLowerCase();
+  if (app && settings.denied_apps) {
+    const denied = String(settings.denied_apps)
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    if (denied.includes(app)) {
+      return 'App denied';
+    }
+  }
+
+  if (app && settings.allowed_apps && settings.allowed_apps.trim().toUpperCase() !== 'ALL') {
+    const allowed = String(settings.allowed_apps)
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    if (allowed.length > 0 && !allowed.includes(app)) {
+      return 'App denied';
+    }
+  }
+
+  return null;
+}
+
 export function validateWritingPayload(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     throw httpError(400, 'Request body must be a JSON object.', 'INVALID_REQUEST');
@@ -541,6 +577,13 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
 
       const sampleId = reservation.row.id;
       try {
+        const privacyReason = checkPrivacySettings(db, input.userId || 1, input.sourceApp);
+        if (privacyReason) {
+          const response = buildRejectedResponse(input, privacyReason);
+          completeRejectedSample(db, sampleId, response, privacyReason);
+          return { response, replayed: false };
+        }
+
         const filterResult = filterWritingCandidate(input.text);
         if (!filterResult.accepted) {
           const response = buildRejectedResponse(input, filterResult.reason);

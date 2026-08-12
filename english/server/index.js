@@ -893,43 +893,114 @@ app.get('/api/topics', (req, res) => {
   }
 });
 
-// API: Обновление уровня пользователя
-app.post('/api/settings', (req, res) => {
+// API: Получение настроек пользователя
+function handleGetSettings(req, res) {
   try {
     const userId = getUserId(req);
-    const { maxLevel, darkMode, notificationsEnabled } = req.body;
-    
-    db.prepare('INSERT OR IGNORE INTO user_settings (user_id, max_level) VALUES (?, ?)').run(userId, maxLevel || 'C2');
+    db.prepare('INSERT OR IGNORE INTO user_settings (user_id) VALUES (?)').run(userId);
+    const settings = db.prepare('SELECT * FROM user_settings WHERE user_id = ?').get(userId);
+    res.json(settings || {
+      user_id: userId,
+      max_level: 'C2',
+      dark_mode: 0,
+      notifications_enabled: 1,
+      external_capture_enabled: 1,
+      raw_text_retention_days: 7,
+      allowed_apps: 'ALL',
+      denied_apps: '',
+      capture_paused: 0,
+    });
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
 
-    if (maxLevel) {
-      db.prepare('UPDATE user_settings SET max_level = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?').run(maxLevel, userId);
+// API: Обновление настроек пользователя
+function handlePostSettings(req, res) {
+  try {
+    const userId = getUserId(req);
+    db.prepare('INSERT OR IGNORE INTO user_settings (user_id) VALUES (?)').run(userId);
+
+    const {
+      maxLevel, max_level,
+      darkMode, dark_mode,
+      notificationsEnabled, notifications_enabled,
+      externalCaptureEnabled, external_capture_enabled,
+      rawTextRetentionDays, raw_text_retention_days,
+      allowedApps, allowed_apps,
+      deniedApps, denied_apps,
+      capturePaused, capture_paused,
+    } = req.body || {};
+
+    const levelVal = max_level !== undefined ? max_level : maxLevel;
+    const darkVal = dark_mode !== undefined ? dark_mode : darkMode;
+    const notifVal = notifications_enabled !== undefined ? notifications_enabled : notificationsEnabled;
+    const extCapVal = external_capture_enabled !== undefined ? external_capture_enabled : externalCaptureEnabled;
+    const retVal = raw_text_retention_days !== undefined ? raw_text_retention_days : rawTextRetentionDays;
+    const allowVal = allowed_apps !== undefined ? allowed_apps : allowedApps;
+    const denyVal = denied_apps !== undefined ? denied_apps : deniedApps;
+    const pauseVal = capture_paused !== undefined ? capture_paused : capturePaused;
+
+    const updates = [];
+    const params = [];
+
+    if (levelVal !== undefined) {
+      updates.push('max_level = ?');
+      params.push(String(levelVal));
     }
-    if (darkMode !== undefined) {
-      db.prepare('UPDATE user_settings SET dark_mode = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?').run(darkMode ? 1 : 0, userId);
+    if (darkVal !== undefined) {
+      updates.push('dark_mode = ?');
+      params.push(darkVal ? 1 : 0);
     }
-    if (notificationsEnabled !== undefined) {
-      db.prepare('UPDATE user_settings SET notifications_enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?').run(notificationsEnabled ? 1 : 0, userId);
+    if (notifVal !== undefined) {
+      updates.push('notifications_enabled = ?');
+      params.push(notifVal ? 1 : 0);
     }
-    
+    if (extCapVal !== undefined) {
+      updates.push('external_capture_enabled = ?');
+      params.push(extCapVal ? 1 : 0);
+    }
+    if (retVal !== undefined) {
+      const days = Number(retVal);
+      if ([0, 7, 30].includes(days)) {
+        updates.push('raw_text_retention_days = ?');
+        params.push(days);
+      }
+    }
+    if (allowVal !== undefined) {
+      const str = Array.isArray(allowVal) ? allowVal.join(',') : String(allowVal);
+      updates.push('allowed_apps = ?');
+      params.push(str);
+    }
+    if (denyVal !== undefined) {
+      const str = Array.isArray(denyVal) ? denyVal.join(',') : String(denyVal);
+      updates.push('denied_apps = ?');
+      params.push(str);
+    }
+    if (pauseVal !== undefined) {
+      updates.push('capture_paused = ?');
+      params.push(pauseVal ? 1 : 0);
+    }
+
+    if (updates.length > 0) {
+      updates.push('updated_at = CURRENT_TIMESTAMP');
+      params.push(userId);
+      db.prepare(`UPDATE user_settings SET ${updates.join(', ')} WHERE user_id = ?`).run(...params);
+    }
+
     const settings = db.prepare('SELECT * FROM user_settings WHERE user_id = ?').get(userId);
     res.json(settings);
   } catch (error) {
     console.error('Error updating settings:', error);
     res.status(500).json({ error: error.message });
   }
-});
+}
 
-// API: Получение настроек
-app.get('/api/settings', (req, res) => {
-  try {
-    const userId = getUserId(req);
-    const settings = db.prepare('SELECT * FROM user_settings WHERE user_id = ?').get(userId);
-    res.json(settings || { user_id: userId, max_level: 'B2', dark_mode: 0, notifications_enabled: 1 });
-  } catch (error) {
-    console.error('Error fetching settings:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+app.get('/api/user/settings', handleGetSettings);
+app.post('/api/user/settings', handlePostSettings);
+app.get('/api/settings', handleGetSettings);
+app.post('/api/settings', handlePostSettings);
 
 // API: Ручное обновление темы
 app.post('/api/topics/update', (req, res) => {
