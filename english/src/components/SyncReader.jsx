@@ -2481,23 +2481,24 @@ function SyncReader() {
                           ? 'bg-slate-100/50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-90'
                           : 'border-transparent opacity-50 hover:opacity-85'
                     }`}
-                            <span className="rounded-full bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-900">
-                              progress {formatTime(project.readingProgress.time)}
-                            </span>
-                          )}
-                          {badges.manualAnchors > 0 && (
-                            <span className="rounded-full bg-yellow-200 px-2 py-1 text-xs font-semibold text-yellow-900">
-                              {badges.manualAnchors} pins
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
+                  >
+                    <p
+                      className="font-sans leading-relaxed tracking-wide transition-all"
+                      style={{ fontSize: `${readerFontSize}px` }}
+                    >
+                      {renderSegmentWords(segment, isActive, segmentWordIndex)}
+                    </p>
+                    {showTranslation && translatedText && (
+                      <p className="mt-2 text-sm text-purple-600 dark:text-purple-400 font-sans italic border-l-2 border-purple-400 pl-3">
+                        {translatedText}
+                      </p>
+                    )}
+                  </div>
+                );
               })}
             </div>
-          </section>
-        </div>
+          </div>
+        )}
 
         <div className="space-y-6">
           {!activeProject && (
@@ -3196,7 +3197,7 @@ function SyncReader() {
             </>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

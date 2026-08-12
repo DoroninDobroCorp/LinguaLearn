@@ -22,6 +22,7 @@ import {
   normalizeOptionalMessageId,
 } from './chatIdempotency.js';
 import { initAuthTables } from './db.js';
+import { createAuthService, createAuthMiddleware } from './auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -371,6 +372,13 @@ app.get(
   createWritingSamplesHandler({ service: writingAnalysisService }),
 );
 app.use(express.json({ limit: '5mb' }));
+
+const authService = createAuthService(db);
+
+app.post('/api/auth/signup', (req, res) => authService.signup(req, res));
+app.post('/api/auth/login', (req, res) => authService.login(req, res));
+app.get('/api/auth/me', (req, res) => authService.me(req, res));
+app.post('/api/auth/logout', (req, res) => authService.logout(req, res));
 
 function buildHealthResponse() {
   db.prepare('SELECT 1 AS ok').get();
