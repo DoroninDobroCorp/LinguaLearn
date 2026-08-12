@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { MessageCircle, Headphones, Settings, Brain, BookMarked, Moon, Sun, Sparkles, Map } from 'lucide-react';
+import { MessageCircle, Headphones, Settings, Brain, BookMarked, Moon, Sun, Sparkles, Map, Inbox } from 'lucide-react';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import Chat from './components/Chat';
 import Exercises from './components/Exercises';
@@ -8,6 +8,7 @@ import Vocabulary from './components/Vocabulary';
 import SettingsPanel from './components/Settings';
 import CurriculumMap from './components/CurriculumMap';
 import SyncReader from './components/SyncReader';
+import CorrectionInbox from './components/CorrectionInbox';
 
 function NavBar() {
   const location = useLocation();
@@ -16,6 +17,7 @@ function NavBar() {
   
   const navItems = [
     { path: '/', icon: MessageCircle, label: 'Chat' },
+    { path: '/correction-inbox', icon: Inbox, label: 'Correction Inbox' },
     { path: '/curriculum', icon: Map, label: 'Curriculum' },
     { path: '/exercises', icon: Brain, label: 'Exercises' },
     { path: '/vocabulary', icon: BookMarked, label: 'Vocabulary' },
@@ -129,6 +131,8 @@ function AppContent() {
           <Route path="/topics" element={<Navigate to="/curriculum" replace />} />
           <Route path="/exercises" element={<Exercises />} />
           <Route path="/vocabulary" element={<Vocabulary />} />
+          <Route path="/correction-inbox" element={<CorrectionInbox />} />
+          <Route path="/inbox" element={<Navigate to="/correction-inbox" replace />} />
           <Route path="/reader" element={<SyncReader />} />
           <Route path="/settings" element={<SettingsPanel />} />
         </Routes>

@@ -641,13 +641,33 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
       }
 
       const rows = db.prepare(`
-        SELECT event_id, source_app, original_text, sent_at, status,
-               accepted, rejection_reason, analysis_json, created_at, analyzed_at
+        SELECT id, event_id, source_app, original_text, sent_at, status,
+               accepted, rejection_reason, preview_only, analysis_json, retention_purged, created_at, analyzed_at
         FROM writing_samples
         WHERE user_id = ? AND status = 'completed'
         ORDER BY sent_at DESC, id DESC
         LIMIT ?
       `).all(userId, limit);
+
+      const allFeedback = db.prepare(`
+        SELECT id, writing_sample_id, feedback_type, notes, undone_evidence_count, created_at
+        FROM correction_feedback
+        WHERE user_id = ?
+      `).all(userId);
+
+      const feedbackBySampleId = new Map();
+      for (const fb of allFeedback) {
+        if (!feedbackBySampleId.has(fb.writing_sample_id)) {
+          feedbackBySampleId.set(fb.writing_sample_id, []);
+        }
+        feedbackBySampleId.get(fb.writing_sample_id).push({
+          id: fb.id,
+          feedbackType: fb.feedback_type,
+          notes: fb.notes,
+          undoneEvidenceCount: fb.undone_evidence_count,
+          createdAt: fb.created_at,
+        });
+      }
 
       return rows.map((row) => {
         let analysis;
@@ -657,15 +677,19 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
           throw httpError(500, 'Stored writing analysis is corrupt.', 'CORRUPT_STORED_ANALYSIS');
         }
         return {
+          id: row.id,
           eventId: row.event_id,
           sourceApp: row.source_app,
           originalText: row.original_text,
           sentAt: row.sent_at,
           accepted: Boolean(row.accepted),
           rejectionReason: row.rejection_reason,
+          previewOnly: Boolean(row.preview_only),
+          retentionPurged: Boolean(row.retention_purged),
           createdAt: row.created_at,
           analyzedAt: row.analyzed_at,
           analysis,
+          feedback: feedbackBySampleId.get(row.id) || [],
         };
       });
     },
@@ -960,7 +984,7 @@ export function createWritingAnalyzeHandler({ service }) {
 export function createWritingSamplesHandler({ service }) {
   return (req, res) => {
     try {
-      const userId = req.user?.id || (req.query.userId ? Number(req.query.userId) : 1);
+      const userId = req.user?.id || req.userId || (req.query.userId ? Number(req.query.userId) : 1);
       res.set('Cache-Control', 'no-store');
       res.json({ samples: service.listRecent(req.query.limit, userId) });
     } catch (error) {
