@@ -1002,6 +1002,115 @@ app.post('/api/user/settings', handlePostSettings);
 app.get('/api/settings', handleGetSettings);
 app.post('/api/settings', handlePostSettings);
 
+// API: Export My Data (VAL-PRIV-005)
+function handleExportData(req, res) {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const userProfile = db.prepare('SELECT id, email, role, status, cefr_level, created_at, updated_at FROM users WHERE id = ?').get(userId);
+    if (!userProfile) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    db.prepare('INSERT OR IGNORE INTO user_settings (user_id) VALUES (?)').run(userId);
+    const settings = db.prepare('SELECT * FROM user_settings WHERE user_id = ?').get(userId);
+
+    const vocabulary = db.prepare('SELECT * FROM vocabulary WHERE user_id = ? ORDER BY id ASC').all(userId);
+    const progress = db.prepare(`
+      SELECT p.*, c.name as topic_name, c.category, c.level
+      FROM user_topic_progress p
+      LEFT JOIN curriculum_topics c ON p.curriculum_topic_id = c.id
+      WHERE p.user_id = ?
+      ORDER BY p.id ASC
+`).all(userId);
+    const writingSamples = db.prepare('SELECT * FROM writing_samples WHERE user_id = ? ORDER BY id ASC').all(userId);
+    const evidence = db.prepare('SELECT * FROM grammar_evidence WHERE user_id = ? ORDER BY id ASC').all(userId);
+    const practiceSessions = db.prepare('SELECT * FROM practice_sessions WHERE user_id = ? ORDER BY id ASC').all(userId);
+    const chatHistory = db.prepare('SELECT id, role, content, timestamp FROM chat_history WHERE user_id = ? ORDER BY id ASC').all(userId);
+    const deviceTokens = db.prepare('SELECT id, device_name, app_version, last_used_at, revoked_at, created_at FROM device_tokens WHERE user_id = ? ORDER BY id ASC').all(userId);
+    const feedback = db.prepare('SELECT * FROM correction_feedback WHERE user_id = ? ORDER BY id ASC').all(userId);
+    const analyticsEvents = db.prepare('SELECT * FROM analytics_events WHERE user_id = ? ORDER BY id ASC').all(userId);
+
+    const exportBundle = {
+      exported_at: new Date().toISOString(),
+      user: userProfile,
+      settings: settings || null,
+      vocabulary,
+      progress,
+      evidence,
+      writing_samples: writingSamples,
+      practice_sessions: practiceSessions,
+      chat_history: chatHistory,
+      device_tokens: deviceTokens,
+      feedback,
+      analytics_events: analyticsEvents,
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.json(exportBundle);
+  } catch (error) {
+    console.error('Error exporting user data:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+// API: Cascading Account Deletion (VAL-PRIV-006)
+function handleDeleteAccount(req, res) {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { confirm, confirmation } = req.body || {};
+    const confirmParam = req.query?.confirm || req.query?.confirmation;
+    const isConfirmed = confirm === true || confirm === 'true' || confirm === 'DELETE' ||
+                        confirmation === true || confirmation === 'true' || confirmation === 'DELETE' ||
+                        confirmParam === 'true' || confirmParam === 'DELETE' || confirmParam === '1';
+
+    if (!isConfirmed) {
+      return res.status(400).json({ error: 'Confirmation required for account deletion' });
+    }
+
+    const userRow = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
+    if (!userRow) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const performAccountDeletion = db.transaction((targetUserId) => {
+      db.prepare('DELETE FROM sessions WHERE user_id = ?').run(targetUserId);
+      db.prepare('DELETE FROM device_tokens WHERE user_id = ?').run(targetUserId);
+      db.prepare('DELETE FROM user_settings WHERE user_id = ?').run(targetUserId);
+      db.prepare('DELETE FROM user_topic_progress WHERE user_id = ?').run(targetUserId);
+      db.prepare('DELETE FROM grammar_evidence WHERE user_id = ?').run(targetUserId);
+      db.prepare('DELETE FROM correction_feedback WHERE user_id = ?').run(targetUserId);
+      db.prepare('DELETE FROM writing_samples WHERE user_id = ?').run(targetUserId);
+      db.prepare('DELETE FROM practice_sessions WHERE user_id = ?').run(targetUserId);
+      db.prepare('DELETE FROM chat_history WHERE user_id = ?').run(targetUserId);
+      db.prepare('DELETE FROM chat_requests WHERE user_id = ?').run(targetUserId);
+      db.prepare('DELETE FROM vocabulary WHERE user_id = ?').run(targetUserId);
+      db.prepare('DELETE FROM analytics_events WHERE user_id = ?').run(targetUserId);
+      db.prepare('DELETE FROM achievements WHERE user_id = ?').run(targetUserId);
+      db.prepare('DELETE FROM users WHERE id = ?').run(targetUserId);
+    });
+
+    performAccountDeletion(userId);
+
+    res.clearCookie('lingua_session', { path: '/' });
+    res.json({ success: true, message: 'Account and all associated data deleted' });
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+app.get('/api/user/export', handleExportData);
+app.delete('/api/user/account', handleDeleteAccount);
+
+
 // API: Ручное обновление темы
 app.post('/api/topics/update', (req, res) => {
   const { topic, category, level, success } = req.body;
