@@ -115,6 +115,8 @@ describe('Raw Text Retention & User Data Rights (VAL-PRIV-004, VAL-PRIV-005, VAL
         }
 
         const performAccountDeletion = db.transaction((targetUserId) => {
+          db.prepare('UPDATE beta_invites SET used_by = NULL WHERE used_by = ?').run(targetUserId);
+          db.prepare('UPDATE beta_invites SET created_by = NULL WHERE created_by = ?').run(targetUserId);
           db.prepare('DELETE FROM sessions WHERE user_id = ?').run(targetUserId);
           db.prepare('DELETE FROM device_tokens WHERE user_id = ?').run(targetUserId);
           db.prepare('DELETE FROM user_settings WHERE user_id = ?').run(targetUserId);
@@ -284,6 +286,8 @@ describe('Raw Text Retention & User Data Rights (VAL-PRIV-004, VAL-PRIV-005, VAL
     db.prepare("INSERT INTO chat_requests (message_id, user_id, request_text) VALUES ('cr-del-1', ?, 'req')").run(user1Id);
     db.prepare("INSERT INTO vocabulary (user_id, word, normalized_word, translation) VALUES (?, 'dog', 'dog', 'собака')").run(user1Id);
     db.prepare("INSERT INTO analytics_events (user_id, event_name) VALUES (?, 'del_test')").run(user1Id);
+    db.prepare("INSERT INTO beta_invites (code, created_by, used_by) VALUES ('INV-DEL-1', ?, ?)").run(user1Id, user1Id);
+    db.prepare("INSERT INTO beta_invites (code, created_by) VALUES ('INV-DEL-2', ?)").run(user1Id);
 
     db.prepare('INSERT INTO user_settings (user_id) VALUES (?)').run(user2Id);
     db.prepare("INSERT INTO vocabulary (user_id, word, normalized_word, translation) VALUES (?, 'cat', 'cat', 'кошка')").run(user2Id);
@@ -328,5 +332,10 @@ describe('Raw Text Retention & User Data Rights (VAL-PRIV-004, VAL-PRIV-005, VAL
     assert.ok(u2);
     const u2Vocab = db.prepare('SELECT COUNT(*) as count FROM vocabulary WHERE user_id = ?').get(user2Id).count;
     assert.equal(u2Vocab, 1);
+    const inv1 = db.prepare("SELECT * FROM beta_invites WHERE code = 'INV-DEL-1'").get();
+    assert.equal(inv1.used_by, null);
+    assert.equal(inv1.created_by, null);
+    const inv2 = db.prepare("SELECT * FROM beta_invites WHERE code = 'INV-DEL-2'").get();
+    assert.equal(inv2.created_by, null);
   });
 });

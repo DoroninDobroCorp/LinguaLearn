@@ -1088,6 +1088,8 @@ function handleDeleteAccount(req, res) {
     }
 
     const performAccountDeletion = db.transaction((targetUserId) => {
+      db.prepare('UPDATE beta_invites SET used_by = NULL WHERE used_by = ?').run(targetUserId);
+      db.prepare('UPDATE beta_invites SET created_by = NULL WHERE created_by = ?').run(targetUserId);
       db.prepare('DELETE FROM sessions WHERE user_id = ?').run(targetUserId);
       db.prepare('DELETE FROM device_tokens WHERE user_id = ?').run(targetUserId);
       db.prepare('DELETE FROM user_settings WHERE user_id = ?').run(targetUserId);
