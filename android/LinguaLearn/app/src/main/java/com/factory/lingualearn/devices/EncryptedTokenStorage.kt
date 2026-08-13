@@ -7,7 +7,17 @@ import androidx.security.crypto.MasterKey
 
 object EncryptedTokenStorage {
 
+    private var testOverridePrefs: SharedPreferences? = null
+
+    fun setTestOverride(prefs: SharedPreferences?) {
+        testOverridePrefs = prefs
+    }
+
+    @Throws(IllegalStateException::class)
     fun getEncryptedSharedPreferences(context: Context, name: String): SharedPreferences {
+        if (testOverridePrefs != null) {
+            return testOverridePrefs!!
+        }
         return try {
             val masterKey = MasterKey.Builder(context)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -20,8 +30,10 @@ object EncryptedTokenStorage {
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
         } catch (e: Exception) {
-            // Fallback to standard SharedPreferences for JVM unit testing environments
-            context.getSharedPreferences(name, Context.MODE_PRIVATE)
+            throw IllegalStateException(
+                "EncryptedTokenStorage failed to initialize for '$name': fail-closed without plaintext fallback",
+                e
+            )
         }
     }
 }

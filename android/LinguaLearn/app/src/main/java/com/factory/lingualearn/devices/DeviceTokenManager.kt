@@ -73,14 +73,18 @@ class DeviceTokenManager(val context: Context) {
         val tokenId = getActiveDeviceId()
         val tokenToUse = sessionToken ?: authManager.getSessionToken() ?: ""
 
+        var serverRevoked = true
         if (!tokenId.isNullOrEmpty()) {
             val client = ApiClient(baseUrl = baseUrl)
-            client.revokeDeviceToken(tokenToUse, tokenId)
+            serverRevoked = client.revokeDeviceToken(tokenToUse, tokenId)
         }
 
-        prefs.edit().clear().apply()
-        authManager.saveDeviceToken("")
-        return true
+        if (serverRevoked) {
+            prefs.edit().clear().apply()
+            authManager.saveDeviceToken("")
+            return true
+        }
+        return false
     }
 }
 

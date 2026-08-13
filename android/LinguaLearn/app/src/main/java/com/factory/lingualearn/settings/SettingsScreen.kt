@@ -90,9 +90,11 @@ fun SettingsScreen(
                         thread {
                             val client = ApiClient(authManager.getApiBaseUrl())
                             val (success, commit) = client.testConnection()
+                            val syncQueue = BackgroundSyncQueue(authManager.context)
+                            val synced = syncQueue.sync(client)
                             if (success) {
                                 backendCommit = commit
-                                syncStatus = "Connected (HTTP 200)"
+                                syncStatus = if (synced > 0) "Connected (HTTP 200, synced $synced items)" else "Connected (HTTP 200)"
                             } else {
                                 backendCommit = "Error"
                                 syncStatus = "Error: $commit"
