@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "LinguaLearn Multi-Platform Writing Analysis API",
-    "description": "Unified OpenAPI 3.0 contract (schemaVersion: 1) for Mac, iOS, Android, and Windows droids.",
+    "description": "Single canonical OpenAPI 3.0 contract for Mac, iOS, Android, and Windows droids.",
     "version": "1.0.0"
   },
   "servers": [
@@ -29,7 +29,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AnalysisRequest"
+                "$ref": "#/components/schemas/AnalyzeRequest"
               }
             }
           }
@@ -37,22 +37,51 @@
         "responses": {
           "200": {
             "description": "Writing sample successfully analyzed or candidate filtered",
+            "headers": {
+              "X-Response-Time": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Server processing latency in milliseconds (e.g. 142ms)"
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AnalysisResponse"
+                  "$ref": "#/components/schemas/AnalyzeResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid payload or parameters"
+            "description": "Invalid payload format, missing required fields, or unsupported schema version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthenticated or invalid device token"
+            "description": "Missing, invalid, or revoked Bearer device token or session cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "409": {
-            "description": "Event ID already in progress"
+            "description": "Event ID already in progress or payload mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -87,13 +116,34 @@
             "description": "Feedback recorded successfully"
           },
           "400": {
-            "description": "Invalid feedback type"
+            "description": "Invalid feedback type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Unauthenticated"
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Writing sample not found"
+            "description": "Writing sample not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -124,7 +174,14 @@
             }
           },
           "401": {
-            "description": "Unauthenticated session required"
+            "description": "Unauthenticated session required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -148,10 +205,24 @@
             "description": "Device token revoked"
           },
           "401": {
-            "description": "Unauthenticated"
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "404": {
-            "description": "Device token not found"
+            "description": "Device token not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -162,43 +233,53 @@
       "BearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "ll_dev_*"
+        "bearerFormat": "ll_dev_*",
+        "description": "Device token header (Format: Bearer ll_dev_...)"
       },
       "CookieAuth": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "lingua_session"
+        "name": "lingua_session",
+        "description": "HttpOnly session cookie"
       }
     },
     "schemas": {
-      "AnalysisRequest": {
+      "AnalyzeRequest": {
         "type": "object",
         "required": [
           "schemaVersion",
           "eventId",
-          "sourceApp",
-          "sentAt"
+          "originalText",
+          "sourceApp"
         ],
         "properties": {
           "schemaVersion": {
             "type": "integer",
-            "example": 1
+            "enum": [
+              1
+            ],
+            "example": 1,
+            "description": "Unified client contract schema version"
           },
           "eventId": {
             "type": "string",
-            "example": "uuid-v4-generated-by-client"
-          },
-          "sourceApp": {
-            "type": "string",
-            "example": "Slack"
+            "example": "evt_mac_1710000000_abc123",
+            "description": "Client-side unique event identifier for exact-once deduplication"
           },
           "originalText": {
             "type": "string",
-            "example": "She don't know."
+            "example": "Yesterday I go to the store.",
+            "description": "Captured raw English text sample"
           },
           "text": {
             "type": "string",
-            "example": "She don't know."
+            "example": "Yesterday I go to the store.",
+            "description": "Legacy field alias for originalText"
+          },
+          "sourceApp": {
+            "type": "string",
+            "example": "Slack",
+            "description": "Source application identifier (e.g. Slack, Telegram, Email)"
           },
           "sentAt": {
             "type": "string",
@@ -207,62 +288,111 @@
           },
           "previewOnly": {
             "type": "boolean",
-            "default": false
+            "default": false,
+            "example": false,
+            "description": "If true, returns analysis without modifying progress or recording evidence"
           }
         }
       },
-      "AnalysisResponse": {
+      "AnalysisRequest": {
+        "$ref": "#/components/schemas/AnalyzeRequest"
+      },
+      "AnalyzeResponse": {
         "type": "object",
         "required": [
           "accepted",
+          "schemaVersion",
           "eventId",
-          "sourceApp",
           "originalText",
           "correctedText",
+          "assessment",
+          "hasClearError",
           "changed",
+          "summaryRu",
           "errors",
           "topicEvidence"
         ],
         "properties": {
+          "accepted": {
+            "type": "boolean",
+            "example": true,
+            "description": "True if sample was accepted, false if rejected"
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true,
+            "example": null,
+            "description": "Reason for rejection if accepted == false"
+          },
           "schemaVersion": {
             "type": "integer",
             "example": 1
           },
           "eventId": {
-            "type": "string"
+            "type": "string",
+            "example": "evt_mac_1710000000_abc123"
           },
           "sampleId": {
-            "type": "integer"
-          },
-          "previewOnly": {
-            "type": "boolean"
-          },
-          "accepted": {
-            "type": "boolean"
-          },
-          "rejectionReason": {
-            "type": "string",
-            "nullable": true
+            "type": "integer",
+            "nullable": true,
+            "example": 42
           },
           "sourceApp": {
-            "type": "string"
+            "type": "string",
+            "example": "Slack"
           },
           "originalText": {
-            "type": "string"
+            "type": "string",
+            "example": "Yesterday I go to the store."
           },
           "correctedText": {
-            "type": "string"
+            "type": "string",
+            "example": "Yesterday I went to the store."
+          },
+          "recommendedText": {
+            "type": "string",
+            "example": "Yesterday I went to the store."
+          },
+          "assessment": {
+            "type": "string",
+            "enum": [
+              "clear_error",
+              "mechanical_only",
+              "acceptable",
+              "correct"
+            ],
+            "example": "clear_error",
+            "description": "4-tier semantic assessment classification"
+          },
+          "hasClearError": {
+            "type": "boolean",
+            "example": true,
+            "description": "True if assessment == clear_error and matching objective error is present"
           },
           "changed": {
-            "type": "boolean"
+            "type": "boolean",
+            "example": true
           },
           "summaryRu": {
-            "type": "string"
+            "type": "string",
+            "example": "Использована неправильная форма глагола в прошедшем времени."
           },
           "errors": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/GrammarError"
+              "$ref": "#/components/schemas/ErrorDetail"
+            }
+          },
+          "mechanicalCorrections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MechanicalCorrection"
+            }
+          },
+          "optionalSuggestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionalSuggestion"
             }
           },
           "topicEvidence": {
@@ -270,10 +400,18 @@
             "items": {
               "$ref": "#/components/schemas/TopicEvidence"
             }
+          },
+          "previewOnly": {
+            "type": "boolean",
+            "example": false,
+            "description": "True if analyzed in preview mode without recording progress"
           }
         }
       },
-      "GrammarError": {
+      "AnalysisResponse": {
+        "$ref": "#/components/schemas/AnalyzeResponse"
+      },
+      "ErrorDetail": {
         "type": "object",
         "required": [
           "original",
@@ -284,26 +422,33 @@
         ],
         "properties": {
           "original": {
-            "type": "string"
+            "type": "string",
+            "example": "go"
           },
           "correction": {
-            "type": "string"
+            "type": "string",
+            "example": "went"
           },
           "explanationRu": {
-            "type": "string"
+            "type": "string",
+            "example": "В прошедшем времени Past Simple глагол 'go' меняется на 'went'."
           },
           "topic": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "example": "Past Simple"
           },
           "confidence": {
-            "type": "number"
+            "type": "number",
+            "example": 0.95
           },
           "kind": {
             "type": "string",
             "enum": [
               "grammar_error"
-            ]
+            ],
+            "example": "grammar_error",
+            "description": "Error category tag (must be grammar_error)"
           },
           "category": {
             "type": "string",
@@ -331,49 +476,120 @@
               "linking_words",
               "conjunctions",
               "grammar"
-            ]
+            ],
+            "example": "verb_tense",
+            "description": "Detailed error classification category tag from objective grammar allowlist"
+          }
+        }
+      },
+      "GrammarError": {
+        "$ref": "#/components/schemas/ErrorDetail"
+      },
+      "MechanicalCorrection": {
+        "type": "object",
+        "required": [
+          "original",
+          "correction"
+        ],
+        "properties": {
+          "original": {
+            "type": "string",
+            "example": "teh"
+          },
+          "correction": {
+            "type": "string",
+            "example": "the"
+          },
+          "explanationRu": {
+            "type": "string",
+            "example": "Исправление опечатки."
+          },
+          "kind": {
+            "type": "string",
+            "example": "mechanical"
+          },
+          "category": {
+            "type": "string",
+            "example": "spelling"
+          }
+        }
+      },
+      "OptionalSuggestion": {
+        "type": "object",
+        "required": [
+          "original",
+          "suggestion"
+        ],
+        "properties": {
+          "original": {
+            "type": "string",
+            "example": "very good"
+          },
+          "suggestion": {
+            "type": "string",
+            "example": "excellent"
+          },
+          "explanationRu": {
+            "type": "string",
+            "example": "Стилистическое улучшение."
+          },
+          "kind": {
+            "type": "string",
+            "example": "style"
+          },
+          "category": {
+            "type": "string",
+            "example": "style"
           }
         }
       },
       "TopicEvidence": {
         "type": "object",
         "required": [
-          "topicId",
           "topic",
           "outcome",
           "confidence"
         ],
         "properties": {
           "topicId": {
-            "type": "integer"
+            "type": "integer",
+            "nullable": true
           },
           "topic": {
-            "type": "string"
+            "type": "string",
+            "example": "Past Simple"
           },
           "category": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "level": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "outcome": {
             "type": "string",
             "enum": [
               "success",
               "error"
-            ]
+            ],
+            "example": "error"
           },
           "confidence": {
-            "type": "number"
+            "type": "number",
+            "example": 0.95
           },
           "explanationRu": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "scoreDelta": {
-            "type": "number"
+            "type": "number",
+            "example": -2.0
           },
           "newScore": {
-            "type": "number"
+            "type": "number",
+            "example": 48.0
           }
         }
       },
@@ -420,6 +636,18 @@
           },
           "device_name": {
             "type": "string"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Unauthorized"
           }
         }
       }

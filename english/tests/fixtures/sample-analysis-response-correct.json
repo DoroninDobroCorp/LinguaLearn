@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "accepted": true,
+  "rejectionReason": null,
+  "eventId": "sample-evt-003",
+  "sampleId": 103,
+  "sourceApp": "Slack",
+  "originalText": "She went to the store yesterday.",
+  "correctedText": "She went to the store yesterday.",
+  "recommendedText": "She went to the store yesterday.",
+  "assessment": "correct",
+  "hasClearError": false,
+  "changed": false,
+  "summaryRu": "Предложение составлено правильно.",
+  "errors": [],
+  "mechanicalCorrections": [],
+  "optionalSuggestions": [],
+  "topicEvidence": [
+    {
+      "topicId": 101,
+      "topic": "Past Simple vs Present Perfect",
+      "category": "grammar",
+      "level": "B1",
+      "outcome": "success",
+      "confidence": 0.95,
+      "explanationRu": "Правильное использование Past Simple.",
+      "scoreDelta": 1.0,
+      "newScore": 51.0
+    }
+  ],
+  "previewOnly": false
+}

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "accepted": true,
+  "rejectionReason": null,
+  "eventId": "sample-evt-001",
+  "sampleId": 101,
+  "sourceApp": "Slack",
+  "originalText": "She don't know the answer to this question.",
+  "correctedText": "She doesn't know the answer to this question.",
+  "recommendedText": "She doesn't know the answer to this question.",
+  "assessment": "clear_error",
+  "hasClearError": true,
+  "changed": true,
+  "summaryRu": "Исправлена форма глагола в 3-ем лице единственного числа (Subject-Verb Agreement).",
+  "errors": [
+    {
+      "original": "don't",
+      "correction": "doesn't",
+      "explanationRu": "В 3-ем лице единственного числа настоящего времени (he/she/it) следует использовать doesn't.",
+      "topic": "Subject-Verb Agreement",
+      "confidence": 0.95,
+      "kind": "grammar_error",
+      "category": "subject_verb_agreement"
+    }
+  ],
+  "mechanicalCorrections": [],
+  "optionalSuggestions": [],
+  "topicEvidence": [
+    {
+      "topicId": 102,
+      "topic": "Subject-Verb Agreement",
+      "category": "grammar",
+      "level": "B1",
+      "outcome": "error",
+      "confidence": 0.95,
+      "explanationRu": "Неверная форма вспомогательного глагола.",
+      "scoreDelta": -2.0,
+      "newScore": 48.0
+    }
+  ],
+  "previewOnly": false
+}

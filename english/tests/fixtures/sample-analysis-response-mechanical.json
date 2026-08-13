@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "accepted": true,
+  "rejectionReason": null,
+  "eventId": "sample-evt-002",
+  "sampleId": 102,
+  "sourceApp": "Slack",
+  "originalText": "She recieved the letter yesterday.",
+  "correctedText": "She received the letter yesterday.",
+  "recommendedText": "She received the letter yesterday.",
+  "assessment": "mechanical_only",
+  "hasClearError": false,
+  "changed": true,
+  "summaryRu": "Исправлена опечатка в слове received.",
+  "errors": [],
+  "mechanicalCorrections": [
+    {
+      "original": "recieved",
+      "correction": "received",
+      "explanationRu": "Опечатка в орфографии слова received.",
+      "kind": "mechanical",
+      "category": "spelling"
+    }
+  ],
+  "optionalSuggestions": [],
+  "topicEvidence": [],
+  "previewOnly": false
+}
