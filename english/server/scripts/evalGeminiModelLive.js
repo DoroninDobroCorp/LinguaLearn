@@ -236,15 +236,9 @@ export function createSyntheticMockAnalyzer() {
 
     // 3. Mechanical / Typos / Capitalization / Punctuation
     if (
-      lower.includes('recieved') ||
       lower.includes('she lives in london') ||
       lower.includes('im going to the store') ||
-      lower.includes('thiss is') ||
-      lower.includes('writting this fast') ||
-      lower.includes('wonderfull') ||
-      lower.includes('attachement') ||
       lower.includes('he promised to call') ||
-      lower.includes('dynamicly') ||
       lower.includes('for monday') ||
       lower.includes('accomodating') ||
       lower.includes('truely') ||
@@ -263,8 +257,6 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         assessment: 'mechanical_only',
         correctedText: text
-          .replace(/recieved/gi, 'received')
-          .replace(/mesage/gi, 'message')
           .replace(/^she/gi, 'She')
           .replace(/^im/gi, "I'm"),
         summaryRu: 'Механические опечатки и регистр исправлены.',
@@ -272,15 +264,26 @@ export function createSyntheticMockAnalyzer() {
         topicEvidence: [],
       };
     }
+    if (
+      lower.includes('recieved') ||
+      lower.includes('thiss is') ||
+      lower.includes('writting this fast') ||
+      lower.includes('wonderfull') ||
+      lower.includes('attachement') ||
+      lower.includes('dynamicly')
+    ) {
+      return {
+        isEnglish: true,
+        assessment: 'acceptable',
+        correctedText: text,
+        summaryRu: 'Фраза признана допустимой.',
+        errors: [],
+        topicEvidence: [],
+      };
+    }
 
     // 4. Acceptable Informal / Stylistic / Ambiguous cases
     if (
-      lower.includes('desirous of') ||
-      lower.includes('in my opinion') ||
-      lower.includes('can you send me an update') ||
-      lower.includes('would like to inform') ||
-      lower.includes('regarding your inquiry') ||
-      lower.includes('it is important that') ||
       lower.includes('thanks for letting me know') ||
       lower.includes('enough resources') ||
       lower.includes('back in five minutes') ||
@@ -303,6 +306,23 @@ export function createSyntheticMockAnalyzer() {
         assessment: 'acceptable',
         correctedText: text,
         summaryRu: 'Фраза грамматически верна.',
+        errors: [],
+        topicEvidence: [],
+      };
+    }
+    if (
+      lower.includes('desirous of') ||
+      lower.includes('in my opinion') ||
+      lower.includes('can you send me an update') ||
+      lower.includes('would like to inform') ||
+      lower.includes('regarding your inquiry') ||
+      lower.includes('it is important that')
+    ) {
+      return {
+        isEnglish: true,
+        assessment: 'correct',
+        correctedText: text,
+        summaryRu: 'Фраза полностью корректна.',
         errors: [],
         topicEvidence: [],
       };
@@ -518,14 +538,50 @@ export function createSyntheticMockAnalyzer() {
       };
     }
 
-    if (lower.includes('works as a manager for three years') || lower.includes('is living in london since')) {
+    if (lower.includes('works as a manager for three years')) {
+      return {
+        isEnglish: true,
+        assessment: 'acceptable',
+        correctedText: text,
+        summaryRu: 'Фраза признана допустимой без фиксации прогресса.',
+        errors: [],
+        topicEvidence: [],
+      };
+    }
+
+    if (lower.includes('is living in london since')) {
       return {
         isEnglish: true,
         assessment: 'clear_error',
         correctedText: 'Present Perfect Continuous fix.',
         summaryRu: 'Использование Present Perfect Continuous.',
-        errors: [{ original: 'works', correction: 'has been working', explanationRu: 'Используйте Present Perfect Continuous для действия с указанием длительности.', topic: 'Present Perfect Continuous', confidence: 0.95, kind: 'grammar_error', category: 'verb_tense' }],
+        errors: [{ original: 'is living', correction: 'has been living', explanationRu: 'Используйте Present Perfect Continuous для действия с указанием длительности.', topic: 'Present Perfect Continuous', confidence: 0.95, kind: 'grammar_error', category: 'verb_tense' }],
         topicEvidence: [{ topic: 'Present Perfect Continuous', outcome: 'error', confidence: 0.95, explanationRu: 'Ошибка в Present Perfect Continuous.' }],
+      };
+    }
+
+    if (
+      lower.includes('went to the store') ||
+      lower.includes("doesn't enjoy working late") ||
+      lower.includes('if it rains tomorrow') ||
+      lower.includes('lived in london for five years') ||
+      lower.includes('studying english since 2021') ||
+      lower.includes('new feature was released') ||
+      lower.includes('send me the updated meeting agenda') ||
+      lower.includes('double-check the figures') ||
+      lower.includes('upcoming project review') ||
+      lower.includes('had i known about the delay') ||
+      lower.includes('available for a short sync') ||
+      lower.includes('completed all sprint goals') ||
+      lower.includes('deadline was tight')
+    ) {
+      return {
+        isEnglish: true,
+        assessment: 'acceptable',
+        correctedText: text,
+        summaryRu: 'Предложение допустимо.',
+        errors: [],
+        topicEvidence: [],
       };
     }
 
@@ -536,7 +592,7 @@ export function createSyntheticMockAnalyzer() {
       correctedText: text,
       summaryRu: 'Предложение полностью корректно.',
       errors: [],
-      topicEvidence: [{ topic: 'Past Simple (irregular verbs)', outcome: 'success', confidence: 0.95, explanationRu: 'Корректная грамматическая структура.' }],
+      topicEvidence: [],
     };
   };
 }
@@ -771,7 +827,6 @@ export async function runLiveGeminiModelEval(options = {}) {
       cat.total++;
       if (
         res.actualAssessment === res.expectedAssessment ||
-        (res.expectedCategory === 'error_free' && (res.actualAssessment === 'correct' || res.actualAssessment === 'acceptable')) ||
         (!res.accepted && !res.expectedAccepted)
       ) {
         cat.detected++;
@@ -780,7 +835,6 @@ export async function runLiveGeminiModelEval(options = {}) {
 
     if (
       res.actualAssessment === res.expectedAssessment ||
-      (res.expectedCategory === 'error_free' && (res.actualAssessment === 'correct' || res.actualAssessment === 'acceptable')) ||
       (!res.accepted && !res.expectedAccepted)
     ) {
       tierMatchedCount++;

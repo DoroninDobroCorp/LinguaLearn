@@ -12,6 +12,7 @@ __pycache__/
 *.pyc
 
 # Database files & Backups
+backups/
 *.db
 *.db-wal
 *.db-shm
