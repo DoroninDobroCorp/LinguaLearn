@@ -9,14 +9,19 @@ public struct WritingAnalysisErrorItem: Codable {
     public let message: String?
     public let explanationRu: String?
 
-    enum CodingKeys: String, CodingKey {
+    private enum CodingKeys: String, CodingKey {
         case kind
         case category
         case topic
         case originalFragment = "original_fragment"
+        case originalFragmentCamel = "originalFragment"
+        case original
         case replacementFragment = "replacement_fragment"
+        case replacementFragmentCamel = "replacementFragment"
+        case correction
         case message
         case explanationRu = "explanation_ru"
+        case explanationRuCamel = "explanationRu"
     }
 
     public init(
@@ -36,6 +41,40 @@ public struct WritingAnalysisErrorItem: Codable {
         self.message = message
         self.explanationRu = explanationRu
     }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.kind = try container.decodeIfPresent(String.self, forKey: .kind)
+        self.category = try container.decodeIfPresent(String.self, forKey: .category)
+        self.topic = try container.decodeIfPresent(String.self, forKey: .topic)
+
+        let orig = try container.decodeIfPresent(String.self, forKey: .originalFragment)
+            ?? (try container.decodeIfPresent(String.self, forKey: .originalFragmentCamel))
+            ?? (try container.decodeIfPresent(String.self, forKey: .original))
+        self.originalFragment = orig
+
+        let repl = try container.decodeIfPresent(String.self, forKey: .replacementFragment)
+            ?? (try container.decodeIfPresent(String.self, forKey: .replacementFragmentCamel))
+            ?? (try container.decodeIfPresent(String.self, forKey: .correction))
+        self.replacementFragment = repl
+
+        self.message = try container.decodeIfPresent(String.self, forKey: .message)
+
+        let exp = try container.decodeIfPresent(String.self, forKey: .explanationRu)
+            ?? (try container.decodeIfPresent(String.self, forKey: .explanationRuCamel))
+        self.explanationRu = exp
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(kind, forKey: .kind)
+        try container.encodeIfPresent(category, forKey: .category)
+        try container.encodeIfPresent(topic, forKey: .topic)
+        try container.encodeIfPresent(originalFragment, forKey: .originalFragment)
+        try container.encodeIfPresent(replacementFragment, forKey: .replacementFragment)
+        try container.encodeIfPresent(message, forKey: .message)
+        try container.encodeIfPresent(explanationRu, forKey: .explanationRu)
+    }
 }
 
 public struct MechanicalCorrectionItem: Codable {
@@ -43,10 +82,15 @@ public struct MechanicalCorrectionItem: Codable {
     public let replacementFragment: String?
     public let explanationRu: String?
 
-    enum CodingKeys: String, CodingKey {
+    private enum CodingKeys: String, CodingKey {
         case originalFragment = "original_fragment"
+        case originalFragmentCamel = "originalFragment"
+        case original
         case replacementFragment = "replacement_fragment"
+        case replacementFragmentCamel = "replacementFragment"
+        case correction
         case explanationRu = "explanation_ru"
+        case explanationRuCamel = "explanationRu"
     }
 
     public init(originalFragment: String? = nil, replacementFragment: String? = nil, explanationRu: String? = nil) {
@@ -54,20 +98,59 @@ public struct MechanicalCorrectionItem: Codable {
         self.replacementFragment = replacementFragment
         self.explanationRu = explanationRu
     }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let orig = try container.decodeIfPresent(String.self, forKey: .originalFragment)
+            ?? (try container.decodeIfPresent(String.self, forKey: .originalFragmentCamel))
+            ?? (try container.decodeIfPresent(String.self, forKey: .original))
+        self.originalFragment = orig
+
+        let repl = try container.decodeIfPresent(String.self, forKey: .replacementFragment)
+            ?? (try container.decodeIfPresent(String.self, forKey: .replacementFragmentCamel))
+            ?? (try container.decodeIfPresent(String.self, forKey: .correction))
+        self.replacementFragment = repl
+
+        let exp = try container.decodeIfPresent(String.self, forKey: .explanationRu)
+            ?? (try container.decodeIfPresent(String.self, forKey: .explanationRuCamel))
+        self.explanationRu = exp
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(originalFragment, forKey: .originalFragment)
+        try container.encodeIfPresent(replacementFragment, forKey: .replacementFragment)
+        try container.encodeIfPresent(explanationRu, forKey: .explanationRu)
+    }
 }
 
 public struct OptionalSuggestionItem: Codable {
     public let suggestion: String?
     public let explanationRu: String?
 
-    enum CodingKeys: String, CodingKey {
+    private enum CodingKeys: String, CodingKey {
         case suggestion
         case explanationRu = "explanation_ru"
+        case explanationRuCamel = "explanationRu"
     }
 
     public init(suggestion: String? = nil, explanationRu: String? = nil) {
         self.suggestion = suggestion
         self.explanationRu = explanationRu
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.suggestion = try container.decodeIfPresent(String.self, forKey: .suggestion)
+        let exp = try container.decodeIfPresent(String.self, forKey: .explanationRu)
+            ?? (try container.decodeIfPresent(String.self, forKey: .explanationRuCamel))
+        self.explanationRu = exp
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(suggestion, forKey: .suggestion)
+        try container.encodeIfPresent(explanationRu, forKey: .explanationRu)
     }
 }
 

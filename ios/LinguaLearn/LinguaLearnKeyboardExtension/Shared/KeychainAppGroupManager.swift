@@ -4,18 +4,31 @@ import Security
 public class KeychainAppGroupManager {
     public static let shared = KeychainAppGroupManager()
     public let accessGroup = "group.ai.factory.lingualearn"
+    public let expandedAccessGroup = "$(AppIdentifierPrefix)group.ai.factory.lingualearn"
     public let service = "ai.factory.lingualearn"
     public let account = "lingualearn_device_token"
-    private var inMemoryToken: String?
 
     public init() {}
+
+    public static func loadDeviceToken() -> String? {
+        return shared.getDeviceToken()
+    }
+
+    @discardableResult
+    public static func saveDeviceToken(_ token: String) -> Bool {
+        return shared.saveDeviceToken(token)
+    }
+
+    @discardableResult
+    public static func deleteDeviceToken() -> Bool {
+        return shared.deleteDeviceToken()
+    }
 
     @discardableResult
     public func saveDeviceToken(_ token: String) -> Bool {
         guard let data = token.data(using: .utf8) else { return false }
 
-        deleteDeviceToken()
-        inMemoryToken = token
+        _ = deleteDeviceToken()
 
         var queryAdd: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -31,7 +44,8 @@ public class KeychainAppGroupManager {
             queryAdd.removeValue(forKey: kSecAttrAccessGroup as String)
             status = SecItemAdd(queryAdd as CFDictionary, nil)
         }
-        return status == errSecSuccess || inMemoryToken != nil
+        // Fail closed: return true strictly when Keychain storage operation succeeded
+        return status == errSecSuccess
     }
 
     public func getDeviceToken() -> String? {
@@ -50,15 +64,15 @@ public class KeychainAppGroupManager {
             status = SecItemCopyMatching(query as CFDictionary, &dataTypeRef)
         }
 
+        // Fail closed: return token strictly if retrieved from Keychain
         if status == errSecSuccess, let data = dataTypeRef as? Data, let token = String(data: data, encoding: .utf8) {
             return token
         }
-        return inMemoryToken
+        return nil
     }
 
     @discardableResult
     public func deleteDeviceToken() -> Bool {
-        inMemoryToken = nil
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,

@@ -47,6 +47,10 @@ public struct AnalysisPreview {
     public let summaryRu: String
     public let changed: Bool
     public let tier: AnalysisTier
+    public let errors: [WritingAnalysisErrorItem]?
+    public let mechanicalCorrections: [MechanicalCorrectionItem]?
+    public let optionalSuggestions: [OptionalSuggestionItem]?
+    public let recommendedText: String?
 
     public var correctedText: String { targetText }
 
@@ -55,13 +59,21 @@ public struct AnalysisPreview {
         targetText: String,
         summaryRu: String,
         changed: Bool,
-        tier: AnalysisTier = .clearError
+        tier: AnalysisTier = .clearError,
+        errors: [WritingAnalysisErrorItem]? = nil,
+        mechanicalCorrections: [MechanicalCorrectionItem]? = nil,
+        optionalSuggestions: [OptionalSuggestionItem]? = nil,
+        recommendedText: String? = nil
     ) {
         self.originalText = originalText
         self.targetText = targetText
         self.summaryRu = summaryRu
         self.changed = changed
         self.tier = tier
+        self.errors = errors
+        self.mechanicalCorrections = mechanicalCorrections
+        self.optionalSuggestions = optionalSuggestions
+        self.recommendedText = recommendedText
     }
 
     public init(originalText: String, correctedText: String, summaryRu: String, changed: Bool) {
@@ -73,12 +85,29 @@ public struct AnalysisPreview {
             tier: changed ? .clearError : .correct
         )
     }
+
+    public init(response: AnalysisResponse) {
+        let tier = AnalysisTier.resolve(from: response)
+        let target = response.recommendedText ?? response.correctedText
+        self.init(
+            originalText: response.originalText,
+            targetText: target,
+            summaryRu: response.summaryRu,
+            changed: response.changed,
+            tier: tier,
+            errors: response.errors,
+            mechanicalCorrections: response.mechanicalCorrections,
+            optionalSuggestions: response.optionalSuggestions,
+            recommendedText: response.recommendedText
+        )
+    }
 }
 
 public class PreviewPopupView: UIView {
     private let badgeLabel = UILabel()
     private let summaryLabel = UILabel()
     private let correctedLabel = UILabel()
+    private let errorListStack = UIStackView()
     private let replaceButton = UIButton(type: .system)
     private let dismissButton = UIButton(type: .system)
     private var autoDismissTimer: Timer?
@@ -115,6 +144,10 @@ public class PreviewPopupView: UIView {
         correctedLabel.textColor = UIColor.systemGreen
         correctedLabel.numberOfLines = 2
 
+        errorListStack.axis = .vertical
+        errorListStack.spacing = 6
+        errorListStack.alignment = .fill
+
         replaceButton.setTitle("Replace", for: .normal)
         replaceButton.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
         replaceButton.addTarget(self, action: #selector(handleReplace), for: .touchUpInside)
@@ -128,9 +161,9 @@ public class PreviewPopupView: UIView {
         buttonStack.axis = .horizontal
         buttonStack.spacing = 16
 
-        let mainStack = UIStackView(arrangedSubviews: [badgeLabel, correctedLabel, summaryLabel, buttonStack])
+        let mainStack = UIStackView(arrangedSubviews: [badgeLabel, correctedLabel, summaryLabel, errorListStack, buttonStack])
         mainStack.axis = .vertical
-        mainStack.spacing = 4
+        mainStack.spacing = 6
         mainStack.translatesAutoresizingMaskIntoConstraints = false
 
         addSubview(mainStack)
@@ -156,6 +189,40 @@ public class PreviewPopupView: UIView {
         summaryLabel.isHidden = preview.summaryRu.isEmpty
 
         replaceButton.isHidden = !preview.changed
+
+        // Populate error list detail card for objective errors
+        errorListStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        let errors = preview.errors ?? []
+        if preview.tier.isDetailedCard && !errors.isEmpty {
+            errorListStack.isHidden = false
+            for err in errors {
+                let rowStack = UIStackView()
+                rowStack.axis = .vertical
+                rowStack.spacing = 2
+
+                let origText = err.originalFragment ?? ""
+                let replText = err.replacementFragment ?? ""
+                if !origText.isEmpty || !replText.isEmpty {
+                    let fragmentLabel = UILabel()
+                    fragmentLabel.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
+                    fragmentLabel.textColor = UIColor.systemRed
+                    fragmentLabel.text = "• \"\(origText)\" → \"\(replText)\""
+                    rowStack.addArrangedSubview(fragmentLabel)
+                }
+
+                if let exp = err.explanationRu, !exp.isEmpty {
+                    let expLabel = UILabel()
+                    expLabel.font = UIFont.systemFont(ofSize: 12, weight: .regular)
+                    expLabel.textColor = UIColor.secondaryLabel
+                    expLabel.numberOfLines = 2
+                    expLabel.text = exp
+                    rowStack.addArrangedSubview(expLabel)
+                }
+                errorListStack.addArrangedSubview(rowStack)
+            }
+        } else {
+            errorListStack.isHidden = true
+        }
 
         if !preview.tier.isDetailedCard {
             // Non-clear_error tiers display compact chip UI with auto-dismiss after 2 seconds
