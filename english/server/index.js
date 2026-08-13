@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { execSync } from 'child_process';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
@@ -359,6 +360,19 @@ app.get('/api/practice/today', (req, res) => dailyPracticeService.getTodaySessio
 app.get('/api/practice/sessions/:id', (req, res) => dailyPracticeService.getSessionById(req, res));
 app.post('/api/practice/sessions/:id/complete', (req, res) => dailyPracticeService.completeSession(req, res));
 
+const REPO_ROOT = resolve(__dirname, '../..');
+const SERVER_BUILD_TIME = process.env.BUILD_TIME || process.env.BUILD_TIMESTAMP || new Date().toISOString();
+const SERVER_APP_VERSION = process.env.APP_VERSION || '1.0.0-beta';
+
+function getGitCommit() {
+  if (process.env.GIT_COMMIT) return process.env.GIT_COMMIT;
+  try {
+    return execSync('git rev-parse HEAD', { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
 function buildHealthResponse() {
   db.prepare('SELECT 1 AS ok').get();
 
@@ -367,6 +381,9 @@ function buildHealthResponse() {
     service: SERVICE_NAME,
     timestamp: new Date().toISOString(),
     uptimeSeconds: Math.round(process.uptime()),
+    gitCommit: getGitCommit(),
+    buildTime: SERVER_BUILD_TIME,
+    appVersion: SERVER_APP_VERSION,
     checks: {
       database: 'healthy',
       gemini: geminiEnabled ? 'configured' : 'not_configured',
@@ -406,6 +423,9 @@ app.get(
         status: 'unhealthy',
         service: SERVICE_NAME,
         timestamp: new Date().toISOString(),
+        gitCommit: getGitCommit(),
+        buildTime: SERVER_BUILD_TIME,
+        appVersion: SERVER_APP_VERSION,
         checks: {
           database: 'unhealthy',
           gemini: geminiEnabled ? 'configured' : 'not_configured',
