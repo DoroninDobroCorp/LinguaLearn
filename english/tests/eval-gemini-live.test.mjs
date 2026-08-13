@@ -65,6 +65,12 @@ describe('Live Gemini Model Evaluation Harness (VAL-LIVE-002)', () => {
     // Schema validity
     assert.equal(report.metrics.schemaValidityRate, 1.0, 'Schema validity rate must be 1.0');
 
+    // Candidate filter metrics present and zero false rejections
+    assert.ok(typeof report.metrics.expectedAcceptedMismatchCount === 'number', 'expectedAcceptedMismatchCount metric must be a number');
+    assert.equal(report.metrics.expectedAcceptedMismatchCount, 0, 'expectedAcceptedMismatchCount must be 0');
+    assert.ok(typeof report.metrics.falseRejectedEnglishCount === 'number', 'falseRejectedEnglishCount metric must be a number');
+    assert.equal(report.metrics.falseRejectedEnglishCount, 0, 'falseRejectedEnglishCount must be 0');
+
     // Telemetry fields present
     assert.ok(typeof report.promptHash === 'string' && report.promptHash.length === 64, 'promptHash must be a 64-char sha256 hex');
     assert.ok(typeof report.corpusHash === 'string' && report.corpusHash.length === 64, 'corpusHash must be a 64-char sha256 hex');

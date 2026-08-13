@@ -713,6 +713,8 @@ export async function runLiveGeminiModelEval(options = {}) {
   // Calculate Aggregated Metrics
   let acceptedCount = 0;
   let rejectedCount = 0;
+  let expectedAcceptedMismatchCount = 0;
+  let falseRejectedEnglishCount = 0;
   let falseCorrectionsCount = 0;
   let validSchemaCount = 0;
   let falseNegativeScorePenalties = 0;
@@ -736,6 +738,13 @@ export async function runLiveGeminiModelEval(options = {}) {
     if (res.isSchemaValid) validSchemaCount++;
     if (res.accepted) acceptedCount++;
     else rejectedCount++;
+
+    if (res.accepted !== res.expectedAccepted) {
+      expectedAcceptedMismatchCount++;
+    }
+    if (res.expectedAccepted && !res.accepted) {
+      falseRejectedEnglishCount++;
+    }
 
     if (res.expectedCategory === 'error_free' && res.accepted && res.changed) {
       falseCorrectionsCount++;
@@ -805,6 +814,8 @@ export async function runLiveGeminiModelEval(options = {}) {
       totalSamples: samples.length,
       acceptedCount,
       rejectedCount,
+      expectedAcceptedMismatchCount,
+      falseRejectedEnglishCount,
       acceptedRate: Number((acceptedCount / samples.length).toFixed(4)),
       rejectedRate: Number((rejectedCount / samples.length).toFixed(4)),
       falseCorrectionsCount,
@@ -852,6 +863,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename
       console.log(`Total Synthetic Samples:    ${report.metrics.totalSamples}`);
       console.log(`Accepted Rate:              ${(report.metrics.acceptedRate * 100).toFixed(1)}% (${report.metrics.acceptedCount}/${report.metrics.totalSamples})`);
       console.log(`Rejected Rate:              ${(report.metrics.rejectedRate * 100).toFixed(1)}% (${report.metrics.rejectedCount}/${report.metrics.totalSamples})`);
+      console.log(`Accepted Mismatch Count:    ${report.metrics.expectedAcceptedMismatchCount}`);
+      console.log(`False Rejected English:     ${report.metrics.falseRejectedEnglishCount}`);
       console.log(`False Corrections (Clean):  ${report.metrics.falseCorrectionsCount}`);
       console.log(`False-Negative Penalties:   ${report.metrics.falseNegativeScorePenalties} (Typos/Style score penalties)`);
       console.log(`Schema Validity Rate:       ${(report.metrics.schemaValidityRate * 100).toFixed(1)}%`);

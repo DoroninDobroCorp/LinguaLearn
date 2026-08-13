@@ -117,7 +117,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'Yesterday I went to the supermarket and bought some apples.',
         summaryRu: 'Ошибка в форме прошедшего времени (Past Simple).',
-        errors: [{ original: 'go', correction: 'went', explanationRu: 'Используйте Past Simple.', topic: 'Past Simple (irregular verbs)', confidence: 0.95 }],
+        errors: [{ original: 'go', correction: 'went', explanationRu: 'Используйте Past Simple.', topic: 'Past Simple (irregular verbs)', confidence: 0.95, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Past Simple (irregular verbs)', outcome: 'error', confidence: 0.95, explanationRu: 'Ошибка в Past Simple.' }],
       };
     }
@@ -127,7 +127,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: "She doesn't like working on weekends.",
         summaryRu: 'Ошибка в согласовании Present Simple.',
-        errors: [{ original: "don't", correction: "doesn't", explanationRu: "Для she/he/it используется doesn't.", topic: 'Present Simple (negative & questions)', confidence: 0.98 }],
+        errors: [{ original: "don't", correction: "doesn't", explanationRu: "Для she/he/it используется doesn't.", topic: 'Present Simple (negative & questions)', confidence: 0.98, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Present Simple (negative & questions)', outcome: 'error', confidence: 0.98, explanationRu: 'Ошибка в Present Simple.' }],
       };
     }
@@ -137,7 +137,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'Corrected preposition usage.',
         summaryRu: 'Неправильное использование предлога.',
-        errors: [{ original: 'preposition', correction: 'correct_preposition', explanationRu: 'Неправильный предлог.', topic: 'Prepositions of time (in/on/at)', confidence: 0.92 }],
+        errors: [{ original: 'preposition', correction: 'correct_preposition', explanationRu: 'Неправильный предлог.', topic: 'Prepositions of time (in/on/at)', confidence: 0.92, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Prepositions of time (in/on/at)', outcome: 'error', confidence: 0.92, explanationRu: 'Ошибка в предлоге.' }],
       };
     }
@@ -147,7 +147,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'He is taller than his brother.',
         summaryRu: 'Избыточная сравнительная степень.',
-        errors: [{ original: 'more taller', correction: 'taller', explanationRu: 'Для односложных прилагательных используется -er.', topic: 'Comparative adjectives (-er/more)', confidence: 0.96 }],
+        errors: [{ original: 'more taller', correction: 'taller', explanationRu: 'Для односложных прилагательных используется -er.', topic: 'Comparative adjectives (-er/more)', confidence: 0.96, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Comparative adjectives (-er/more)', outcome: 'error', confidence: 0.96, explanationRu: 'Ошибка в сравнительной степени.' }],
       };
     }
@@ -157,7 +157,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'If I see him tomorrow, I will give him the document.',
         summaryRu: 'Будущее время в придаточном условии.',
-        errors: [{ original: 'will see', correction: 'see', explanationRu: 'В придаточном условии используется Present Simple.', topic: 'First Conditional (if + will)', confidence: 0.94 }],
+        errors: [{ original: 'will see', correction: 'see', explanationRu: 'В придаточном условии используется Present Simple.', topic: 'First Conditional (if + will)', confidence: 0.94, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'First Conditional (if + will)', outcome: 'error', confidence: 0.94, explanationRu: 'Ошибка в First Conditional.' }],
       };
     }
@@ -167,7 +167,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'Modal verb error fix.',
         summaryRu: 'Ошибка с модальным глаголом.',
-        errors: [{ original: 'modal', correction: 'bare_infinitive', explanationRu: 'После модального глагола идет bare infinitive.', topic: 'Modal verbs (must/might/may)', confidence: 0.95 }],
+        errors: [{ original: 'modal', correction: 'bare_infinitive', explanationRu: 'После модального глагола идет bare infinitive.', topic: 'Modal verbs (must/might/may)', confidence: 0.95, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Modal verbs (must/might/may)', outcome: 'error', confidence: 0.95, explanationRu: 'Ошибка в Modal verbs.' }],
       };
     }
@@ -177,7 +177,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'Passive voice fix.',
         summaryRu: 'Ошибка в пассивном залоге.',
-        errors: [{ original: 'active', correction: 'past_participle', explanationRu: 'Используйте Past Participle в пассивном залоге.', topic: 'Passive voice (present & past)', confidence: 0.95 }],
+        errors: [{ original: 'active', correction: 'past_participle', explanationRu: 'Используйте Past Participle в пассивном залоге.', topic: 'Passive voice (present & past)', confidence: 0.95, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Passive voice (present & past)', outcome: 'error', confidence: 0.95, explanationRu: 'Ошибка в Passive Voice.' }],
       };
     }
@@ -187,7 +187,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'Indirect question fix.',
         summaryRu: 'Порядок слов в косвенном вопросе.',
-        errors: [{ original: 'question_order', correction: 'statement_order', explanationRu: 'В косвенном вопросе прямой порядок слов.', topic: 'Indirect questions', confidence: 0.95 }],
+        errors: [{ original: 'question_order', correction: 'statement_order', explanationRu: 'В косвенном вопросе прямой порядок слов.', topic: 'Indirect questions', confidence: 0.95, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Indirect questions', outcome: 'error', confidence: 0.95, explanationRu: 'Ошибка в Indirect questions.' }],
       };
     }
@@ -197,7 +197,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'Gerund fix.',
         summaryRu: 'Ошибка использования герундия.',
-        errors: [{ original: 'infinitive', correction: 'gerund', explanationRu: 'После этого предлога/глагола требуется герундий.', topic: 'Gerund vs Infinitive', confidence: 0.93 }],
+        errors: [{ original: 'infinitive', correction: 'gerund', explanationRu: 'После этого предлога/глагола требуется герундий.', topic: 'Gerund vs Infinitive', confidence: 0.93, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Gerund vs Infinitive', outcome: 'error', confidence: 0.93, explanationRu: 'Ошибка в Gerund.' }],
       };
     }
@@ -207,7 +207,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'Present Continuous fix.',
         summaryRu: 'Ошибка в Present Continuous.',
-        errors: [{ original: 'work', correction: 'working', explanationRu: 'Используйте -ing форму.', topic: 'Present Continuous (basic)', confidence: 0.95 }],
+        errors: [{ original: 'work', correction: 'working', explanationRu: 'Используйте -ing форму.', topic: 'Present Continuous (basic)', confidence: 0.95, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Present Continuous (basic)', outcome: 'error', confidence: 0.95, explanationRu: 'Ошибка в Present Continuous.' }],
       };
     }
@@ -217,7 +217,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'I saw him yesterday morning.',
         summaryRu: 'Ошибка выбора между Past Simple и Present Perfect.',
-        errors: [{ original: 'have seen', correction: 'saw', explanationRu: 'С точным временем в прошлом (yesterday) используется Past Simple.', topic: 'Present Perfect vs Past Simple', confidence: 0.95 }],
+        errors: [{ original: 'have seen', correction: 'saw', explanationRu: 'С точным временем в прошлом (yesterday) используется Past Simple.', topic: 'Present Perfect vs Past Simple', confidence: 0.95, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Present Perfect vs Past Simple', outcome: 'error', confidence: 0.95, explanationRu: 'Ошибка в Present Perfect.' }],
       };
     }
@@ -227,7 +227,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'If I had more time, I would travel around Europe.',
         summaryRu: 'Ошибка в Second Conditional.',
-        errors: [{ original: 'will', correction: 'would', explanationRu: 'В главной части Second Conditional используется would.', topic: 'Second Conditional (if + would)', confidence: 0.94 }],
+        errors: [{ original: 'will', correction: 'would', explanationRu: 'В главной части Second Conditional используется would.', topic: 'Second Conditional (if + would)', confidence: 0.94, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Second Conditional (if + would)', outcome: 'error', confidence: 0.94, explanationRu: 'Ошибка в Second Conditional.' }],
       };
     }
@@ -237,7 +237,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'This is the best book I have ever read.',
         summaryRu: 'Превосходная степень исключения (good -> best).',
-        errors: [{ original: 'most good', correction: 'best', explanationRu: 'Превосходная степень от good - best.', topic: 'Superlative adjectives', confidence: 0.96 }],
+        errors: [{ original: 'most good', correction: 'best', explanationRu: 'Превосходная степень от good - best.', topic: 'Superlative adjectives', confidence: 0.96, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Superlative adjectives', outcome: 'error', confidence: 0.96, explanationRu: 'Ошибка в Superlative adjectives.' }],
       };
     }
@@ -247,7 +247,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'Although it was raining, we decided to go for a walk.',
         summaryRu: 'Избыточный союз (but после although).',
-        errors: [{ original: 'but', correction: '', explanationRu: 'Не используйте but вместе с although.', topic: 'Conjunctions', confidence: 0.95 }],
+        errors: [{ original: 'but', correction: '', explanationRu: 'Не используйте but вместе с although.', topic: 'Conjunctions', confidence: 0.95, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Conjunctions', outcome: 'error', confidence: 0.95, explanationRu: 'Ошибка в Conjunctions.' }],
       };
     }
@@ -257,7 +257,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'He suggested that I take a short break.',
         summaryRu: 'Конструкция с глаголом suggest.',
-        errors: [{ original: 'suggested me to take', correction: 'suggested taking', explanationRu: 'Suggest не используется с me + to-infinitive.', topic: 'Reported speech', confidence: 0.94 }],
+        errors: [{ original: 'suggested me to take', correction: 'suggested taking', explanationRu: 'Suggest не используется с me + to-infinitive.', topic: 'Reported speech', confidence: 0.94, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Reported speech', outcome: 'error', confidence: 0.94, explanationRu: 'Ошибка в Reported speech.' }],
       };
     }
@@ -267,7 +267,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'Subject verb agreement fix.',
         summaryRu: 'Согласование подлежащего и сказуемого во множественном числе.',
-        errors: [{ original: 'is', correction: 'are', explanationRu: 'Используйте множественное число (are).', topic: 'Subject-verb agreement', confidence: 0.96 }],
+        errors: [{ original: 'is', correction: 'are', explanationRu: 'Используйте множественное число (are).', topic: 'Subject-verb agreement', confidence: 0.96, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Subject-verb agreement', outcome: 'error', confidence: 0.96, explanationRu: 'Ошибка в Subject-verb agreement.' }],
       };
     }
@@ -277,7 +277,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'I wish I had more free time.',
         summaryRu: 'Конструкция Wish + Past Simple.',
-        errors: [{ original: 'have', correction: 'had', explanationRu: 'После I wish для настоящего времени используется Past Simple.', topic: 'Wish / If only', confidence: 0.95 }],
+        errors: [{ original: 'have', correction: 'had', explanationRu: 'После I wish для настоящего времени используется Past Simple.', topic: 'Wish / If only', confidence: 0.95, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Wish / If only', outcome: 'error', confidence: 0.95, explanationRu: 'Ошибка в Wish / If only.' }],
       };
     }
@@ -287,7 +287,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'I have less money than I thought.',
         summaryRu: 'Квантификаторы с исчисляемыми/неисчисляемыми существительными.',
-        errors: [{ original: 'fewer', correction: 'less', explanationRu: 'Money - неисчисляемое существительное, используйте less.', topic: 'Quantifiers', confidence: 0.96 }],
+        errors: [{ original: 'fewer', correction: 'less', explanationRu: 'Money - неисчисляемое существительное, используйте less.', topic: 'Quantifiers', confidence: 0.96, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Quantifiers', outcome: 'error', confidence: 0.96, explanationRu: 'Ошибка в Quantifiers.' }],
       };
     }
@@ -297,7 +297,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'If I had known his address, I would have sent a card.',
         summaryRu: 'Ошибка в Third Conditional.',
-        errors: [{ original: 'knew', correction: 'had known', explanationRu: 'В услови Third Conditional используется Past Perfect.', topic: 'Third Conditional', confidence: 0.95 }],
+        errors: [{ original: 'knew', correction: 'had known', explanationRu: 'В услови Third Conditional используется Past Perfect.', topic: 'Third Conditional', confidence: 0.95, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Third Conditional', outcome: 'error', confidence: 0.95, explanationRu: 'Ошибка в Third Conditional.' }],
       };
     }
@@ -307,7 +307,7 @@ export function createSyntheticMockAnalyzer() {
         isEnglish: true,
         correctedText: 'She has been working as a manager for three years.',
         summaryRu: 'Использование Present Perfect Continuous для длительного действия.',
-        errors: [{ original: 'works', correction: 'has been working', explanationRu: 'Действие началось в прошлом и продолжается - используйте Present Perfect Continuous.', topic: 'Present Perfect Continuous', confidence: 0.95 }],
+        errors: [{ original: 'works', correction: 'has been working', explanationRu: 'Действие началось в прошлом и продолжается - используйте Present Perfect Continuous.', topic: 'Present Perfect Continuous', confidence: 0.95, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Present Perfect Continuous', outcome: 'error', confidence: 0.95, explanationRu: 'Ошибка в Present Perfect Continuous.' }],
       };
     }

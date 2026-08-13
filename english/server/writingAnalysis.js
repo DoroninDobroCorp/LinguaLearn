@@ -20,7 +20,7 @@ const SENTENCE_TERMINATOR_PATTERN = /[.!?](?=$|[^\p{L}\p{N}])/u;
 const URL_OR_EMAIL_PATTERN = /(?:https?:\/\/|www\.|\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b|\b(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}\b)/i;
 const VERSION_ONLY_PATTERN = /^\s*(?:v(?:ersion)?\s*)?\d+(?:\.\d+){1,}\s*[.!?]?\s*$/i;
 const PATH_OR_COMMAND_PATTERN = /^\s*(?:[A-Za-z]:[\\/]|\.{0,2}\/|\/\w|(?:git|npm|pnpm|yarn|cd|ls|rm|cp|mv|curl|ssh)\s+)/i;
-const CODE_SIGNAL_PATTERN = /(?:=>|===|!==|\b(?:const|let|var|function|class|import)\s+[A-Za-z_$]|\b(?:SELECT|INSERT|UPDATE|DELETE)\s+[A-Za-z_*]|[{};]\s*$)/;
+const CODE_SIGNAL_PATTERN = /(?:```|=>|===|!==|==|!=|->|::|\+\+|--|\+=|-=|\*=|\/=|\b(?:const|let|var)\s+[A-Za-z_$][A-Za-z0-9_$]*\s*[:=]|\bfunction\s*(?:[A-Za-z_$][A-Za-z0-9_$]*)?\s*\(|\bclass\s+[A-Za-z_$][A-Za-z0-9_$]*\s*(?:extends\b|\{)|\bimport\s+(?:\{|(?:\*\s+as\s+)[A-Za-z_$]|['"])|import\s+.*?\s+from\s+['"]|\b(?:SELECT\s+.*?\s+FROM|INSERT\s+INTO|UPDATE\s+.*?\s+SET|DELETE\s+FROM)\b|[{};]\s*$)/i;
 
 const ANALYSIS_SCHEMA = Object.freeze({
   type: 'object',
@@ -235,6 +235,9 @@ export function filterWritingCandidate(text) {
   if (CYRILLIC_PATTERN.test(normalized)) {
     return { accepted: false, reason: 'contains_cyrillic' };
   }
+  if (CODE_SIGNAL_PATTERN.test(normalized)) {
+    return { accepted: false, reason: 'code_signal' };
+  }
   if (URL_OR_EMAIL_PATTERN.test(normalized)) {
     return { accepted: false, reason: 'url_or_email' };
   }
@@ -255,10 +258,6 @@ export function filterWritingCandidate(text) {
   const hasSentenceTerminator = SENTENCE_TERMINATOR_PATTERN.test(normalized);
   if (!hasSentenceTerminator && words.length < MIN_WORDS_WITHOUT_TERMINATOR) {
     return { accepted: false, reason: 'no_sentence_terminator' };
-  }
-
-  if (CODE_SIGNAL_PATTERN.test(normalized)) {
-    return { accepted: false, reason: 'code_signal' };
   }
 
   return { accepted: true, reason: null };
