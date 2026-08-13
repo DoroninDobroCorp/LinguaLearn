@@ -3,11 +3,9 @@ import LinguaLearnCaptureCore
 
 final class CorrectionPopupController: NSObject {
     private struct Presentation {
-        let event: CaptureEvent
-        let response: WritingAnalyzeResponse
+        let viewModel: CorrectionPopupViewModel
         let appURL: URL?
         let replaceDraft: ((String) -> Bool)?
-        let displayMode: PopupDisplayMode
     }
 
     private let panel: NSPanel
@@ -19,7 +17,7 @@ final class CorrectionPopupController: NSObject {
     private weak var countdownLabel: NSTextField?
     private var remainingAutoDismissSeconds = 0
     private var analyzingEventID: String?
-    private var correctedText = ""
+    private var targetTextToApply = ""
     private var currentAppURL: URL?
     private var replaceDraftHandler: ((String) -> Bool)?
 
@@ -39,21 +37,20 @@ final class CorrectionPopupController: NSObject {
         response: WritingAnalyzeResponse,
         appURL: URL?,
         replaceDraft: ((String) -> Bool)? = nil,
-        displayMode: PopupDisplayMode = .largeCard
+        isPreviewHotkey: Bool = false
     ) {
+        let viewModel = CorrectionPopupViewModel(event: event, response: response, isPreviewHotkey: isPreviewHotkey)
         let presentation = Presentation(
-            event: event,
-            response: response,
+            viewModel: viewModel,
             appURL: appURL,
-            replaceDraft: replaceDraft,
-            displayMode: displayMode
+            replaceDraft: replaceDraft
         )
         if analyzingEventID == event.eventID {
             analyzingEventID = nil
             rebuildContent(for: presentation)
             positionPanel()
             panel.orderFrontRegardless()
-            scheduleAutoDismiss(seconds: presentation.displayMode == .compactChip ? 1.8 : 6.0)
+            scheduleAutoDismiss(seconds: presentation.viewModel.autoDismissSeconds)
             return
         }
         if presentations.count >= maximumPendingPresentations {
@@ -129,7 +126,7 @@ final class CorrectionPopupController: NSObject {
         rebuildContent(for: presentation)
         positionPanel()
         panel.orderFrontRegardless()
-        scheduleAutoDismiss(seconds: presentation.displayMode == .compactChip ? 1.8 : 6.0)
+        scheduleAutoDismiss(seconds: presentation.viewModel.autoDismissSeconds)
     }
 
     private func rebuildContent(for presentation: Presentation) {
@@ -138,7 +135,9 @@ final class CorrectionPopupController: NSObject {
             view.removeFromSuperview()
         }
 
-        if presentation.displayMode == .compactChip {
+        let vm = presentation.viewModel
+
+        if vm.displayMode == .compactChip {
             let chipLabel = makeLabel("Grammar OK ✓", font: .systemFont(ofSize: 13, weight: .semibold))
             chipLabel.textColor = .labelColor
             contentStack.addArrangedSubview(chipLabel)
@@ -148,86 +147,75 @@ final class CorrectionPopupController: NSObject {
             return
         }
 
-        let source = makeLabel("From \(presentation.event.sourceApp)", font: .systemFont(ofSize: 11, weight: .medium))
+        let source = makeLabel("From \(vm.sourceApp)", font: .systemFont(ofSize: 11, weight: .medium))
         source.textColor = .secondaryLabelColor
         contentStack.addArrangedSubview(source)
 
         contentStack.addArrangedSubview(makeSection(
             title: "Original",
-            body: presentation.response.originalText ?? presentation.event.text,
+            body: vm.originalText,
             color: .secondaryLabelColor
         ))
 
-        correctedText = presentation.response.correctedText ?? presentation.event.text
+        targetTextToApply = vm.bestTextToUse
         currentAppURL = presentation.appURL
         replaceDraftHandler = presentation.replaceDraft
-        let originalText = (presentation.response.originalText ?? presentation.event.text)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let correctionChanged = correctedText.trimmingCharacters(in: .whitespacesAndNewlines) != originalText
+
         contentStack.addArrangedSubview(makeSection(
-            title: correctionChanged ? "Better version" : "Correct ✓",
-            body: correctedText,
+            title: vm.headerTitle,
+            body: vm.bestTextToUse,
             color: .labelColor
         ))
 
-        let explanations = presentation.response.errors.prefix(3).compactMap { error -> String? in
-            guard let explanation = error.displayExplanation else { return nil }
-            let change: String
-            if let original = error.original, let correction = error.correction,
-               !original.isEmpty, !correction.isEmpty {
-                change = "\(original) → \(correction): "
-            } else {
-                change = ""
-            }
-            return "• \(change)\(explanation)"
-        }
-        if !explanations.isEmpty {
+        if !vm.grammarErrors.isEmpty {
+            let body = vm.grammarErrors.map { "• " + $0.displayText }.joined(separator: "\n")
             contentStack.addArrangedSubview(makeSection(
-                title: "Why",
-                body: explanations.joined(separator: "\n"),
-                color: .labelColor
-            ))
-        } else if let summary = presentation.response.summaryRu?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !summary.isEmpty {
-            contentStack.addArrangedSubview(makeSection(
-                title: "Why",
-                body: summary,
-                color: .labelColor
-            ))
-        } else if !correctionChanged {
-            contentStack.addArrangedSubview(makeSection(
-                title: "Why",
-                body: "Всё правильно — грамматических ошибок не найдено.",
+                title: "Grammar errors",
+                body: body,
                 color: .labelColor
             ))
         }
 
-        var topicLabels: [String: String] = [:]
-        for topic in presentation.response.errors.compactMap(\.topic) {
-            topicLabels[topic] = topic
+        if !vm.mechanicalCorrections.isEmpty {
+            let body = vm.mechanicalCorrections.map { "• " + $0.displayText }.joined(separator: "\n")
+            contentStack.addArrangedSubview(makeSection(
+                title: "Mechanical fixes",
+                body: body,
+                color: .labelColor
+            ))
         }
-        for evidence in presentation.response.topicEvidence {
-            var label = evidence.topic
-            if let delta = evidence.scoreDelta {
-                label += delta > 0 ? " +\(delta)" : " \(delta)"
+
+        if !vm.optionalSuggestions.isEmpty {
+            let body = vm.optionalSuggestions.map { "• " + $0.displayText }.joined(separator: "\n")
+            contentStack.addArrangedSubview(makeSection(
+                title: "Optional suggestions",
+                body: body,
+                color: .labelColor
+            ))
+        }
+
+        if vm.grammarErrors.isEmpty && vm.mechanicalCorrections.isEmpty && vm.optionalSuggestions.isEmpty {
+            if let summary = vm.summaryRu, !summary.isEmpty {
+                contentStack.addArrangedSubview(makeSection(
+                    title: "Why",
+                    body: summary,
+                    color: .labelColor
+                ))
+            } else if vm.bestTextToUse == vm.originalText {
+                contentStack.addArrangedSubview(makeSection(
+                    title: "Why",
+                    body: "Всё правильно — грамматических ошибок не найдено.",
+                    color: .labelColor
+                ))
             }
-            if let score = evidence.newScore { label += " → \(score)/100" }
-            topicLabels[evidence.topic] = label
         }
-        for change in presentation.response.topicChanges {
-            guard let topic = change.displayName else { continue }
-            var label = topic
-            if let delta = change.delta { label += delta > 0 ? " +\(delta)" : " \(delta)" }
-            if let score = change.score { label += " → \(score)/100" }
-            topicLabels[topic] = label
-        }
-        let topics = topicLabels.keys.sorted().prefix(4).compactMap { topicLabels[$0] }
-        if !topics.isEmpty {
+
+        if !vm.topicBadges.isEmpty {
             let topicStack = NSStackView()
             topicStack.orientation = .horizontal
             topicStack.spacing = 6
             topicStack.alignment = .centerY
-            for topic in topics {
+            for topic in vm.topicBadges {
                 let chip = makeLabel("  \(topic)  ", font: .systemFont(ofSize: 11, weight: .medium))
                 chip.wantsLayer = true
                 chip.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.15).cgColor
@@ -348,7 +336,7 @@ final class CorrectionPopupController: NSObject {
 
     @objc private func copyCorrected() {
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(correctedText, forType: .string)
+        NSPasteboard.general.setString(targetTextToApply, forType: .string)
     }
 
     @objc private func openLinguaLearn() {
@@ -364,7 +352,7 @@ final class CorrectionPopupController: NSObject {
     @objc private func replaceDraft() {
         guard let replaceDraftHandler else { return }
         cancelAutoDismiss()
-        if replaceDraftHandler(correctedText) {
+        if replaceDraftHandler(targetTextToApply) {
             countdownLabel?.stringValue = "Draft replaced — review it, then press Enter to send"
         } else {
             countdownLabel?.stringValue = "Draft changed — use Copy corrected instead"

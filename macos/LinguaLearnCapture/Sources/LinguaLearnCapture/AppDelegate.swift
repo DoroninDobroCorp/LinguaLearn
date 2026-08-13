@@ -193,7 +193,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         switch coordinator.submit(event) {
         case .queued:
-            popupController.showAnalyzing(event: event)
             setStatus("Capturing • queue \(coordinator.queueDepth)")
         case .queueFull:
             setStatus("Queue full — newest sentence skipped")
@@ -226,7 +225,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         return
                     }
                     let appURL = try? configuration.validatedAppURL()
-                    let displayMode = PopupPolicy.displayMode(for: response, isPreviewHotkey: true)
                     self.popupController.enqueue(
                         event: event,
                         response: response,
@@ -234,7 +232,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         replaceDraft: { correctedText in
                             monitor?.replaceDraft(preview, with: correctedText) ?? false
                         },
-                        displayMode: displayMode
+                        isPreviewHotkey: true
                     )
                     self.setStatus("Draft correction ready")
                 case .failure(let error):
@@ -254,8 +252,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setStatus("Capturing • queue \(coordinator?.queueDepth ?? 0)")
 
         let appURL = try? configuration?.validatedAppURL()
-        let displayMode = PopupPolicy.displayMode(for: response, isPreviewHotkey: false)
-        popupController.enqueue(event: event, response: response, appURL: appURL ?? nil, displayMode: displayMode)
+        popupController.enqueue(event: event, response: response, appURL: appURL ?? nil, isPreviewHotkey: false)
     }
 
     private func setStatus(_ text: String) {
