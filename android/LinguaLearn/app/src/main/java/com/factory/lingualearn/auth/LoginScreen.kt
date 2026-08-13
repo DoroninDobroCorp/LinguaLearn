@@ -7,12 +7,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.factory.lingualearn.ime.net.ApiClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun LoginScreen(
     authManager: AuthManager,
     onLoginSuccess: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var inviteCode by remember { mutableStateOf("") }
@@ -90,16 +95,51 @@ fun LoginScreen(
                 }
                 isLoading = true
                 errorMessage = null
-                // Mock authentication success for container app setup
-                authManager.saveSession(email, "ll_session_mock_token")
-                authManager.saveDeviceToken("ll_dev_android_mock_token")
-                isLoading = false
-                onLoginSuccess()
+
+                scope.launch {
+                    val apiClient = ApiClient(baseUrl = authManager.getApiBaseUrl())
+                    val cleanEmail = email.trim()
+                    val authRes = withContext(Dispatchers.IO) {
+                        if (isSignUp) {
+                            apiClient.signup(cleanEmail, password, inviteCode.trim())
+                        } else {
+                            apiClient.login(cleanEmail, password)
+                        }
+                    }
+
+                    if (!authRes.success || authRes.sessionToken.isNullOrEmpty()) {
+                        isLoading = false
+                        errorMessage = authRes.error ?: "Authentication failed."
+                        return@launch
+                    }
+
+                    authManager.saveSession(authRes.userEmail ?: cleanEmail, authRes.sessionToken)
+
+                    // Register real device token via POST /api/devices/tokens
+                    val devRes = withContext(Dispatchers.IO) {
+                        apiClient.createDeviceToken(authRes.sessionToken, "Android Client IME")
+                    }
+
+                    if (devRes.success && !devRes.token.isNullOrEmpty()) {
+                        authManager.saveDeviceToken(devRes.token, devRes.tokenId)
+                    }
+
+                    isLoading = false
+                    onLoginSuccess()
+                }
             },
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading
         ) {
-            Text(if (isSignUp) "Sign Up with Invite" else "Log In")
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(if (isSignUp) "Sign Up with Invite" else "Log In")
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -115,3 +155,4 @@ fun LoginScreen(
         }
     }
 }
+

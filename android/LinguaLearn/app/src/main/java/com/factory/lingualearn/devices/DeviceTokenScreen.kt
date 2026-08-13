@@ -6,13 +6,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun DeviceTokenScreen(context: Context) {
+    val scope = rememberCoroutineScope()
     val manager = remember { DeviceTokenManager(context) }
     var activeToken by remember { mutableStateOf(manager.getActiveDeviceToken()) }
-    var deviceNameInput by remember { mutableStateOf("Android Pixel IME") }
+    var deviceNameInput by remember { mutableStateOf(manager.getActiveDeviceName() ?: "Android Pixel IME") }
     var newlyCreatedToken by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -41,11 +47,19 @@ fun DeviceTokenScreen(context: Context) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(
                         onClick = {
-                            manager.revokeActiveDeviceToken()
-                            activeToken = null
-                            newlyCreatedToken = null
+                            isLoading = true
+                            errorMessage = null
+                            scope.launch {
+                                withContext(Dispatchers.IO) {
+                                    manager.revokeActiveDeviceToken()
+                                }
+                                activeToken = null
+                                newlyCreatedToken = null
+                                isLoading = false
+                            }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        enabled = !isLoading
                     ) {
                         Text("Revoke Device Token")
                     }
@@ -63,14 +77,35 @@ fun DeviceTokenScreen(context: Context) {
 
             Button(
                 onClick = {
-                    val created = manager.generateDeviceToken(deviceNameInput)
-                    activeToken = created.token
-                    newlyCreatedToken = created.token
+                    if (deviceNameInput.isBlank()) {
+                        errorMessage = "Device name cannot be empty."
+                        return@Button
+                    }
+                    isLoading = true
+                    errorMessage = null
+                    scope.launch {
+                        val created = withContext(Dispatchers.IO) {
+                            manager.createRealDeviceToken(deviceNameInput.trim(), null)
+                        }
+                        if (created != null) {
+                            activeToken = created.token
+                            newlyCreatedToken = created.token
+                        } else {
+                            errorMessage = "Failed to register device token on server."
+                        }
+                        isLoading = false
+                    }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
             ) {
                 Text("Generate New Device Token")
             }
+        }
+
+        errorMessage?.let { err ->
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
 
         newlyCreatedToken?.let { token ->
@@ -88,3 +123,4 @@ fun DeviceTokenScreen(context: Context) {
         }
     }
 }
+

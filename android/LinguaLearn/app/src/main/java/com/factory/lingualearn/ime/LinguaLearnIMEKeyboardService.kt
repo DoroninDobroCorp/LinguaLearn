@@ -41,14 +41,15 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
     private var previewTextView: TextView? = null
     private var summaryTextView: TextView? = null
     private var replaceButton: Button? = null
+    private var checkButton: Button? = null
 
     override fun onCreate() {
         super.onCreate()
         candidateFilter = CandidateFilter
         replaceEngine = AutoReplaceEngine()
-        syncQueue = BackgroundSyncQueue(applicationContext)
-        apiClient = ApiClient()
         authManager = AuthManager(applicationContext)
+        syncQueue = BackgroundSyncQueue(applicationContext)
+        apiClient = ApiClient(baseUrl = authManager.getApiBaseUrl())
         privacyManager = PrivacyConsentManager(applicationContext)
         previewController = PreviewPopupController()
     }
@@ -96,7 +97,7 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
             keyboardLayout.addView(rowLayout)
         }
 
-        // Bottom row: Space, Backspace, Send / Enter
+        // Bottom row: Space, Manual Check, Backspace, Send / Enter
         val bottomRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
@@ -117,6 +118,18 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
             }
         }
 
+        val checkBtn = Button(context).apply {
+            text = "CHECK 🔍"
+            textSize = 11f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.2f).apply {
+                leftMargin = 2
+                rightMargin = 2
+            }
+            setOnClickListener {
+                onCheckPressed()
+            }
+        }
+
         val backspaceBtn = Button(context).apply {
             text = "⌫"
             textSize = 14f
@@ -131,8 +144,8 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
 
         val sendBtn = Button(context).apply {
             text = "SEND / ↵"
-            textSize = 12f
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.5f).apply {
+            textSize = 11f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.3f).apply {
                 leftMargin = 2
                 rightMargin = 2
             }
@@ -142,6 +155,7 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
         }
 
         bottomRow.addView(spaceBtn)
+        bottomRow.addView(checkBtn)
         bottomRow.addView(backspaceBtn)
         bottomRow.addView(sendBtn)
         keyboardLayout.addView(bottomRow)
@@ -157,10 +171,18 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
         currentInputConnection?.deleteSurroundingText(1, 0)
     }
 
+    fun onCheckPressed() {
+        val ic = currentInputConnection
+        val textBefore = ic?.getTextBeforeCursor(1024, 0)?.toString() ?: ""
+        if (textBefore.isNotBlank()) {
+            handleCandidateInput(textBefore.trim(), previewOnly = true)
+        }
+    }
+
     fun onSendOrEnterPressed() {
         val ic = currentInputConnection
         val textBefore = ic?.getTextBeforeCursor(1024, 0)?.toString() ?: ""
-        
+
         ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
         ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
 
@@ -202,7 +224,16 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
             textSize = 12f
         }
 
+        val chkBtn = Button(context).apply {
+            text = "Check"
+            textSize = 12f
+            setOnClickListener {
+                onCheckPressed()
+            }
+        }
+
         topRow.addView(previewText)
+        topRow.addView(chkBtn)
         topRow.addView(btn)
 
         val summaryText = TextView(context).apply {
@@ -219,6 +250,7 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
         previewTextView = previewText
         summaryTextView = summaryText
         replaceButton = btn
+        checkButton = chkBtn
 
         return container
     }
@@ -227,6 +259,7 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
         val pText = previewTextView
         val sText = summaryTextView
         val rBtn = replaceButton
+        val cContainer = candidatesContainer
 
         val shouldShowCandidates = (uiState.state != PreviewState.IDLE)
         setCandidatesViewShown(shouldShowCandidates)
@@ -235,33 +268,65 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
 
         when (uiState.state) {
             PreviewState.CHECKING -> {
+                cContainer?.setBackgroundColor(0xFFF1F5F9.toInt())
                 pText.text = "Checking: \"${uiState.originalText}\"..."
                 sText?.visibility = View.GONE
                 rBtn?.visibility = View.GONE
             }
             PreviewState.RESULT_READY -> {
-                if (uiState.changed) {
-                    pText.text = "Correction: ${uiState.correctedText}"
-                    sText?.text = uiState.summaryRu
-                    sText?.visibility = if (uiState.summaryRu.isNotEmpty()) View.VISIBLE else View.GONE
+                val targetText = if (uiState.recommendedText.isNotEmpty()) uiState.recommendedText else uiState.correctedText
+
+                if (uiState.hasClearError) {
+                    // clear_error tier -> detailed card UI policy
+                    cContainer?.setBackgroundColor(0xFFFFF0F0.toInt()) // Reddish error tint
+                    val errorDetails = if (uiState.errors.isNotEmpty()) {
+                        uiState.errors.joinToString("; ") { "${it.original} ➔ ${it.correction}: ${it.explanationRu}" }
+                    } else uiState.summaryRu
+
+                    pText.text = "Grammar Error: $targetText"
+                    sText?.text = errorDetails.ifEmpty { "Detailed Grammar Card" }
+                    sText?.visibility = View.VISIBLE
                     rBtn?.visibility = View.VISIBLE
                     rBtn?.setOnClickListener {
-                        performAutoReplace(uiState.originalText, uiState.correctedText)
+                        performAutoReplace(uiState.originalText, targetText)
                         setCandidatesViewShown(false)
                     }
                 } else {
-                    pText.text = "Grammar OK ✓"
-                    sText?.text = uiState.summaryRu.ifEmpty { "No mistakes found." }
-                    sText?.visibility = View.VISIBLE
-                    rBtn?.visibility = View.GONE
+                    // Non-clear_error tiers (mechanical_only, acceptable, correct) -> compact chip UI policy
+                    cContainer?.setBackgroundColor(0xFFF1F5F9.toInt()) // Neutral compact chip background
+                    if (uiState.assessment == "mechanical_only") {
+                        pText.text = "Grammar OK ✓ (spelling fix)"
+                        sText?.text = uiState.summaryRu.ifEmpty { "Mechanical/spelling correction" }
+                        sText?.visibility = View.VISIBLE
+                    } else if (uiState.assessment == "acceptable") {
+                        pText.text = "Grammar OK ✓"
+                        sText?.text = uiState.summaryRu.ifEmpty { "Acceptable phrasing" }
+                        sText?.visibility = View.VISIBLE
+                    } else {
+                        pText.text = "Grammar OK ✓"
+                        sText?.text = uiState.summaryRu.ifEmpty { "No mistakes found." }
+                        sText?.visibility = View.VISIBLE
+                    }
+
+                    if (uiState.changed && targetText.isNotEmpty() && targetText != uiState.originalText) {
+                        rBtn?.visibility = View.VISIBLE
+                        rBtn?.setOnClickListener {
+                            performAutoReplace(uiState.originalText, targetText)
+                            setCandidatesViewShown(false)
+                        }
+                    } else {
+                        rBtn?.visibility = View.GONE
+                    }
                 }
             }
             PreviewState.ERROR -> {
+                cContainer?.setBackgroundColor(0xFFFFF7ED.toInt())
                 pText.text = "Error: ${uiState.errorMessage ?: "Network error"}"
                 sText?.visibility = View.GONE
                 rBtn?.visibility = View.GONE
             }
             PreviewState.IDLE -> {
+                cContainer?.setBackgroundColor(0xFFF1F5F9.toInt())
                 pText.text = ""
                 sText?.visibility = View.GONE
                 rBtn?.visibility = View.GONE
@@ -315,7 +380,8 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
         serviceScope.launch {
             try {
                 val response = withContext(Dispatchers.IO) {
-                    apiClient.analyzeWriting(
+                    val client = ApiClient(baseUrl = authManager.getApiBaseUrl())
+                    client.analyzeWriting(
                         deviceToken = deviceToken,
                         eventId = eventId,
                         sourceApp = packageName,
@@ -353,3 +419,4 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
         return result.success
     }
 }
+

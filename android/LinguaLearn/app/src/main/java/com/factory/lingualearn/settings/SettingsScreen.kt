@@ -15,6 +15,8 @@ fun SettingsScreen(
     val privacyManager = remember { PrivacyConsentManager(authManager.context) }
     var capturePaused by remember { mutableStateOf(privacyManager.isCapturePaused()) }
     var consentGiven by remember { mutableStateOf(privacyManager.isConsentGiven()) }
+    var apiBaseUrlInput by remember { mutableStateOf(authManager.getApiBaseUrl()) }
+    var urlSavedMessage by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -22,6 +24,38 @@ fun SettingsScreen(
             .padding(16.dp)
     ) {
         Text("Settings & Privacy", style = MaterialTheme.typography.headlineSmall)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Backend API Configuration", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = apiBaseUrlInput,
+                    onValueChange = { apiBaseUrlInput = it },
+                    label = { Text("HTTPS API Base URL") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        val cleanUrl = apiBaseUrlInput.trim()
+                        if (cleanUrl.isNotEmpty()) {
+                            authManager.setApiBaseUrl(cleanUrl)
+                            urlSavedMessage = "API URL saved successfully."
+                        }
+                    }
+                ) {
+                    Text("Save API URL")
+                }
+                urlSavedMessage?.let { msg ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(msg, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -82,3 +116,4 @@ fun SettingsScreen(
         }
     }
 }
+

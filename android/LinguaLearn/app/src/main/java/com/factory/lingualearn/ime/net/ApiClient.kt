@@ -8,6 +8,39 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 
+data class AuthResult(
+    val success: Boolean,
+    val sessionToken: String? = null,
+    val userEmail: String? = null,
+    val userId: Int? = null,
+    val error: String? = null
+)
+
+data class DeviceTokenResult(
+    val success: Boolean,
+    val tokenId: String? = null,
+    val token: String? = null,
+    val deviceName: String? = null,
+    val createdAt: String? = null,
+    val error: String? = null
+)
+
+data class MechanicalCorrection(
+    val original: String,
+    val correction: String,
+    val explanationRu: String,
+    val kind: String = "mechanical",
+    val category: String = "spelling"
+)
+
+data class OptionalSuggestion(
+    val original: String,
+    val suggestion: String,
+    val explanationRu: String,
+    val kind: String = "style",
+    val category: String = "style"
+)
+
 data class AnalysisResponse(
     val schemaVersion: Int,
     val eventId: String,
@@ -23,8 +56,10 @@ data class AnalysisResponse(
     val hasClearError: Boolean = false,
     val changed: Boolean,
     val summaryRu: String?,
-    val errors: List<AnalysisError>,
-    val topicEvidence: List<TopicEvidence>
+    val errors: List<AnalysisError> = emptyList(),
+    val mechanicalCorrections: List<MechanicalCorrection> = emptyList(),
+    val optionalSuggestions: List<OptionalSuggestion> = emptyList(),
+    val topicEvidence: List<TopicEvidence> = emptyList()
 )
 
 data class AnalysisError(
@@ -44,7 +79,199 @@ data class TopicEvidence(
     val explanationRu: String
 )
 
-class ApiClient(private val baseUrl: String = "http://127.0.0.1:3001") {
+class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
+
+    companion object {
+        const val DEFAULT_BASE_URL = "https://lingualearn.factory.ai"
+    }
+
+    fun login(email: String, password: String): AuthResult {
+        return try {
+            val url = URL("$baseUrl/api/auth/login")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.doOutput = true
+            conn.doInput = true
+
+            val payload = JSONObject().apply {
+                put("email", email)
+                put("password", password)
+            }
+
+            OutputStreamWriter(conn.outputStream, "UTF-8").use { os ->
+                os.write(payload.toString())
+                os.flush()
+            }
+
+            val statusCode = conn.responseCode
+            val inputStream = if (statusCode in 200..299) conn.inputStream else conn.errorStream
+            val responseStr = BufferedReader(InputStreamReader(inputStream, "UTF-8")).use { it.readText() }
+
+            if (statusCode in 200..299) {
+                val json = JSONObject(responseStr)
+                val sessionToken = extractSessionCookie(conn)
+                val userObj = json.optJSONObject("user")
+                val userEmail = userObj?.optString("email") ?: email
+                val userId = userObj?.optInt("id")
+
+                AuthResult(
+                    success = true,
+                    sessionToken = sessionToken,
+                    userEmail = userEmail,
+                    userId = userId
+                )
+            } else {
+                val json = JSONObject(responseStr)
+                val errorMsg = json.optString("error", "Login failed (status $statusCode)")
+                AuthResult(success = false, error = errorMsg)
+            }
+        } catch (e: Exception) {
+            AuthResult(success = false, error = e.message ?: "Network connection error")
+        }
+    }
+
+    fun signup(email: String, password: String, inviteCode: String): AuthResult {
+        return try {
+            val url = URL("$baseUrl/api/auth/signup")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.doOutput = true
+            conn.doInput = true
+
+            val payload = JSONObject().apply {
+                put("email", email)
+                put("password", password)
+                put("inviteCode", inviteCode)
+            }
+
+            OutputStreamWriter(conn.outputStream, "UTF-8").use { os ->
+                os.write(payload.toString())
+                os.flush()
+            }
+
+            val statusCode = conn.responseCode
+            val inputStream = if (statusCode in 200..299) conn.inputStream else conn.errorStream
+            val responseStr = BufferedReader(InputStreamReader(inputStream, "UTF-8")).use { it.readText() }
+
+            if (statusCode in 200..299) {
+                val json = JSONObject(responseStr)
+                val sessionToken = extractSessionCookie(conn)
+                val userObj = json.optJSONObject("user")
+                val userEmail = userObj?.optString("email") ?: email
+                val userId = userObj?.optInt("id")
+
+                AuthResult(
+                    success = true,
+                    sessionToken = sessionToken,
+                    userEmail = userEmail,
+                    userId = userId
+                )
+            } else {
+                val json = JSONObject(responseStr)
+                val errorMsg = json.optString("error", "Signup failed (status $statusCode)")
+                AuthResult(success = false, error = errorMsg)
+            }
+        } catch (e: Exception) {
+            AuthResult(success = false, error = e.message ?: "Network connection error")
+        }
+    }
+
+    fun createDeviceToken(sessionToken: String, deviceName: String): DeviceTokenResult {
+        return try {
+            val url = URL("$baseUrl/api/devices/tokens")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Content-Type", "application/json")
+            if (sessionToken.isNotEmpty()) {
+                conn.setRequestProperty("Cookie", "lingua_session=$sessionToken")
+            }
+            conn.doOutput = true
+            conn.doInput = true
+
+            val payload = JSONObject().apply {
+                put("device_name", deviceName)
+            }
+
+            OutputStreamWriter(conn.outputStream, "UTF-8").use { os ->
+                os.write(payload.toString())
+                os.flush()
+            }
+
+            val statusCode = conn.responseCode
+            val inputStream = if (statusCode in 200..299) conn.inputStream else conn.errorStream
+            val responseStr = BufferedReader(InputStreamReader(inputStream, "UTF-8")).use { it.readText() }
+
+            if (statusCode in 200..299) {
+                val json = JSONObject(responseStr)
+                val token = json.optString("token", "")
+                val idStr = json.opt("id")?.toString() ?: ""
+                val devName = json.optString("device_name", deviceName)
+                val createdAt = json.optString("created_at", "")
+
+                DeviceTokenResult(
+                    success = true,
+                    tokenId = idStr,
+                    token = token,
+                    deviceName = devName,
+                    createdAt = createdAt
+                )
+            } else {
+                val json = JSONObject(responseStr)
+                val errorMsg = json.optString("error", "Failed to create device token (status $statusCode)")
+                DeviceTokenResult(success = false, error = errorMsg)
+            }
+        } catch (e: Exception) {
+            DeviceTokenResult(success = false, error = e.message ?: "Network error")
+        }
+    }
+
+    fun revokeDeviceToken(sessionToken: String, tokenId: String): Boolean {
+        return try {
+            val url = URL("$baseUrl/api/devices/tokens/$tokenId/revoke")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Content-Type", "application/json")
+            if (sessionToken.isNotEmpty()) {
+                conn.setRequestProperty("Cookie", "lingua_session=$sessionToken")
+            }
+            conn.doInput = true
+
+            val statusCode = conn.responseCode
+            statusCode in 200..299
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun logout(sessionToken: String): Boolean {
+        return try {
+            val url = URL("$baseUrl/api/auth/logout")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Content-Type", "application/json")
+            if (sessionToken.isNotEmpty()) {
+                conn.setRequestProperty("Cookie", "lingua_session=$sessionToken")
+            }
+            conn.doInput = true
+
+            val statusCode = conn.responseCode
+            statusCode in 200..299
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun extractSessionCookie(conn: HttpURLConnection): String? {
+        val cookies = conn.headerFields["Set-Cookie"] ?: return null
+        for (cookie in cookies) {
+            if (cookie.startsWith("lingua_session=")) {
+                return cookie.substringAfter("lingua_session=").substringBefore(";")
+            }
+        }
+        return null
+    }
 
     fun analyzeWriting(
         deviceToken: String,
@@ -104,6 +331,40 @@ class ApiClient(private val baseUrl: String = "http://127.0.0.1:3001") {
             }
         }
 
+        val mechList = mutableListOf<MechanicalCorrection>()
+        if (json.has("mechanicalCorrections")) {
+            val arr = json.getJSONArray("mechanicalCorrections")
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                mechList.add(
+                    MechanicalCorrection(
+                        original = obj.optString("original", ""),
+                        correction = obj.optString("correction", ""),
+                        explanationRu = obj.optString("explanationRu", ""),
+                        kind = obj.optString("kind", "mechanical"),
+                        category = obj.optString("category", "spelling")
+                    )
+                )
+            }
+        }
+
+        val optList = mutableListOf<OptionalSuggestion>()
+        if (json.has("optionalSuggestions")) {
+            val arr = json.getJSONArray("optionalSuggestions")
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                optList.add(
+                    OptionalSuggestion(
+                        original = obj.optString("original", ""),
+                        suggestion = if (obj.has("suggestion")) obj.getString("suggestion") else obj.optString("correction", ""),
+                        explanationRu = obj.optString("explanationRu", ""),
+                        kind = obj.optString("kind", "style"),
+                        category = obj.optString("category", "style")
+                    )
+                )
+            }
+        }
+
         val topicList = mutableListOf<TopicEvidence>()
         if (json.has("topicEvidence")) {
             val arr = json.getJSONArray("topicEvidence")
@@ -120,6 +381,14 @@ class ApiClient(private val baseUrl: String = "http://127.0.0.1:3001") {
             }
         }
 
+        val recText = if (json.has("recommendedText") && !json.isNull("recommendedText")) {
+            json.getString("recommendedText")
+        } else {
+            if (json.has("correctedText") && !json.isNull("correctedText")) json.getString("correctedText") else originalText
+        }
+
+        val hasClearErr = json.optBoolean("hasClearError", false) || json.optString("assessment", "") == "clear_error"
+
         return AnalysisResponse(
             schemaVersion = json.optInt("schemaVersion", 1),
             eventId = json.optString("eventId", eventId),
@@ -130,13 +399,16 @@ class ApiClient(private val baseUrl: String = "http://127.0.0.1:3001") {
             sourceApp = json.optString("sourceApp", sourceApp),
             originalText = json.optString("originalText", originalText),
             correctedText = if (json.has("correctedText") && !json.isNull("correctedText")) json.getString("correctedText") else null,
-            recommendedText = if (json.has("recommendedText") && !json.isNull("recommendedText")) json.getString("recommendedText") else null,
+            recommendedText = recText,
             assessment = if (json.has("assessment") && !json.isNull("assessment")) json.getString("assessment") else null,
-            hasClearError = json.optBoolean("hasClearError", false),
+            hasClearError = hasClearErr,
             changed = json.optBoolean("changed", false),
             summaryRu = if (json.has("summaryRu") && !json.isNull("summaryRu")) json.getString("summaryRu") else null,
             errors = errorsList,
+            mechanicalCorrections = mechList,
+            optionalSuggestions = optList,
             topicEvidence = topicList
         )
     }
 }
+
