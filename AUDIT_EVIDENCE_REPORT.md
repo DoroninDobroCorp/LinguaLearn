@@ -1,12 +1,12 @@
 # LinguaLearn Canonical Audit Evidence & Production Deployment Report
 
 ## Executive Summary
-- **Report Timestamp**: 2026-08-13T16:19:00.902Z
+- **Report Timestamp**: 2026-08-13T16:19:23.902Z
 - **Target Server**: `serverforvovka` (`/srv/LinguaLearn`)
 - **System Version**: LinguaLearn English Beta Audit Remediation (Milestones 16–24)
 - **Base Audit Commit SHA**: `aae3d1d`
-- **Head Commit SHA**: `af960a92dec6812d0da51bd02fd7393162730dfd`
-- **Origin/Main Commit SHA**: `af960a92dec6812d0da51bd02fd7393162730dfd`
+- **Head Commit SHA**: `05bc9257e5829176b6e797a00d102c5b10cfe7eb`
+- **Origin/Main Commit SHA**: `05bc9257e5829176b6e797a00d102c5b10cfe7eb`
 - **Git Push Status**: **SYNCHRONIZED** (`HEAD == origin/main`)
 - **Deployment Status**: **DEPLOYED_HEALTHY**
 - **Windows Agent CI Status**: **BLOCKED_EXTERNAL** (GitHub Actions Windows runner billing external constraint)
@@ -17,6 +17,7 @@
 ## 1. Provenance & Commit Traceability Matrix
 | Commit SHA | Sub-system / Layer | Component / Feature Description | Assertion Fulfills |
 |------------|-------------------|---------------------------------|--------------------|
+| `05bc925` | Multi-Stack | docs: update AUDIT_EVIDENCE_REPORT.md with post-deploy verified stats (VAL-DEPLOY-003) | Validated |
 | `af960a9` | Multi-Stack | feat(audit-deploy): generate canonical evidence report and execute production deployment (VAL-DEPLOY-003) | Validated |
 | `13051f4` | Multi-Stack | feat(ci-matrix): configure cross-platform CI matrix and verify test runners (VAL-CI-002) | Validated |
 | `d6c4a66` | Multi-Stack | feat(windows-agent): harden DPAPI encryption, HTTPS config, WM_HOTKEY preview, and CI workflow (VAL-WIN-004) | Validated |
@@ -31,7 +32,6 @@
 | `2d8f421` | Multi-Stack | feat(windows-client): implement WM_HOTKEY hook, explicit Send trigger, structured decoding, C# test project, and GitHub Actions CI workflow (VAL-WIN-003) | Validated |
 | `e9f4768` | Multi-Stack | feat(android-client): add Gradle wrapper, IME typing keyboard, Send trigger, and build debug APK (VAL-ANDR-003) | Validated |
 | `2ac2407` | Multi-Stack | feat(ios-client): harden Info.plist, App Group entitlements, structured decoding, and typing keyboard Send trigger (VAL-IOS-003) | Validated |
-| `ba22c85` | Multi-Stack | feat(mac-client): harden macOS client popup policy, structured decoding, and preview hotkey mode (VAL-MAC-002) | Validated |
 
 ---
 
