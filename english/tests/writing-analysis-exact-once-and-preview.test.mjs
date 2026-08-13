@@ -48,6 +48,7 @@ test('VAL-CAPT-001: Structured writing analysis output with changed field', asyn
     db,
     analyzer: async () => ({
       isEnglish: true,
+      assessment: 'clear_error',
       correctedText: 'Yesterday I went to the store.',
       summaryRu: 'Исправлена форма глагола и добавлен артикль.',
       errors: [
@@ -150,6 +151,7 @@ test('VAL-CAPT-003: Preview hotkey mode score isolation (previewOnly: 1)', async
     db,
     analyzer: async () => ({
       isEnglish: true,
+      assessment: 'clear_error',
       correctedText: 'Yesterday I went to the store.',
       summaryRu: 'Исправлено.',
       errors: [

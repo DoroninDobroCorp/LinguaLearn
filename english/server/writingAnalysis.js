@@ -31,6 +31,7 @@ const ANALYSIS_SCHEMA = Object.freeze({
       enum: ['clear_error', 'mechanical_only', 'acceptable', 'correct'],
     },
     correctedText: { type: 'string' },
+    recommendedText: { type: 'string' },
     summaryRu: { type: 'string' },
     errors: {
       type: 'array',
@@ -42,8 +43,36 @@ const ANALYSIS_SCHEMA = Object.freeze({
           explanationRu: { type: 'string' },
           topic: { type: 'string', nullable: true },
           confidence: { type: 'number' },
+          kind: { type: 'string' },
+          category: { type: 'string' },
         },
         required: ['original', 'correction', 'explanationRu', 'topic', 'confidence'],
+      },
+    },
+    mechanicalCorrections: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          original: { type: 'string' },
+          correction: { type: 'string' },
+          explanationRu: { type: 'string' },
+          kind: { type: 'string' },
+          category: { type: 'string' },
+        },
+      },
+    },
+    optionalSuggestions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          original: { type: 'string' },
+          suggestion: { type: 'string' },
+          explanationRu: { type: 'string' },
+          kind: { type: 'string' },
+          category: { type: 'string' },
+        },
       },
     },
     topicEvidence: {
@@ -252,10 +281,39 @@ export function validateAnalyzerResult(response) {
   const correctedText = requireString(value.correctedText, 'correctedText', { allowEmpty: true });
   const summaryRu = requireString(value.summaryRu, 'summaryRu', { allowEmpty: true });
 
+  const mechanicalCorrections = Array.isArray(value.mechanicalCorrections) ? value.mechanicalCorrections.map((item, idx) => ({
+    original: typeof item.original === 'string' ? item.original : '',
+    correction: typeof item.correction === 'string' ? item.correction : '',
+    explanationRu: typeof item.explanationRu === 'string' ? item.explanationRu : '',
+    kind: typeof item.kind === 'string' ? item.kind : 'mechanical',
+    category: typeof item.category === 'string' ? item.category : 'spelling',
+  })) : [];
+
+  const optionalSuggestions = Array.isArray(value.optionalSuggestions) ? value.optionalSuggestions.map((item, idx) => ({
+    original: typeof item.original === 'string' ? item.original : '',
+    suggestion: typeof item.suggestion === 'string' ? item.suggestion : '',
+    explanationRu: typeof item.explanationRu === 'string' ? item.explanationRu : '',
+    kind: typeof item.kind === 'string' ? item.kind : 'style',
+    category: typeof item.category === 'string' ? item.category : 'style',
+  })) : [];
+
+  const recommendedText = typeof value.recommendedText === 'string' ? value.recommendedText : correctedText;
+
   if (!Array.isArray(value.errors)) {
     throw httpError(502, 'errors must be an array.', 'INVALID_ANALYZER_RESPONSE');
   }
-  const errors = value.errors.map((error, index) => {
+  if (!Array.isArray(value.topicEvidence)) {
+    throw httpError(502, 'topicEvidence must be an array.', 'INVALID_ANALYZER_RESPONSE');
+  }
+
+  if (!assessment) {
+    // Backward compatibility if assessment is omitted
+    const hasRawErrors = value.errors.length > 0;
+    const hasErrorEvidence = value.topicEvidence.some((ev) => ev && ev.outcome === 'error');
+    assessment = (hasRawErrors || hasErrorEvidence) ? 'clear_error' : 'correct';
+  }
+
+  const errors = (assessment === 'clear_error' ? value.errors : []).map((error, index) => {
     const item = requirePlainObject(error, `errors[${index}]`);
     return {
       original: requireString(item.original, `errors[${index}].original`),
@@ -263,12 +321,11 @@ export function validateAnalyzerResult(response) {
       explanationRu: requireString(item.explanationRu, `errors[${index}].explanationRu`),
       topic: normalizeTopicName(item.topic, `errors[${index}].topic`, { nullable: true }),
       confidence: normalizeConfidence(item.confidence, `errors[${index}].confidence`),
+      kind: typeof item.kind === 'string' ? item.kind : 'grammar_error',
+      category: typeof item.category === 'string' ? item.category : 'grammar',
     };
   });
 
-  if (!Array.isArray(value.topicEvidence)) {
-    throw httpError(502, 'topicEvidence must be an array.', 'INVALID_ANALYZER_RESPONSE');
-  }
   const topicEvidence = value.topicEvidence.map((evidence, index) => {
     const item = requirePlainObject(evidence, `topicEvidence[${index}]`);
     const outcome = item.outcome === 'success' || item.outcome === 'error' ? item.outcome : null;
@@ -283,18 +340,18 @@ export function validateAnalyzerResult(response) {
     };
   });
 
-  if (!assessment) {
-    // Backward compatibility if assessment is omitted
-    const hasErrorEvidence = topicEvidence.some((ev) => ev.outcome === 'error');
-    assessment = (errors.length > 0 || hasErrorEvidence) ? 'clear_error' : 'correct';
-  }
+  const hasClearError = assessment === 'clear_error';
 
   return {
     isEnglish,
     assessment,
+    hasClearError,
     correctedText,
+    recommendedText,
     summaryRu,
-    errors,
+    errors: hasClearError ? errors : [],
+    mechanicalCorrections,
+    optionalSuggestions,
     topicEvidence,
   };
 }
@@ -327,24 +384,34 @@ function canonicalGrammarTopics(db) {
   `).all();
 }
 
+function findCanonicalTopic(topics, rawName) {
+  if (!rawName || typeof rawName !== 'string') return null;
+  const target = rawName.trim().toLowerCase();
+  for (const topic of topics) {
+    const name = topic.name.trim().toLowerCase();
+    if (name === target || target.includes(name) || name.includes(target)) {
+      return topic;
+    }
+  }
+  return null;
+}
+
 function normalizeCanonicalEvidence(db, analysis) {
-  let { isEnglish, assessment, correctedText, summaryRu, errors, topicEvidence } = analysis;
+  let { isEnglish, assessment, hasClearError, correctedText, recommendedText, summaryRu, errors, mechanicalCorrections, optionalSuggestions, topicEvidence } = analysis;
 
   const canonicalTopics = canonicalGrammarTopics(db);
-  const topicsByName = new Map(
-    canonicalTopics.map((topic) => [topic.name.trim().toLocaleLowerCase('en-US'), topic]),
-  );
 
   const normalizedErrors = errors.map((error) => {
     if (!error.topic) return error;
-    const topic = topicsByName.get(error.topic.trim().toLocaleLowerCase('en-US'));
-    return { ...error, topic: topic ? topic.name : null };
+    const topic = findCanonicalTopic(canonicalTopics, error.topic);
+    return { ...error, topic: topic ? topic.name : error.topic };
   });
 
   // Sanitization / Contradiction Guard
   if (assessment !== 'clear_error') {
     // mechanical_only, acceptable, correct MUST return errors = []
     errors = [];
+    hasClearError = false;
     // Negative topicEvidence is ONLY permitted when assessment === 'clear_error'
     topicEvidence = topicEvidence.filter((ev) => ev.outcome !== 'error');
   } else {
@@ -365,14 +432,18 @@ function normalizeCanonicalEvidence(db, analysis) {
     if (!hasObjectiveError && !hasErrorEvidence) {
       // Contradiction: clear_error but neither objective errors nor error topicEvidence. Sanitize assessment.
       assessment = 'acceptable';
+      hasClearError = false;
+      errors = [];
       topicEvidence = topicEvidence.filter((ev) => ev.outcome !== 'error');
+    } else {
+      hasClearError = true;
     }
   }
 
   const evidenceByTopicId = new Map();
 
   for (const candidate of topicEvidence) {
-    const topic = topicsByName.get(candidate.topic.trim().toLocaleLowerCase('en-US'));
+    const topic = findCanonicalTopic(canonicalTopics, candidate.topic);
     if (!topic) continue;
 
     const existing = evidenceByTopicId.get(topic.id);
@@ -404,9 +475,13 @@ function normalizeCanonicalEvidence(db, analysis) {
   return {
     isEnglish,
     assessment,
+    hasClearError,
     correctedText,
+    recommendedText: recommendedText || correctedText,
     summaryRu,
     errors: assessment === 'clear_error' ? normalizedErrors : [],
+    mechanicalCorrections: mechanicalCorrections || [],
+    optionalSuggestions: optionalSuggestions || [],
     topicEvidence: scoreableEvidence,
   };
 }
@@ -442,10 +517,14 @@ function buildRejectedResponse(input, reason) {
     sourceApp: input.sourceApp,
     originalText: input.text,
     assessment: 'acceptable',
+    hasClearError: false,
     correctedText: input.text,
+    recommendedText: input.text,
     changed: false,
     summaryRu: '',
     errors: [],
+    mechanicalCorrections: [],
+    optionalSuggestions: [],
     topicEvidence: [],
     previewOnly: Boolean(input.previewOnly),
     rejectionReason: reason,
@@ -599,10 +678,14 @@ function completeAcceptedSample(db, sampleId, input, analysis, latencyMs) {
       sourceApp: input.sourceApp,
       originalText: input.text,
       assessment: analysis.assessment,
+      hasClearError: Boolean(analysis.hasClearError),
       correctedText: analysis.correctedText,
+      recommendedText: analysis.recommendedText || analysis.correctedText,
       changed,
       summaryRu: analysis.summaryRu,
-      errors: analysis.errors,
+      errors: analysis.hasClearError ? (analysis.errors || []) : [],
+      mechanicalCorrections: analysis.mechanicalCorrections || [],
+      optionalSuggestions: analysis.optionalSuggestions || [],
       topicEvidence: evidenceResults,
       previewOnly: Boolean(input.previewOnly),
       rejectionReason: null,

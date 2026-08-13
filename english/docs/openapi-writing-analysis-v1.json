@@ -144,6 +144,8 @@
           "eventId",
           "originalText",
           "correctedText",
+          "assessment",
+          "hasClearError",
           "changed",
           "summaryRu",
           "errors",
@@ -181,6 +183,26 @@
             "type": "string",
             "example": "Yesterday I went to the store."
           },
+          "recommendedText": {
+            "type": "string",
+            "example": "Yesterday I went to the store."
+          },
+          "assessment": {
+            "type": "string",
+            "enum": [
+              "clear_error",
+              "mechanical_only",
+              "acceptable",
+              "correct"
+            ],
+            "example": "clear_error",
+            "description": "4-tier semantic assessment classification"
+          },
+          "hasClearError": {
+            "type": "boolean",
+            "example": true,
+            "description": "True if assessment == clear_error and matching objective error is present"
+          },
           "changed": {
             "type": "boolean",
             "example": true
@@ -195,28 +217,45 @@
               "$ref": "#/components/schemas/ErrorDetail"
             }
           },
+          "mechanicalCorrections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MechanicalCorrection"
+            }
+          },
+          "optionalSuggestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OptionalSuggestion"
+            }
+          },
           "topicEvidence": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TopicEvidence"
             }
+          },
+          "previewOnly": {
+            "type": "boolean",
+            "example": false,
+            "description": "True if analyzed in preview mode without recording progress"
           }
         }
       },
       "ErrorDetail": {
         "type": "object",
         "required": [
-          "originalSegment",
-          "correctedSegment",
+          "original",
+          "correction",
           "explanationRu",
           "topic"
         ],
         "properties": {
-          "originalSegment": {
+          "original": {
             "type": "string",
             "example": "go"
           },
-          "correctedSegment": {
+          "correction": {
             "type": "string",
             "example": "went"
           },
@@ -227,6 +266,78 @@
           "topic": {
             "type": "string",
             "example": "Past Simple"
+          },
+          "confidence": {
+            "type": "number",
+            "example": 0.95
+          },
+          "kind": {
+            "type": "string",
+            "example": "grammar_error",
+            "description": "Error category tag (grammar_error, mechanical, style)"
+          },
+          "category": {
+            "type": "string",
+            "example": "verb_tense",
+            "description": "Detailed error classification category tag"
+          }
+        }
+      },
+      "MechanicalCorrection": {
+        "type": "object",
+        "required": [
+          "original",
+          "correction"
+        ],
+        "properties": {
+          "original": {
+            "type": "string",
+            "example": "teh"
+          },
+          "correction": {
+            "type": "string",
+            "example": "the"
+          },
+          "explanationRu": {
+            "type": "string",
+            "example": "Исправление опечатки."
+          },
+          "kind": {
+            "type": "string",
+            "example": "mechanical"
+          },
+          "category": {
+            "type": "string",
+            "example": "spelling"
+          }
+        }
+      },
+      "OptionalSuggestion": {
+        "type": "object",
+        "required": [
+          "original",
+          "suggestion"
+        ],
+        "properties": {
+          "original": {
+            "type": "string",
+            "example": "very good"
+          },
+          "suggestion": {
+            "type": "string",
+            "example": "excellent"
+          },
+          "explanationRu": {
+            "type": "string",
+            "example": "Стилистическое улучшение."
+          },
+          "kind": {
+            "type": "string",
+            "example": "style"
+          },
+          "category": {
+            "type": "string",
+            "example": "style"
           }
         }
       },
