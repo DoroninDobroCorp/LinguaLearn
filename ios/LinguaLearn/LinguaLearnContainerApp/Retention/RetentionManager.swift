@@ -6,7 +6,7 @@ public class RetentionManager: ObservableObject {
     @Published public var exportedJson: String?
     @Published public var isDeletingAccount: Bool = false
 
-    private let baseUrl = "http://127.0.0.1:3001"
+    private var baseUrl: String { AppConfig.baseUrl }
 
     public init() {}
 

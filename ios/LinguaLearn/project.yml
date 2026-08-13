@@ -6,7 +6,6 @@ options:
   xcodeVersion: "14.0"
 
 settings:
-  PRODUCT_NAME: LinguaLearn
   SWIFT_VERSION: "5.7"
 
 targets:
@@ -15,11 +14,20 @@ targets:
     platform: iOS
     deploymentTarget: "16.0"
     sources:
-      - LinguaLearnContainerApp
+      - path: LinguaLearnContainerApp
+        excludes:
+          - "*.entitlements"
+      - path: LinguaLearnKeyboardExtension
+        excludes:
+          - "Info.plist"
+          - "*.entitlements"
     settings:
+      PRODUCT_NAME: LinguaLearnContainerApp
+      PRODUCT_MODULE_NAME: LinguaLearnContainerApp
       PRODUCT_BUNDLE_IDENTIFIER: ai.factory.lingualearn.app
       INFOPLIST_FILE: LinguaLearnContainerApp/Info.plist
       ENTITLEMENTS_FILE: LinguaLearnContainerApp/LinguaLearnContainerApp.entitlements
+      ENABLE_TESTABILITY: "YES"
     dependencies:
       - target: LinguaLearnKeyboardExtension
 
@@ -28,8 +36,12 @@ targets:
     platform: iOS
     deploymentTarget: "16.0"
     sources:
-      - LinguaLearnKeyboardExtension
+      - path: LinguaLearnKeyboardExtension
+        excludes:
+          - "*.entitlements"
     settings:
+      PRODUCT_NAME: LinguaLearnKeyboardExtension
+      PRODUCT_MODULE_NAME: LinguaLearnKeyboardExtension
       PRODUCT_BUNDLE_IDENTIFIER: ai.factory.lingualearn.app.keyboard
       INFOPLIST_FILE: LinguaLearnKeyboardExtension/Info.plist
       ENTITLEMENTS_FILE: LinguaLearnKeyboardExtension/LinguaLearnKeyboardExtension.entitlements
@@ -39,6 +51,24 @@ targets:
     platform: iOS
     deploymentTarget: "16.0"
     sources:
-      - LinguaLearnTests
+      - path: LinguaLearnTests
+    settings:
+      PRODUCT_NAME: LinguaLearnTests
+      PRODUCT_MODULE_NAME: LinguaLearnTests
+      PRODUCT_BUNDLE_IDENTIFIER: ai.factory.lingualearn.tests
+      GENERATE_INFOPLIST_FILE: "YES"
+      TEST_HOST: "$(BUILT_PRODUCTS_DIR)/LinguaLearnContainerApp.app/LinguaLearnContainerApp"
+      BUNDLE_LOADER: "$(TEST_HOST)"
     dependencies:
       - target: LinguaLearnContainerApp
+
+schemes:
+  LinguaLearnContainerApp:
+    build:
+      targets:
+        LinguaLearnContainerApp: all
+        LinguaLearnKeyboardExtension: all
+        LinguaLearnTests: [test]
+    test:
+      targets:
+        - LinguaLearnTests

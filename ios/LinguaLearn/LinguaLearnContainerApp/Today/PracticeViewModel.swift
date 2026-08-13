@@ -24,7 +24,7 @@ public class PracticeViewModel: ObservableObject {
     @Published public var isCompleted: Bool = false
     @Published public var score: Int = 0
 
-    private let baseUrl = "http://127.0.0.1:3001"
+    private var baseUrl: String { AppConfig.baseUrl }
 
     public init() {
         fetchTodayPractice()

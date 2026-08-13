@@ -13,7 +13,7 @@ public class AuthManager: ObservableObject {
     @Published public var currentUser: UserProfile?
     @Published public var errorMessage: String?
 
-    private let baseUrl = "http://127.0.0.1:3001"
+    private var baseUrl: String { AppConfig.baseUrl }
 
     public init() {
         checkSession()

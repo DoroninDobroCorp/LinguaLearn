@@ -6,7 +6,7 @@ public class PrivacyConsentManager: ObservableObject {
     @Published public var deniedApps: [String] = ["Telegram"]
     @Published public var retentionDays: Int = 30
 
-    private let baseUrl = "http://127.0.0.1:3001"
+    private var baseUrl: String { AppConfig.baseUrl }
 
     public init() {
         loadSettings()

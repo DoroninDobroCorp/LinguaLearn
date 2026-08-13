@@ -27,7 +27,7 @@ public class InboxViewModel: ObservableObject {
     @Published public var samples: [WritingSampleItem] = []
     @Published public var isLoading: Bool = false
 
-    private let baseUrl = "http://127.0.0.1:3001"
+    private var baseUrl: String { AppConfig.baseUrl }
 
     public init() {
         fetchSamples()

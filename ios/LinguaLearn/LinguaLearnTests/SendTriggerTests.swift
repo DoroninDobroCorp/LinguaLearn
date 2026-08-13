@@ -10,6 +10,16 @@ final class SendTriggerTests: XCTestCase {
         XCTAssertNil(vc.lastSentPayload)
     }
 
+    func testTypingCharacterKeysUpdatesDraftWithoutTriggeringAnalysis() {
+        let vc = KeyboardViewController()
+        vc.viewDidLoad()
+
+        vc.typeText("She don't know the answer.")
+
+        XCTAssertEqual(vc.currentDraft, "She don't know the answer.")
+        XCTAssertNil(vc.lastSentPayload, "Typing characters alone must NOT trigger analysis payload")
+    }
+
     func testExplicitSendTriggerEmitsPayloadOnValidProse() {
         let vc = KeyboardViewController()
         let token = "ll_dev_test_send_trigger_token"
@@ -22,5 +32,20 @@ final class SendTriggerTests: XCTestCase {
         XCTAssertEqual(vc.lastSentPayload?.originalText, sentence)
         XCTAssertEqual(vc.lastSentPayload?.sourceApp, "LinguaLearnKeyboardExtension")
         XCTAssertFalse(vc.lastSentPayload?.previewOnly ?? true)
+    }
+
+    func testExplicitSendButtonTapTriggersAnalysis() {
+        let vc = KeyboardViewController()
+        vc.viewDidLoad()
+        let token = "ll_dev_test_button_tap_token"
+        AppGroupManager.shared.saveDeviceToken(token)
+
+        vc.typeText("She does not understand the complex grammar rules.")
+        XCTAssertNil(vc.lastSentPayload, "Payload must be nil before explicit send")
+
+        vc.handleSendTrigger()
+
+        XCTAssertNotNil(vc.lastSentPayload)
+        XCTAssertEqual(vc.lastSentPayload?.originalText, "She does not understand the complex grammar rules.")
     }
 }

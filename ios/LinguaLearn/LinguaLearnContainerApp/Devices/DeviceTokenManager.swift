@@ -21,7 +21,7 @@ public class DeviceTokenManager: ObservableObject {
     @Published public var newlyCreatedToken: String?
     @Published public var isLoading: Bool = false
 
-    private let baseUrl = "http://127.0.0.1:3001"
+    private var baseUrl: String { AppConfig.baseUrl }
 
     public init() {
         self.activeDeviceToken = AppGroupManager.shared.getDeviceToken()
