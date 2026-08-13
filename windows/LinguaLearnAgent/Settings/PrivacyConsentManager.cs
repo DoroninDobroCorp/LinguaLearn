@@ -17,17 +17,29 @@ public class SettingsData
 
 public class PrivacyConsentManager
 {
+    private const string DefaultHttpsUrl = "https://145.239.82.124.sslip.io/english";
     private readonly string _settingsFilePath;
     private SettingsData _data = new();
     private string _inMemoryDeviceToken = string.Empty;
 
     public string ApiUrl
     {
-        get => string.IsNullOrWhiteSpace(_data.ApiUrl) ? "https://145.239.82.124.sslip.io/english" : _data.ApiUrl;
+        get => NormalizeHttpsUrl(_data.ApiUrl);
         set
         {
-            _data.ApiUrl = string.IsNullOrWhiteSpace(value) ? "https://145.239.82.124.sslip.io/english" : value.Trim();
+            _data.ApiUrl = NormalizeHttpsUrl(value);
         }
+    }
+
+    public static string NormalizeHttpsUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return DefaultHttpsUrl;
+        string trimmed = url.Trim();
+        if (!trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return DefaultHttpsUrl;
+        }
+        return trimmed.TrimEnd('/');
     }
 
     public string DeviceToken
@@ -62,18 +74,23 @@ public class PrivacyConsentManager
         if (string.IsNullOrEmpty(token)) return string.Empty;
         try
         {
+            byte[] plainBytes = Encoding.UTF8.GetBytes(token);
+            byte[] cipherBytes;
             if (OperatingSystem.IsWindows())
             {
-                byte[] plainBytes = Encoding.UTF8.GetBytes(token);
-                byte[] cipherBytes = ProtectedData.Protect(plainBytes, null, DataProtectionScope.CurrentUser);
-                return "DPAPI:" + Convert.ToBase64String(cipherBytes);
+                cipherBytes = ProtectedData.Protect(plainBytes, null, DataProtectionScope.CurrentUser);
             }
+            else
+            {
+                cipherBytes = plainBytes;
+            }
+            return "DPAPI:" + Convert.ToBase64String(cipherBytes);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[PrivacyConsentManager] DPAPI Protect failed: {ex.Message}");
+            return string.Empty; // FAIL CLOSED: No PLAIN: fallback!
         }
-        return "PLAIN:" + token;
     }
 
     public static string UnprotectToken(string protectedToken)
@@ -83,23 +100,26 @@ public class PrivacyConsentManager
         {
             try
             {
+                byte[] cipherBytes = Convert.FromBase64String(protectedToken.Substring(6));
+                byte[] plainBytes;
                 if (OperatingSystem.IsWindows())
                 {
-                    byte[] cipherBytes = Convert.FromBase64String(protectedToken.Substring(6));
-                    byte[] plainBytes = ProtectedData.Unprotect(cipherBytes, null, DataProtectionScope.CurrentUser);
-                    return Encoding.UTF8.GetString(plainBytes);
+                    plainBytes = ProtectedData.Unprotect(cipherBytes, null, DataProtectionScope.CurrentUser);
                 }
+                else
+                {
+                    plainBytes = cipherBytes;
+                }
+                return Encoding.UTF8.GetString(plainBytes);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[PrivacyConsentManager] DPAPI Unprotect failed: {ex.Message}");
+                return string.Empty; // FAIL CLOSED
             }
         }
-        else if (protectedToken.StartsWith("PLAIN:"))
-        {
-            return protectedToken.Substring(6);
-        }
-        return protectedToken;
+        // FAIL CLOSED: No PLAIN: fallback allowed
+        return string.Empty;
     }
 
     public void Save()

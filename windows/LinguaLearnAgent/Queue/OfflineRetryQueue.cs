@@ -9,13 +9,47 @@ using LinguaLearnAgent.Settings;
 
 namespace LinguaLearnAgent.Queue;
 
-public class OfflineRetryQueue
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
+using LinguaLearnAgent.Network;
+using LinguaLearnAgent.Settings;
+
+namespace LinguaLearnAgent.Queue;
+
+public class RetryQueueItem
+{
+    [JsonPropertyName("payload")]
+    public AnalysisPayload Payload { get; set; } = new();
+
+    [JsonPropertyName("retryCount")]
+    public int RetryCount { get; set; } = 0;
+
+    [JsonPropertyName("nextAttemptAt")]
+    public DateTime NextAttemptAt { get; set; } = DateTime.UtcNow;
+}
+
+public class OfflineRetryQueue : IDisposable
 {
     private readonly PrivacyConsentManager _settings;
     private readonly string _queueFilePath;
-    private readonly List<AnalysisPayload> _queue = new();
+    private readonly List<RetryQueueItem> _queue = new();
+    private CancellationTokenSource? _cts;
+    private Task? _backgroundTask;
 
-    public int Count => _queue.Count;
+    public int Count
+    {
+        get
+        {
+            lock (_queue) return _queue.Count;
+        }
+    }
 
     public OfflineRetryQueue(PrivacyConsentManager settings, string? customPath = null)
     {
@@ -31,7 +65,12 @@ public class OfflineRetryQueue
     {
         lock (_queue)
         {
-            _queue.Add(payload);
+            _queue.Add(new RetryQueueItem
+            {
+                Payload = payload,
+                RetryCount = 0,
+                NextAttemptAt = DateTime.UtcNow
+            });
             SaveQueue();
         }
     }
@@ -44,35 +83,95 @@ public class OfflineRetryQueue
             var item = _queue[0];
             _queue.RemoveAt(0);
             SaveQueue();
-            return item;
+            return item.Payload;
         }
+    }
+
+    public async Task<int> RetryAllAsync(ApiClient apiClient)
+    {
+        List<RetryQueueItem> snapshot;
+        lock (_queue)
+        {
+            if (_queue.Count == 0) return 0;
+            snapshot = new List<RetryQueueItem>(_queue);
+        }
+
+        int processed = 0;
+        var remaining = new List<RetryQueueItem>();
+        DateTime now = DateTime.UtcNow;
+
+        foreach (var item in snapshot)
+        {
+            if (now < item.NextAttemptAt)
+            {
+                remaining.Add(item);
+                continue;
+            }
+
+            bool success = await apiClient.SendAnalysisAsync(item.Payload);
+            if (success)
+            {
+                processed++;
+            }
+            else
+            {
+                item.RetryCount++;
+                double delaySeconds = Math.Min(60.0, Math.Pow(2, item.RetryCount));
+                item.NextAttemptAt = DateTime.UtcNow.AddSeconds(delaySeconds);
+                remaining.Add(item);
+            }
+        }
+
+        lock (_queue)
+        {
+            _queue.Clear();
+            _queue.AddRange(remaining);
+            SaveQueue();
+        }
+
+        return processed;
     }
 
     public int RetryAll(ApiClient apiClient)
     {
-        lock (_queue)
-        {
-            if (_queue.Count == 0) return 0;
-            int processed = 0;
-            var remaining = new List<AnalysisPayload>();
+        return RetryAllAsync(apiClient).GetAwaiter().GetResult();
+    }
 
-            foreach (var payload in _queue)
+    public void StartBackgroundProcessor(ApiClient apiClient, TimeSpan checkInterval)
+    {
+        StopBackgroundProcessor();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        _backgroundTask = Task.Run(async () =>
+        {
+            while (!token.IsCancellationRequested)
             {
-                bool success = apiClient.SendAnalysisAsync(payload).GetAwaiter().GetResult();
-                if (success)
+                try
                 {
-                    processed++;
+                    await Task.Delay(checkInterval, token);
+                    if (_settings.IsPaused) continue;
+                    await RetryAllAsync(apiClient);
                 }
-                else
+                catch (OperationCanceledException)
                 {
-                    remaining.Add(payload);
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[OfflineRetryQueue] Background retry error: {ex.Message}");
                 }
             }
+        }, token);
+    }
 
-            _queue.Clear();
-            _queue.AddRange(remaining);
-            SaveQueue();
-            return processed;
+    public void StopBackgroundProcessor()
+    {
+        if (_cts != null)
+        {
+            _cts.Cancel();
+            _cts.Dispose();
+            _cts = null;
         }
     }
 
@@ -82,7 +181,7 @@ public class OfflineRetryQueue
         {
             string json = JsonSerializer.Serialize(_queue);
             byte[] rawBytes = Encoding.UTF8.GetBytes(json);
-            byte[] protectedBytes = rawBytes;
+            byte[] protectedBytes;
 
             if (OperatingSystem.IsWindows())
             {
@@ -93,7 +192,12 @@ public class OfflineRetryQueue
                 catch (Exception ex)
                 {
                     Console.WriteLine($"[OfflineRetryQueue] DPAPI Protect failed: {ex.Message}");
+                    return; // FAIL CLOSED: Do not write unencrypted raw bytes!
                 }
+            }
+            else
+            {
+                protectedBytes = rawBytes;
             }
 
             File.WriteAllBytes(_queueFilePath, protectedBytes);
@@ -113,7 +217,7 @@ public class OfflineRetryQueue
                 byte[] protectedBytes = File.ReadAllBytes(_queueFilePath);
                 if (protectedBytes.Length == 0) return;
 
-                byte[] rawBytes = protectedBytes;
+                byte[] rawBytes;
 
                 if (OperatingSystem.IsWindows())
                 {
@@ -121,18 +225,45 @@ public class OfflineRetryQueue
                     {
                         rawBytes = ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        rawBytes = protectedBytes;
+                        Console.WriteLine($"[OfflineRetryQueue] DPAPI Unprotect failed: {ex.Message}");
+                        return; // FAIL CLOSED: Do not load unencrypted or corrupt queue data
                     }
+                }
+                else
+                {
+                    rawBytes = protectedBytes;
                 }
 
                 string json = Encoding.UTF8.GetString(rawBytes);
-                var items = JsonSerializer.Deserialize<List<AnalysisPayload>>(json);
-                if (items != null)
+                try
                 {
-                    _queue.Clear();
-                    _queue.AddRange(items);
+                    var items = JsonSerializer.Deserialize<List<RetryQueueItem>>(json);
+                    if (items != null)
+                    {
+                        lock (_queue)
+                        {
+                            _queue.Clear();
+                            _queue.AddRange(items);
+                        }
+                        return;
+                    }
+                }
+                catch
+                {
+                    var legacyItems = JsonSerializer.Deserialize<List<AnalysisPayload>>(json);
+                    if (legacyItems != null)
+                    {
+                        lock (_queue)
+                        {
+                            _queue.Clear();
+                            foreach (var p in legacyItems)
+                            {
+                                _queue.Add(new RetryQueueItem { Payload = p });
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -140,5 +271,10 @@ public class OfflineRetryQueue
         {
             Console.WriteLine($"[OfflineRetryQueue] Load failed: {ex.Message}");
         }
+    }
+
+    public void Dispose()
+    {
+        StopBackgroundProcessor();
     }
 }

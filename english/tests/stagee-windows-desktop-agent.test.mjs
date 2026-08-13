@@ -202,39 +202,43 @@ describe('Stage E: Windows Desktop Agent MVP (schemaVersion 1)', () => {
     }
   });
 
-  it('VAL-WIN-002: Windows Desktop WPF explicit triggers and response popup', () => {
-    // 1. Verify UIAutomationListener explicit triggers
+  it('VAL-WIN-005: Windows DPAPI fail-closed encryption, automatic Enter key hook, and async retry queue', () => {
+    // 1. Verify PrivacyConsentManager DPAPI fail-closed token protection (no PLAIN: fallback)
+    const settingsPath = path.join(windowsDir, 'Settings/PrivacyConsentManager.cs');
+    assert.equal(fs.existsSync(settingsPath), true, 'PrivacyConsentManager.cs must exist');
+    const settingsContent = fs.readFileSync(settingsPath, 'utf8');
+    assert.match(settingsContent, /DPAPI:/, 'Must use DPAPI: prefix for protected tokens');
+    assert.doesNotMatch(settingsContent, /"PLAIN:"/, 'Must NOT use PLAIN: fallback for unencrypted tokens');
+    assert.match(settingsContent, /NormalizeHttpsUrl|StartsWith\("https:\/\/"/i, 'Must validate and enforce HTTPS API URL');
+
+    // 2. Verify OfflineRetryQueue DPAPI fail-closed file encryption and async retry queue with exponential backoff
+    const queuePath = path.join(windowsDir, 'Queue/OfflineRetryQueue.cs');
+    assert.equal(fs.existsSync(queuePath), true, 'OfflineRetryQueue.cs must exist');
+    const queueContent = fs.readFileSync(queuePath, 'utf8');
+    assert.match(queueContent, /ProtectedData\.Protect/, 'Must protect offline queue file via DPAPI');
+    assert.match(queueContent, /ProtectedData\.Unprotect/, 'Must unprotect offline queue file via DPAPI');
+    assert.match(queueContent, /RetryAllAsync|async/i, 'Must support non-blocking async retry queue');
+    assert.match(queueContent, /RetryCount|NextAttemptAt|Math\.Pow\(2/i, 'Must compute exponential backoff for retries');
+    assert.match(queueContent, /StartBackgroundProcessor|Task\.Delay/i, 'Must run background processor loop');
+
+    // 3. Verify EnterKeyHook low-level keyboard hook on editable controls excluding password fields
+    const enterHookPath = path.join(windowsDir, 'UIAutomation/EnterKeyHook.cs');
+    assert.equal(fs.existsSync(enterHookPath), true, 'EnterKeyHook.cs must exist');
+    const enterHookContent = fs.readFileSync(enterHookPath, 'utf8');
+    assert.match(enterHookContent, /WH_KEYBOARD_LL|SetWindowsHookEx/i, 'Must install low-level keyboard hook');
+    assert.match(enterHookContent, /VK_RETURN|0x0D/i, 'Must hook VK_RETURN Enter key');
+
     const listenerPath = path.join(windowsDir, 'UIAutomation/UIAutomationListener.cs');
     assert.equal(fs.existsSync(listenerPath), true, 'UIAutomationListener.cs must exist');
     const listenerContent = fs.readFileSync(listenerPath, 'utf8');
-    assert.match(listenerContent, /TriggerSendCaptureAsync|TriggerSendCapture/i, 'Must support explicit Send trigger');
-    assert.match(listenerContent, /TriggerHotkeyCaptureAsync|TriggerHotkeyCapture/i, 'Must support explicit Hotkey trigger');
-    assert.match(listenerContent, /CurrentFocusedElement/i, 'Focus change must track focused element');
+    assert.match(listenerContent, /EnterKeyHook|TriggerEnterKeyCapture/i, 'UIAutomationListener must handle Enter key hook');
+    assert.match(listenerContent, /IsSecureField|IsPassword/i, 'Must exclude secure/password fields from Enter key capture');
 
-    // 2. Verify SystemTrayController menu additions
-    const trayPath = path.join(windowsDir, 'Tray/SystemTrayController.cs');
-    assert.equal(fs.existsSync(trayPath), true, 'SystemTrayController.cs must exist');
-    const trayContent = fs.readFileSync(trayPath, 'utf8');
-    assert.match(trayContent, /Trigger Send Capture|OnTriggerSendClicked/i, 'System tray menu must support explicit Send trigger');
-    assert.match(trayContent, /Trigger Hotkey Preview|OnTriggerHotkeyClicked/i, 'System tray menu must support explicit Hotkey trigger');
-
-    // 3. Verify WPF Popup Correction Response Parser & Controller
-    const popupXamlPath = path.join(windowsDir, 'UI/CorrectionPopupWindow.xaml');
-    assert.equal(fs.existsSync(popupXamlPath), true, 'CorrectionPopupWindow.xaml must exist');
-    const popupCodePath = path.join(windowsDir, 'UI/CorrectionPopupWindow.xaml.cs');
-    assert.equal(fs.existsSync(popupCodePath), true, 'CorrectionPopupWindow.xaml.cs must exist');
-    const popupCtrlPath = path.join(windowsDir, 'UI/CorrectionPopupController.cs');
-    assert.equal(fs.existsSync(popupCtrlPath), true, 'CorrectionPopupController.cs must exist');
-
-    const ctrlContent = fs.readFileSync(popupCtrlPath, 'utf8');
-    assert.match(ctrlContent, /BuildUiModel|ShowResponse/i, 'CorrectionPopupController must parse response and build UI model');
-    assert.match(ctrlContent, /clear_error/i, 'Popup model must handle clear_error assessment');
-    assert.match(ctrlContent, /Grammar OK/i, 'Popup model must handle compact Grammar OK chip');
-
-    // 4. Verify C# Unit Tests for explicit triggers & response parser
-    const expTestsPath = path.join(windowsDir, 'Tests/ExplicitTriggerTests.cs');
-    assert.equal(fs.existsSync(expTestsPath), true, 'ExplicitTriggerTests.cs must exist');
-    const respTestsPath = path.join(windowsDir, 'Tests/ResponseParserTests.cs');
-    assert.equal(fs.existsSync(respTestsPath), true, 'ResponseParserTests.cs must exist');
+    // 4. Verify PreviewHotkeyManager registration timing
+    const hotkeyPath = path.join(windowsDir, 'Hotkey/PreviewHotkeyManager.cs');
+    assert.equal(fs.existsSync(hotkeyPath), true, 'PreviewHotkeyManager.cs must exist');
+    const hotkeyContent = fs.readFileSync(hotkeyPath, 'utf8');
+    assert.match(hotkeyContent, /RegisterWindowHandle/i, 'Hotkey registration must wait for window handle');
+    assert.doesNotMatch(hotkeyContent, /RegisterHotKey\(IntPtr\.Zero/i, 'Must NOT attempt premature IntPtr.Zero hotkey registration in constructor');
   });
 });

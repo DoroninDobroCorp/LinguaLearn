@@ -62,11 +62,8 @@ public partial class MainWindow : Window
 
     private void SaveApiUrlButton_Click(object sender, RoutedEventArgs e)
     {
-        var url = ApiUrlTextBox.Text.Trim();
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            url = "https://145.239.82.124.sslip.io/english";
-        }
+        var url = PrivacyConsentManager.NormalizeHttpsUrl(ApiUrlTextBox.Text);
+        ApiUrlTextBox.Text = url;
         App.SettingsManager.ApiUrl = url;
         App.ApiClient.SetBaseUrl(url);
         App.SettingsManager.Save();
@@ -96,10 +93,12 @@ public partial class MainWindow : Window
         App.HotkeyManager.IsPreviewOnly = isPreview;
     }
 
-    private void RetryNowButton_Click(object sender, RoutedEventArgs e)
+    private async void RetryNowButton_Click(object sender, RoutedEventArgs e)
     {
-        int processed = App.RetryQueue.RetryAll(App.ApiClient);
+        RetryNowButton.IsEnabled = false;
+        int processed = await App.RetryQueue.RetryAllAsync(App.ApiClient);
         UpdateQueueStatus();
+        RetryNowButton.IsEnabled = true;
         MessageBox.Show($"Processed {processed} pending queue items.", "LinguaLearn Agent", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
