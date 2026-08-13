@@ -83,6 +83,8 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
 
     companion object {
         const val DEFAULT_BASE_URL = "https://145.239.82.124.sslip.io/english"
+        private const val CONNECT_TIMEOUT_MS = 10000
+        private const val READ_TIMEOUT_MS = 15000
     }
 
     fun testConnection(): Pair<Boolean, String> {
@@ -91,8 +93,8 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
             val url = URL(endpoint)
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
-            conn.connectTimeout = 8000
-            conn.readTimeout = 8000
+            conn.connectTimeout = CONNECT_TIMEOUT_MS
+            conn.readTimeout = READ_TIMEOUT_MS
             val statusCode = conn.responseCode
             val inputStream = if (statusCode in 200..299) conn.inputStream else conn.errorStream
             val responseStr = BufferedReader(InputStreamReader(inputStream, "UTF-8")).use { it.readText() }
@@ -114,6 +116,8 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json")
+            conn.connectTimeout = CONNECT_TIMEOUT_MS
+            conn.readTimeout = READ_TIMEOUT_MS
             conn.doOutput = true
             conn.doInput = true
 
@@ -145,8 +149,11 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
                     userId = userId
                 )
             } else {
-                val json = JSONObject(responseStr)
-                val errorMsg = json.optString("error", "Login failed (status $statusCode)")
+                val errorMsg = try {
+                    JSONObject(responseStr).optString("error", "Login failed (status $statusCode)")
+                } catch (e: Exception) {
+                    "Login failed (status $statusCode)"
+                }
                 AuthResult(success = false, error = errorMsg)
             }
         } catch (e: Exception) {
@@ -160,6 +167,8 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json")
+            conn.connectTimeout = CONNECT_TIMEOUT_MS
+            conn.readTimeout = READ_TIMEOUT_MS
             conn.doOutput = true
             conn.doInput = true
 
@@ -192,8 +201,11 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
                     userId = userId
                 )
             } else {
-                val json = JSONObject(responseStr)
-                val errorMsg = json.optString("error", "Signup failed (status $statusCode)")
+                val errorMsg = try {
+                    JSONObject(responseStr).optString("error", "Signup failed (status $statusCode)")
+                } catch (e: Exception) {
+                    "Signup failed (status $statusCode)"
+                }
                 AuthResult(success = false, error = errorMsg)
             }
         } catch (e: Exception) {
@@ -207,6 +219,8 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json")
+            conn.connectTimeout = CONNECT_TIMEOUT_MS
+            conn.readTimeout = READ_TIMEOUT_MS
             if (sessionToken.isNotEmpty()) {
                 conn.setRequestProperty("Cookie", "lingua_session=$sessionToken")
             }
@@ -241,8 +255,11 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
                     createdAt = createdAt
                 )
             } else {
-                val json = JSONObject(responseStr)
-                val errorMsg = json.optString("error", "Failed to create device token (status $statusCode)")
+                val errorMsg = try {
+                    JSONObject(responseStr).optString("error", "Failed to create device token (status $statusCode)")
+                } catch (e: Exception) {
+                    "Failed to create device token (status $statusCode)"
+                }
                 DeviceTokenResult(success = false, error = errorMsg)
             }
         } catch (e: Exception) {
@@ -256,6 +273,8 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json")
+            conn.connectTimeout = CONNECT_TIMEOUT_MS
+            conn.readTimeout = READ_TIMEOUT_MS
             if (sessionToken.isNotEmpty()) {
                 conn.setRequestProperty("Cookie", "lingua_session=$sessionToken")
             }
@@ -274,6 +293,8 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json")
+            conn.connectTimeout = CONNECT_TIMEOUT_MS
+            conn.readTimeout = READ_TIMEOUT_MS
             if (sessionToken.isNotEmpty()) {
                 conn.setRequestProperty("Cookie", "lingua_session=$sessionToken")
             }
@@ -309,6 +330,8 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
         conn.requestMethod = "POST"
         conn.setRequestProperty("Content-Type", "application/json")
         conn.setRequestProperty("Authorization", "Bearer $deviceToken")
+        conn.connectTimeout = CONNECT_TIMEOUT_MS
+        conn.readTimeout = READ_TIMEOUT_MS
         conn.doOutput = true
         conn.doInput = true
 
@@ -332,6 +355,36 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
         val reader = BufferedReader(InputStreamReader(inputStream, "UTF-8"))
         val responseStr = reader.readText()
         reader.close()
+
+        if (statusCode !in 200..299) {
+            val errorMsg = try {
+                val json = JSONObject(responseStr)
+                val errStr = json.optString("error", "")
+                if (errStr.isNotEmpty()) "HTTP $statusCode: $errStr" else "HTTP $statusCode"
+            } catch (e: Exception) {
+                "HTTP $statusCode"
+            }
+            return AnalysisResponse(
+                schemaVersion = 1,
+                eventId = eventId,
+                sampleId = null,
+                previewOnly = previewOnly,
+                accepted = false,
+                rejectionReason = errorMsg,
+                sourceApp = sourceApp,
+                originalText = originalText,
+                correctedText = null,
+                recommendedText = originalText,
+                assessment = null,
+                hasClearError = false,
+                changed = false,
+                summaryRu = null,
+                errors = emptyList(),
+                mechanicalCorrections = emptyList(),
+                optionalSuggestions = emptyList(),
+                topicEvidence = emptyList()
+            )
+        }
 
         val json = JSONObject(responseStr)
 

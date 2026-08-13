@@ -183,8 +183,13 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
         val ic = currentInputConnection
         val textBefore = ic?.getTextBeforeCursor(1024, 0)?.toString() ?: ""
 
-        ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-        ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+        val info = currentInputEditorInfo
+        if (info != null && info.actionId != EditorInfo.IME_ACTION_NONE && info.actionId != EditorInfo.IME_ACTION_UNSPECIFIED) {
+            ic?.performEditorAction(info.actionId)
+        } else {
+            ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+            ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+        }
 
         if (textBefore.isNotBlank()) {
             handleCandidateInput(textBefore.trim(), previewOnly = false)
@@ -373,6 +378,7 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
 
         val packageName = currentInfo?.packageName ?: "LinguaLearnIMEKeyboardService"
         val eventId = java.util.UUID.randomUUID().toString()
+        val sentAt = java.time.Instant.now().toString()
 
         val checkingState = previewController.startChecking(text)
         updateCandidateBarPreview(checkingState)
@@ -386,7 +392,7 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
                         eventId = eventId,
                         sourceApp = packageName,
                         originalText = text,
-                        sentAt = java.time.Instant.now().toString(),
+                        sentAt = sentAt,
                         previewOnly = previewOnly
                     )
                 }
@@ -394,21 +400,32 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
                 val resultState = previewController.handleAnalysisResult(response)
                 updateCandidateBarPreview(resultState)
 
-                if (!previewOnly && response.accepted) {
-                    // If offline queue was needed or if sync queue registers active items
+                if (!previewOnly && !response.accepted) {
+                    withContext(Dispatchers.IO) {
+                        syncQueue.enqueue(
+                            sourceApp = packageName,
+                            originalText = text,
+                            previewOnly = previewOnly,
+                            eventId = eventId,
+                            sentAt = sentAt
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 val errState = previewController.handleError(e.message ?: "Network error")
                 updateCandidateBarPreview(errState)
 
-                // Enqueue for offline retry preserving the exact SAME eventId so duplicate retries handle cleanly
-                withContext(Dispatchers.IO) {
-                    syncQueue.enqueue(
-                        sourceApp = packageName,
-                        originalText = text,
-                        previewOnly = previewOnly,
-                        eventId = eventId
-                    )
+                if (!previewOnly) {
+                    // Enqueue for offline retry preserving the exact SAME eventId and sentAt
+                    withContext(Dispatchers.IO) {
+                        syncQueue.enqueue(
+                            sourceApp = packageName,
+                            originalText = text,
+                            previewOnly = previewOnly,
+                            eventId = eventId,
+                            sentAt = sentAt
+                        )
+                    }
                 }
             }
         }

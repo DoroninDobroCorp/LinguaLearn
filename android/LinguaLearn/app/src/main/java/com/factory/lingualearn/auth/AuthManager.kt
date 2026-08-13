@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.factory.lingualearn.devices.EncryptedTokenStorage
 import com.factory.lingualearn.ime.net.ApiClient
+import com.factory.lingualearn.ime.queue.BackgroundSyncQueue
 
 class AuthManager(val context: Context) {
 
@@ -44,6 +45,12 @@ class AuthManager(val context: Context) {
             editor.putString(KEY_DEVICE_ID, deviceId)
         }
         editor.apply()
+
+        if (deviceToken.isNotEmpty()) {
+            val syncQueue = BackgroundSyncQueue(context)
+            syncQueue.setDeviceToken(deviceToken)
+            syncQueue.scheduleWorkManagerSync()
+        }
     }
 
     fun getSessionToken(): String? {
@@ -62,8 +69,15 @@ class AuthManager(val context: Context) {
         return prefs.getString(KEY_USER_EMAIL, null)
     }
 
-    fun logout() {
+    fun logout(): Boolean {
+        val sessionToken = getSessionToken()
+        var serverRevoked = true
+        if (!sessionToken.isNullOrEmpty()) {
+            val client = ApiClient(baseUrl = getApiBaseUrl())
+            serverRevoked = client.logout(sessionToken)
+        }
         prefs.edit().clear().apply()
+        return serverRevoked
     }
 }
 

@@ -2,11 +2,19 @@ package com.factory.lingualearn.ime.queue
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkRequest
 import com.factory.lingualearn.devices.EncryptedTokenStorage
 import com.factory.lingualearn.ime.net.ApiClient
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 data class QueueItem(
     val eventId: String,
@@ -17,14 +25,18 @@ data class QueueItem(
     val retryCount: Int = 0
 )
 
-class BackgroundSyncQueue(private val context: Context) {
+class BackgroundSyncQueue(
+    private val context: Context,
+    customPrefs: SharedPreferences? = null
+) {
 
-    private val prefs: SharedPreferences = EncryptedTokenStorage.getEncryptedSharedPreferences(context, "lingualearn_sync_queue")
+    private val prefs: SharedPreferences = customPrefs ?: EncryptedTokenStorage.getEncryptedSharedPreferences(context, "lingualearn_sync_queue")
 
     companion object {
         private const val KEY_QUEUE_ITEMS = "queue_items"
         private const val KEY_DEVICE_TOKEN = "device_token"
-        private const val MAX_RETRIES = 5
+        const val MAX_RETRIES = 5
+        const val MAX_QUEUE_SIZE = 100
     }
 
     fun setDeviceToken(deviceToken: String) {
@@ -35,12 +47,38 @@ class BackgroundSyncQueue(private val context: Context) {
         return prefs.getString(KEY_DEVICE_TOKEN, null)
     }
 
+    fun scheduleWorkManagerSync() {
+        try {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
+            val syncWorkRequest = OneTimeWorkRequestBuilder<SyncWorker>()
+                .setConstraints(constraints)
+                .setBackoffCriteria(
+                    BackoffPolicy.EXPONENTIAL,
+                    WorkRequest.MIN_BACKOFF_MILLIS,
+                    TimeUnit.MILLISECONDS
+                )
+                .build()
+
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "LinguaLearnBackgroundSync",
+                ExistingWorkPolicy.REPLACE,
+                syncWorkRequest
+            )
+        } catch (e: Throwable) {
+            // Safely ignored if WorkManager runtime is not available in JVM unit tests
+        }
+    }
+
     @Synchronized
     fun enqueue(
         sourceApp: String,
         originalText: String,
         previewOnly: Boolean = false,
-        eventId: String = UUID.randomUUID().toString()
+        eventId: String = UUID.randomUUID().toString(),
+        sentAt: String = java.time.Instant.now().toString()
     ): QueueItem {
         val currentQueue = getQueueItems().toMutableList()
 
@@ -50,16 +88,22 @@ class BackgroundSyncQueue(private val context: Context) {
             return existing
         }
 
+        // Bounded queue: drop oldest items if max queue size reached
+        while (currentQueue.size >= MAX_QUEUE_SIZE) {
+            currentQueue.removeAt(0)
+        }
+
         val item = QueueItem(
             eventId = eventId,
             sourceApp = sourceApp,
             originalText = originalText,
-            sentAt = java.time.Instant.now().toString(),
+            sentAt = sentAt,
             previewOnly = previewOnly
         )
 
         currentQueue.add(item)
         saveQueueItems(currentQueue)
+        scheduleWorkManagerSync()
         return item
     }
 
@@ -141,14 +185,25 @@ class BackgroundSyncQueue(private val context: Context) {
                         eventId = item.eventId, // Preserves exact same eventId across retries
                         sourceApp = item.sourceApp,
                         originalText = item.originalText,
-                        sentAt = item.sentAt,
+                        sentAt = item.sentAt, // Preserves exact same sentAt across retries
                         previewOnly = item.previewOnly
                     )
                     if (response.accepted) {
                         dequeue(item.eventId)
                         syncedCount++
                     } else {
-                        incrementRetry(item.eventId)
+                        val reason = response.rejectionReason ?: ""
+                        val isPermanent4xx = reason.startsWith("HTTP 400") ||
+                                reason.startsWith("HTTP 401") ||
+                                reason.startsWith("HTTP 403") ||
+                                reason.startsWith("HTTP 422")
+                        if (isPermanent4xx) {
+                            // Permanent client error -> drop to unblock queue
+                            dequeue(item.eventId)
+                        } else {
+                            // Transient error (5xx, 409, 429, etc.) -> increment retry
+                            incrementRetry(item.eventId)
+                        }
                     }
                 } catch (e: Exception) {
                     incrementRetry(item.eventId)
