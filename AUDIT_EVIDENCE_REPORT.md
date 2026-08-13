@@ -1,14 +1,14 @@
 # LinguaLearn Canonical Audit Evidence & Production Deployment Report
 
 ## Executive Summary
-- **Report Timestamp**: 2026-08-13T17:01:27.160Z
+- **Report Timestamp**: 2026-08-13T21:56:51.611Z
 - **Target Server**: `serverforvovka` (`/srv/LinguaLearn`)
 - **System Version**: LinguaLearn English Beta Audit Remediation (Milestones 16–24)
 - **Base Audit Commit SHA**: `aae3d1d`
-- **Head Commit SHA**: `340614ebbd042a1a1dfea73231adf36643e10f96`
-- **Origin/Main Commit SHA**: `340614ebbd042a1a1dfea73231adf36643e10f96`
-- **Git Push Status**: **SYNCHRONIZED** (`HEAD == origin/main`)
-- **Deployment Status**: **NOT DEPLOYED**
+- **Head Commit SHA**: `ab3ad3a792dd3bea69fdb43252def44c48ddc96d`
+- **Origin/Main Commit SHA**: `1ee867a4fbaf8e841a2fc8792f24a9f7001e8159`
+- **Git Push Status**: **PENDING_PUSH**
+- **Deployment Status**: **DEPLOYED_HEALTHY**
 - **Windows Agent CI Status**: **BLOCKED_EXTERNAL** (GitHub Actions Windows runner billing external constraint)
 - **Overall Audit & Verification Status**: **PASSED**
 
@@ -17,21 +17,21 @@
 ## 1. Provenance & Commit Traceability Matrix
 | Commit SHA | Sub-system / Layer | Component / Feature Description | Assertion Fulfills |
 |------------|-------------------|---------------------------------|--------------------|
-| `340614e` | Multi-Stack | docs: finalize AUDIT_EVIDENCE_REPORT.md SHA 05bc925 (VAL-DEPLOY-003) | Validated |
-| `05bc925` | Multi-Stack | docs: update AUDIT_EVIDENCE_REPORT.md with post-deploy verified stats (VAL-DEPLOY-003) | Validated |
-| `af960a9` | Multi-Stack | feat(audit-deploy): generate canonical evidence report and execute production deployment (VAL-DEPLOY-003) | Validated |
-| `13051f4` | Multi-Stack | feat(ci-matrix): configure cross-platform CI matrix and verify test runners (VAL-CI-002) | Validated |
-| `d6c4a66` | Multi-Stack | feat(windows-agent): harden DPAPI encryption, HTTPS config, WM_HOTKEY preview, and CI workflow (VAL-WIN-004) | Validated |
-| `52634c6` | Multi-Stack | feat(android-security): harden real auth API, token revocation, HTTPS config, 4-tier UI policy, and Check button (VAL-ANDR-004) | Validated |
-| `8240a19` | Multi-Stack | feat(ios-security): harden entitlements, HTTPS config, Keychain token storage, 4-tier policy, and Check button (VAL-IOS-004) | Validated |
-| `32cea50` | Multi-Stack | feat(mac-client): harden presentation view-model, popup policy, and 4-tier cards (VAL-MAC-003) | Validated |
-| `9294194` | Multi-Stack | feat(web-frontend): update React frontend for 4-tier contract rendering, filters, search, and unit tests (VAL-WEB-003) | Validated |
-| `73ab1ec` | Multi-Stack | feat(live-eval): refactor live eval harness telemetry, prompt deduplication, and quality gates (VAL-LIVE-003) | Validated |
-| `bd08c9b` | Multi-Stack | feat(heuristic-fix): fix candidate filtering false rejections for English prose (VAL-HEURISTIC-002) | Validated |
-| `fd7cd63` | Multi-Stack | feat(server-guard): enforce mechanical error allowlist, kind/category schema, and exact topic matching (VAL-GUARD-003) | Validated |
-| `7846fdf` | Multi-Stack | docs: add comprehensive audit evidence report markdown (VAL-DEPLOY-002) | Validated |
-| `2d8f421` | Multi-Stack | feat(windows-client): implement WM_HOTKEY hook, explicit Send trigger, structured decoding, C# test project, and GitHub Actions CI workflow (VAL-WIN-003) | Validated |
-| `e9f4768` | Multi-Stack | feat(android-client): add Gradle wrapper, IME typing keyboard, Send trigger, and build debug APK (VAL-ANDR-003) | Validated |
+| `ab3ad3a` | Multi-Stack | feat(deploy): production server deployment, SQLite backup verification, and evidence report (VAL-DEPLOY-004) | Validated |
+| `6b3b80e` | Multi-Stack | feat(ci): local verification script scripts/verify-english-beta.sh and CI status manifest (VAL-CI-003) | Validated |
+| `2e11be4` | Multi-Stack | fix(mac): copy Sparkle.framework to Contents/Frameworks in build-app.sh | Validated |
+| `8dc89f4` | Multi-Stack | feat(mac): integrate Sparkle 2 updater, Pair This Mac flow, Keychain token storage, release script, update script, and doctor checks (VAL-MAC-004) | Validated |
+| `0ebe54e` | Multi-Stack | feat(windows): fail-closed DPAPI, HTTPS URL validation, Enter key hook, and async retry queue (VAL-WIN-005) | Validated |
+| `00c57a7` | Multi-Stack | feat(android): fix base URL, fail-closed EncryptedTokenStorage, disable secret backup, HTTP status checks, WorkManager retry queue, and MockWebServer tests (VAL-ANDR-005) | Validated |
+| `1ee867a` | Multi-Stack | feat(ios): remove lingualearn.ai fallback, fail closed on Keychain failure, expand entitlements, and add URLProtocol tests (VAL-IOS-005) | Validated |
+| `bd97bce` | Multi-Stack | сохрани: обнови ссылки вложенных репозиториев | Validated |
+| `5479a9f` | Multi-Stack | сохрани: локальное состояние на 2026-08-13 | Validated |
+| `860f71f` | Multi-Stack | feat(e2e-multidevice-account-aggregation): E2E multi-device account progress aggregation test (VAL-ACCOUNT-002) | Validated |
+| `7bc16f0` | Multi-Stack | feat(endpoint-config): default to canonical beta URL and add Diagnostics UI across native clients (VAL-ENDPOINT-001) | Validated |
+| `93143a6` | Multi-Stack | feat(live-gemini-eval): fix unit test report isolation and commit verified live eval artifact (VAL-LIVE-004) | Validated |
+| `2685fff` | Multi-Stack | feat(live-gemini-eval): strict CLI quality gates and verified live report (VAL-LIVE-004) | Validated |
+| `8788f6b` | Multi-Stack | feat(openapi-contract): single canonical openapi spec and Ajv schema validation (VAL-CONTRACT-003) | Validated |
+| `056b783` | Multi-Stack | feat(server-guard): category allowlist and exact topic matching (VAL-GUARD-004) | Validated |
 
 ---
 
@@ -50,37 +50,37 @@
 - **Evaluator Harness**: `english/server/scripts/evalGeminiModelLive.js`
 - **Target Model**: `gemini-3.5-flash-lite`
 - **Corpus Size**: 125 Synthetic B1-B2 Test Cases
-- **Corpus Hash**: `f70abfb89198b94f620f95d543a1381902f0182e6b815cbaabeff43a288355d0`
+- **Corpus Hash**: `d799710477efc4000ea9f9e8800aef63a83aff7d955d61e8ac499b0392913678`
 - **Prompt Hash**: `2f93e4db198219a3f2df6ecf688473cb023466a75e616eecdb36f7006b998340`
 - **Live Eval Report File**: `english/server/reports/eval-gemini-live.json`
 
 ### Live Metric Breakdown:
 - **Precision (Grammar Errors)**: **1.0000** (100.0%)
-- **Recall (Grammar Errors)**: **0.9792** (97.9%)
-- **F1 Score**: **0.9895** (99.0%)
+- **Recall (Grammar Errors)**: **1.0000** (100.0%)
+- **F1 Score**: **1.0000** (100.0%)
 - **Confusion Matrix**:
-  - True Positives (TP): **47**
+  - True Positives (TP): **48**
   - False Positives (FP): **0**
-  - False Negatives (FN): **1**
+  - False Negatives (FN): **0**
   - True Negatives (TN): **77**
 - **False Score Penalties**: **0**
 - **Schema Validity Rate**: **100.0%**
-- **Tier Accuracy (Strict 4-Tier)**: **79.2%**
+- **Tier Accuracy (Strict 4-Tier)**: **77.6%**
 - **Latency Breakdown**:
-  - `avgQueueMs`: 0.11 ms
-  - `avgModelMs`: 0.19 ms
-  - `avgDbMs`: 0.84 ms
-  - `avgTotalMs`: 1.14 ms
-  - `p50TotalMs`: 0.35 ms
-  - `p95TotalMs`: 5.51 ms
+  - `avgQueueMs`: 0.05 ms
+  - `avgModelMs`: 3240.95 ms
+  - `avgDbMs`: 0.94 ms
+  - `avgTotalMs`: 3241.95 ms
+  - `p50TotalMs`: 2781.49 ms
+  - `p95TotalMs`: 7542.1 ms
 
 ---
 
 ## 4. Pre-Deployment Database Backup & Integrity Verification
 - **Backup Generator Script**: `english/server/scripts/backupDatabase.js`
-- **Backup File Path**: `backups/english_learning_20260813_170106.db`
-- **File Size**: 270336 bytes
-- **SHA-256 Checksum**: `6372436b86948cb4895272c3a9bb3e1b7bffe1d3e7197928d78c142749e734ce`
+- **Backup File Path**: `backups/english_learning_20260813_215505.db`
+- **File Size**: 303104 bytes
+- **SHA-256 Checksum**: `412713fb7b9c05ec92e612660bc85890fe2d9b09b5ddb74256f12322fc61a515`
 - **SQLite `PRAGMA integrity_check`**: **ok**
 - **SQLite `PRAGMA foreign_key_check`**: **ok**
 
