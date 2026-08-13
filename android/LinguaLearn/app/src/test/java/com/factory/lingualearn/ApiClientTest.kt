@@ -15,7 +15,9 @@ class ApiClientTest {
             correction = "doesn't",
             explanationRu = "Используйте doesn't для третьего лица единственного числа.",
             topic = "Past Simple (irregular verbs)",
-            confidence = 0.95
+            confidence = 0.95,
+            kind = "grammar",
+            category = "subject_verb_agreement"
         )
 
         val evidence = TopicEvidence(
@@ -35,6 +37,9 @@ class ApiClientTest {
             sourceApp = "com.slack",
             originalText = "She don't know the answer.",
             correctedText = "She doesn't know the answer.",
+            recommendedText = "She doesn't know the answer.",
+            assessment = "clear_error",
+            hasClearError = true,
             changed = true,
             summaryRu = "Ошибка в согласовании подлежащего и глагола.",
             errors = listOf(error),
@@ -46,8 +51,40 @@ class ApiClientTest {
         assertEquals(42, response.sampleId)
         assertTrue(response.accepted)
         assertTrue(response.changed)
+        assertTrue(response.hasClearError)
+        assertEquals("clear_error", response.assessment)
+        assertEquals("She doesn't know the answer.", response.recommendedText)
         assertEquals("She doesn't know the answer.", response.correctedText)
         assertEquals(1, response.errors.size)
+        assertEquals("grammar", response.errors[0].kind)
+        assertEquals("subject_verb_agreement", response.errors[0].category)
         assertEquals(1, response.topicEvidence.size)
+    }
+
+    @Test
+    fun testAnalysisResponseNoClearError() {
+        val response = AnalysisResponse(
+            schemaVersion = 1,
+            eventId = "evt-test-android-002",
+            sampleId = 43,
+            previewOnly = false,
+            accepted = true,
+            rejectionReason = null,
+            sourceApp = "com.telegram.messenger",
+            originalText = "She does not know the answer.",
+            correctedText = "She does not know the answer.",
+            recommendedText = "She does not know the answer.",
+            assessment = "correct",
+            hasClearError = false,
+            changed = false,
+            summaryRu = null,
+            errors = emptyList(),
+            topicEvidence = emptyList()
+        )
+
+        assertFalse(response.hasClearError)
+        assertFalse(response.changed)
+        assertEquals("correct", response.assessment)
+        assertTrue(response.errors.isEmpty())
     }
 }

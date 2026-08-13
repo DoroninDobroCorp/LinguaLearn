@@ -19,7 +19,7 @@ import com.factory.lingualearn.today.TodayPracticeScreen
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate()
+        super.onCreate(savedInstanceState)
         val authManager = AuthManager(applicationContext)
 
         setContent {

@@ -18,6 +18,9 @@ data class AnalysisResponse(
     val sourceApp: String,
     val originalText: String,
     val correctedText: String?,
+    val recommendedText: String? = null,
+    val assessment: String? = null,
+    val hasClearError: Boolean = false,
     val changed: Boolean,
     val summaryRu: String?,
     val errors: List<AnalysisError>,
@@ -29,7 +32,9 @@ data class AnalysisError(
     val correction: String,
     val explanationRu: String,
     val topic: String,
-    val confidence: Double
+    val confidence: Double,
+    val kind: String? = null,
+    val category: String? = null
 )
 
 data class TopicEvidence(
@@ -91,7 +96,9 @@ class ApiClient(private val baseUrl: String = "http://127.0.0.1:3001") {
                         correction = errObj.optString("correction", ""),
                         explanationRu = errObj.optString("explanationRu", ""),
                         topic = errObj.optString("topic", ""),
-                        confidence = errObj.optDouble("confidence", 1.0)
+                        confidence = errObj.optDouble("confidence", 1.0),
+                        kind = if (errObj.has("kind") && !errObj.isNull("kind")) errObj.getString("kind") else null,
+                        category = if (errObj.has("category") && !errObj.isNull("category")) errObj.getString("category") else null
                     )
                 )
             }
@@ -123,6 +130,9 @@ class ApiClient(private val baseUrl: String = "http://127.0.0.1:3001") {
             sourceApp = json.optString("sourceApp", sourceApp),
             originalText = json.optString("originalText", originalText),
             correctedText = if (json.has("correctedText") && !json.isNull("correctedText")) json.getString("correctedText") else null,
+            recommendedText = if (json.has("recommendedText") && !json.isNull("recommendedText")) json.getString("recommendedText") else null,
+            assessment = if (json.has("assessment") && !json.isNull("assessment")) json.getString("assessment") else null,
+            hasClearError = json.optBoolean("hasClearError", false),
             changed = json.optBoolean("changed", false),
             summaryRu = if (json.has("summaryRu") && !json.isNull("summaryRu")) json.getString("summaryRu") else null,
             errors = errorsList,

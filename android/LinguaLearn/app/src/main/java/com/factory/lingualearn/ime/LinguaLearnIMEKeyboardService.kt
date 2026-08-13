@@ -1,6 +1,7 @@
 package com.factory.lingualearn.ime
 
 import android.inputmethodservice.InputMethodService
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -50,6 +51,122 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
         authManager = AuthManager(applicationContext)
         privacyManager = PrivacyConsentManager(applicationContext)
         previewController = PreviewPopupController()
+    }
+
+    override fun onCreateInputView(): View {
+        val context = applicationContext
+        val keyboardLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(8, 8, 8, 8)
+            setBackgroundColor(0xFF2D3748.toInt()) // Dark theme keyboard background
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val rows = listOf(
+            listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p"),
+            listOf("a", "s", "d", "f", "g", "h", "j", "k", "l"),
+            listOf("z", "x", "c", "v", "b", "n", "m", ",", ".")
+        )
+
+        for (rowKeys in rows) {
+            val rowLayout = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = 4; bottomMargin = 4 }
+            }
+            for (key in rowKeys) {
+                val btn = Button(context).apply {
+                    text = key
+                    textSize = 14f
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                        leftMargin = 2
+                        rightMargin = 2
+                    }
+                    setOnClickListener {
+                        onKeyTyped(key)
+                    }
+                }
+                rowLayout.addView(btn)
+            }
+            keyboardLayout.addView(rowLayout)
+        }
+
+        // Bottom row: Space, Backspace, Send / Enter
+        val bottomRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 4; bottomMargin = 4 }
+        }
+
+        val spaceBtn = Button(context).apply {
+            text = "SPACE"
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f).apply {
+                leftMargin = 2
+                rightMargin = 2
+            }
+            setOnClickListener {
+                onKeyTyped(" ")
+            }
+        }
+
+        val backspaceBtn = Button(context).apply {
+            text = "⌫"
+            textSize = 14f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                leftMargin = 2
+                rightMargin = 2
+            }
+            setOnClickListener {
+                onBackspaceTyped()
+            }
+        }
+
+        val sendBtn = Button(context).apply {
+            text = "SEND / ↵"
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.5f).apply {
+                leftMargin = 2
+                rightMargin = 2
+            }
+            setOnClickListener {
+                onSendOrEnterPressed()
+            }
+        }
+
+        bottomRow.addView(spaceBtn)
+        bottomRow.addView(backspaceBtn)
+        bottomRow.addView(sendBtn)
+        keyboardLayout.addView(bottomRow)
+
+        return keyboardLayout
+    }
+
+    fun onKeyTyped(char: String) {
+        currentInputConnection?.commitText(char, 1)
+    }
+
+    fun onBackspaceTyped() {
+        currentInputConnection?.deleteSurroundingText(1, 0)
+    }
+
+    fun onSendOrEnterPressed() {
+        val ic = currentInputConnection
+        val textBefore = ic?.getTextBeforeCursor(1024, 0)?.toString() ?: ""
+        
+        ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+        ic?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+
+        if (textBefore.isNotBlank()) {
+            handleCandidateInput(textBefore.trim(), previewOnly = false)
+        }
     }
 
     override fun onCreateCandidatesView(): View {
