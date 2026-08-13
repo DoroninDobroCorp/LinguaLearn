@@ -1,7 +1,8 @@
-import { describe, it } from 'node:test';
+import { describe, it, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
@@ -16,7 +17,16 @@ import { buildWritingSystemInstruction } from '../server/writingAnalysis.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Configure REPORT_DIR to a temporary directory so unit test mock runs do NOT overwrite server/reports/eval-gemini-live.json
+const tmpReportDir = fs.mkdtempSync(path.join(os.tmpdir(), 'eval-gemini-live-test-'));
+process.env.REPORT_DIR = tmpReportDir;
+
 describe('Live Gemini Model Evaluation Harness (VAL-LIVE-002 & VAL-LIVE-003)', () => {
+  after(() => {
+    if (fs.existsSync(tmpReportDir)) {
+      fs.rmSync(tmpReportDir, { recursive: true, force: true });
+    }
+  });
   it('has 120+ synthetic B1-B2 test cases covering typos, style, errors, prompt injection, and cyrillic', () => {
     assert.ok(Array.isArray(LIVE_BENCHMARK_SAMPLES), 'LIVE_BENCHMARK_SAMPLES must be an array');
     assert.ok(
@@ -122,9 +132,8 @@ describe('Live Gemini Model Evaluation Harness (VAL-LIVE-002 & VAL-LIVE-003)', (
     assert.ok(typeof lat.avgDbMs === 'number', 'avgDbMs must be a number');
     assert.ok(typeof lat.avgQueueMs === 'number', 'avgQueueMs must be a number');
 
-    // Verify report file was written to server/reports/eval-gemini-live.json
-    const baseServerDir = path.resolve(__dirname, '../server');
-    const reportPath = path.join(baseServerDir, 'reports', 'eval-gemini-live.json');
+    // Verify report file was written to temporary REPORT_DIR instead of server/reports/eval-gemini-live.json
+    const reportPath = path.join(tmpReportDir, 'eval-gemini-live.json');
     assert.ok(fs.existsSync(reportPath), `Report file must exist at ${reportPath}`);
 
     const fileContent = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
@@ -138,11 +147,12 @@ describe('Live Gemini Model Evaluation Harness (VAL-LIVE-002 & VAL-LIVE-003)', (
     assert.equal(fileContent.corpusHash, report.corpusHash);
   });
 
-  it('CLI script execution exits with code 0 on passing mock evaluation', () => {
+  it('CLI script execution exits with code 0 on passing mock evaluation writing to REPORT_DIR', () => {
     const scriptPath = path.resolve(__dirname, '../server/scripts/evalGeminiModelLive.js');
     const result = spawnSync('node', [scriptPath, '--mock'], {
       encoding: 'utf8',
       cwd: path.resolve(__dirname, '..'),
+      env: { ...process.env, REPORT_DIR: tmpReportDir },
     });
 
     assert.equal(result.status, 0, `CLI should exit with code 0, stderr: ${result.stderr}`);

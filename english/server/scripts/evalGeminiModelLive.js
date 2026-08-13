@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -12,6 +12,17 @@ import {
 } from '../writingAnalysis.js';
 import { getDb, initAuthTables } from '../db.js';
 import { migrateMultiUserSchema } from '../dbMigration.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config();
+if (!process.env.GEMINI_API_KEY) {
+  const rootEnvPath = path.resolve(__dirname, '../../../.env');
+  if (fs.existsSync(rootEnvPath)) {
+    dotenv.config({ path: rootEnvPath });
+  }
+}
 
 export const PROMPT_VERSION = 'v1';
 
@@ -54,7 +65,7 @@ export const LIVE_BENCHMARK_SAMPLES = [
   { id: 'live-34', text: 'If I knew his address, I would have sent a card.', sourceApp: 'Slack', expectedCategory: 'grammar_error', expectedAssessment: 'clear_error', expectedAccepted: true, expectedChanged: true, expectedTopic: 'Third Conditional (if + would have)' },
   { id: 'live-35', text: 'She works as a manager for three years.', sourceApp: 'Telegram', expectedCategory: 'grammar_error', expectedAssessment: 'clear_error', expectedAccepted: true, expectedChanged: true, expectedTopic: 'Present Perfect Continuous' },
   { id: 'live-36', text: 'We discussed about the issue during the morning meeting.', sourceApp: 'Slack', expectedCategory: 'grammar_error', expectedAssessment: 'clear_error', expectedAccepted: true, expectedChanged: true, expectedTopic: 'Prepositions of place (in/on/at)' },
-  { id: 'live-37', text: 'He was so tired that he could not focus on his study.', sourceApp: 'WhatsApp', expectedCategory: 'grammar_error', expectedAssessment: 'clear_error', expectedAccepted: true, expectedChanged: true, expectedTopic: 'Gerund vs Infinitive' },
+  { id: 'live-37', text: 'She enjoys to read books in her free time.', sourceApp: 'WhatsApp', expectedCategory: 'grammar_error', expectedAssessment: 'clear_error', expectedAccepted: true, expectedChanged: true, expectedTopic: 'Gerund vs Infinitive' },
   { id: 'live-38', text: "I didn't saw him at the conference last week.", sourceApp: 'Email', expectedCategory: 'grammar_error', expectedAssessment: 'clear_error', expectedAccepted: true, expectedChanged: true, expectedTopic: 'Past Simple (negative & questions)' },
   { id: 'live-39', text: "She doesn't has any money left in her account.", sourceApp: 'Slack', expectedCategory: 'grammar_error', expectedAssessment: 'clear_error', expectedAccepted: true, expectedChanged: true, expectedTopic: 'Present Simple (negative & questions)' },
   { id: 'live-40', text: 'He is living in London since 2018.', sourceApp: 'Telegram', expectedCategory: 'grammar_error', expectedAssessment: 'clear_error', expectedAccepted: true, expectedChanged: true, expectedTopic: 'Present Perfect Continuous' },
@@ -86,7 +97,7 @@ export const LIVE_BENCHMARK_SAMPLES = [
   { id: 'live-64', text: 'I will call you tommorow morning.', sourceApp: 'WhatsApp', expectedCategory: 'mechanical_only', expectedAssessment: 'mechanical_only', expectedAccepted: true, expectedChanged: true },
   { id: 'live-65', text: 'we should verify the database connection..', sourceApp: 'Slack', expectedCategory: 'mechanical_only', expectedAssessment: 'mechanical_only', expectedAccepted: true, expectedChanged: true },
   { id: 'live-66', text: 'cant wait to see the new dashboard features.', sourceApp: 'Telegram', expectedCategory: 'mechanical_only', expectedAssessment: 'mechanical_only', expectedAccepted: true, expectedChanged: true },
-  { id: 'live-67', text: 'user hasnt responded to the inquiry yet.', sourceApp: 'Email', expectedCategory: 'mechanical_only', expectedAssessment: 'mechanical_only', expectedAccepted: true, expectedChanged: true },
+  { id: 'live-67', text: 'The user hasnt responded to the inquiry yet.', sourceApp: 'Email', expectedCategory: 'mechanical_only', expectedAssessment: 'mechanical_only', expectedAccepted: true, expectedChanged: true },
   { id: 'live-68', text: 'couldnt find the requested documentation.', sourceApp: 'WhatsApp', expectedCategory: 'mechanical_only', expectedAssessment: 'mechanical_only', expectedAccepted: true, expectedChanged: true },
   { id: 'live-69', text: 'they visit english lessons twice a week.', sourceApp: 'Slack', expectedCategory: 'mechanical_only', expectedAssessment: 'mechanical_only', expectedAccepted: true, expectedChanged: true },
   { id: 'live-70', text: 'i have been working on this feature all day.', sourceApp: 'Telegram', expectedCategory: 'mechanical_only', expectedAssessment: 'mechanical_only', expectedAccepted: true, expectedChanged: true },
@@ -429,7 +440,7 @@ export function createSyntheticMockAnalyzer() {
       };
     }
 
-    if (lower.includes('forward to hear') || lower.includes('used to get up') || lower.includes('spent two hours to write') || lower.includes('thinking about to change') || lower.includes('focus on his study')) {
+    if (lower.includes('forward to hear') || lower.includes('used to get up') || lower.includes('spent two hours to write') || lower.includes('thinking about to change') || lower.includes('enjoys to read') || lower.includes('focus on his study')) {
       return {
         isEnglish: true,
         assessment: 'clear_error',
@@ -623,7 +634,7 @@ function extractRetryDelayMs(errorMessage) {
 
 export async function runLiveGeminiModelEval(options = {}) {
   const { db, ownerId: userId } = initLiveEvalDatabase();
-  const apiKey = options.apiKey || process.env.GEMINI_API_KEY;
+  const apiKey = options.apiKey !== undefined ? options.apiKey : process.env.GEMINI_API_KEY;
   const modelName = options.modelName || process.env.GEMINI_WRITING_MODEL || 'gemini-3.1-flash-lite';
   const isMock = options.mode === 'mock' || options.mock || process.argv.includes('--mock');
   const samples = options.samples || LIVE_BENCHMARK_SAMPLES;
@@ -665,7 +676,7 @@ export async function runLiveGeminiModelEval(options = {}) {
   const liveService = createWritingAnalysisService({
     db,
     analyzer: instrumentedAnalyzer,
-    analysisTimeoutMs: 20_000,
+    analysisTimeoutMs: 60_000,
     logger: { info: () => {}, warn: () => {}, error: () => {} },
   });
 
@@ -674,6 +685,7 @@ export async function runLiveGeminiModelEval(options = {}) {
 
   for (let index = 0; index < samples.length; index++) {
     const sample = samples[index];
+    const sampleStartTime = Date.now();
     let retries = 0;
     const maxRetries = mode === 'live' ? 3 : 0;
     let analyzeResult = null;
@@ -710,7 +722,8 @@ export async function runLiveGeminiModelEval(options = {}) {
           retries++;
           modelRetryCount++;
           if (retries <= maxRetries) {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            console.log(`[API Retry] Sample ${index + 1}/${samples.length} error: ${err.message}, retrying (${retries}/${maxRetries})...`);
+            await new Promise((resolve) => setTimeout(resolve, 3000));
           } else {
             // Fail-closed on API error in live mode!
             throw new Error(`Fail-closed: Gemini API error on sample ${sample.id} (${sample.text}): ${err.message}`);
@@ -767,7 +780,11 @@ export async function runLiveGeminiModelEval(options = {}) {
 
     // Rate pacing between live calls to remain within 15 RPM limits when running in live mode
     if (mode === 'live' && index < samples.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, 4100));
+      const elapsedMs = Date.now() - sampleStartTime;
+      const minIntervalMs = 4100;
+      if (elapsedMs < minIntervalMs) {
+        await new Promise((resolve) => setTimeout(resolve, minIntervalMs - elapsedMs));
+      }
     }
   }
 
@@ -910,7 +927,7 @@ export async function runLiveGeminiModelEval(options = {}) {
 
   // Save report to server/reports/eval-gemini-live.json
   const baseServerDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  const reportDir = process.env.REPORT_DIR || path.join(baseServerDir, 'reports');
+  const reportDir = options.reportDir || process.env.REPORT_DIR || path.join(baseServerDir, 'reports');
   if (!fs.existsSync(reportDir)) {
     fs.mkdirSync(reportDir, { recursive: true });
   }
@@ -921,7 +938,6 @@ export async function runLiveGeminiModelEval(options = {}) {
   return report;
 }
 
-const __filename = fileURLToPath(import.meta.url);
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename)) {
   const isMock = process.argv.includes('--mock');
   runLiveGeminiModelEval({ mode: isMock ? 'mock' : 'live' })
@@ -951,7 +967,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename
       console.log(`Corpus Hash:                ${report.corpusHash}`);
       console.log(`Avg Total Latency:          ${report.metrics.latencyBreakdown.avgTotalMs} ms (Model: ${report.metrics.latencyBreakdown.avgModelMs} ms)`);
       console.log(`p50 / p95 Latency:          ${report.metrics.latencyBreakdown.p50TotalMs} ms / ${report.metrics.latencyBreakdown.p95TotalMs} ms`);
-      console.log(`Report written to:          server/reports/eval-gemini-live.json`);
+      const targetDir = process.env.REPORT_DIR || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../reports');
+      console.log(`Report written to:          ${path.join(targetDir, 'eval-gemini-live.json')}`);
 
       // CLI Quality Gates check
       let failed = false;
