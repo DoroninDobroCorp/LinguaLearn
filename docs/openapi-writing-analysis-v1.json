@@ -278,7 +278,9 @@
         "required": [
           "original",
           "correction",
-          "explanationRu"
+          "explanationRu",
+          "kind",
+          "category"
         ],
         "properties": {
           "original": {
@@ -296,6 +298,40 @@
           },
           "confidence": {
             "type": "number"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "grammar_error"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "verb_tense",
+              "verb_form",
+              "subject_verb_agreement",
+              "articles",
+              "prepositions",
+              "word_order",
+              "pronouns",
+              "modals",
+              "modal_verbs",
+              "conditionals",
+              "passive_voice",
+              "comparatives",
+              "superlatives",
+              "comparatives_superlatives",
+              "reported_speech",
+              "gerund_infinitive",
+              "quantifiers",
+              "countable_uncountable_nouns",
+              "noun_plural",
+              "relative_clauses",
+              "linking_words",
+              "conjunctions",
+              "grammar"
+            ]
           }
         }
       },

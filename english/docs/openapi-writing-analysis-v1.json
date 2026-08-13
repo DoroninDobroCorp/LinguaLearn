@@ -248,7 +248,9 @@
           "original",
           "correction",
           "explanationRu",
-          "topic"
+          "topic",
+          "kind",
+          "category"
         ],
         "properties": {
           "original": {
@@ -273,13 +275,41 @@
           },
           "kind": {
             "type": "string",
+            "enum": [
+              "grammar_error"
+            ],
             "example": "grammar_error",
-            "description": "Error category tag (grammar_error, mechanical, style)"
+            "description": "Error category tag (must be grammar_error)"
           },
           "category": {
             "type": "string",
+            "enum": [
+              "verb_tense",
+              "verb_form",
+              "subject_verb_agreement",
+              "articles",
+              "prepositions",
+              "word_order",
+              "pronouns",
+              "modals",
+              "modal_verbs",
+              "conditionals",
+              "passive_voice",
+              "comparatives",
+              "superlatives",
+              "comparatives_superlatives",
+              "reported_speech",
+              "gerund_infinitive",
+              "quantifiers",
+              "countable_uncountable_nouns",
+              "noun_plural",
+              "relative_clauses",
+              "linking_words",
+              "conjunctions",
+              "grammar"
+            ],
             "example": "verb_tense",
-            "description": "Detailed error classification category tag"
+            "description": "Detailed error classification category tag from objective grammar allowlist"
           }
         }
       },

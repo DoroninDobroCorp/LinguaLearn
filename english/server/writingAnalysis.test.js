@@ -155,7 +155,7 @@ test('server-side candidate filter accepts prose and rejects words, URLs, Cyrill
   assert.equal(filterWritingCandidate('good morning friend').reason, 'no_sentence_terminator');
   assert.equal(filterWritingCandidate('openai.com is useful.').reason, 'url_or_email');
   assert.equal(filterWritingCandidate('Это not English.').reason, 'contains_cyrillic');
-  assert.equal(filterWritingCandidate('const answer = true;').reason, 'no_sentence_terminator');
+  assert.equal(filterWritingCandidate('const answer = true;').reason, 'code_signal');
 });
 
 test('payload validation normalizes timestamps and enforces stable event IDs', () => {

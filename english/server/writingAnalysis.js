@@ -22,6 +22,32 @@ const VERSION_ONLY_PATTERN = /^\s*(?:v(?:ersion)?\s*)?\d+(?:\.\d+){1,}\s*[.!?]?\
 const PATH_OR_COMMAND_PATTERN = /^\s*(?:[A-Za-z]:[\\/]|\.{0,2}\/|\/\w|(?:git|npm|pnpm|yarn|cd|ls|rm|cp|mv|curl|ssh)\s+)/i;
 const CODE_SIGNAL_PATTERN = /(?:```|=>|===|!==|==|!=|->|::|\+\+|--|\+=|-=|\*=|\/=|\b(?:const|let|var)\s+[A-Za-z_$][A-Za-z0-9_$]*\s*[:=]|\bfunction\s*(?:[A-Za-z_$][A-Za-z0-9_$]*)?\s*\(|\bclass\s+[A-Za-z_$][A-Za-z0-9_$]*\s*(?:extends\b|\{)|\bimport\s+(?:\{|(?:\*\s+as\s+)[A-Za-z_$]|['"])|import\s+.*?\s+from\s+['"]|\b(?:SELECT\s+.*?\s+FROM|INSERT\s+INTO|UPDATE\s+.*?\s+SET|DELETE\s+FROM)\b|[{};]\s*$)/i;
 
+export const OBJECTIVE_GRAMMAR_CATEGORIES = Object.freeze(new Set([
+  'verb_tense',
+  'verb_form',
+  'subject_verb_agreement',
+  'articles',
+  'prepositions',
+  'word_order',
+  'pronouns',
+  'modals',
+  'modal_verbs',
+  'conditionals',
+  'passive_voice',
+  'comparatives',
+  'superlatives',
+  'comparatives_superlatives',
+  'reported_speech',
+  'gerund_infinitive',
+  'quantifiers',
+  'countable_uncountable_nouns',
+  'noun_plural',
+  'relative_clauses',
+  'linking_words',
+  'conjunctions',
+  'grammar',
+]));
+
 const ANALYSIS_SCHEMA = Object.freeze({
   type: 'object',
   properties: {
@@ -43,8 +69,11 @@ const ANALYSIS_SCHEMA = Object.freeze({
           explanationRu: { type: 'string' },
           topic: { type: 'string', nullable: true },
           confidence: { type: 'number' },
-          kind: { type: 'string' },
-          category: { type: 'string' },
+          kind: { type: 'string', enum: ['grammar_error'] },
+          category: {
+            type: 'string',
+            enum: Array.from(OBJECTIVE_GRAMMAR_CATEGORIES),
+          },
         },
         required: ['original', 'correction', 'explanationRu', 'topic', 'confidence', 'kind', 'category'],
       },
@@ -355,33 +384,6 @@ export function validateAnalyzerResult(response) {
   };
 }
 
-const PROHIBITED_KINDS = new Set([
-  'mechanical',
-  'spelling',
-  'typo',
-  'capitalization',
-  'punctuation',
-  'style',
-  'tone',
-  'optional_wording',
-  'naturalness',
-  'formatting',
-]);
-
-const PROHIBITED_CATEGORIES = new Set([
-  'mechanical',
-  'spelling',
-  'typo',
-  'capitalization',
-  'punctuation',
-  'style',
-  'tone',
-  'optional_wording',
-  'naturalness',
-  'formatting',
-  'wording',
-]);
-
 export function hasMatchingObjectiveError(evidence, errors) {
   if (!evidence || !evidence.topic || typeof evidence.topic !== 'string' || !evidence.topic.trim()) {
     return false;
@@ -402,11 +404,11 @@ export function hasMatchingObjectiveError(evidence, errors) {
 
     if (!kind || !category) return false;
 
-    if (PROHIBITED_KINDS.has(kind) || PROHIBITED_CATEGORIES.has(category)) {
+    if (kind !== 'grammar_error') {
       return false;
     }
 
-    if (kind !== 'grammar_error' && kind !== 'grammar') {
+    if (!OBJECTIVE_GRAMMAR_CATEGORIES.has(category)) {
       return false;
     }
 
@@ -437,7 +439,7 @@ function findCanonicalTopic(topics, rawName) {
   const target = rawName.trim().toLowerCase();
   for (const topic of topics) {
     const name = topic.name.trim().toLowerCase();
-    if (name === target || target.includes(name) || name.includes(target)) {
+    if (name === target) {
       return topic;
     }
   }
@@ -480,8 +482,9 @@ function normalizeCanonicalEvidence(db, analysis) {
       if (!orig || !corr || orig === corr) return false;
       const kind = typeof err.kind === 'string' ? err.kind.trim().toLowerCase() : '';
       const category = typeof err.category === 'string' ? err.category.trim().toLowerCase() : '';
-      if (!kind || !category || PROHIBITED_KINDS.has(kind) || PROHIBITED_CATEGORIES.has(category)) return false;
-      if (kind !== 'grammar_error' && kind !== 'grammar') return false;
+      if (!kind || !category) return false;
+      if (kind !== 'grammar_error') return false;
+      if (!OBJECTIVE_GRAMMAR_CATEGORIES.has(category)) return false;
       return true;
     });
 
