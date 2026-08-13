@@ -404,7 +404,7 @@ function normalizeCanonicalEvidence(db, analysis) {
   const normalizedErrors = errors.map((error) => {
     if (!error.topic) return error;
     const topic = findCanonicalTopic(canonicalTopics, error.topic);
-    return { ...error, topic: topic ? topic.name : error.topic };
+    return { ...error, topic: topic ? topic.name : null };
   });
 
   // Sanitization / Contradiction Guard
