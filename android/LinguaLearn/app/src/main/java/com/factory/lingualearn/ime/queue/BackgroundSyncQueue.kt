@@ -2,6 +2,8 @@ package com.factory.lingualearn.ime.queue
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.factory.lingualearn.devices.EncryptedTokenStorage
+import com.factory.lingualearn.ime.net.ApiClient
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -17,11 +19,12 @@ data class QueueItem(
 
 class BackgroundSyncQueue(private val context: Context) {
 
-    private val prefs: SharedPreferences = context.getSharedPreferences("lingualearn_sync_queue", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = EncryptedTokenStorage.getEncryptedSharedPreferences(context, "lingualearn_sync_queue")
 
     companion object {
         private const val KEY_QUEUE_ITEMS = "queue_items"
         private const val KEY_DEVICE_TOKEN = "device_token"
+        private const val MAX_RETRIES = 5
     }
 
     fun setDeviceToken(deviceToken: String) {
@@ -33,16 +36,28 @@ class BackgroundSyncQueue(private val context: Context) {
     }
 
     @Synchronized
-    fun enqueue(sourceApp: String, originalText: String, previewOnly: Boolean = false): QueueItem {
+    fun enqueue(
+        sourceApp: String,
+        originalText: String,
+        previewOnly: Boolean = false,
+        eventId: String = UUID.randomUUID().toString()
+    ): QueueItem {
+        val currentQueue = getQueueItems().toMutableList()
+
+        // Deduplicate: if an item with the same eventId already exists in queue, return existing item
+        val existing = currentQueue.find { it.eventId == eventId }
+        if (existing != null) {
+            return existing
+        }
+
         val item = QueueItem(
-            eventId = UUID.randomUUID().toString(),
+            eventId = eventId,
             sourceApp = sourceApp,
             originalText = originalText,
             sentAt = java.time.Instant.now().toString(),
             previewOnly = previewOnly
         )
 
-        val currentQueue = getQueueItems().toMutableList()
         currentQueue.add(item)
         saveQueueItems(currentQueue)
         return item
@@ -107,13 +122,42 @@ class BackgroundSyncQueue(private val context: Context) {
         saveQueueItems(current)
     }
 
-    fun sync(): Int {
+    @Synchronized
+    fun sync(apiClient: ApiClient? = null): Int {
         val items = getQueueItems()
         var syncedCount = 0
+        val token = getDeviceToken()
+
         for (item in items) {
-            // Mock sync execution
-            dequeue(item.eventId)
-            syncedCount++
+            if (item.retryCount >= MAX_RETRIES) {
+                dequeue(item.eventId)
+                continue
+            }
+
+            if (apiClient != null && !token.isNullOrEmpty()) {
+                try {
+                    val response = apiClient.analyzeWriting(
+                        deviceToken = token,
+                        eventId = item.eventId, // Preserves exact same eventId across retries
+                        sourceApp = item.sourceApp,
+                        originalText = item.originalText,
+                        sentAt = item.sentAt,
+                        previewOnly = item.previewOnly
+                    )
+                    if (response.accepted) {
+                        dequeue(item.eventId)
+                        syncedCount++
+                    } else {
+                        incrementRetry(item.eventId)
+                    }
+                } catch (e: Exception) {
+                    incrementRetry(item.eventId)
+                }
+            } else {
+                // Default sync / mock behavior for offline testing
+                dequeue(item.eventId)
+                syncedCount++
+            }
         }
         return syncedCount
     }

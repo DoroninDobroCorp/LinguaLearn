@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -32,6 +33,81 @@ public class AnalysisPayload
     public bool PreviewOnly { get; set; } = false;
 }
 
+public class AnalysisErrorItem
+{
+    [JsonPropertyName("original")]
+    public string Original { get; set; } = string.Empty;
+
+    [JsonPropertyName("correction")]
+    public string Correction { get; set; } = string.Empty;
+
+    [JsonPropertyName("explanationRu")]
+    public string ExplanationRu { get; set; } = string.Empty;
+
+    [JsonPropertyName("topic")]
+    public string Topic { get; set; } = string.Empty;
+
+    [JsonPropertyName("confidence")]
+    public double Confidence { get; set; }
+}
+
+public class AnalysisEvidenceItem
+{
+    [JsonPropertyName("topic")]
+    public string Topic { get; set; } = string.Empty;
+
+    [JsonPropertyName("outcome")]
+    public string Outcome { get; set; } = string.Empty;
+
+    [JsonPropertyName("confidence")]
+    public double Confidence { get; set; }
+
+    [JsonPropertyName("explanationRu")]
+    public string ExplanationRu { get; set; } = string.Empty;
+}
+
+public class AnalysisResponse
+{
+    [JsonPropertyName("accepted")]
+    public bool Accepted { get; set; }
+
+    [JsonPropertyName("schemaVersion")]
+    public int SchemaVersion { get; set; }
+
+    [JsonPropertyName("eventId")]
+    public string EventId { get; set; } = string.Empty;
+
+    [JsonPropertyName("sourceApp")]
+    public string SourceApp { get; set; } = string.Empty;
+
+    [JsonPropertyName("originalText")]
+    public string OriginalText { get; set; } = string.Empty;
+
+    [JsonPropertyName("correctedText")]
+    public string CorrectedText { get; set; } = string.Empty;
+
+    [JsonPropertyName("changed")]
+    public bool Changed { get; set; }
+
+    [JsonPropertyName("assessment")]
+    public string Assessment { get; set; } = "correct";
+
+    [JsonPropertyName("summaryRu")]
+    public string SummaryRu { get; set; } = string.Empty;
+
+    [JsonPropertyName("errors")]
+    public List<AnalysisErrorItem> Errors { get; set; } = new();
+
+    [JsonPropertyName("topicEvidence")]
+    public List<AnalysisEvidenceItem> TopicEvidence { get; set; } = new();
+
+    [JsonPropertyName("previewOnly")]
+    public bool PreviewOnly { get; set; }
+
+    [JsonPropertyName("rejectionReason")]
+    public string? RejectionReason { get; set; }
+}
+
 public class ApiClient
 {
     private readonly HttpClient _httpClient;
@@ -49,7 +125,7 @@ public class ApiClient
         _baseUrl = baseUrl.TrimEnd('/');
     }
 
-    public async Task<bool> SendAnalysisAsync(AnalysisPayload payload)
+    public async Task<AnalysisResponse?> AnalyzeWritingAsync(AnalysisPayload payload)
     {
         try
         {
@@ -65,12 +141,21 @@ public class ApiClient
             }
 
             using var response = await _httpClient.SendAsync(request);
-            return response.IsSuccessStatusCode;
+            if (!response.IsSuccessStatusCode) return null;
+
+            string respJson = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<AnalysisResponse>(respJson);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[ApiClient] Analysis request failed: {ex.Message}");
-            return false;
+            return null;
         }
+    }
+
+    public async Task<bool> SendAnalysisAsync(AnalysisPayload payload)
+    {
+        var result = await AnalyzeWritingAsync(payload);
+        return result != null && result.Accepted;
     }
 }

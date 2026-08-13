@@ -104,6 +104,9 @@ node server/scripts/evalWritingAnalysis.js
 
 # Запуск полного модельного бенчмарка Gemini 3.5 Flash-Lite
 node server/scripts/evalGeminiModel.js
+
+# Живой бенчмарк точности и отсутствия ложных штрафов по 60+ кейсам живого Gemini API
+node server/scripts/evalGeminiModelLive.js
 ```
 
 ---
@@ -124,23 +127,26 @@ node --test tests/*.test.mjs
 # Шаг 3: Прогон кроссплатформенных контрактов интеграционного тестирования (Mac, iOS, Android, Windows)
 node tests/e2e-cross-platform-contract.test.mjs
 
-# Шаг 4: Прогон сквозных тестов изоляции
+# Шаг 4: Прогон интеграционных тестов 4-уровневой строгой коррекции
+node tests/e2e-followup-strict-corrections.test.mjs
+
+# Шаг 5: Прогон сквозных тестов изоляции
 node tests/e2e-beta-isolation.test.mjs
 
-# Шаг 5: Сборка фронтенда Vite (генерация директории dist)
+# Шаг 6: Сборка фронтенда Vite (генерация директории dist)
 npm run build
 
-# Шаг 6: Перезапуск системного сервиса бэкенда
+# Шаг 7: Перезапуск системного сервиса бэкенда
 sudo systemctl restart english-backend.service
 
-# Шаг 7: Проверка статуса сервиса
+# Шаг 8: Проверка статуса сервиса
 systemctl status english-backend.service --no-pager
 
-# Шаг 8: Верификация шлюзов безопасности и API
+# Шаг 9: Верификация шлюзов безопасности и API
 curl -s -o /dev/null -w "Health check status: %{http_code}\n" http://localhost:3001/health
 curl -s -i http://localhost:3001/api/curriculum | head -n 5  # Должен возвращать HTTP 401
 
-# Шаг 9: Верификация сохранности испанского модуля
+# Шаг 10: Верификация сохранности испанского модуля
 curl -s -o /dev/null -w "Spanish backend status: %{http_code}\n" http://localhost:3003/health
 ```
 

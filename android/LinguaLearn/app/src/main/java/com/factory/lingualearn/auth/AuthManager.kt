@@ -2,10 +2,11 @@ package com.factory.lingualearn.auth
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.factory.lingualearn.devices.EncryptedTokenStorage
 
 class AuthManager(val context: Context) {
 
-    private val prefs: SharedPreferences = context.getSharedPreferences("lingualearn_auth_prefs", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = EncryptedTokenStorage.getEncryptedSharedPreferences(context, "lingualearn_auth_prefs")
 
     companion object {
         private const val KEY_SESSION_TOKEN = "session_token"

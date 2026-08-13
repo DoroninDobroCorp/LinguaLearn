@@ -1,0 +1,261 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { getDb } from '../server/db.js';
+import { createWritingAnalysisService } from '../server/writingAnalysis.js';
+
+function createTestDb() {
+  const db = getDb(':memory:');
+  db.prepare(`
+    INSERT OR IGNORE INTO users (id, email, password_hash, role, status) VALUES
+      (1, 'test@example.com', 'hash', 'owner', 'active')
+  `).run();
+
+  db.prepare(`
+    INSERT OR IGNORE INTO curriculum_topics (id, name, category, level, source) VALUES
+      (101, 'Past Simple vs Present Perfect', 'grammar', 'B1', 'preset'),
+      (102, 'Subject-Verb Agreement', 'grammar', 'B1', 'preset')
+  `).run();
+
+  db.prepare(`
+    INSERT OR IGNORE INTO user_topic_progress (user_id, curriculum_topic_id, score, status, success_count, error_count) VALUES
+      (1, 101, 50, 'improving', 2, 0),
+      (1, 102, 50, 'improving', 2, 0)
+  `).run();
+  return db;
+}
+
+describe('Strict Corrections & Server Evidence Guard (VAL-TIER-001 & VAL-GUARD-001)', () => {
+  it('VAL-TIER-001: returns 4-tier assessment field and enforces empty errors for non-clear_error', async () => {
+    const db = createTestDb();
+
+    // Test case 1: clear_error
+    const mockAnalyzerClearError = async () => ({
+      isEnglish: true,
+      assessment: 'clear_error',
+      correctedText: 'She does not know.',
+      summaryRu: 'Ошибка в согласовании подлежащего и сказуемого.',
+      errors: [
+        {
+          original: "don't",
+          correction: "doesn't",
+          explanationRu: 'Для третьего лица единственного числа нужно использовать doesn’t.',
+          topic: 'Subject-Verb Agreement',
+          confidence: 0.95,
+        },
+      ],
+      topicEvidence: [
+        {
+          topic: 'Subject-Verb Agreement',
+          outcome: 'error',
+          confidence: 0.95,
+          explanationRu: 'Ошибка в согласовании подлежащего и сказуемого.',
+        },
+      ],
+    });
+
+    const service1 = createWritingAnalysisService({ db, analyzer: mockAnalyzerClearError });
+    const res1 = await service1.analyze({
+      eventId: 'evt-clear-error-001',
+      sourceApp: 'Slack',
+      text: "She don't know.",
+    });
+
+    assert.equal(res1.response.assessment, 'clear_error');
+    assert.equal(res1.response.errors.length, 1);
+
+    // Test case 2: mechanical_only
+    const mockAnalyzerMechanical = async () => ({
+      isEnglish: true,
+      assessment: 'mechanical_only',
+      correctedText: 'I received your message.',
+      summaryRu: 'Опечатка в слове received.',
+      errors: [],
+      topicEvidence: [],
+    });
+
+    const service2 = createWritingAnalysisService({ db, analyzer: mockAnalyzerMechanical });
+    const res2 = await service2.analyze({
+      eventId: 'evt-mechanical-001',
+      sourceApp: 'Slack',
+      text: 'I recieved your mesage.',
+    });
+
+    assert.equal(res2.response.assessment, 'mechanical_only');
+    assert.deepEqual(res2.response.errors, []);
+
+    // Test case 3: acceptable
+    const mockAnalyzerAcceptable = async () => ({
+      isEnglish: true,
+      assessment: 'acceptable',
+      correctedText: 'Can you send me an update?',
+      summaryRu: 'Фраза грамматически верна.',
+      errors: [],
+      topicEvidence: [
+        {
+          topic: 'Past Simple vs Present Perfect',
+          outcome: 'success',
+          confidence: 0.88,
+          explanationRu: 'Правильное использование конструкции.',
+        },
+      ],
+    });
+
+    const service3 = createWritingAnalysisService({ db, analyzer: mockAnalyzerAcceptable });
+    const res3 = await service3.analyze({
+      eventId: 'evt-acceptable-001',
+      sourceApp: 'Slack',
+      text: 'Can you send me an update?',
+    });
+
+    assert.equal(res3.response.assessment, 'acceptable');
+    assert.deepEqual(res3.response.errors, []);
+
+    // Test case 4: correct
+    const mockAnalyzerCorrect = async () => ({
+      isEnglish: true,
+      assessment: 'correct',
+      correctedText: 'I went to the store yesterday.',
+      summaryRu: 'Предложение полностью корректно.',
+      errors: [],
+      topicEvidence: [
+        {
+          topic: 'Past Simple vs Present Perfect',
+          outcome: 'success',
+          confidence: 0.95,
+          explanationRu: 'Правильное время Past Simple.',
+        },
+      ],
+    });
+
+    const service4 = createWritingAnalysisService({ db, analyzer: mockAnalyzerCorrect });
+    const res4 = await service4.analyze({
+      eventId: 'evt-correct-001',
+      sourceApp: 'Slack',
+      text: 'I went to the store yesterday.',
+    });
+
+    assert.equal(res4.response.assessment, 'correct');
+    assert.deepEqual(res4.response.errors, []);
+  });
+
+  it('VAL-GUARD-001: blocks progress deductions for non-clear_error inputs and enforces confidence >= 0.85 threshold', async () => {
+    const db = createTestDb();
+    const svaTopic = db.prepare("SELECT id FROM curriculum_topics WHERE name = 'Subject-Verb Agreement'").get();
+    assert.ok(svaTopic, 'Subject-Verb Agreement topic must exist');
+    const svaTopicId = svaTopic.id;
+
+    // 1. Contradictory model output: mechanical_only with negative topicEvidence & non-empty errors
+    const mockContradictoryMechanical = async () => ({
+      isEnglish: true,
+      assessment: 'mechanical_only',
+      correctedText: 'I received your message.',
+      summaryRu: 'Опечатки.',
+      errors: [
+        {
+          original: 'recieved',
+          correction: 'received',
+          explanationRu: 'Опечатка',
+          topic: 'Subject-Verb Agreement',
+          confidence: 0.9,
+        },
+      ],
+      topicEvidence: [
+        {
+          topic: 'Subject-Verb Agreement',
+          outcome: 'error',
+          confidence: 0.9,
+          explanationRu: 'Опечатка не должна снижать балл',
+        },
+      ],
+    });
+
+    const service1 = createWritingAnalysisService({ db, analyzer: mockContradictoryMechanical });
+    const initialProg = db.prepare('SELECT score FROM user_topic_progress WHERE user_id = 1 AND curriculum_topic_id = ?').get(svaTopicId);
+
+    const res1 = await service1.analyze({
+      eventId: 'evt-guard-001',
+      sourceApp: 'Slack',
+      text: 'I recieved your message.',
+    });
+
+    assert.equal(res1.response.assessment, 'mechanical_only');
+    assert.deepEqual(res1.response.errors, []);
+    const postProg1 = db.prepare('SELECT score FROM user_topic_progress WHERE user_id = 1 AND curriculum_topic_id = ?').get(svaTopicId);
+    assert.equal(postProg1.score, initialProg.score, 'Progress score must not change for mechanical_only');
+
+    const evRows1 = db.prepare("SELECT * FROM grammar_evidence WHERE writing_sample_id = ? AND outcome = 'error'").all(res1.response.sampleId);
+    assert.equal(evRows1.length, 0, 'Negative grammar_evidence must be suppressed for mechanical_only');
+
+    // 2. clear_error with confidence 0.80 (< 0.85 threshold for negative evidence)
+    const mockLowConfidenceError = async () => ({
+      isEnglish: true,
+      assessment: 'clear_error',
+      correctedText: 'She does not know.',
+      summaryRu: 'Возможная ошибка.',
+      errors: [
+        {
+          original: "don't",
+          correction: "doesn't",
+          explanationRu: 'Возможная ошибка',
+          topic: 'Subject-Verb Agreement',
+          confidence: 0.80,
+        },
+      ],
+      topicEvidence: [
+        {
+          topic: 'Subject-Verb Agreement',
+          outcome: 'error',
+          confidence: 0.80,
+          explanationRu: 'Низкая уверенность',
+        },
+      ],
+    });
+
+    const service2 = createWritingAnalysisService({ db, analyzer: mockLowConfidenceError });
+    const res2 = await service2.analyze({
+      eventId: 'evt-guard-002',
+      sourceApp: 'Slack',
+      text: "She don't know.",
+    });
+
+    assert.equal(res2.response.assessment, 'clear_error');
+    const postProg2 = db.prepare('SELECT score FROM user_topic_progress WHERE user_id = 1 AND curriculum_topic_id = ?').get(svaTopicId);
+    assert.equal(postProg2.score, initialProg.score, 'Confidence < 0.85 must NOT reduce topic progress score');
+
+    // 3. clear_error with confidence 0.90 (>= 0.85 threshold for negative evidence)
+    const mockHighConfidenceError = async () => ({
+      isEnglish: true,
+      assessment: 'clear_error',
+      correctedText: 'She does not know.',
+      summaryRu: 'Ошибка в согласовании.',
+      errors: [
+        {
+          original: "don't",
+          correction: "doesn't",
+          explanationRu: 'Ошибка в согласовании',
+          topic: 'Subject-Verb Agreement',
+          confidence: 0.90,
+        },
+      ],
+      topicEvidence: [
+        {
+          topic: 'Subject-Verb Agreement',
+          outcome: 'error',
+          confidence: 0.90,
+          explanationRu: 'Высокая уверенность',
+        },
+      ],
+    });
+
+    const service3 = createWritingAnalysisService({ db, analyzer: mockHighConfidenceError });
+    const res3 = await service3.analyze({
+      eventId: 'evt-guard-003',
+      sourceApp: 'Slack',
+      text: "She don't know.",
+    });
+
+    assert.equal(res3.response.assessment, 'clear_error');
+    const postProg3 = db.prepare('SELECT score FROM user_topic_progress WHERE user_id = 1 AND curriculum_topic_id = ?').get(svaTopicId);
+    assert.equal(postProg3.score, initialProg.score - 2, 'Confidence >= 0.85 for clear_error MUST reduce topic progress score by 2');
+  });
+});

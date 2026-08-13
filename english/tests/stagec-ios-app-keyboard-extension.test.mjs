@@ -190,4 +190,27 @@ describe('Stage C: iOS App and Custom Keyboard Extension (schemaVersion 1)', () 
       db.close();
     }
   });
+
+  it('VAL-IOS-002: iOS Keychain App Group storage and send-only trigger implementation', () => {
+    const keychainPath = path.join(iosDir, 'LinguaLearnKeyboardExtension/Shared/KeychainAppGroupManager.swift');
+    assert.equal(fs.existsSync(keychainPath), true, 'KeychainAppGroupManager.swift must exist');
+
+    const keychainContent = fs.readFileSync(keychainPath, 'utf8');
+    assert.match(keychainContent, /group\.ai\.factory\.lingualearn/i, 'Keychain must use App Group container group.ai.factory.lingualearn');
+    assert.match(keychainContent, /SecItemAdd|SecItemCopyMatching|SecItemDelete/i, 'Keychain must use SecItem APIs');
+    assert.match(keychainContent, /kSecAttrAccessGroup/i, 'Keychain query must set kSecAttrAccessGroup');
+
+    const keyboardVcPath = path.join(iosDir, 'LinguaLearnKeyboardExtension/KeyboardViewController.swift');
+    assert.equal(fs.existsSync(keyboardVcPath), true, 'KeyboardViewController.swift must exist');
+
+    const vcContent = fs.readFileSync(keyboardVcPath, 'utf8');
+    assert.match(vcContent, /handleSendTrigger|triggerSendEvent/i, 'KeyboardViewController must provide explicit send trigger action');
+    assert.match(vcContent, /sendButton|handleReturnKey/i, 'KeyboardViewController must support explicit Send/Return triggers');
+
+    const keychainTestsPath = path.join(iosDir, 'LinguaLearnTests/KeychainAppGroupManagerTests.swift');
+    assert.equal(fs.existsSync(keychainTestsPath), true, 'KeychainAppGroupManagerTests.swift must exist');
+
+    const sendTestsPath = path.join(iosDir, 'LinguaLearnTests/SendTriggerTests.swift');
+    assert.equal(fs.existsSync(sendTestsPath), true, 'SendTriggerTests.swift must exist');
+  });
 });

@@ -111,7 +111,8 @@ export function recordTopicEvidence(
   db,
   { userId, curriculumTopicId, outcome, confidence = 1.0, timestamp = null }
 ) {
-  const isHighConfidence = confidence >= 0.7;
+  const minConfidence = outcome === 'error' ? 0.85 : 0.7;
+  const isHighConfidence = confidence >= minConfidence;
   const current = getUserTopicProgress(db, userId, curriculumTopicId);
 
   if (!isHighConfidence && current.status === 'not_started') {

@@ -43,6 +43,9 @@ public class SystemTrayController : IDisposable
 
         _previewMenuItem = new ToolStripMenuItem("Toggle Preview Mode (Ctrl+Alt+P)", null, OnPreviewClicked);
 
+        var triggerSendMenuItem = new ToolStripMenuItem("Trigger Send Capture", null, OnTriggerSendClicked);
+        var triggerHotkeyMenuItem = new ToolStripMenuItem("Trigger Hotkey Preview", null, OnTriggerHotkeyClicked);
+
         var pairTokenMenuItem = new ToolStripMenuItem("Pair Device Token...", null, OnPairDeviceTokenClicked);
         var settingsMenuItem = new ToolStripMenuItem("Settings...", null, OnSettingsClicked);
         var retryQueueMenuItem = new ToolStripMenuItem("Retry Sync Queue", null, OnRetryQueueClicked);
@@ -50,6 +53,8 @@ public class SystemTrayController : IDisposable
 
         contextMenu.Items.Add(_pauseMenuItem);
         contextMenu.Items.Add(_previewMenuItem);
+        contextMenu.Items.Add(triggerSendMenuItem);
+        contextMenu.Items.Add(triggerHotkeyMenuItem);
         contextMenu.Items.Add(new ToolStripSeparator());
         contextMenu.Items.Add(pairTokenMenuItem);
         contextMenu.Items.Add(settingsMenuItem);
@@ -59,6 +64,16 @@ public class SystemTrayController : IDisposable
 
         _notifyIcon.ContextMenuStrip = contextMenu;
         _notifyIcon.DoubleClick += (s, e) => OpenMainWindow();
+    }
+
+    private void OnTriggerSendClicked(object? sender, EventArgs e)
+    {
+        _ = App.AutomationListener?.TriggerSendCaptureAsync();
+    }
+
+    private void OnTriggerHotkeyClicked(object? sender, EventArgs e)
+    {
+        _ = App.AutomationListener?.TriggerHotkeyCaptureAsync();
     }
 
     private void OnPauseClicked(object? sender, EventArgs e)

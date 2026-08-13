@@ -1,0 +1,12 @@
+[Unit]
+Description=LinguaLearn Retention Cleanup Service
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/LinguaLearn/english
+ExecStart=/usr/bin/node server/scripts/retentionCleanup.js
+User=root
+
+[Install]
+WantedBy=multi-user.target

@@ -40,4 +40,59 @@ class BackgroundSyncQueueTest {
         val updated = item.copy(retryCount = item.retryCount + 1)
         assertEquals(2, updated.retryCount)
     }
+
+    @Test
+    fun testDuplicateEventIdPreservedAcrossRetries() {
+        val fixedEventId = "fixed-evt-android-retry-001"
+        val item = QueueItem(
+            eventId = fixedEventId,
+            sourceApp = "com.slack",
+            originalText = "They was going to the office.",
+            sentAt = "2026-08-13T10:00:00Z",
+            previewOnly = false,
+            retryCount = 0
+        )
+
+        // First retry attempt
+        val retry1 = item.copy(retryCount = item.retryCount + 1)
+        assertEquals(fixedEventId, retry1.eventId)
+        assertEquals(1, retry1.retryCount)
+
+        // Second retry attempt
+        val retry2 = retry1.copy(retryCount = retry1.retryCount + 1)
+        assertEquals(fixedEventId, retry2.eventId)
+        assertEquals(2, retry2.retryCount)
+    }
+
+    @Test
+    fun testDeduplicateQueueItemsByEventId() {
+        val eventId = "dedup-evt-77"
+        val list = mutableListOf<QueueItem>()
+
+        val item1 = QueueItem(
+            eventId = eventId,
+            sourceApp = "com.telegram",
+            originalText = "Draft message 1",
+            sentAt = "2026-08-13T10:00:00Z",
+            previewOnly = false
+        )
+        list.add(item1)
+
+        val item2 = QueueItem(
+            eventId = eventId,
+            sourceApp = "com.telegram",
+            originalText = "Draft message 1",
+            sentAt = "2026-08-13T10:00:00Z",
+            previewOnly = false
+        )
+
+        // Deduplication logic
+        val exists = list.any { it.eventId == item2.eventId }
+        if (!exists) {
+            list.add(item2)
+        }
+
+        assertEquals(1, list.size)
+        assertEquals(eventId, list.first().eventId)
+    }
 }

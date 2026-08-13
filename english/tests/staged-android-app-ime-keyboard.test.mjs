@@ -138,6 +138,32 @@ describe('Stage D: Android App and Input Method Editor (IME Keyboard Service) (s
     }
   });
 
+  it('VAL-ANDR-002: Token storage uses EncryptedSharedPreferences (no default fake token), duplicate event ID retries handled cleanly, and candidate bar preview rendered', () => {
+    // 1. Verify EncryptedSharedPreferences usage
+    const storagePath = path.join(androidDir, 'app/src/main/java/com/factory/lingualearn/devices/EncryptedTokenStorage.kt');
+    assert.equal(fs.existsSync(storagePath), true, 'EncryptedTokenStorage.kt must exist');
+    const storageContent = fs.readFileSync(storagePath, 'utf8');
+    assert.match(storageContent, /EncryptedSharedPreferences/i, 'Must use EncryptedSharedPreferences');
+
+    const mgrPath = path.join(androidDir, 'app/src/main/java/com/factory/lingualearn/devices/DeviceTokenManager.kt');
+    const mgrContent = fs.readFileSync(mgrPath, 'utf8');
+    assert.match(mgrContent, /EncryptedTokenStorage|EncryptedSharedPreferences/i, 'DeviceTokenManager must use EncryptedTokenStorage');
+
+    // 2. Verify removal of default fake token
+    const imePath = path.join(androidDir, 'app/src/main/java/com/factory/lingualearn/ime/LinguaLearnIMEKeyboardService.kt');
+    const imeContent = fs.readFileSync(imePath, 'utf8');
+    assert.equal(imeContent.includes('ll_dev_android_default_token'), false, 'Must NOT contain fake default token ll_dev_android_default_token');
+
+    // 3. Verify duplicate event ID retry handling
+    const queuePath = path.join(androidDir, 'app/src/main/java/com/factory/lingualearn/ime/queue/BackgroundSyncQueue.kt');
+    const queueContent = fs.readFileSync(queuePath, 'utf8');
+    assert.match(queueContent, /eventId\s*:\s*String/, 'BackgroundSyncQueue must accept explicit eventId for retries');
+
+    // 4. Verify IME candidate bar preview rendering
+    assert.match(imeContent, /onCreateCandidatesView/i, 'LinguaLearnIMEKeyboardService must implement onCreateCandidatesView for candidate bar preview');
+    assert.match(imeContent, /setCandidatesViewShown|updateCandidateBarPreview/i, 'LinguaLearnIMEKeyboardService must update candidate bar preview view state');
+  });
+
   it('Preview popup mode in Android IME sends previewOnly: true without updating user progress', async () => {
     const db = createTestDatabase();
     try {

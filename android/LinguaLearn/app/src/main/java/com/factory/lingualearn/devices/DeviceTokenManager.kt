@@ -13,7 +13,7 @@ data class DeviceTokenInfo(
 
 class DeviceTokenManager(context: Context) {
 
-    private val prefs: SharedPreferences = context.getSharedPreferences("lingualearn_device_prefs", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = EncryptedTokenStorage.getEncryptedSharedPreferences(context, "lingualearn_device_prefs")
 
     companion object {
         private const val KEY_ACTIVE_DEVICE_TOKEN = "active_device_token"

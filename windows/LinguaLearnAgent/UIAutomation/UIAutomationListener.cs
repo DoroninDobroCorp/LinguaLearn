@@ -1,10 +1,12 @@
 using System;
+using System.Threading.Tasks;
 using System.Windows.Automation;
 using LinguaLearnAgent.Filter;
 using LinguaLearnAgent.Hotkey;
 using LinguaLearnAgent.Network;
 using LinguaLearnAgent.Queue;
 using LinguaLearnAgent.Settings;
+using LinguaLearnAgent.UI;
 
 namespace LinguaLearnAgent.UIAutomation;
 
@@ -15,7 +17,12 @@ public class UIAutomationListener
     private readonly OfflineRetryQueue _retryQueue;
     private readonly PrivacyConsentManager _settings;
     private readonly PreviewHotkeyManager _hotkeyManager;
+    private AutomationElement? _currentFocusedElement;
     private bool _isListening;
+
+    public AutomationElement? CurrentFocusedElement => _currentFocusedElement;
+    public AnalysisPayload? LastSentPayload { get; private set; }
+    public AnalysisResponse? LastResponse { get; private set; }
 
     public UIAutomationListener(
         CandidateFilter filter,
@@ -65,33 +72,84 @@ public class UIAutomationListener
 
         try
         {
-            if (sender is not AutomationElement element) return;
-
-            // Password field rejection check
-            if (IsSecureField(element))
+            if (sender is AutomationElement element)
             {
-                Console.WriteLine("[UIAutomationListener] Ignored secure/password field.");
-                return;
+                _currentFocusedElement = element;
             }
-
-            var text = ExtractControlText(element);
-            if (string.IsNullOrWhiteSpace(text)) return;
-
-            string sourceApp = element.Current.LocalizedControlType ?? "WindowsEditControl";
-
-            var filterResult = _filter.FilterCandidate(text, isSecureField: false);
-            if (!filterResult.Accepted)
-            {
-                Console.WriteLine($"[UIAutomationListener] Candidate rejected: {filterResult.Reason}");
-                return;
-            }
-
-            ProcessCapturedText(text, sourceApp);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[UIAutomationListener] Focus change error: {ex.Message}");
+            Console.WriteLine($"[UIAutomationListener] Focus change tracking error: {ex.Message}");
         }
+    }
+
+    public async Task<AnalysisResponse?> TriggerSendCaptureAsync(string? textOverride = null)
+    {
+        return await ExecuteTriggerAsync(textOverride, previewOnly: _hotkeyManager.IsPreviewOnly, triggerName: "SendTrigger");
+    }
+
+    public async Task<AnalysisResponse?> TriggerHotkeyCaptureAsync(string? textOverride = null)
+    {
+        return await ExecuteTriggerAsync(textOverride, previewOnly: true, triggerName: "HotkeyTrigger");
+    }
+
+    private async Task<AnalysisResponse?> ExecuteTriggerAsync(string? textOverride, bool previewOnly, string triggerName)
+    {
+        if (_settings.IsPaused) return null;
+
+        string text = textOverride ?? string.Empty;
+        string sourceApp = "WindowsEditControl";
+
+        if (string.IsNullOrWhiteSpace(text) && _currentFocusedElement != null)
+        {
+            if (IsSecureField(_currentFocusedElement))
+            {
+                Console.WriteLine("[UIAutomationListener] Ignored secure/password field on trigger.");
+                return null;
+            }
+            text = ExtractControlText(_currentFocusedElement);
+            try
+            {
+                sourceApp = _currentFocusedElement.Current.LocalizedControlType ?? "WindowsEditControl";
+            }
+            catch { }
+        }
+
+        if (string.IsNullOrWhiteSpace(text)) return null;
+
+        var filterResult = _filter.FilterCandidate(text, isSecureField: false);
+        if (!filterResult.Accepted)
+        {
+            Console.WriteLine($"[UIAutomationListener] [{triggerName}] Candidate rejected: {filterResult.Reason}");
+            return null;
+        }
+
+        var payload = new AnalysisPayload
+        {
+            SchemaVersion = 1,
+            EventId = Guid.NewGuid().ToString(),
+            SourceApp = sourceApp,
+            OriginalText = text,
+            Text = text,
+            SentAt = DateTime.UtcNow.ToString("o"),
+            PreviewOnly = previewOnly
+        };
+
+        LastSentPayload = payload;
+
+        var response = await _apiClient.AnalyzeWritingAsync(payload);
+        LastResponse = response;
+
+        if (response != null && response.Accepted)
+        {
+            CorrectionPopupController.ShowResponse(response, _currentFocusedElement);
+        }
+        else
+        {
+            _retryQueue.Enqueue(payload);
+        }
+
+        return response;
     }
 
     public bool IsSecureField(AutomationElement element)
@@ -142,21 +200,6 @@ public class UIAutomationListener
 
     public async void ProcessCapturedText(string text, string sourceApp)
     {
-        var payload = new AnalysisPayload
-        {
-            SchemaVersion = 1,
-            EventId = Guid.NewGuid().ToString(),
-            SourceApp = sourceApp,
-            OriginalText = text,
-            Text = text,
-            SentAt = DateTime.UtcNow.ToString("o"),
-            PreviewOnly = _hotkeyManager.IsPreviewOnly
-        };
-
-        bool success = await _apiClient.SendAnalysisAsync(payload);
-        if (!success)
-        {
-            _retryQueue.Enqueue(payload);
-        }
+        await TriggerSendCaptureAsync(text);
     }
 }

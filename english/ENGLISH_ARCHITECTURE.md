@@ -114,26 +114,17 @@ Every data access query on user-associated tables MUST include a `WHERE user_id 
 
 ---
 
-## 5. Writing Analysis & Gemini 2.5 Flash Pipeline
+## 5. Writing Analysis & 4-Tier Conservative Assessment Pipeline
 
-1. **Input Sanitization**: User input is treated as untrusted text within the system prompt to ensure prompt injection resilience.
-2. **Structured Analysis Output**: Gemini 2.5 Flash returns a structured JSON object complying with `ANALYSIS_SCHEMA`:
-   ```json
-   {
-     "originalText": "...",
-     "correctedText": "...",
-     "changed": true,
-     "summaryRu": "...",
-     "errors": [...],
-     "topicEvidence": [...]
-   }
-   ```
-3. **Exact-Once Event Idempotency**: Submissions are constrained by `UNIQUE(user_id, event_id)`. Duplicate `event_id` requests return the cached analysis without duplicate scoring or duplicate evidence creation.
-4. **Preview Hotkey Isolation**: When `preview_only: 1` is sent, analysis is generated and returned to the client, but `grammar_evidence` records are NOT created and `user_topic_progress` is NOT modified.
-5. **Scoring & Evidence Rules**:
-   * Error detection deducts points (`score_delta = -2.0`); clear success awards points (`score_delta = +1.0`).
-   * Errors take priority over successes within the same writing sample.
-   * Evidence with `confidence < 0.7` is recorded with outcome but does not alter topic score.
+1. **Input Sanitization & untrusted input guard**: User input is treated as untrusted text within the system prompt to ensure prompt injection resilience.
+2. **4-Tier Semantic Assessment Output**: Gemini 3.5 Flash-Lite returns a structured JSON object complying with the 4-tier assessment schema (`assessment` in `["clear_error", "mechanical_only", "acceptable", "correct"]`):
+   * `clear_error`: Objective grammar or usage error. `errors` array is non-empty. Applies score deduction (-2.0) if confidence $\ge 0.85$, and client renders large popup card.
+   * `mechanical_only`: Typos, spelling, capitalization, or punctuation errors. `errors` array is strictly empty (`[]`). Client renders compact `Grammar OK ✓` chip, and NO score deduction occurs.
+   * `acceptable`: Valid English with optional stylistic suggestion. `errors` array is strictly empty (`[]`). Client renders compact `Grammar OK ✓` chip, and NO score deduction occurs.
+   * `correct`: Fully correct sentence. `errors` array is strictly empty (`[]`). Client renders compact `Grammar OK ✓` chip, and NO score deduction occurs.
+3. **Server-Side Validation Guard**: Hard server guard logic prevents any negative evidence entries or score deductions in `user_topic_progress` when `assessment` is `mechanical_only`, `acceptable`, or `correct`. For `clear_error`, negative evidence is recorded ONLY if model `confidence >= 0.85`. Contradictory model outputs are automatically sanitized.
+4. **Exact-Once Event Idempotency**: Submissions are constrained by `UNIQUE(user_id, event_id)`. Duplicate `event_id` requests return the cached analysis without duplicate scoring or duplicate evidence creation.
+5. **Preview Hotkey Isolation**: When `preview_only: 1` is sent, analysis is generated and returned to the client, but `grammar_evidence` records are NOT created and `user_topic_progress` is NOT modified.
 6. **Progress Undo**: Submitting `undo_progress` feedback via `POST /api/writing/samples/:id/feedback` idempotently reverses score deltas associated with the writing sample in `user_topic_progress`.
 
 ---
@@ -199,4 +190,17 @@ Verification of multi-platform contract alignment, exact-once scoring, preview s
 node tests/e2e-cross-platform-contract.test.mjs
 ```
 The test harness verifies 100% pass rate across Mac, iOS, Android, and Windows client payloads.
+
+### 10.5. Live Gemini Evaluation Harness & Strict Corrections E2E Suite
+Live API evaluation of the 4-tier model over 60+ synthetic B1-B2 test cases is performed via:
+```bash
+node server/scripts/evalGeminiModelLive.js
+```
+Verification of 4-tier API schema compliance, server evidence guard enforcement, compact chip vs popup policy contract, and multi-platform client handling is executed via:
+```bash
+node tests/e2e-followup-strict-corrections.test.mjs
+```
+
+### 10.6. Android IME Coroutine Dispatchers.IO Network Architecture
+In `android/LinguaLearn`, network requests within `LinguaLearnIMEKeyboardService.kt` are wrapped in `Dispatchers.IO` coroutine contexts bound to a supervisor service scope. This guarantees non-blocking asynchronous execution on the main UI thread during IME candidate analysis and background sync queue retry operations.
 

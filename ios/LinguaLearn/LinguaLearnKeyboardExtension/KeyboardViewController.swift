@@ -1,11 +1,13 @@
 import UIKit
 
 public class KeyboardViewController: UIInputViewController {
-    private var nextKeyboardButton: UIButton!
+    public var nextKeyboardButton: UIButton!
+    public var sendButton: UIButton!
     private var previewPopup: PreviewPopupView?
     private let apiClient = ApiClient()
     private let retryQueue = NetworkRetryQueue()
-    private var currentDraft: String = ""
+    public var currentDraft: String = ""
+    public var lastSentPayload: QueuedWritingPayload?
 
     override public func updateViewConstraints() {
         super.updateViewConstraints()
@@ -24,31 +26,58 @@ public class KeyboardViewController: UIInputViewController {
         self.nextKeyboardButton.translatesAutoresizingMaskIntoConstraints = false
         self.nextKeyboardButton.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
 
+        self.sendButton = UIButton(type: .system)
+        self.sendButton.setTitle(NSLocalizedString("Send", comment: "Send button for explicit trigger"), for: .normal)
+        self.sendButton.sizeToFit()
+        self.sendButton.translatesAutoresizingMaskIntoConstraints = false
+        self.sendButton.addTarget(self, action: #selector(handleSendTrigger), for: .touchUpInside)
+
         self.view.addSubview(self.nextKeyboardButton)
+        self.view.addSubview(self.sendButton)
 
         self.nextKeyboardButton.leftAnchor.constraint(equalTo: self.view.leftAnchor, constant: 8).isActive = true
         self.nextKeyboardButton.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: -8).isActive = true
+
+        self.sendButton.rightAnchor.constraint(equalTo: self.view.rightAnchor, constant: -8).isActive = true
+        self.sendButton.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: -8).isActive = true
     }
 
     override public func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
 
+        guard let textBefore = textDocumentProxy.documentContextBeforeInput else { return }
+        currentDraft = textBefore
+
+        // Typing alone does NOT automatically send event analysis.
+        // Analysis event is triggered ONLY on explicit Send/Enter trigger.
+    }
+
+    @objc public func handleSendTrigger() {
+        triggerSendEvent()
+    }
+
+    @objc public func handleReturnKey() {
+        textDocumentProxy.insertText("\n")
+        triggerSendEvent()
+    }
+
+    public func triggerSendEvent(explicitText: String? = nil) {
         guard !AppGroupManager.shared.isCapturePaused() else { return }
 
         let context = InputFieldContext(
             isSecureTextEntry: textDocumentProxy.isSecureTextEntry == true
         )
 
-        guard let textBefore = textDocumentProxy.documentContextBeforeInput else { return }
-        currentDraft = textBefore
+        let textToSend = explicitText ?? textDocumentProxy.documentContextBeforeInput ?? currentDraft
+        guard !textToSend.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
 
-        let filterResult = CandidateFilter.evaluate(text: textBefore, context: context)
+        let filterResult = CandidateFilter.evaluate(text: textToSend, context: context)
         if filterResult.accepted {
-            processCandidateText(textBefore)
+            processCandidateText(textToSend)
         }
     }
 
-    private func processCandidateText(_ text: String) {
+    public func processCandidateText(_ text: String) {
         guard let token = AppGroupManager.shared.getDeviceToken() else { return }
 
         let eventId = UUID().uuidString
@@ -59,6 +88,7 @@ public class KeyboardViewController: UIInputViewController {
             originalText: text,
             previewOnly: false
         )
+        self.lastSentPayload = payload
 
         apiClient.analyze(payload: payload, deviceToken: token) { [weak self] result in
             DispatchQueue.main.async {

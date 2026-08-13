@@ -86,10 +86,11 @@ cd /srv/LinguaLearn/english
    ```
    *Скрипт использует API SQLite Online Backup (`VACUUM INTO`), проверяет прагмы целостности `PRAGMA integrity_check;` и `PRAGMA foreign_key_check;` и сохраняет снимок с хэшем коммита в `/srv/backups/lingualearn/`.*
 
-3. **Запуск автоматических тестов бэкенда и кроссплатформенных контрактов**:
+3. **Запуск автоматических тестов бэкенда, кроссплатформенных контрактов и строгой коррекции**:
    ```bash
    node --test tests/*.test.mjs
    node tests/e2e-cross-platform-contract.test.mjs
+   node tests/e2e-followup-strict-corrections.test.mjs
    ```
    *Все тесты должны завершаться со 100% успехом (exit code 0).*
 
@@ -193,17 +194,20 @@ systemctl status lingualearn-retention.timer
 
 ## 6. Оценка качества нейросети и модельный бенчмарк
 
-Бэкенд использует модель **Gemini 3.5 Flash-Lite** (`GEMINI_WRITING_MODEL=gemini-3.5-flash-lite`) с автоматически настроенным фолбэком на `gemini-2.5-flash`.
+Бэкенд использует модель **Gemini 3.5 Flash-Lite** (`GEMINI_WRITING_MODEL=gemini-3.5-flash-lite`) с 4-уровневой семантической оценкой (`clear_error`, `mechanical_only`, `acceptable`, `correct`), серверным гардом доказательств (блокировка снижения баллов для опечаток и стиля; порог уверенности $\ge 0.85$ для реальных ошибок) и автоматически настроенным фолбэком на `gemini-2.5-flash`.
 
 Для периодической оценки качества исправлений и контроля задержек запускайте скрипты тестирования:
 ```bash
 # Оценка точности и релевантности исправлений
 node server/scripts/evalWritingAnalysis.js
 
-# Сравнительный модельный бенчмарк Gemini
+# Сравнительный синтетический модельный бенчмарк Gemini
 node server/scripts/evalGeminiModel.js
+
+# Живая оценка точности и отсутствия ложных штрафов по живому Gemini API (60+ B1-B2 кейсов)
+node server/scripts/evalGeminiModelLive.js
 ```
-Результаты сохраняются в форматированные отчеты `server/reports/eval-gemini-model.json`.
+Результаты сохраняются в форматированные отчеты `server/reports/eval-gemini-model.json` и `server/reports/eval-gemini-live.json`.
 
 ---
 
@@ -235,6 +239,7 @@ node server/scripts/evalGeminiModel.js
 - [x] Бэкенд сервис `english-backend.service` активен на порту 3001 (`curl -sf http://localhost:3001/health` -> 200 OK).
 - [x] Модуль `spanish-backend.service` на порту 3003 активен и не поврежден.
 - [x] Интеграционные тесты контрактов (`node tests/e2e-cross-platform-contract.test.mjs`) пройдены на 100%.
+- [x] Интеграционные тесты 4-уровневой строгой коррекции (`node tests/e2e-followup-strict-corrections.test.mjs`) пройдены на 100%.
 - [x] Сборка Vite фронтенда (`dist/`) выполнена без ошибок.
 - [x] Создан аккаунт владельца (`node server/scripts/admin.js bootstrap-owner`).
 - [x] Сгенерированы инвайт-коды для первой группы тестировщиков.

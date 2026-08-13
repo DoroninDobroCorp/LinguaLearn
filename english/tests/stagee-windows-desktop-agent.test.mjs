@@ -51,7 +51,9 @@ describe('Stage E: Windows Desktop Agent MVP (schemaVersion 1)', () => {
       // C# Tests Package
       'Tests/CandidateFilterTests.cs',
       'Tests/OfflineRetryQueueTests.cs',
-      'Tests/ApiClientTests.cs'
+      'Tests/ApiClientTests.cs',
+      'Tests/ExplicitTriggerTests.cs',
+      'Tests/ResponseParserTests.cs'
     ];
 
     for (const relativePath of requiredFiles) {
@@ -194,5 +196,41 @@ describe('Stage E: Windows Desktop Agent MVP (schemaVersion 1)', () => {
     } finally {
       db.close();
     }
+  });
+
+  it('VAL-WIN-002: Windows Desktop WPF explicit triggers and response popup', () => {
+    // 1. Verify UIAutomationListener explicit triggers
+    const listenerPath = path.join(windowsDir, 'UIAutomation/UIAutomationListener.cs');
+    assert.equal(fs.existsSync(listenerPath), true, 'UIAutomationListener.cs must exist');
+    const listenerContent = fs.readFileSync(listenerPath, 'utf8');
+    assert.match(listenerContent, /TriggerSendCaptureAsync|TriggerSendCapture/i, 'Must support explicit Send trigger');
+    assert.match(listenerContent, /TriggerHotkeyCaptureAsync|TriggerHotkeyCapture/i, 'Must support explicit Hotkey trigger');
+    assert.match(listenerContent, /CurrentFocusedElement/i, 'Focus change must track focused element');
+
+    // 2. Verify SystemTrayController menu additions
+    const trayPath = path.join(windowsDir, 'Tray/SystemTrayController.cs');
+    assert.equal(fs.existsSync(trayPath), true, 'SystemTrayController.cs must exist');
+    const trayContent = fs.readFileSync(trayPath, 'utf8');
+    assert.match(trayContent, /Trigger Send Capture|OnTriggerSendClicked/i, 'System tray menu must support explicit Send trigger');
+    assert.match(trayContent, /Trigger Hotkey Preview|OnTriggerHotkeyClicked/i, 'System tray menu must support explicit Hotkey trigger');
+
+    // 3. Verify WPF Popup Correction Response Parser & Controller
+    const popupXamlPath = path.join(windowsDir, 'UI/CorrectionPopupWindow.xaml');
+    assert.equal(fs.existsSync(popupXamlPath), true, 'CorrectionPopupWindow.xaml must exist');
+    const popupCodePath = path.join(windowsDir, 'UI/CorrectionPopupWindow.xaml.cs');
+    assert.equal(fs.existsSync(popupCodePath), true, 'CorrectionPopupWindow.xaml.cs must exist');
+    const popupCtrlPath = path.join(windowsDir, 'UI/CorrectionPopupController.cs');
+    assert.equal(fs.existsSync(popupCtrlPath), true, 'CorrectionPopupController.cs must exist');
+
+    const ctrlContent = fs.readFileSync(popupCtrlPath, 'utf8');
+    assert.match(ctrlContent, /BuildUiModel|ShowResponse/i, 'CorrectionPopupController must parse response and build UI model');
+    assert.match(ctrlContent, /clear_error/i, 'Popup model must handle clear_error assessment');
+    assert.match(ctrlContent, /Grammar OK/i, 'Popup model must handle compact Grammar OK chip');
+
+    // 4. Verify C# Unit Tests for explicit triggers & response parser
+    const expTestsPath = path.join(windowsDir, 'Tests/ExplicitTriggerTests.cs');
+    assert.equal(fs.existsSync(expTestsPath), true, 'ExplicitTriggerTests.cs must exist');
+    const respTestsPath = path.join(windowsDir, 'Tests/ResponseParserTests.cs');
+    assert.equal(fs.existsSync(respTestsPath), true, 'ResponseParserTests.cs must exist');
   });
 });
