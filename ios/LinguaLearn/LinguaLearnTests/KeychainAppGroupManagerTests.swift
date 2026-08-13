@@ -17,6 +17,7 @@ final class KeychainAppGroupManagerTests: XCTestCase {
         let keychain = KeychainAppGroupManager.shared
 
         XCTAssertEqual(keychain.accessGroup, "group.ai.factory.lingualearn")
+        XCTAssertEqual(keychain.expandedAccessGroup, "$(AppIdentifierPrefix)group.ai.factory.lingualearn")
         XCTAssertEqual(keychain.service, "ai.factory.lingualearn")
         XCTAssertEqual(keychain.account, "lingualearn_device_token")
 
@@ -38,11 +39,16 @@ final class KeychainAppGroupManagerTests: XCTestCase {
 
         AppGroupManager.shared.clearDeviceToken()
         let retrieved = AppGroupManager.shared.getDeviceToken()
-        XCTAssertNil(retrieved)
+        XCTAssertNil(retrieved, "Failed or deleted Keychain lookup must fail closed and return nil")
 
         // Verify UserDefaults also remains clean
         let defaults = UserDefaults(suiteName: "group.ai.factory.lingualearn")
         XCTAssertNil(defaults?.string(forKey: "lingualearn_device_token"))
     }
-}
 
+    func testFailClosedOnKeychainMissingItem() {
+        _ = KeychainAppGroupManager.deleteDeviceToken()
+        let token = KeychainAppGroupManager.loadDeviceToken()
+        XCTAssertNil(token, "Keychain missing item must return nil without fallback")
+    }
+}

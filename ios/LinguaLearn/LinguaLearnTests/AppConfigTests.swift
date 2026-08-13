@@ -29,7 +29,7 @@ final class AppConfigTests: XCTestCase {
     }
 
     func testSharedAppGroupStorage() {
-        let testHttpsUrl = "https://lingualearn.ai"
+        let testHttpsUrl = "https://custom.api.org"
         AppConfig.setBaseUrl(testHttpsUrl)
 
         let storedInSuite = UserDefaults(suiteName: AppConfig.suiteName)?.string(forKey: AppConfig.apiKey)

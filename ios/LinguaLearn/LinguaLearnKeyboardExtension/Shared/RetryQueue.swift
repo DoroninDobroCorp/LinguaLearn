@@ -33,7 +33,10 @@ public struct QueuedWritingPayload: Codable, Identifiable {
 }
 
 public class RetryQueue {
+    public static let shared = RetryQueue()
     public private(set) var items: [QueuedWritingPayload] = []
+
+    public var count: Int { items.count }
 
     public init() {
         loadFromStorage()
