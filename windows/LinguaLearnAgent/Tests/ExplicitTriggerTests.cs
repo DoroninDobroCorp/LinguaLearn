@@ -15,8 +15,8 @@ public class ExplicitTriggerTests
         var settings = new PrivacyConsentManager();
         var filter = new CandidateFilter();
         var apiClient = new ApiClient(settings);
-        var queue = new OfflineRetryQueue(settings);
-        var hotkeyManager = new PreviewHotkeyManager();
+        using var queue = new OfflineRetryQueue(settings);
+        using var hotkeyManager = new PreviewHotkeyManager();
 
         var listener = new UIAutomationListener(filter, apiClient, queue, settings, hotkeyManager);
 

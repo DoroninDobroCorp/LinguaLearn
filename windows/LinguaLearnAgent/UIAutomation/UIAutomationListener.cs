@@ -17,25 +17,29 @@ public class UIAutomationListener
     private readonly OfflineRetryQueue _retryQueue;
     private readonly PrivacyConsentManager _settings;
     private readonly PreviewHotkeyManager _hotkeyManager;
+    private readonly EnterKeyHook _enterKeyHook;
     private AutomationElement? _currentFocusedElement;
     private bool _isListening;
 
     public AutomationElement? CurrentFocusedElement => _currentFocusedElement;
     public AnalysisPayload? LastSentPayload { get; private set; }
     public AnalysisResponse? LastResponse { get; private set; }
+    public EnterKeyHook EnterKeyHook => _enterKeyHook;
 
     public UIAutomationListener(
         CandidateFilter filter,
         ApiClient apiClient,
         OfflineRetryQueue retryQueue,
         PrivacyConsentManager settings,
-        PreviewHotkeyManager hotkeyManager)
+        PreviewHotkeyManager hotkeyManager,
+        EnterKeyHook? enterKeyHook = null)
     {
         _filter = filter;
         _apiClient = apiClient;
         _retryQueue = retryQueue;
         _settings = settings;
         _hotkeyManager = hotkeyManager;
+        _enterKeyHook = enterKeyHook ?? new EnterKeyHook();
     }
 
     public void StartListening()
@@ -44,11 +48,13 @@ public class UIAutomationListener
         try
         {
             Automation.AddAutomationFocusChangedEventHandler(OnFocusChanged);
+            _enterKeyHook.EnterPressed += OnEnterKeyPressed;
+            _enterKeyHook.Start();
             _isListening = true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[UIAutomationListener] Failed to attach focus handler: {ex.Message}");
+            Console.WriteLine($"[UIAutomationListener] Failed to attach focus or keyhook handler: {ex.Message}");
         }
     }
 
@@ -58,6 +64,8 @@ public class UIAutomationListener
         try
         {
             Automation.RemoveAutomationFocusChangedEventHandler(OnFocusChanged);
+            _enterKeyHook.EnterPressed -= OnEnterKeyPressed;
+            _enterKeyHook.Stop();
             _isListening = false;
         }
         catch (Exception ex)
@@ -83,6 +91,24 @@ public class UIAutomationListener
         }
     }
 
+    public async void OnEnterKeyPressed(object? sender, EventArgs e)
+    {
+        await TriggerEnterKeyCaptureAsync();
+    }
+
+    public async Task<AnalysisResponse?> TriggerEnterKeyCaptureAsync(string? textOverride = null)
+    {
+        if (_settings.IsPaused) return null;
+
+        if (_currentFocusedElement != null && IsSecureField(_currentFocusedElement))
+        {
+            Console.WriteLine("[UIAutomationListener] [EnterKeyHook] Excluded secure/password field.");
+            return null;
+        }
+
+        return await ExecuteTriggerAsync(textOverride, previewOnly: false, triggerName: "EnterKeyHookTrigger");
+    }
+
     public async Task<AnalysisResponse?> TriggerSendCaptureAsync(string? textOverride = null)
     {
         return await ExecuteTriggerAsync(textOverride, previewOnly: _hotkeyManager.IsPreviewOnly, triggerName: "SendTrigger");
@@ -104,7 +130,7 @@ public class UIAutomationListener
         {
             if (IsSecureField(_currentFocusedElement))
             {
-                Console.WriteLine("[UIAutomationListener] Ignored secure/password field on trigger.");
+                Console.WriteLine($"[UIAutomationListener] [{triggerName}] Ignored secure/password field.");
                 return null;
             }
             text = ExtractControlText(_currentFocusedElement);
@@ -159,8 +185,10 @@ public class UIAutomationListener
             if (element.Current.IsPassword) return true;
             string name = element.Current.Name ?? "";
             string className = element.Current.ClassName ?? "";
+            string automationId = element.Current.AutomationId ?? "";
             if (name.Contains("Password", StringComparison.OrdinalIgnoreCase) ||
                 className.Contains("Password", StringComparison.OrdinalIgnoreCase) ||
+                automationId.Contains("Password", StringComparison.OrdinalIgnoreCase) ||
                 name.Contains("PIN", StringComparison.OrdinalIgnoreCase) ||
                 name.Contains("Secret", StringComparison.OrdinalIgnoreCase))
             {
@@ -169,7 +197,6 @@ public class UIAutomationListener
         }
         catch
         {
-            // If element is invalid, treat as sensitive
             return true;
         }
         return false;

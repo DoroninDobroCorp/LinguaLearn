@@ -28,14 +28,7 @@ public class PreviewHotkeyManager : IDisposable
 
     public PreviewHotkeyManager()
     {
-        try
-        {
-            RegisterHotKey(IntPtr.Zero, HOTKEY_ID, MOD_CONTROL | MOD_ALT, VK_G);
-        }
-        catch
-        {
-            // Ignore hotkey registration failure in headless/test env
-        }
+        // Hotkey registration postponed until valid window handle is registered in RegisterWindowHandle
     }
 
     public bool RegisterWindowHandle(IntPtr hWnd)

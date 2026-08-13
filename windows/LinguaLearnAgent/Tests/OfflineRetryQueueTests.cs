@@ -14,7 +14,7 @@ public class OfflineRetryQueueTests
         if (File.Exists(tempPath)) File.Delete(tempPath);
 
         var settings = new PrivacyConsentManager();
-        var queue = new OfflineRetryQueue(settings, tempPath);
+        using var queue = new OfflineRetryQueue(settings, tempPath);
 
         queue.Enqueue(new AnalysisPayload { OriginalText = "First failed item." });
         queue.Enqueue(new AnalysisPayload { OriginalText = "Second failed item." });

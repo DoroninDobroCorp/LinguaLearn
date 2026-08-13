@@ -31,13 +31,17 @@ public class ApiClientTests
         var settings = new PrivacyConsentManager();
         Assert.Equal("https://145.239.82.124.sslip.io/english", settings.ApiUrl);
 
+        // Non-HTTPS setting rejected / normalized to default HTTPS
+        settings.ApiUrl = "http://insecure.example.com";
+        Assert.Equal("https://145.239.82.124.sslip.io/english", settings.ApiUrl);
+
         var client = new ApiClient(settings);
         client.SetBaseUrl("https://api.lingualearn.ai");
         Assert.Equal("https://api.lingualearn.ai", settings.ApiUrl);
     }
 
     [Fact]
-    public void PrivacyConsentManager_DeviceTokenProtection()
+    public void PrivacyConsentManager_DeviceTokenProtection_FailsClosedWithoutPlainFallback()
     {
         var settings = new PrivacyConsentManager();
         var originalToken = "YOUR_DEVICE_TOKEN_HERE";
@@ -46,7 +50,13 @@ public class ApiClientTests
         Assert.Equal(originalToken, settings.DeviceToken);
 
         string protectedStr = PrivacyConsentManager.ProtectToken(originalToken);
+        Assert.StartsWith("DPAPI:", protectedStr);
+
         string unprotectedStr = PrivacyConsentManager.UnprotectToken(protectedStr);
         Assert.Equal(originalToken, unprotectedStr);
+
+        // PLAIN: prefixed token must fail closed and return string.Empty
+        string plainResult = PrivacyConsentManager.UnprotectToken("PLAIN:unencrypted_token");
+        Assert.Equal(string.Empty, plainResult);
     }
 }

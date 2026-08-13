@@ -12,9 +12,17 @@ public class ApiClientTests
         settings.DeviceToken = "YOUR_DEVICE_TOKEN_HERE";
         if (settings.ApiUrl != "https://145.239.82.124.sslip.io/english") throw new Exception("Default ApiUrl must be HTTPS https://145.239.82.124.sslip.io/english");
 
+        // Non-HTTPS URL attempt should fallback to HTTPS default
+        settings.ApiUrl = "http://insecure.example.com";
+        if (settings.ApiUrl != "https://145.239.82.124.sslip.io/english") throw new Exception("Non-HTTPS ApiUrl must fail closed to HTTPS default");
+
         var client = new ApiClient(settings);
         client.SetBaseUrl("https://api.lingualearn.ai");
         if (settings.ApiUrl != "https://api.lingualearn.ai") throw new Exception("SetBaseUrl must update settings ApiUrl");
+
+        // Fail-closed verification: PLAIN: prefixed token must fail closed (return empty)
+        string unprotectedPlain = PrivacyConsentManager.UnprotectToken("PLAIN:unencrypted_secret");
+        if (!string.IsNullOrEmpty(unprotectedPlain)) throw new Exception("UnprotectToken must fail closed for PLAIN: tokens");
 
         var payload = new AnalysisPayload
         {

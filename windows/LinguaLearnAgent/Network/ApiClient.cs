@@ -144,16 +144,13 @@ public class ApiClient
     {
         _settings = settings;
         _httpClient = customClient ?? new HttpClient();
-        _baseUrl = string.IsNullOrWhiteSpace(_settings.ApiUrl) ? "https://145.239.82.124.sslip.io/english" : _settings.ApiUrl;
+        _baseUrl = PrivacyConsentManager.NormalizeHttpsUrl(_settings.ApiUrl);
     }
 
     public void SetBaseUrl(string baseUrl)
     {
-        if (!string.IsNullOrWhiteSpace(baseUrl))
-        {
-            _baseUrl = baseUrl.TrimEnd('/');
-            _settings.ApiUrl = _baseUrl;
-        }
+        _baseUrl = PrivacyConsentManager.NormalizeHttpsUrl(baseUrl);
+        _settings.ApiUrl = _baseUrl;
     }
 
     public async Task<AnalysisResponse?> AnalyzeWritingAsync(AnalysisPayload payload)

@@ -31,13 +31,16 @@ public partial class App : Application
 
         TrayController.Initialize();
         AutomationListener.StartListening();
+        RetryQueue.StartBackgroundProcessor(ApiClient, TimeSpan.FromSeconds(15));
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
+        RetryQueue?.StopBackgroundProcessor();
         AutomationListener?.StopListening();
         HotkeyManager?.Dispose();
         TrayController?.Dispose();
+        RetryQueue?.Dispose();
         base.OnExit(e);
     }
 }

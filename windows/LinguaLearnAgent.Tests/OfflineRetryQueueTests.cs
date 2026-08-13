@@ -20,7 +20,7 @@ public class OfflineRetryQueueTests : IDisposable
     public void EnqueueAndDequeue_PreservesOrder()
     {
         var settings = new PrivacyConsentManager();
-        var queue = new OfflineRetryQueue(settings, _tempPath);
+        using var queue = new OfflineRetryQueue(settings, _tempPath);
 
         queue.Enqueue(new AnalysisPayload { OriginalText = "First failed item." });
         queue.Enqueue(new AnalysisPayload { OriginalText = "Second failed item." });
@@ -36,6 +36,20 @@ public class OfflineRetryQueueTests : IDisposable
         Assert.Equal("Second failed item.", item2.OriginalText);
 
         Assert.Equal(0, queue.Count);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task AsyncRetryQueue_ProcessesItemsNonBlockingly()
+    {
+        var settings = new PrivacyConsentManager();
+        using var queue = new OfflineRetryQueue(settings, _tempPath);
+
+        queue.Enqueue(new AnalysisPayload { OriginalText = "Retry item 1" });
+        var apiClient = new ApiClient(settings);
+
+        int processed = await queue.RetryAllAsync(apiClient);
+        // ApiClient will fail in test env, so item remains in queue with incremented retry count
+        Assert.Equal(1, queue.Count);
     }
 
     public void Dispose()

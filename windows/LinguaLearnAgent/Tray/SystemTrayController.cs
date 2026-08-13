@@ -107,9 +107,9 @@ public class SystemTrayController : IDisposable
         OpenMainWindow();
     }
 
-    private void OnRetryQueueClicked(object? sender, EventArgs e)
+    private async void OnRetryQueueClicked(object? sender, EventArgs e)
     {
-        int processed = _retryQueue.RetryAll(_apiClient);
+        int processed = await _retryQueue.RetryAllAsync(_apiClient);
         ShowBalloon("Retry Queue", $"Processed {processed} pending items.");
     }
 
