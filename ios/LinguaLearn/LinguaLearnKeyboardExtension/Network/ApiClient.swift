@@ -166,13 +166,22 @@ public struct AnalysisResponse: Codable {
 
 public class ApiClient {
     public let customBaseUrl: String?
+    private let session: URLSession
 
     public var baseUrl: String {
         return customBaseUrl ?? AppConfig.baseUrl
     }
 
-    public init(baseUrl: String? = nil) {
+    public init(baseUrl: String? = nil, session: URLSession? = nil) {
         self.customBaseUrl = baseUrl
+        if let session = session {
+            self.session = session
+        } else {
+            let config = URLSessionConfiguration.default
+            config.timeoutIntervalForRequest = 3.0
+            config.timeoutIntervalForResource = 5.0
+            self.session = URLSession(configuration: config)
+        }
     }
 
     public func analyze(
@@ -187,6 +196,7 @@ public class ApiClient {
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 3.0
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(deviceToken)", forHTTPHeaderField: "Authorization")
 
@@ -202,7 +212,7 @@ public class ApiClient {
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: bodyDict)
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        session.dataTask(with: request) { data, response, error in
             if let error = error {
                 completion(.failure(error))
                 return

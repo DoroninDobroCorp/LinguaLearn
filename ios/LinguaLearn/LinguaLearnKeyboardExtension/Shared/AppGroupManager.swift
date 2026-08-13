@@ -19,15 +19,18 @@ public class AppGroupManager {
 
     public func saveDeviceToken(_ token: String) {
         _ = keychainManager.saveDeviceToken(token)
-        userDefaults?.set(token, forKey: Keys.deviceToken)
+        // Securely store token exclusively in Keychain; purge legacy plaintext token from UserDefaults if present
+        userDefaults?.removeObject(forKey: Keys.deviceToken)
         userDefaults?.synchronize()
     }
 
     public func getDeviceToken() -> String? {
-        if let token = keychainManager.getDeviceToken() {
-            return token
+        // Retrieve token strictly from Keychain (plaintext UserDefaults storage eliminated)
+        if userDefaults?.object(forKey: Keys.deviceToken) != nil {
+            userDefaults?.removeObject(forKey: Keys.deviceToken)
+            userDefaults?.synchronize()
         }
-        return userDefaults?.string(forKey: Keys.deviceToken)
+        return keychainManager.getDeviceToken()
     }
 
     public func clearDeviceToken() {

@@ -36,6 +36,27 @@ All network requests emitted by the keyboard extension and container app strictl
 }
 ```
 
+## iOS Keyboard Extension Limitations & Architecture Constraints
+
+1. **Full Access & Network Authorization**:
+   - Custom keyboard extensions run in a restricted sandbox. Network access and shared Keychain access require `RequestsOpenAccess = true` in `Info.plist` and explicit user activation in iOS Settings (`Settings -> General -> Keyboard -> Keyboards -> Allow Full Access`).
+   - Without Full Access, network calls to `POST /api/writing/analyze` are blocked by iOS App Transport Security.
+
+2. **Memory Allocation Limits**:
+   - iOS places a strict RAM limit on keyboard extensions (~12MB to 16MB). Exceeding memory thresholds causes instant process termination (`SIGKILL`) by the operating system.
+   - The extension relies on lightweight `URLSession` data tasks and zero heavy third-party UI dependencies.
+
+3. **Keychain & App Group Codesigning Entitlements**:
+   - Shared token storage between the Container App and Keyboard Extension requires matching `com.apple.security.application-groups` (`group.ai.factory.lingualearn`) and `keychain-access-groups` (`$(AppIdentifierPrefix)group.ai.factory.lingualearn`) in target entitlements files.
+   - Build settings set `CODE_SIGN_ENTITLEMENTS` for both container and keyboard targets.
+
+4. **Secure Text Entry Exclusion**:
+   - Whenever focus enters a secure text field (`isSecureTextEntry = true`, e.g. passwords, CVV fields), iOS automatically bypasses custom keyboards or disables Full Access context for security.
+   - `CandidateFilter` verifies `isSecureTextEntry` and keyword patterns (`password`, `secret`, `passcode`) to instantly reject secure text capture.
+
+5. **Document Proxy Boundary & Focus Restrictions**:
+   - `UITextDocumentProxy` allows reading context before and after the cursor (`documentContextBeforeInput`, `documentContextAfterInput`) and inserting/deleting text. It cannot inspect rich formatted text or access text outside the active control.
+
 ## Running Tests
 
 Swift unit tests are located in `LinguaLearnTests/`:

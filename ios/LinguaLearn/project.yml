@@ -27,6 +27,7 @@ targets:
       PRODUCT_BUNDLE_IDENTIFIER: ai.factory.lingualearn.app
       INFOPLIST_FILE: LinguaLearnContainerApp/Info.plist
       ENTITLEMENTS_FILE: LinguaLearnContainerApp/LinguaLearnContainerApp.entitlements
+      CODE_SIGN_ENTITLEMENTS: LinguaLearnContainerApp/LinguaLearnContainerApp.entitlements
       ENABLE_TESTABILITY: "YES"
     dependencies:
       - target: LinguaLearnKeyboardExtension
@@ -45,6 +46,7 @@ targets:
       PRODUCT_BUNDLE_IDENTIFIER: ai.factory.lingualearn.app.keyboard
       INFOPLIST_FILE: LinguaLearnKeyboardExtension/Info.plist
       ENTITLEMENTS_FILE: LinguaLearnKeyboardExtension/LinguaLearnKeyboardExtension.entitlements
+      CODE_SIGN_ENTITLEMENTS: LinguaLearnKeyboardExtension/LinguaLearnKeyboardExtension.entitlements
 
   LinguaLearnTests:
     type: bundle.unit-test

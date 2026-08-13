@@ -26,7 +26,7 @@ final class SendTriggerTests: XCTestCase {
         AppGroupManager.shared.saveDeviceToken(token)
 
         let sentence = "She does not understand the complex grammar rules."
-        vc.triggerSendEvent(explicitText: sentence)
+        vc.triggerSendEvent(previewOnly: false, explicitText: sentence)
 
         XCTAssertNotNil(vc.lastSentPayload)
         XCTAssertEqual(vc.lastSentPayload?.originalText, sentence)
@@ -47,5 +47,22 @@ final class SendTriggerTests: XCTestCase {
 
         XCTAssertNotNil(vc.lastSentPayload)
         XCTAssertEqual(vc.lastSentPayload?.originalText, "She does not understand the complex grammar rules.")
+        XCTAssertFalse(vc.lastSentPayload?.previewOnly ?? true)
+    }
+
+    func testManualCheckButtonTapTriggersPreviewOnlyAnalysis() {
+        let vc = KeyboardViewController()
+        vc.viewDidLoad()
+        let token = "ll_dev_test_check_tap_token"
+        AppGroupManager.shared.saveDeviceToken(token)
+
+        vc.typeText("She does not understand the complex grammar rules.")
+        XCTAssertNil(vc.lastSentPayload)
+
+        vc.handleCheckTrigger()
+
+        XCTAssertNotNil(vc.lastSentPayload)
+        XCTAssertEqual(vc.lastSentPayload?.originalText, "She does not understand the complex grammar rules.")
+        XCTAssertTrue(vc.lastSentPayload?.previewOnly ?? false, "Manual Check button must set previewOnly = true")
     }
 }

@@ -103,5 +103,50 @@ final class StructuredResponseDecodingTests: XCTestCase {
         XCTAssertNil(response.assessment)
         XCTAssertNil(response.hasClearError)
         XCTAssertNil(response.errors)
+
+        let tier = AnalysisTier.resolve(from: response)
+        XCTAssertEqual(tier, .correct)
+        XCTAssertFalse(tier.isDetailedCard)
+    }
+
+    func testFourTierAssessmentResolution() throws {
+        let clearErrorResp = AnalysisResponse(
+            correctedText: "She doesn't know.",
+            assessment: "clear_error",
+            hasClearError: true,
+            errors: [WritingAnalysisErrorItem(kind: "grammar_error", category: "verb_tense")]
+        )
+        let tier1 = AnalysisTier.resolve(from: clearErrorResp)
+        XCTAssertEqual(tier1, .clearError)
+        XCTAssertTrue(tier1.isDetailedCard)
+
+        let mechanicalResp = AnalysisResponse(
+            correctedText: "Hello world.",
+            assessment: "mechanical_only",
+            hasClearError: false,
+            mechanicalCorrections: [MechanicalCorrectionItem(explanationRu: "Typo fix")]
+        )
+        let tier2 = AnalysisTier.resolve(from: mechanicalResp)
+        XCTAssertEqual(tier2, .mechanicalOnly)
+        XCTAssertFalse(tier2.isDetailedCard)
+
+        let acceptableResp = AnalysisResponse(
+            correctedText: "Hello there.",
+            assessment: "acceptable",
+            hasClearError: false,
+            optionalSuggestions: [OptionalSuggestionItem(suggestion: "Greetings.")]
+        )
+        let tier3 = AnalysisTier.resolve(from: acceptableResp)
+        XCTAssertEqual(tier3, .acceptable)
+        XCTAssertFalse(tier3.isDetailedCard)
+
+        let correctResp = AnalysisResponse(
+            correctedText: "Hello.",
+            assessment: "correct",
+            hasClearError: false
+        )
+        let tier4 = AnalysisTier.resolve(from: correctResp)
+        XCTAssertEqual(tier4, .correct)
+        XCTAssertFalse(tier4.isDetailedCard)
     }
 }

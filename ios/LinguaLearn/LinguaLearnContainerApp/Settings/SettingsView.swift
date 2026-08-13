@@ -3,6 +3,8 @@ import SwiftUI
 struct SettingsView: View {
     @StateObject private var privacyManager = PrivacyConsentManager()
     @EnvironmentObject var authManager: AuthManager
+    @State private var apiUrlInput: String = AppConfig.baseUrl
+    @State private var isSavedAlertPresented: Bool = false
 
     var body: some View {
         NavigationView {
@@ -20,6 +22,30 @@ struct SettingsView: View {
                     }
                     .onChange(of: privacyManager.retentionDays) { _ in
                         privacyManager.saveSettings()
+                    }
+                }
+
+                Section(header: Text("API Server Endpoint (HTTPS)")) {
+                    TextField("https://lingualearn.ai", text: $apiUrlInput)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                        .keyboardType(.URL)
+
+                    HStack {
+                        Button("Save URL") {
+                            AppConfig.setBaseUrl(apiUrlInput)
+                            apiUrlInput = AppConfig.baseUrl
+                            isSavedAlertPresented = true
+                        }
+                        .foregroundColor(.blue)
+
+                        Spacer()
+
+                        Button("Reset Default") {
+                            AppConfig.clearBaseUrl()
+                            apiUrlInput = AppConfig.baseUrl
+                        }
+                        .foregroundColor(.secondary)
                     }
                 }
 
@@ -50,6 +76,11 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .alert("API URL Saved", isPresented: $isSavedAlertPresented, actions: {
+                Button("OK", role: .cancel) { }
+            }, message: {
+                Text("API endpoint configured in shared App Group: \(apiUrlInput)")
+            })
         }
     }
 }

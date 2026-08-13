@@ -456,6 +456,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LinguaLearnContainerApp/LinguaLearnContainerApp.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				ENABLE_TESTABILITY = YES;
 				ENTITLEMENTS_FILE = LinguaLearnContainerApp/LinguaLearnContainerApp.entitlements;
@@ -560,6 +561,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LinguaLearnContainerApp/LinguaLearnContainerApp.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				ENABLE_TESTABILITY = YES;
 				ENTITLEMENTS_FILE = LinguaLearnContainerApp/LinguaLearnContainerApp.entitlements;
@@ -636,6 +638,7 @@
 		B0C8EFC9A3130D50CCDAB590 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = LinguaLearnKeyboardExtension/LinguaLearnKeyboardExtension.entitlements;
 				ENTITLEMENTS_FILE = LinguaLearnKeyboardExtension/LinguaLearnKeyboardExtension.entitlements;
 				INFOPLIST_FILE = LinguaLearnKeyboardExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -655,6 +658,7 @@
 		D9BC0B45AFDC6C38D8D5F59B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = LinguaLearnKeyboardExtension/LinguaLearnKeyboardExtension.entitlements;
 				ENTITLEMENTS_FILE = LinguaLearnKeyboardExtension/LinguaLearnKeyboardExtension.entitlements;
 				INFOPLIST_FILE = LinguaLearnKeyboardExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;

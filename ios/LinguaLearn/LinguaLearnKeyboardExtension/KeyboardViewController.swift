@@ -2,6 +2,7 @@ import UIKit
 
 public class KeyboardViewController: UIInputViewController {
     public var nextKeyboardButton: UIButton!
+    public var checkButton: UIButton!
     public var sendButton: UIButton!
     public var spaceButton: UIButton!
     public var deleteButton: UIButton!
@@ -52,7 +53,7 @@ public class KeyboardViewController: UIInputViewController {
         let row3Keys = ["Z", "X", "C", "V", "B", "N", "M", "⌫"]
         mainStack.addArrangedSubview(createRowStack(keys: row3Keys))
 
-        // Keyboard Row 4: Next, Space, Send
+        // Keyboard Row 4: Next, Check, Space, Send
         let row4Stack = UIStackView()
         row4Stack.axis = .horizontal
         row4Stack.distribution = .fillProportionally
@@ -64,6 +65,14 @@ public class KeyboardViewController: UIInputViewController {
         self.nextKeyboardButton.backgroundColor = UIColor.tertiarySystemFill
         self.nextKeyboardButton.layer.cornerRadius = 5
         self.nextKeyboardButton.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
+
+        self.checkButton = UIButton(type: .system)
+        self.checkButton.setTitle(NSLocalizedString("Check", comment: "Manual check button with previewOnly"), for: .normal)
+        self.checkButton.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
+        self.checkButton.backgroundColor = UIColor.secondarySystemGroupedBackground
+        self.checkButton.setTitleColor(UIColor.systemBlue, for: .normal)
+        self.checkButton.layer.cornerRadius = 5
+        self.checkButton.addTarget(self, action: #selector(handleCheckTrigger), for: .touchUpInside)
 
         self.spaceButton = UIButton(type: .system)
         self.spaceButton.setTitle("Space", for: .normal)
@@ -81,11 +90,13 @@ public class KeyboardViewController: UIInputViewController {
         self.sendButton.addTarget(self, action: #selector(handleSendTrigger), for: .touchUpInside)
 
         row4Stack.addArrangedSubview(self.nextKeyboardButton)
+        row4Stack.addArrangedSubview(self.checkButton)
         row4Stack.addArrangedSubview(self.spaceButton)
         row4Stack.addArrangedSubview(self.sendButton)
 
-        self.nextKeyboardButton.widthAnchor.constraint(equalTo: row4Stack.widthAnchor, multiplier: 0.25).isActive = true
-        self.sendButton.widthAnchor.constraint(equalTo: row4Stack.widthAnchor, multiplier: 0.25).isActive = true
+        self.nextKeyboardButton.widthAnchor.constraint(equalTo: row4Stack.widthAnchor, multiplier: 0.20).isActive = true
+        self.checkButton.widthAnchor.constraint(equalTo: row4Stack.widthAnchor, multiplier: 0.20).isActive = true
+        self.sendButton.widthAnchor.constraint(equalTo: row4Stack.widthAnchor, multiplier: 0.20).isActive = true
 
         mainStack.addArrangedSubview(row4Stack)
     }
@@ -149,19 +160,23 @@ public class KeyboardViewController: UIInputViewController {
             currentDraft = textBefore
         }
         // Typing alone does NOT automatically send event analysis.
-        // Analysis event is triggered ONLY on explicit Send/Enter trigger.
+        // Analysis event is triggered ONLY on explicit Send/Enter or Check trigger.
+    }
+
+    @objc public func handleCheckTrigger() {
+        triggerSendEvent(previewOnly: true)
     }
 
     @objc public func handleSendTrigger() {
-        triggerSendEvent()
+        triggerSendEvent(previewOnly: false)
     }
 
     @objc public func handleReturnKey() {
         textDocumentProxy.insertText("\n")
-        triggerSendEvent()
+        triggerSendEvent(previewOnly: false)
     }
 
-    public func triggerSendEvent(explicitText: String? = nil) {
+    public func triggerSendEvent(previewOnly: Bool = false, explicitText: String? = nil) {
         guard !AppGroupManager.shared.isCapturePaused() else { return }
 
         let context = InputFieldContext(
@@ -173,11 +188,11 @@ public class KeyboardViewController: UIInputViewController {
 
         let filterResult = CandidateFilter.evaluate(text: textToSend, context: context)
         if filterResult.accepted {
-            processCandidateText(textToSend)
+            processCandidateText(textToSend, previewOnly: previewOnly)
         }
     }
 
-    public func processCandidateText(_ text: String) {
+    public func processCandidateText(_ text: String, previewOnly: Bool = false) {
         guard let token = AppGroupManager.shared.getDeviceToken() else { return }
 
         let eventId = UUID().uuidString
@@ -186,7 +201,7 @@ public class KeyboardViewController: UIInputViewController {
             eventId: eventId,
             sourceApp: "LinguaLearnKeyboardExtension",
             originalText: text,
-            previewOnly: false
+            previewOnly: previewOnly
         )
         self.lastSentPayload = payload
 
@@ -194,17 +209,21 @@ public class KeyboardViewController: UIInputViewController {
             DispatchQueue.main.async {
                 switch result {
                 case .success(let response):
-                    if response.accepted && response.changed {
-                        self?.showPreviewPopup(original: text, response: response)
+                    if response.accepted {
+                        let tier = AnalysisTier.resolve(from: response)
+                        let targetText = (response.recommendedText?.isEmpty == false ? response.recommendedText : response.correctedText) ?? response.correctedText
+                        self?.showPreviewPopup(original: text, targetText: targetText, response: response, tier: tier)
                     }
                 case .failure:
-                    self?.retryQueue.enqueue(payload: payload)
+                    if !previewOnly {
+                        self?.retryQueue.enqueue(payload: payload)
+                    }
                 }
             }
         }
     }
 
-    private func showPreviewPopup(original: String, response: AnalysisResponse) {
+    private func showPreviewPopup(original: String, targetText: String, response: AnalysisResponse, tier: AnalysisTier) {
         if previewPopup == nil {
             let popup = PreviewPopupView(frame: .zero)
             popup.translatesAutoresizingMaskIntoConstraints = false
@@ -217,11 +236,13 @@ public class KeyboardViewController: UIInputViewController {
             previewPopup = popup
         }
 
+        let isChanged = (original != targetText)
         let preview = AnalysisPreview(
             originalText: original,
-            correctedText: response.correctedText,
+            targetText: targetText,
             summaryRu: response.summaryRu,
-            changed: response.changed
+            changed: isChanged,
+            tier: tier
         )
 
         previewPopup?.configure(preview: preview)
@@ -229,7 +250,7 @@ public class KeyboardViewController: UIInputViewController {
 
         previewPopup?.onReplace = { [weak self] in
             guard let self = self else { return }
-            AutoReplaceEngine.replace(originalText: original, correctedText: response.correctedText, proxy: self.textDocumentProxy)
+            AutoReplaceEngine.replace(originalText: original, correctedText: targetText, proxy: self.textDocumentProxy)
             self.previewPopup?.isHidden = true
         }
 

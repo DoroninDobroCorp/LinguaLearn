@@ -2,6 +2,16 @@ import XCTest
 @testable import LinguaLearnContainerApp
 
 final class KeychainAppGroupManagerTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        AppGroupManager.shared.clearDeviceToken()
+    }
+
+    override func tearDown() {
+        AppGroupManager.shared.clearDeviceToken()
+        super.tearDown()
+    }
+
     func testKeychainAppGroupStorageAndRetrieval() {
         let testToken = "sample_dummy_token_123"
         let keychain = KeychainAppGroupManager.shared
@@ -14,6 +24,11 @@ final class KeychainAppGroupManagerTests: XCTestCase {
         let retrieved = AppGroupManager.shared.getDeviceToken()
 
         XCTAssertEqual(retrieved, testToken)
+
+        // Verify plaintext token is strictly NOT stored in UserDefaults
+        let defaults = UserDefaults(suiteName: "group.ai.factory.lingualearn")
+        XCTAssertNil(defaults?.string(forKey: "lingualearn_device_token"), "Plaintext device token must NOT be stored in UserDefaults")
+        XCTAssertNil(UserDefaults.standard.string(forKey: "lingualearn_device_token"), "Plaintext device token must NOT be in standard UserDefaults")
     }
 
     func testKeychainDeleteDeviceToken() {
@@ -24,6 +39,10 @@ final class KeychainAppGroupManagerTests: XCTestCase {
         AppGroupManager.shared.clearDeviceToken()
         let retrieved = AppGroupManager.shared.getDeviceToken()
         XCTAssertNil(retrieved)
+
+        // Verify UserDefaults also remains clean
+        let defaults = UserDefaults(suiteName: "group.ai.factory.lingualearn")
+        XCTAssertNil(defaults?.string(forKey: "lingualearn_device_token"))
     }
 }
 
