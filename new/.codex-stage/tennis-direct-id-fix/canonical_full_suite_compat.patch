@@ -1,0 +1,65 @@
+diff --git a/tests/test_bet_service_tennis_ml_fallback.py b/tests/test_bet_service_tennis_ml_fallback.py
+--- a/tests/test_bet_service_tennis_ml_fallback.py
++++ b/tests/test_bet_service_tennis_ml_fallback.py
+@@ -584,6 +584,9 @@ def test_maybe_attach_exact_price_adds_shadow_quote():
+-        async def fake_fetch_bia_event_ref(event_id, period, force_refresh=False):
++        async def fake_fetch_bia_event_ref(
++            event_id, period, selection=None, force_refresh=False,
++        ):
+             assert event_id == 321
+             assert period == 0
++            assert selection["bet_type"] == 1
+             return {
+                 "sport_code": "fb",
+                 "event_key": "2026-04-05,95,47",
+diff --git a/tests/test_bia_event_matcher.py b/tests/test_bia_event_matcher.py
+--- a/tests/test_bia_event_matcher.py
++++ b/tests/test_bia_event_matcher.py
+@@ -441,4 +441,4 @@ class TestBiaSportMap:
+         assert BIA_SPORT_MAP["basket"] == "Basketball"
+ 
+     def test_unknown_sport_returns_empty(self):
+-        assert BIA_SPORT_MAP.get("cricket") is None
++        assert BIA_SPORT_MAP.get("curling") is None
+diff --git a/tests/test_bia_integration.py b/tests/test_bia_integration.py
+--- a/tests/test_bia_integration.py
++++ b/tests/test_bia_integration.py
+@@ -651,7 +651,7 @@ class TestApplyOffersHcap:
+ 
+     def test_unsupported_period_offer_skipped(self):
+-        """Offer for unsupported BIA sport code (basket_q1) should be skipped
+-        rather than misapplied to period 0."""
++        """A supported basketball quarter is never misapplied to period 0;
++        an unmatched event remains unapplied."""
+         stats = BiaObserverStats()
+         stats._event_registry[("comp1", "basket_q1", "evt1")] = {
+             "home": "Arsenal", "away": "Chelsea",
+@@ -668,7 +668,7 @@ class TestApplyOffersHcap:
+         )
+         asyncio.run(_apply_offers_hcap(msg, stats))
+ 
+-        assert stats.offers_skipped_unsupported_period == 1
++        assert stats.offers_skipped_unsupported_period == 0
+         assert stats.offers_applied == 0
+         # State must not be touched
+         p0 = state.events_data[1001]["Periods"][0]
+diff --git a/tests/test_ps3838_server_startup.py b/tests/test_ps3838_server_startup.py
+--- a/tests/test_ps3838_server_startup.py
++++ b/tests/test_ps3838_server_startup.py
+@@ -136,6 +136,7 @@ def test_lookup_bia_endpoint_returns_match(monkeypatch):
+         assert event_id == 123
+         assert period == 1
+         return {
++            "found": True,
+             "event_id": 123,
+             "period": 1,
+             "sport_code": "fb_ht",
+@@ -144,7 +145,7 @@ def test_lookup_bia_endpoint_returns_match(monkeypatch):
+             "swapped": True,
+         }
+ 
+-    monkeypatch.setattr(ps3838_server, "lookup_bia_event_for_pid", fake_lookup)
++    monkeypatch.setattr(ps3838_server, "lookup_unique_bia_event_for_pid", fake_lookup)
+ 
+     status, _headers, body = asyncio.run(ps3838_server.process_request("/lookup-bia?event_id=123&period=1", {}))
+     payload = orjson.loads(body)

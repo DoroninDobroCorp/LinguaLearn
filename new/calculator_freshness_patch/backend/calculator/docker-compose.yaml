@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  calculator:
+    container_name: calculator
+    entrypoint: /calculator
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: always
+    ports:
+      - "7010:7010"
+    env_file:
+      - ./.env
+    volumes:
+      - /srv/big_value/logs:/logs
+    networks:
+      - livebets
+
+networks:
+  livebets:
+    external: true

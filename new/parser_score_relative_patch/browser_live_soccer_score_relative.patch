@@ -1,0 +1,115 @@
+--- a/parsing/parser_utils.py
++++ b/parsing/parser_utils.py
+@@ -516,13 +516,16 @@
+     home_score: float = 0.0,
+     away_score: float = 0.0,
+     score_relative: bool = False,
++    score_relative_hdp_is_home_signed: bool = True,
+ ) -> None:
+     """Парсинг гандикапов (спредов) из period_data в period[target_key].
+     sign_is_home=True означает, что сырой hdp уже signed для домашней команды
+     (CornersHandicap, BookingsHandicap в футболе). False — стандартное зеркалирование.
+ 
+-    score_relative=True matches Serge's Partner API normalization for sports
+-    where live handicaps are expressed relative to the current score.
++    score_relative=True converts a live remaining-time handicap into the
++    absolute full-match line by applying the current score. Set
++    score_relative_hdp_is_home_signed=False when the raw hdp is mirrored
++    (positive raw hdp belongs to the away-side display line).
+     """
+     if len(period_data) > 0 and isinstance(period_data[0], list):
+         spreads = period_data[0]
+@@ -554,8 +557,9 @@
+                  pass
+ 
+             if score_relative:
+-                home_hcp = (away_score - home_score) + hdp
+-                away_hcp = (home_score - away_score) - hdp
++                home_relative_hcp = hdp if score_relative_hdp_is_home_signed else -hdp
++                home_hcp = (away_score - home_score) + home_relative_hcp
++                away_hcp = (home_score - away_score) - home_relative_hcp
+             elif sign_is_home:
+                 home_hcp = hdp
+                 away_hcp = -hdp
+--- a/parsing/sport_parsers.py
++++ b/parsing/sport_parsers.py
+@@ -314,12 +314,13 @@
+                     period,
+                     period_data,
+                     "Handicap",
+-                    sign_is_home=bool(ev.get("from_pinnacle_api")),
++                    sign_is_home=False,
+                     event_id=ev.get("event_id", 0),
+                     ps_period=period_num,
+                     home_score=float(ev.get("home_score") or 0.0),
+                     away_score=float(ev.get("away_score") or 0.0),
+-                    score_relative=bool(ev.get("from_pinnacle_api")),
++                    score_relative=is_live,
++                    score_relative_hdp_is_home_signed=False,
+                 )
+                 parse_totals_into(period, period_data, "Totals", event_id=ev.get("event_id", 0), ps_period=period_num)
+                 parse_team_totals_into(period, period_data, "FirstTeamTotals", "SecondTeamTotals", event_id=ev.get("event_id", 0), ps_period=period_num)
+--- a/tests/test_soccer_handicap_sign.py
++++ b/tests/test_soccer_handicap_sign.py
+@@ -40,6 +40,17 @@
+     }
+ 
+ 
++def _sample_zero_handicap_event(home_score=0.0, away_score=0.0):
++    event = _sample_soccer_event()
++    event["home_score"] = home_score
++    event["away_score"] = away_score
++    event["has_score"] = True
++    event["odds_block"]["0"][0] = [
++        [0.0, 0.0, "0.0", "2.280", "1.628", 0, 0, 56961307735, 1, 2250.0, 1],
++    ]
++    return event
++
++
+ def test_soccer_handicap_sign_is_betslip_aligned_for_prematch():
+     game = parse_soccer_events([_sample_soccer_event()], is_live=False)[1625140504]
+     period = game["Periods"][0]
+@@ -63,3 +74,43 @@
+ 
+     assert hdp["-1.0"]["Win1"]["value"] == 2.03
+     assert hdp["1.0"]["Win2"]["value"] == 1.877
++
++
++def test_browser_live_soccer_h0_is_shifted_by_current_score():
++    event = _sample_zero_handicap_event(home_score=1.0, away_score=0.0)
++
++    game = parse_soccer_events([event], is_live=True)[1625140504]
++    hdp = game["Periods"][0]["Handicap"]
++
++    assert hdp["-1.0"]["Win1"]["value"] == 2.28
++    assert hdp["-1.0"]["Win1"]["raw"]["handicap"] == -1.0
++    assert hdp["1.0"]["Win2"]["value"] == 1.628
++    assert hdp["1.0"]["Win2"]["raw"]["handicap"] == 1.0
++    assert "0.0" not in hdp
++    assert "-0.0" not in hdp
++
++
++def test_browser_live_soccer_h0_at_level_score_stays_h0():
++    event = _sample_zero_handicap_event(home_score=0.0, away_score=0.0)
++
++    game = parse_soccer_events([event], is_live=True)[1625140504]
++    hdp = game["Periods"][0]["Handicap"]
++
++    assert hdp["0.0"]["Win1"]["value"] == 2.28
++    assert hdp["0.0"]["Win2"]["value"] == 1.628
++    assert hdp["0.0"]["Win1"]["raw"]["handicap"] == 0.0
++    assert hdp["0.0"]["Win2"]["raw"]["handicap"] == 0.0
++
++
++def test_browser_prematch_soccer_h0_is_not_score_shifted():
++    # A defensive regression: prematch normalization must remain independent
++    # from score fields even if an upstream row happens to carry them.
++    event = _sample_zero_handicap_event(home_score=1.0, away_score=0.0)
++
++    game = parse_soccer_events([event], is_live=False)[1625140504]
++    hdp = game["Periods"][0]["Handicap"]
++
++    assert hdp["-0.0"]["Win1"]["value"] == 2.28
++    assert hdp["0.0"]["Win2"]["value"] == 1.628
++    assert "-1.0" not in hdp
++    assert "1.0" not in hdp

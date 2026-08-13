@@ -1,0 +1,20 @@
+[Unit]
+Description=BMAD Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/srv/bmadgram
+Environment="PYTHONPATH=/srv/bmadgram"
+ExecStart=/usr/bin/python3 -m cli.daemon.main
+Restart=always
+RestartSec=10
+TimeoutStopSec=5
+KillMode=mixed
+KillSignal=SIGINT
+StandardOutput=append:/home/ubuntu/.lev/logs/daemon.log
+StandardError=append:/home/ubuntu/.lev/logs/daemon-stderr.log
+
+[Install]
+WantedBy=multi-user.target

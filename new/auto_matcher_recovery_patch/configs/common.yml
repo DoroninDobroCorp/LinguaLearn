@@ -1,0 +1,61 @@
+# ============================================================
+# AUTO_MATCHER CONFIGURATION
+# ============================================================
+# Это ЕДИНСТВЕННЫЙ конфиг файл! (secrets.yml содержит только ключи API)
+# MODE задаётся через переменную окружения: MODE=live или MODE=prematch
+# ============================================================
+
+auto_matcher:
+  interval_matching_leagues: 240
+  interval_matching_teams: 180
+
+analyzer_api:
+  url: http://analyzer:7005/
+  timeout: 10
+  match_data_url: online-match-data
+
+analyzer_pre_api:
+  url: http://analyzer_prematch:7006/
+  timeout: 35
+  match_data_url: online-match-data
+
+llm_matcher:
+  provider: cerebras  # gemini или cerebras - выбор провайдера
+  # API ключи вынесены в configs/secrets.yml (добавлен в .gitignore)
+  api_keys: []  # Загружаются из secrets.yml
+  check_interval: 300  # Проверка каждые 5 минут (LIVE только!)
+  # Manual JSONL review/approval is intentionally disabled unless an operator
+  # explicitly opts in with LLM_MATCHER_PENDING_REVIEW_ENABLED=true.
+  pending_review_enabled: false
+  
+  # Google Gemini настройки (когда provider: gemini)
+  gemini:
+    model: gemini-2.5-pro  # primary Gemini оставляем как fallback-путь конфигурации.
+    max_tokens: 32000  # Увеличено для batch команд (было 8192 - обрезало ответ)
+    temperature: 0.0  # ← ДЕТЕРМИНИРОВАННЫЙ режим (убирает случайность)
+  
+  # Cerebras Cloud settings. Keep this on a production, non-deprecated model.
+  # qwen-3-235b-a22b-instruct-2507 was retired by Cerebras on 2026-05-27.
+  cerebras:
+    model: gpt-oss-120b
+    max_completion_tokens: 40000  # Production model limit is 40,960 tokens.
+    temperature: 0.0  # ← ДЕТЕРМИНИРОВАННЫЙ режим (убирает случайность)
+    top_p: 0.95
+  
+  # ⚠️ CRITICAL: Gemini fallback - используется когда ВСЕ ротационные ключи исчерпаны
+  # Получить API key: https://ai.google.dev/gemini-api/docs/api-key
+  # НИКОГДА не используйте gemini-2.0, gemini-1.5 или ниже! Только 2.5+!
+  gemini_fallback:
+    enabled: true
+    # API ключи вынесены в configs/secrets.yml (добавлен в .gitignore)
+    api_keys: []  # Загружаются из secrets.yml
+    model: "gemini-2.5-flash"  # ⚠️ ТОЛЬКО 2.5+! НЕ МЕНЯТЬ на 2.0 или 1.5!
+  
+  # Vertex AI fallback (Google Cloud $300 free credits) - final fallback
+  vertex_fallback:
+    enabled: true
+    # project_id и service_account_file загружаются из secrets.yml
+    project_id: ""
+    location: "us-central1"
+    model: "gemini-2.5-flash"
+    service_account_file: ""

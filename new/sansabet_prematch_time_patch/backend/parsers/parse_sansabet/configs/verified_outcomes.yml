@@ -1,0 +1,113 @@
+# Sansabet Verified Outcomes Configuration
+# Фильтрация по типам рынков (market types)
+# Только проверенные рынки будут парситься и отправляться в analyzer
+
+soccer:
+  verified_market_types:
+    - Win1x2              # Winner / 1X2
+    - Totals              # Total Goals
+    - Handicap            # Handicap
+    - ThreeWayHandicap   # 3-Way European Handicap
+    - FirstTeamTotals     # Team 1 Total
+    - SecondTeamTotals    # Team 2 Total
+    - BTTS                # Both Teams To Score
+    - OddEven             # Odd/Even
+    - DoubleChance        # Double Chance
+    - DrawNoBet           # Draw No Bet
+    - HalfTimeFullTime    # Half Time / Full Time (1/1, 1/X, 1/2, etc.)
+    - FirstTeamToScore    # First Team To Score (Home/Away/Neither)
+    - CorrectScore        # Correct Score (match + 1H)
+    - ExactTotalGoals     # Exact Total Goals (Tačno 1, 2, 3, 4)
+    - TotalGoalsRange     # Total Goals Range (Opseg: 1-2, 2-3, etc.)
+    - HomeExactGoals      # Home Exact Goals (T1 exact count)
+    - AwayExactGoals      # Away Exact Goals (T2 exact count)
+    - HomeWinToNil        # Home Win To Nil (Sigurna Pobeda 1)
+    - AwayWinToNil        # Away Win To Nil (Sigurna Pobeda 2)
+    - WinnerTotalCombo    # Winner + Total Combo (1&3+, 2&4+, etc.)
+    - BTTSTotalCombo     # BTTS + Total Combo (GG i 3+, NG & 0-2, etc.)
+    - BTTSWinnerCombo    # BTTS + Winner Combo (1 & GG, 2 & GG, X i GG)
+  
+  skipped_market_types:
+    - Corners             # Corners
+    - Bookings            # Cards
+
+hockey:
+  verified_market_types:
+    - Win1x2              # Winner (with OT)
+    - Totals              # Total Goals
+    - Handicap            # Handicap
+    - FirstTeamTotals     # Team 1 Total
+    - SecondTeamTotals    # Team 2 Total
+    - BTTS                # Both Teams To Score
+    - OddEven             # Odd/Even
+    - DoubleChance        # Double Chance (regulation + P1)
+    - DrawNoBet           # Draw No Bet (regulation)
+    - WinnerTotalCombo    # Winner + Total Combo (T1&U5.5, T2&O5.5, etc.)
+  
+  skipped_market_types:
+    - CorrectScore        # Correct Score
+
+basketball:
+  verified_market_types:
+    - Win1x2              # Winner (with OT)
+    - Totals              # Total Points (with OT)
+    - Handicap            # Handicap (with OT)
+    - FirstTeamTotals     # Team 1 Total
+    - SecondTeamTotals    # Team 2 Total
+    - OddEven             # Odd/Even
+    - DoubleChance        # Double Chance (regulation, halves)
+  
+  skipped_market_types:
+    - Quarters            # Quarter markets
+
+tennis:
+  verified_market_types:
+    - Win1x2              # Winner
+    - Totals              # Total Games
+    - Handicap            # Handicap
+    - Games               # Set game winners
+    - SetsTotal           # Total Sets
+    - SetsHandicap        # Set Handicap
+    - FirstTeamTotals     # IT1 Games
+    - SecondTeamTotals    # IT2 Games
+    - CorrectScore        # Correct Score (set score: 2:0, 2:1, etc.)
+  
+  skipped_market_types: []
+
+volleyball:
+  verified_market_types:
+    - Win1x2              # Winner
+    - Totals              # Total Points
+    - Handicap            # Handicap
+    - SetsTotal           # Total Sets
+    - SetsHandicap        # Set Handicap
+    - FirstTeamTotals     # IT1
+    - SecondTeamTotals    # IT2
+  
+  skipped_market_types:
+    - CorrectScore        # Correct Score
+
+handball:
+  verified_market_types:
+    - Win1x2              # Winner / 1X2
+    - Totals              # Total Goals
+    - Handicap            # Handicap
+    - ThreeWayHandicap    # 3-Way European Handicap
+    - FirstTeamTotals     # Team 1 Total
+    - SecondTeamTotals    # Team 2 Total
+    - BTTS                # Both Teams To Score
+    - OddEven             # Odd/Even
+    - DoubleChance        # Double Chance
+    - DrawNoBet           # Draw No Bet
+    - WinnerTotalCombo    # Winner + Total Combo (1&3+, 2&4+, etc.)
+
+esports:
+  verified_market_types:
+    - Win1x2              # Winner
+    - Totals              # Total
+    - Handicap            # Handicap
+
+# NOTE: Sansabet uses TipID (numeric) to identify market types
+# Filtering is done at the TipID level in the code (tipid_to_market.go)
+# This config only defines which market TYPES are verified per sport
+# The TipID -> market type mapping is hardcoded in the parser

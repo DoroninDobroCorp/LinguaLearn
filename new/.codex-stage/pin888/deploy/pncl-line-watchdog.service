@@ -1,0 +1,6 @@
+[Unit]
+Description=PNCL line watchdog (restart pncl if football empty)
+
+[Service]
+Type=oneshot
+ExecStart=/srv/sharpbook/bin/line-watchdog.sh

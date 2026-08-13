@@ -1,0 +1,386 @@
+# HTTP -> HTTPS redirect
+server {
+    listen 80;
+    server_name ibet.team www.ibet.team;
+    
+    # Allow Let's Encrypt validation
+    location /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+    }
+    
+    # Redirect all other traffic to HTTPS
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
+}
+
+# HTTPS server
+server {
+    listen 443 ssl http2;
+    server_name ibet.team www.ibet.team;
+    
+    # SSL certificates
+    ssl_certificate /etc/letsencrypt/live/ibet.team/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ibet.team/privkey.pem;
+    
+    # SSL configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    
+    root /var/www/html;
+    index index.html;
+    
+
+    # IWantMillion Kanban Board (public — app-level auth via ?user=)
+    location /iwantmillion/ {
+        proxy_pass http://127.0.0.1:8055/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Prefix /iwantmillion;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+    }
+    location = /iwantmillion {
+        return 301 /iwantmillion/;
+    }
+    # Health dashboard files (exact match)
+    location = /health-dashboard.html {
+        include /etc/nginx/snippets/allowed-ips.conf;
+        deny all;
+        proxy_pass http://localhost:8090/web/dashboard.html;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Cache-Control "no-cache, must-revalidate";
+    }
+    
+    location = /health-data.json {
+        include /etc/nginx/snippets/allowed-ips.conf;
+        deny all;
+        try_files $uri =404;
+        add_header Cache-Control "no-cache, must-revalidate";
+        add_header Content-Type "application/json";
+    }
+    
+    # NEW: Unified Health Board API (proxied to monitor.py on port 8090)
+    location = /health-status.json {
+        include /etc/nginx/snippets/allowed-ips.conf;
+        deny all;
+        proxy_pass http://localhost:8090/health-status.json;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        
+        # Timeout settings to prevent hanging
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 5s;
+        proxy_read_timeout 10s;
+        
+        add_header Cache-Control "no-cache, must-revalidate";
+        add_header Content-Type "application/json";
+        add_header Access-Control-Allow-Origin "https://ibet.team";
+    }
+    
+    # Static project sites
+    location /our_world/ {
+        try_files $uri $uri/index.html =404;
+    }
+    
+    location /your-work/ {
+        index index.html;
+        try_files $uri $uri/index.html =404;
+    }
+    
+    location /your-mlrd/ {
+        index presentation.html;
+        try_files $uri $uri/index.html =404;
+    }
+    
+    location /new-era/ {
+        index business_proposal.html;
+        try_files $uri $uri/index.html =404;
+    }
+    
+    # AI PM Monitor
+    location /ai-pm-monitor/ {
+        alias /var/www/ai-pm-monitor/;
+        index index.html;
+        try_files $uri $uri/index.html =404;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+        add_header Content-Type "text/html; charset=utf-8" always;
+    }
+    
+    location /ai-pm-monitor/status/ {
+        alias /var/www/ai-pm-monitor/status/;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+        add_header Content-Type "application/json" always;
+        add_header Access-Control-Allow-Origin "https://ibet.team" always;
+    }
+    
+    # RSVP Reader (static files)
+    location = /rsvp/api/sync {
+        proxy_pass http://127.0.0.1:8081/api/sync;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 50m;
+        add_header Cache-Control "no-store" always;
+    }
+
+    location /rsvp/ {
+        alias /srv/RSVP_reader/;
+        index index.html;
+        try_files $uri $uri/ =404;
+    }
+    
+    # English Learning Assistant API
+    location /english/api/ {
+        limit_req zone=api burst=20 nodelay;
+        proxy_pass http://localhost:3001/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+    
+    # English Learning Assistant static files
+    location = /english {
+        return 301 /english/;
+    }
+
+    location /english/ {
+        alias /srv/LinguaLearn/english/dist/;
+        index index.html;
+        try_files $uri $uri/ /index.html =404;
+    }
+    
+    # Spanish Learning Assistant API
+    location /spanish/api/ {
+        limit_req zone=api burst=20 nodelay;
+        proxy_pass http://localhost:3003/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+    
+    # Spanish Learning Assistant static files
+    location = /spanish {
+        return 301 /spanish/;
+    }
+
+    location = /spanish/ {
+        add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
+        add_header Pragma "no-cache" always;
+        return 302 /spanish/vocabulary;
+    }
+
+    location /spanish/ {
+        alias /srv/LinguaLearn/spanish/dist/;
+        index index.html;
+        try_files $uri @spanish_spa_https;
+    }
+
+    location @spanish_spa_https {
+        internal;
+        root /srv/LinguaLearn/spanish/dist;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
+        add_header Pragma "no-cache" always;
+        try_files /index.html =404;
+    }
+    
+    # Checkers Game (Dimka's version)
+    location /checkers_dimka/ {
+        proxy_pass http://localhost:5000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    location /checkers_dimka/socket.io/ {
+        proxy_pass http://localhost:5000/socket.io/;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # Checkers Game (old path)
+    location /checkers/ {
+        proxy_pass http://localhost:5000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    location /checkers/socket.io/ {
+        proxy_pass http://localhost:5000/socket.io/;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # Parser Validator Reports
+    # Parser Reports (IP restricted)
+    location /parser-reports/ {
+        include /etc/nginx/snippets/allowed-ips.conf;
+        deny all;
+        alias /var/www/html/parser-reports/;
+        try_files $uri $uri/index.html =404;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+    }
+
+    location /validator/ {
+        include /etc/nginx/snippets/allowed-ips.conf;
+        deny all;
+        alias /var/www/html/validator/;
+        index actual_report.html;
+        try_files $uri $uri/index.html =404;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+    }
+
+    # IoT Business Analysis page
+    # Vox presentation (public, no auth)
+    location /vox/ {
+        alias /var/www/html/vox/;
+        index index.html;
+        try_files $uri $uri/ /vox/index.html =404;
+    }
+
+    location = /iot {
+        return 301 /iot/;
+    }
+    
+    location /iot/ {
+        root /var/www/html;
+        index index.html;
+    }
+    
+
+    # Parser Inspector (IP restricted)
+    location = /parser_inspector.html {
+        include /etc/nginx/snippets/allowed-ips.conf;
+        deny all;
+        root /var/www/html;
+        try_files $uri =404;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+    }
+
+    location = /parser_inspector_v2.html {
+        include /etc/nginx/snippets/allowed-ips.conf;
+        deny all;
+        root /var/www/html;
+        try_files $uri =404;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+    }
+
+
+    # Tennis monitor (IP restricted)
+    location = /tennis-monitor.html {
+        include /etc/nginx/snippets/allowed-ips.conf;
+        deny all;
+        root /var/www/html;
+        try_files $uri =404;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+    }
+
+    # Live match data (IP restricted)
+    location = /api/live-match-data {
+        include /etc/nginx/snippets/allowed-ips.conf;
+        deny all;
+        proxy_pass http://127.0.0.1:7005/match-data;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+        add_header Access-Control-Allow-Origin "https://ibet.team" always;
+    }
+
+    location = /api/live-match-data/ {
+        include /etc/nginx/snippets/allowed-ips.conf;
+        deny all;
+        proxy_pass http://127.0.0.1:7005/match-data;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+        add_header Access-Control-Allow-Origin "https://ibet.team" always;
+    }
+
+    # Match data from analyzer (IP restricted)
+
+
+
+    # El Bolson Education Guide (public, no auth)
+    location = /el_bolson_study.html {
+        root /var/www/html;
+        try_files $uri =404;
+        add_header Cache-Control "no-cache, must-revalidate" always;
+    }
+
+    # Cotton candy business plan site
+    location /vata/ {
+        alias /srv/sites/vata/;
+        index cotton-candy-plan/index.html;
+        autoindex off;
+    }
+    location = /vata {
+        return 301 /vata/cotton-candy-plan/index.html;
+    }
+
+    # Proxy pass to other projects on port 8180 (IP restricted)
+    location / {
+        include /etc/nginx/snippets/allowed-ips.conf;
+        deny all;
+        proxy_pass http://localhost:8180;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}

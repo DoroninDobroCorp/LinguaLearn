@@ -1,0 +1,38 @@
+[Unit]
+Description=Pin888 browser fleet for the current sport-role assignment
+After=network-online.target ps38-aggregator.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=admin805
+Group=admin805
+WorkingDirectory=/srv/ps38-aggregator/current
+EnvironmentFile=/home/admin805/.secrets/pin888_fleet.env
+Environment=PYTHONPATH=/srv/ps38-aggregator/current
+Environment=PS3838_BROWSER_EXECUTABLE_PATH=/home/admin805/.cache/ms-playwright/chromium-1200/chrome-linux64/chrome
+Environment=MOREBETS_PS3838_ACCOUNTS_PATH=/home/admin805/.secrets/pin888_active_accounts.txt
+Environment=MOREBETS_PS3838_PROXIES_PATH=/home/admin805/.secrets/pin888_active_proxies.txt
+Environment=MOREBETS_PS3838_DOMAIN=www.pinnacle888.com
+Environment=REMOTE_FLEET_CENTRAL_URL=http://127.0.0.1:9013
+Environment=REMOTE_FLEET_SOURCE_FAMILY=pin888
+Environment=REMOTE_FLEET_ALLOCATION_MODE=account_sports
+Environment=REMOTE_FLEET_ROTATE_ASSIGNMENTS=0
+Environment=REMOTE_FLEET_WORKER_RUN_SEC=3600
+Environment=REMOTE_FLEET_CDP_BASE=9500
+Environment=REMOTE_FLEET_SOCKS_BASE=19500
+Environment=PS3838_MULTI_SPORT_MAX_TABS=3
+Environment=PS3838_MULTI_SPORT_BATCH_SEC=45
+Environment=REMOTE_FLEET_SPORTS=soccer:29,tennis:33,basketball:4,hockey:19,volleyball:34,handball:18,e-sports:12,table-tennis:32,baseball:3,cricket:8,american-football:15,aussie-rules:39,combat-sports:22
+ExecStartPre=/srv/pin888/bin/check-no-pinnacle-api
+ExecStartPre=/srv/pin888/bin/check-pin888-proxies --proxies /home/admin805/.secrets/pin888_active_proxies.txt
+ExecStart=/srv/ps38-aggregator/current/.venv/bin/python -u /srv/ps38-aggregator/current/tools/remote_fleet_node.py
+Restart=always
+RestartSec=20
+TimeoutStopSec=30
+NoNewPrivileges=true
+MemoryHigh=2800M
+MemoryMax=3400M
+
+[Install]
+WantedBy=multi-user.target

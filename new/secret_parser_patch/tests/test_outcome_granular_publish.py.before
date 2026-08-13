@@ -1,0 +1,294 @@
+"""Phase 5: outcome-granular publish tests."""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+
+from aggregator.data_class import DataClass
+from aggregator.decision import DecisionEngineV2, outcome_granular_enabled
+from aggregator.state_machine import SystemMode
+from aggregator.types import CandidateQuote
+
+
+def _cand(
+    source_id: str,
+    *,
+    age_sec: float = 0.0,
+    payload: dict | None = None,
+    family: str = "pinnacle_native",
+    transport: str = "browser_ws",
+    event_id: str = "agg:1",
+    is_tombstone: bool = False,
+) -> CandidateQuote:
+    now = datetime.now(timezone.utc) - timedelta(seconds=age_sec)
+    return CandidateQuote(
+        source_id=source_id,
+        family=family,
+        transport=transport,
+        event_id=event_id,
+        payload=payload or {},
+        collected_at=now,
+        received_at=now,
+        is_tombstone=is_tombstone,
+    )
+
+
+# ── env flag ───────────────────────────────────────────────────────
+
+
+def test_outcome_granular_off_by_default(monkeypatch):
+    monkeypatch.delenv("MSP_OUTCOME_GRANULAR_ENABLED", raising=False)
+    assert outcome_granular_enabled() is False
+
+
+def test_outcome_granular_env_opt_in(monkeypatch):
+    monkeypatch.setenv("MSP_OUTCOME_GRANULAR_ENABLED", "1")
+    assert outcome_granular_enabled() is True
+
+
+def test_engine_off_emits_empty_outcomes_list():
+    eng = DecisionEngineV2(emit_outcomes=False)
+    payload = {
+        "market_class": "base",
+        "outcomes": [
+            {"market_id": "1x2", "outcome_id": "home", "price": 1.92},
+        ],
+    }
+    pq = eng.decide(
+        [_cand("pin888:acct-A:browser_ws", payload=payload)],
+        system_mode=SystemMode.NORMAL,
+    )
+    assert pq is not None
+    assert pq.outcomes == []
+
+
+# ── per-outcome resolution ─────────────────────────────────────────
+
+
+def test_engine_emits_per_outcome_quotes_when_enabled():
+    eng = DecisionEngineV2(emit_outcomes=True)
+    payload = {
+        "market_class": "base",
+        "outcomes": [
+            {"market_id": "1x2", "outcome_id": "home", "price": 1.92},
+            {"market_id": "1x2", "outcome_id": "away", "price": 4.10},
+            {"market_id": "1x2", "outcome_id": "draw", "price": 3.50},
+        ],
+    }
+    pq = eng.decide(
+        [_cand("pin888:acct-A:browser_ws", payload=payload)],
+        system_mode=SystemMode.NORMAL,
+    )
+    assert pq is not None
+    assert len(pq.outcomes) == 3
+    by_oid = {o.outcome_id: o for o in pq.outcomes}
+    assert by_oid["home"].price == 1.92
+    assert by_oid["home"].source_used_for_publish == "pin888:acct-A:browser_ws"
+    assert by_oid["home"].publish_authority_class == "pinnacle_native"
+    assert by_oid["home"].degraded is False
+    assert by_oid["home"].data_class == DataClass.BASE_MARKET.value
+
+
+def test_engine_extracts_ps3838_period_value_shape():
+    eng = DecisionEngineV2(emit_outcomes=True)
+    payload = {
+        "Pid": 1600000001,
+        "SportId": 29,
+        "Periods": [
+            {
+                "Number": 0,
+                "Win1x2": {
+                    "Win1": {"value": 1.90},
+                    "Win2": {"value": 2.10},
+                    "WinNone": {"value": 3.40},
+                },
+                "Totals": {
+                    "2.5": {
+                        "WinMore": {"value": 1.95},
+                        "WinLess": {"value": 1.85},
+                    }
+                },
+            }
+        ],
+    }
+    pq = eng.decide(
+        [_cand("ps3838:fleet:acct-A:29", payload=payload)],
+        system_mode=SystemMode.API_DEGRADED,
+    )
+    assert pq is not None
+    by_key = {(o.market_id, o.outcome_id): o.price for o in pq.outcomes}
+    assert by_key[("p0:Win1x2", "Win1")] == 1.90
+    assert by_key[("p0:Win1x2", "Win2")] == 2.10
+    assert by_key[("p0:Totals:2.5", "WinMore")] == 1.95
+    assert by_key[("p0:Totals:2.5", "WinLess")] == 1.85
+
+
+def test_engine_skips_zero_placeholder_prices():
+    eng = DecisionEngineV2(emit_outcomes=True)
+    payload = {
+        "Pid": 1600000001,
+        "SportId": 29,
+        "Periods": [
+            {
+                "Number": 0,
+                "Win1x2": {
+                    "Win1": {"value": 1.90},
+                    "Win2": {"value": 2.10},
+                    "WinNone": {"value": 0.0},
+                },
+            }
+        ],
+    }
+    pq = eng.decide(
+        [_cand("ps3838:fleet:acct-A:29", payload=payload)],
+        system_mode=SystemMode.API_DEGRADED,
+    )
+    assert pq is not None
+    assert {(o.market_id, o.outcome_id) for o in pq.outcomes} == {
+        ("p0:Win1x2", "Win1"),
+        ("p0:Win1x2", "Win2"),
+    }
+
+
+def test_per_outcome_freshness_resolved_independently():
+    """Two sources, different per-outcome freshness — winner per outcome."""
+    eng = DecisionEngineV2(emit_outcomes=True)
+    p_old = {
+        "market_class": "base",
+        "outcomes": [
+            {"market_id": "1x2", "outcome_id": "home", "price": 1.90},
+        ],
+    }
+    p_fresh = {
+        "market_class": "base",
+        "outcomes": [
+            {"market_id": "1x2", "outcome_id": "home", "price": 1.95},
+            {"market_id": "1x2", "outcome_id": "away", "price": 4.00},
+        ],
+    }
+    api_old = _cand(
+        "pinnacle_api", age_sec=8.0, transport="http_pull", payload=p_old
+    )
+    ws_fresh = _cand(
+        "pin888:acct-A:browser_ws", age_sec=0.5, payload=p_fresh
+    )
+    pq = eng.decide([api_old, ws_fresh], system_mode=SystemMode.NORMAL)
+    assert pq is not None
+    by_oid = {o.outcome_id: o for o in pq.outcomes}
+    # home: API has higher authority, still fresh enough → API wins.
+    assert by_oid["home"].source_used_for_publish == "pinnacle_api"
+    # away: only ws_fresh has it.
+    assert by_oid["away"].source_used_for_publish == "pin888:acct-A:browser_ws"
+
+
+def test_per_outcome_authority_picks_official_api_over_browser():
+    eng = DecisionEngineV2(emit_outcomes=True)
+    payload_api = {
+        "market_class": "base",
+        "outcomes": [{"market_id": "1x2", "outcome_id": "home", "price": 1.91}],
+    }
+    payload_ws = {
+        "market_class": "base",
+        "outcomes": [{"market_id": "1x2", "outcome_id": "home", "price": 1.92}],
+    }
+    api = _cand("pinnacle_api", age_sec=0.0, transport="http_pull", payload=payload_api)
+    ws = _cand("pin888:acct-A:browser_ws", age_sec=0.0, payload=payload_ws)
+    pq = eng.decide([api, ws], system_mode=SystemMode.NORMAL)
+    assert pq is not None
+    home = next(o for o in pq.outcomes if o.outcome_id == "home")
+    assert home.source_used_for_publish == "pinnacle_api"
+    assert home.price == 1.91
+    losers = [c.source for c in home.all_candidate_sources]
+    assert "pin888:acct-A:browser_ws" in losers
+
+
+# ── hard-age filtering in outcome buckets ──────────────────────────
+
+
+def test_stale_candidate_rejected_from_outcome_buckets():
+    """A 2h-stale BIA candidate with a unique outcome must NOT leak through.
+
+    The event-level path drops stale candidates, but the outcome path
+    previously bypassed this filter. This test guards the invariant:
+    ``PublishedOutcome.freshness_ms <= hard_max_age * 1000``.
+    """
+    from aggregator.decision import DEFAULT_HARD_AGE_LIVE_BY_CLASS
+
+    eng = DecisionEngineV2(
+        emit_outcomes=True,
+        per_class_hard_age_live=DEFAULT_HARD_AGE_LIVE_BY_CLASS,
+    )
+    fresh_native_payload = {
+        "market_class": "base",
+        "outcomes": [
+            {"market_id": "1x2", "outcome_id": "home", "price": 1.92},
+        ],
+    }
+    stale_bia_payload = {
+        "market_class": "base",
+        "outcomes": [
+            {"market_id": "1x2", "outcome_id": "away", "price": 4.10},
+        ],
+    }
+    fresh = _cand("pin888:acct-A:browser_ws", age_sec=1.0, payload=fresh_native_payload)
+    stale_bia = _cand(
+        "bia_feed:odds_api",
+        age_sec=7200.0,
+        payload=stale_bia_payload,
+        family="bia",
+        transport="http_pull",
+    )
+
+    pq = eng.decide([fresh, stale_bia], system_mode=SystemMode.NORMAL)
+    assert pq is not None
+    oids = {o.outcome_id for o in pq.outcomes}
+    assert "home" in oids, "fresh native 'home' must be published"
+    assert "away" not in oids, "stale BIA 'away' must NOT leak through"
+
+
+def test_stale_candidate_not_chosen_when_fresh_covers_same_outcome():
+    """When a fresh candidate covers the same outcome as a stale one,
+    the fresh candidate wins — no stale leakage."""
+    from aggregator.decision import DEFAULT_HARD_AGE_LIVE_BY_CLASS
+
+    eng = DecisionEngineV2(
+        emit_outcomes=True,
+        per_class_hard_age_live=DEFAULT_HARD_AGE_LIVE_BY_CLASS,
+    )
+    fresh_payload = {
+        "market_class": "base",
+        "outcomes": [
+            {"market_id": "1x2", "outcome_id": "home", "price": 1.95},
+            {"market_id": "1x2", "outcome_id": "away", "price": 4.00},
+        ],
+    }
+    stale_payload = {
+        "market_class": "base",
+        "outcomes": [
+            {"market_id": "1x2", "outcome_id": "home", "price": 1.80},
+            {"market_id": "1x2", "outcome_id": "away", "price": 5.00},
+        ],
+    }
+    fresh = _cand("pin888:acct-A:browser_ws", age_sec=1.0, payload=fresh_payload)
+    stale_bia = _cand(
+        "bia_feed:odds_api",
+        age_sec=7200.0,
+        payload=stale_payload,
+        family="bia",
+        transport="http_pull",
+    )
+
+    pq = eng.decide([fresh, stale_bia], system_mode=SystemMode.NORMAL)
+    assert pq is not None
+
+    hard_limit_ms = DEFAULT_HARD_AGE_LIVE_BY_CLASS[DataClass.BASE_MARKET] * 1000
+    for o in pq.outcomes:
+        assert o.freshness_ms <= hard_limit_ms, (
+            f"outcome {o.outcome_id} freshness_ms={o.freshness_ms} exceeds "
+            f"hard limit {hard_limit_ms}"
+        )
+        assert o.source_used_for_publish == "pin888:acct-A:browser_ws"
+
+    oids = {o.outcome_id for o in pq.outcomes}
+    assert "home" in oids
+    assert "away" in oids

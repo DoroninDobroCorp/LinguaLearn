@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e6e9e4" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>RobinArb</title>
+    <script>
+      try {
+        document.documentElement.dataset.theme = localStorage.getItem('robinarb.workspaceTheme') === 'dark' ? 'dark' : 'light';
+      } catch (_) {
+        document.documentElement.dataset.theme = 'light';
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+[Unit]
+Description=Continuously enforce Pin888 proxy fail-closed policy
+
+[Timer]
+OnActiveSec=15
+OnUnitActiveSec=15
+AccuracySec=2
+Persistent=true
+Unit=pin888-proxy-guard.service
+
+[Install]
+WantedBy=timers.target

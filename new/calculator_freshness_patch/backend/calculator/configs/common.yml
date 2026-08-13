@@ -1,0 +1,65 @@
+analyzer_api:
+  url: http://analyzer:7005/
+  timeout: 5
+  prices_url: prices-by-time
+  retry:
+    attempts: 3
+    delay_ms: 100
+    max_delay_ms: 1000
+  circuit_breaker:
+    max_requests: 3
+    interval_seconds: 10
+    timeout_seconds: 60
+    failure_ratio: 0.6
+
+analyzer_pre_api:
+  url: http://analyzer_prematch:7006/
+  timeout: 30
+  prices_url: prices-by-time
+  retry:
+    attempts: 3
+    delay_ms: 100
+    max_delay_ms: 1000
+  circuit_breaker:
+    max_requests: 3
+    interval_seconds: 10
+    timeout_seconds: 60
+    failure_ratio: 0.6
+
+logs_service:
+  users_cache_interval: 3
+  users_cache_timeout: 3
+  percent_cache_interval: 3600           # Check cache every 1 hour
+  percent_cache_ttl_live: 14400          # 4 hours for LIVE matches
+  percent_cache_ttl_prematch: 259200     # 72 hours for PREMATCH matches
+  percent_cache_timeout: 10800           # Deprecated: use ttl_live/ttl_prematch
+  enable_safe_opposite_bets: false       # Set to true to enable safe opposite bet exemptions
+
+testing_mode:
+  enabled: false  # Set to true for testing
+  edge: -30.0                       # Accept any bet
+  csv_wait_live_seconds: 15         # Fast CSV generation
+  csv_wait_prematch_seconds: 15     # Fast CSV generation
+
+production_mode:
+  edge: 5.0                         # Normal edge requirement
+  csv_wait_live_seconds: 120        # 2 minutes
+  csv_wait_prematch_seconds: 1200   # 20 minutes
+  csv_wait_prematch_fail_seconds: 120  # 2 minutes for FAIL bets (strategy starts with FAIL_)
+
+timeouts:
+  api_call_seconds: 5               # Timeout for API calls to Analyzer
+  db_query_seconds: 3               # Timeout for database queries
+  csv_write_seconds: 10             # Timeout for CSV file operations
+
+kelly_criterion:
+  default_risk: 15.0                # Default risk percentage (was 12.0)
+  default_bank: 10500.0             # Default bank size (was 10000.0)
+  max_bet_percent: 10.0             # Maximum bet as percentage of bank
+  min_bet_amount: 10.0              # Minimum bet amount (EUR) - don't send to user if less
+
+cors:
+  allowed_origins: ["http://localhost:3000"]
+  allowed_methods: ["GET", "POST", "OPTIONS"]
+  allowed_headers: ["Origin", "Content-Type", "Authorization"]
+  max_age_seconds: 43200            # 12 hours

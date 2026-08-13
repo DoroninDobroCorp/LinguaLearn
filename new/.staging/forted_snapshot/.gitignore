@@ -1,0 +1,144 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing / linting caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# Sensitive research findings — NEVER commit
+results/secrets/
+
+# Large binary results
+results/deobfuscated/*.exe
+results/deobfuscated/*.dll
+results/decrypt_helper.exe
+results/de4dot_static_out.txt
+results/de4dot_static_err.txt
+
+# Compiled C# helper
+scripts/decrypt_helper.cs
+
+# Large capture databases
+results/*.db
+results/*.db-journal
+results/*.db-wal
+results/definitive_capture/
+results/fork_capture/
+results/forks_captured/
+results/paid_frames/
+results/frida_bidir/
+results/live_monitor/
+results/sspi_capture/
+results/fork_analysis/
+results/frida_spawn/
+*.db
+*.db-journal
+@AutomationLog.txt
+FORK_DEDUP_REPORT.txt
+*.db-shm
+*.db-wal
+rust-client/test_scratch/
+results/*.log
+# Large binary dumps
+results/analysis/matchresults_*.bin
+results/api_full/body_*.txt
+rust-client/frame_dumps/
+rust-client/target_v2/
+*.db
+
+# Binary artifacts (added 2026-04-20 cleanup)
+results/decompiled/
+results/js_injection/
+results/decrypted/
+results/js/
+results/_unknown/
+results/matchresults_decode/*.bin
+results/*.bmp
+results/**/*.bmp
+results/analysis/*.json
+results/main_win.*
+results/forted_*.*
+results/after_filter_click.*
+
+# Secrets — NEVER commit
+**/.env
+.env.local
+
+# Story 12.1: rust-client production config с CH credentials (env-var fallback only).
+# Шаблон в rust-client/config_24h.example.toml.
+rust-client/config_24h.toml
+
+# Story 16.15 Phase 2 review S2: Forted auth credentials — field[0] login/password
+# ВНИМАНИЕ: существующие tracked auth files в results/auth_catalog/ уже в git history;
+# их удаление = force-push history rewrite, требует Eugene approval (CLAUDE.md).
+# Forward protection: НОВЫЕ auth files не commit-ить. Чтобы commit-нуть test auth
+# без credentials — `git add -f path` после явного review.
+results/auth_catalog/*/auth_header.bin
+results/auth_catalog/*/auth_payload.bin
+
+# Story 16.15: Large fork data dumps (proprietary Forted streams, ToS concerns)
+results/topology_experiments/
+results/capture_*.json
+
+# Session-garbage: разобранные frame дампы и timing-логи (regenerated per scraper run)
+results/analysis/large_frame_*.txt
+results/analysis/frame_timing_*.log
+
+# Story 16.15 Phase 3 iter2 (Sonnet P-R5): draft memory с topology findings;
+# может содержать ToS-sensitive preview данных до Eugene approval. Только когда
+# approved → moved в C:\Users\qwe\.claude\projects\...\memory\ (вне репо).
+_bmad-output/draft-memory/
+
+# Story 16.14: TLS plaintext captures (proprietary, ToS, PII concerns) — DOD-22
+results/tls_124/
+.access_token
+
+# Story 16.30+ runtime probe artefacts (regenerated per scraper/consumer run)
+vovka_latency*.jsonl
+results/latency_probes/
+results/latency_probes_v3/
+results/network/
+
+# Story 16.32 NekoVPN bypass helper logs (mshta + admin elevation traces)
+results/network/neko_bypass.log
+
+# Story 16.42: тестовые артефакты эксперимента auth (regenerable, не коммитить)
+rust-client/test_*.toml
+rust-client/finaltest_*.toml
+results/test_*.db
+results/finaltest_*.db
+results/custom_auth/mut_*/
+results/custom_auth/CONTROL_*/
+results/custom_auth/*_id0_test/
+results/custom_auth/*_fix3444/
+results/custom_auth/*smoketest*/
+
+# Production/migration artefacts: preserve outside Git in the encrypted
+# migration bundle. These may contain credentials, binaries, logs, or stale
+# copies of source files and must not become part of snapshot branches.
+backups/
+*.bak-*
+results/analysis/*.jsonl
+results/analysis/*_logger.log
+results/custom_auth/fresh_sub*

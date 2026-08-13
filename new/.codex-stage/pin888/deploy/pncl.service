@@ -1,0 +1,22 @@
+[Unit]
+Description=PNCL SharpBook API
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=app
+Group=app
+WorkingDirectory=/srv/sharpbook/app
+EnvironmentFile=/srv/sharpbook/config/pncl.env
+ExecStart=/srv/sharpbook/app/pncl-api
+Restart=on-failure
+RestartSec=5
+MemoryMax=2G
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/srv/sharpbook/app/logs
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

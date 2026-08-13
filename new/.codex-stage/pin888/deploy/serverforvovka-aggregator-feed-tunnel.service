@@ -1,0 +1,15 @@
+[Unit]
+Description=Expose the central secret aggregator feed to serverforvovka over SSH
+After=network-online.target ps38-aggregator.service
+Wants=network-online.target
+Requires=ps38-aggregator.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/ssh -NT -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=20 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=accept-new -i /srv/ps38-aggregator/keys/serverforvovka-feed/id_ed25519 -R 127.0.0.1:19014:127.0.0.1:9014 ubuntu@145.239.82.124
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
