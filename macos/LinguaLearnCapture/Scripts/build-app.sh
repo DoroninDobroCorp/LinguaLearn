@@ -14,8 +14,12 @@ temporary_root="$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/lingualearn-capture-build.
 trap '/bin/rm -rf -- "${temporary_root}"' EXIT
 temporary_app="${temporary_root}/${app_name}"
 
-/bin/mkdir -p "${temporary_app}/Contents/MacOS" "${temporary_app}/Contents/Resources"
+/bin/mkdir -p "${temporary_app}/Contents/MacOS" "${temporary_app}/Contents/Resources" "${temporary_app}/Contents/Frameworks"
 /usr/bin/ditto "${binary_dir}/LinguaLearnCapture" "${temporary_app}/Contents/MacOS/LinguaLearnCapture"
+if [[ -d "${binary_dir}/Sparkle.framework" ]]; then
+    /usr/bin/ditto "${binary_dir}/Sparkle.framework" "${temporary_app}/Contents/Frameworks/Sparkle.framework"
+    /usr/bin/ditto "${binary_dir}/Sparkle.framework" "${temporary_app}/Contents/MacOS/Sparkle.framework"
+fi
 /bin/cp "${package_root}/Resources/Info.plist" "${temporary_app}/Contents/Info.plist"
 /bin/chmod 0755 "${temporary_app}/Contents/MacOS/LinguaLearnCapture"
 
