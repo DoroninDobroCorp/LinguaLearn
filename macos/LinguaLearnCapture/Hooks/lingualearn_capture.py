@@ -57,8 +57,10 @@ def capture_payload(hook_input: Any) -> dict[str, Any] | None:
     if not isinstance(turn_id, str) or not turn_id.strip():
         return None
     return {
+        "schemaVersion": 1,
         "eventId": normalized_event_id(turn_id),
         "sourceApp": "codex",
+        "originalText": prompt,
         "text": prompt,
         # Persist this value with the event so every retry has the identical API payload.
         "sentAt": utc_timestamp(),

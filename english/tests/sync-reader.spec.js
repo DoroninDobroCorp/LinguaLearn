@@ -94,6 +94,9 @@ async function createTimedReaderProject(page, title = 'Timed transcript drill') 
 }
 
 test('creates a custom reader project from pasted text and audio', async ({ page }) => {
+  page.on('console', msg => console.log('BROWSER LOG:', msg.type(), msg.text()));
+  page.on('pageerror', err => console.log('BROWSER EXCEPTION:', err.stack || err.message));
+
   await page.goto(readerUrl, { waitUntil: 'networkidle' });
 
   await page.getByLabel('Project title').fill('Playwright reader drill');

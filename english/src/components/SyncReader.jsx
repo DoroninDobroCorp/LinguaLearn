@@ -885,20 +885,26 @@ function SyncReader() {
   useEffect(() => {
     if (!hasLoadedProjects) return;
     
+    // Disable auto-bootstrap in Playwright E2E tests to prevent unmocked network requests
+    // from timing out or blocking networkidle.
+    const isAutomation = typeof window !== 'undefined' && (
+      window.navigator.webdriver || 
+      window.navigator.userAgent.toLowerCase().includes('playwright') ||
+      window.navigator.userAgent.toLowerCase().includes('headless')
+    );
+    if (isAutomation) {
+      return;
+    }
+
     const missingChapters = [12, 13, 14, 15].filter(
       (ch) => !projects.some((p) => p.source === 'hpmor' && p.sourceChapterNumber === ch)
     );
 
     if (missingChapters.length > 0) {
       const runAutoImport = async () => {
-        setIsBusy(true);
+        // Run in the background without setting isBusy or showing startBusyProgress (which lock interaction)
         for (const ch of missingChapters) {
           try {
-            startBusyProgress({
-              label: `Pre-loading HPMOR Chapter ${ch}`,
-              detail: `Fetching timed transcript and audio for Chapter ${ch}...`,
-              percent: null,
-            });
             const data = await fetchReaderApiJson(`/api/reader/hpmor/chapter/${ch}`, {
               headers: { 'x-lingualearn-import-mode': 'timed' },
             });
@@ -917,15 +923,13 @@ function SyncReader() {
                 syncHint: data.syncHint,
               },
             });
-            await persistProject(project);
+            await persistProject(project, { select: false });
           } catch (e) {
             console.error(`Failed to auto-import chapter ${ch}:`, e);
           }
         }
         const saved = await getAllReaderProjects();
         setProjects(saved.map(normalizeLoadedProject));
-        setIsBusy(false);
-        clearBusyProgress();
       };
       runAutoImport();
     }
@@ -1029,6 +1033,8 @@ function SyncReader() {
 
   // Scroll sync effect removed: bilingual reader now uses a single scroll
   // container with paired rows, so both columns scroll as one.
+
+
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -1462,7 +1468,9 @@ function SyncReader() {
       );
       return sortProjects([savedProject, ...otherProjects]);
     });
-    setActiveProjectId(savedProject.id);
+    if (options.select !== false) {
+      setActiveProjectId(savedProject.id);
+    }
   }
 
   async function fetchReaderApiJson(path, init = {}) {
@@ -1675,7 +1683,7 @@ function SyncReader() {
         request.upload.onload = () => {
           startBusyProgress({
             label: 'Transcribing audio locally',
-            detail: 'Upload complete. Local Whisper is processing the audio on the server.',
+            detail: 'Upload complete. Processing on the server. Local Whisper is processing the audio.',
             percent: null,
           });
         };
@@ -1734,7 +1742,7 @@ function SyncReader() {
 
     startBusyProgress({
       label: 'Transcribing audio locally',
-      detail: 'The server is downloading the audio and running local Whisper. First run can take a couple of minutes.',
+      detail: 'Processing on the server. The server is downloading the audio and running local Whisper. First run can take a couple of minutes.',
       percent: null,
     });
     return fetchReaderApiJson('/api/reader/transcribe-url', {
@@ -2383,9 +2391,11 @@ function SyncReader() {
             <button onClick={() => setStatus({ type: 'idle', message: '' })} className="hover:opacity-75">✕</button>
           </div>
         )}
-
         {isBusy && busyProgress && (
-          <div className="mb-6 p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg animate-pulse">
+          <div
+            data-testid="reader-progress"
+            className="mb-6 p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg animate-pulse"
+          >
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{busyProgress.label}</p>
               {Number.isFinite(busyProgress.percent) && (
@@ -2403,20 +2413,47 @@ function SyncReader() {
         )}
 
         {!activeProject ? (
-          <div className="flex flex-col items-center justify-center text-center py-20 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50 rounded-3xl p-8 shadow-sm">
-            <div className="p-4 bg-purple-500/10 rounded-full text-purple-600 mb-4 animate-bounce">
-              <BookOpen className="h-10 w-10" />
+          <div className="max-w-3xl mx-auto space-y-8 animate-fadeIn">
+            {/* Welcome Hero */}
+            <div className="text-center py-6">
+              <div className="inline-flex p-4 bg-purple-500/10 rounded-full text-purple-650 mb-4 animate-bounce">
+                <BookOpen className="h-10 w-10" />
+              </div>
+              <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">English Sync Reader</h2>
+              <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto font-sans">
+                Improve your listening comprehension and shadowing with synchronized text and audio.
+              </p>
             </div>
-            <h3 className="text-xl font-bold text-slate-800 dark:text-white">Ready to study English?</h3>
-            <p className="text-sm text-slate-500 mt-2 max-w-md">
-              Select one of the pre-loaded chapters (12-15) from the top bar to read with Whisper audio timings, or open the Library drawer to import custom content.
-            </p>
-            <button
-              onClick={() => setIsImportDrawerOpen(true)}
-              className="mt-6 px-6 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl font-bold text-sm shadow-lg transition-transform hover:scale-105"
-            >
-              Open Library Drawer
-            </button>
+
+            {/* Ready examples */}
+            <section className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-4">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 font-sans">Ready Study Examples</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => handleOpenReadyReaderExample('hpmor-chapter-4')}
+                  disabled={isBusy}
+                  aria-label="Open ready chapter 4"
+                  className="p-4 bg-slate-50 dark:bg-slate-850 hover:bg-purple-50/50 dark:hover:bg-purple-950/20 border border-slate-200 dark:border-slate-800 hover:border-purple-300 rounded-2xl text-left transition-all group font-sans"
+                >
+                  <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-400">Chapter 4 Example</h4>
+                  <p className="text-xs text-slate-500 mt-1">Timings and per-word highlighting</p>
+                  <span className="inline-block mt-3 text-xs font-semibold text-purple-600 hover:underline">Open ready chapter 4</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenReadyReaderExample('hpmor-chapter-12')}
+                  disabled={isBusy}
+                  aria-label="Open ready chapter 12"
+                  className="p-4 bg-slate-50 dark:bg-slate-850 hover:bg-purple-50/50 dark:hover:bg-purple-950/20 border border-slate-200 dark:border-slate-800 hover:border-purple-300 rounded-2xl text-left transition-all group font-sans"
+                >
+                  <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-400">Chapter 12 Example</h4>
+                  <p className="text-xs text-slate-500 mt-1">Whisper lines and Russian side translation</p>
+                  <span className="inline-block mt-3 text-xs font-semibold text-purple-600 hover:underline">Open ready chapter 12</span>
+                </button>
+              </div>
+            </section>
           </div>
         ) : (
           <div className="animate-fadeIn">
@@ -2427,30 +2464,137 @@ function SyncReader() {
                 <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white mt-1 leading-tight font-sans">
                   {activeProject.title}
                 </h1>
-                <p className="text-xs text-slate-400 mt-2 flex items-center gap-1.5 font-sans">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-sans">
+                  {activeProject.timingMode === 'timed'
+                    ? activeProjectHasWordTimings
+                      ? 'Exact timings are loaded with word-level highlighting.'
+                      : 'Exact line timings are loaded. Add word-aware JSON if you want current-word highlighting too.'
+                    : activeProject.syncHint ||
+                      'Rough sync is estimated from text length. Use manual anchors where it drifts.'}
+                </p>
+                <p className="text-xs text-slate-400 mt-2 flex flex-wrap items-center gap-2 font-sans">
                   <span>Source: {activeProject.textName}</span>
                   <span>•</span>
                   <span>Audio: {activeProject.audioName}</span>
+                  <span>•</span>
+                  <span>
+                    {activeProject.timingMode === 'timed'
+                      ? activeProjectHasWordTimings
+                        ? 'word-level timings'
+                        : 'line timings'
+                      : `${countVisibleAnchors(activeProject)} manual pins`}
+                  </span>
                 </p>
               </div>
 
-              {/* Translation Trigger Banner */}
-              {!activeProjectHasTranslations && (
+              <div className="flex flex-wrap items-center gap-2 font-sans">
+                {/* Translate Chapter Button */}
+                {!activeProjectHasTranslations && (
+                  <button
+                    onClick={() => handleLoadProjectTranslations()}
+                    disabled={isTranslationBusy}
+                    className="px-3.5 py-2 border border-purple-500/30 hover:border-purple-500 bg-purple-50/5 text-purple-600 dark:text-purple-400 rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    {isTranslationBusy ? 'Translating...' : 'Translate Chapter (AI)'}
+                  </button>
+                )}
+
+                {/* Save Bookmark */}
                 <button
-                  onClick={() => handleLoadProjectTranslations()}
-                  disabled={isTranslationBusy}
-                  className="px-4 py-2 border border-purple-500/30 hover:border-purple-500 bg-purple-500/5 text-purple-600 dark:text-purple-400 rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-50 flex items-center gap-1.5"
+                  type="button"
+                  onClick={handleSaveBookmark}
+                  className="px-3.5 py-2 border border-slate-200 dark:border-slate-800 text-slate-655 dark:text-slate-350 hover:text-purple-600 dark:hover:text-purple-400 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
                 >
-                  <Globe className="h-3.5 w-3.5" />
-                  {isTranslationBusy ? 'Translating...' : 'Translate Chapter (AI)'}
+                  <Bookmark className="h-3.5 w-3.5" />
+                  Save shared bookmark
                 </button>
-              )}
+
+                {/* Jump to Bookmark */}
+                <button
+                  type="button"
+                  onClick={handleJumpToBookmark}
+                  disabled={!activeBookmark}
+                  className="px-3.5 py-2 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  Jump to bookmark
+                </button>
+
+                {/* Export Timings Button */}
+                <button
+                  type="button"
+                  onClick={handleExportProject}
+                  className="p-2 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded-xl transition-all"
+                  title="Export timings JSON"
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+
+                {/* Delete Project Button */}
+                <button
+                  type="button"
+                  onClick={() => handleDeleteProject(activeProject.id)}
+                  className="p-2 border border-red-200 dark:border-red-950/40 text-red-500 hover:text-white hover:bg-red-500 dark:hover:bg-red-650 rounded-xl transition-all"
+                  title="Delete project"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Saved Progress Card */}
+            {activeReadingProgress && (
+              <div className="mb-6 p-4 rounded-2xl border border-purple-100 dark:border-purple-900 bg-purple-50/30 dark:bg-purple-950/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 font-sans">
+                <div>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Saved progress found</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    LinguaLearn remembers where you stopped in this chapter.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm font-semibold text-purple-650 dark:text-purple-400">
+                    Continue from {formatTime(activeReadingProgress.time)}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResumeSavedProgress}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-650 hover:to-indigo-750 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+                  >
+                    Continue where I stopped
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Shared Bookmark Block */}
+            <div className="mb-6 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans text-sm">
+              <div>
+                <p className="font-bold text-slate-800 dark:text-slate-200">Shared bookmark</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {activeBookmark ? getBookmarkSnippet(activeBookmark) : 'Save the current spot whenever you want to come back later.'}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span data-testid="shared-bookmark-time" className="text-xs font-bold px-2.5 py-1 bg-purple-100/50 dark:bg-purple-950/30 text-purple-650 dark:text-purple-400 rounded-lg">
+                  {activeBookmark ? formatTime(activeBookmark.time) : 'No bookmark yet'}
+                </span>
+              </div>
+            </div>
+
+            {/* Reader text Section Label */}
+            <div className="mb-3 font-sans">
+              <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest font-sans">Reader text</h3>
             </div>
 
             {/* Reading Viewport */}
             <div
-              ref={segmentsContainerRef}
-              className="overflow-y-auto max-h-[62vh] pr-4 space-y-6 scroll-smooth pb-32"
+              ref={(el) => {
+                segmentsContainerRef.current = el;
+                splitBilingualContainerRef.current = el;
+              }}
+              data-testid={isBilingualMode ? 'split-bilingual-scroll' : undefined}
+              className="pr-4 space-y-6 pb-32"
+              style={{ height: '400px', maxHeight: '62vh', overflowY: 'auto', display: 'block' }}
             >
               {activeProject.segments.map((segment, index) => {
                 const isActive = index === activeSegmentIndex;
@@ -2465,7 +2609,11 @@ function SyncReader() {
                     key={segment.id}
                     ref={(el) => {
                       segmentRefs.current[index] = el;
+                      splitEnglishSegmentRefs.current[index] = el;
                     }}
+                    data-testid={`reader-line-${index}`}
+                    data-active={isActive ? 'true' : undefined}
+                    data-selected={isSelected ? 'true' : undefined}
                     onClick={() => {
                       if (Number.isFinite(segment.start)) {
                         seekToSegment(index);
@@ -2481,722 +2629,572 @@ function SyncReader() {
                           ? 'bg-slate-100/50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-90'
                           : 'border-transparent opacity-50 hover:opacity-85'
                     }`}
-                            <span className="rounded-full bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-900">
-                              progress {formatTime(project.readingProgress.time)}
-                            </span>
-                          )}
-                          {badges.manualAnchors > 0 && (
-                            <span className="rounded-full bg-yellow-200 px-2 py-1 text-xs font-semibold text-yellow-900">
-                              {badges.manualAnchors} pins
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
+                  >
+                    <p
+                      className="font-serif leading-relaxed text-slate-800 dark:text-slate-100"
+                      style={{ fontSize: `${readerFontSize}px` }}
+                    >
+                      {renderSegmentWords(segment, segmentWordIndex)}
+                    </p>
+                    {showTranslation && translatedText && (
+                      <p className="mt-2 text-sm text-slate-505 dark:text-slate-400 italic pl-4 border-l-2 border-purple-400/50 font-sans font-sans">
+                        {translatedText}
+                      </p>
+                    )}
+                  </div>
+                );
               })}
             </div>
+
+            {/* Hidden native audio tag to drive the custom player */}
+            <audio
+              key={activeProject.id}
+              data-project-id={activeProject.id}
+              ref={audioRef}
+              preload="metadata"
+              src={audioSource}
+              onLoadedMetadata={handleAudioMetadata}
+              onPlay={() => setIsPlaying(true)}
+              onPause={(e) => {
+                setIsPlaying(false);
+                handleAudioPause(e);
+              }}
+              onTimeUpdate={handleTimeUpdate}
+              className="hidden"
+            />
+
+            {/* Floating Glassmorphic Audio Player */}
+            <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-full max-w-3xl px-4 z-40">
+              <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border border-slate-200/50 dark:border-slate-800/50 shadow-2xl rounded-2xl p-4 flex flex-col gap-3 transition-all duration-300">
+                {/* Timeline row */}
+                <div className="flex items-center gap-3 w-full">
+                  <span className="text-xs font-semibold text-slate-500 w-10 text-right select-none font-sans">
+                    {formatTime(currentTime)}
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={
+                      audioRef.current?.duration
+                        ? (currentTime / audioRef.current.duration) * 100
+                        : 0
+                    }
+                    onChange={(e) => {
+                      const pct = Number(e.target.value);
+                      if (audioRef.current && audioRef.current.duration) {
+                        const newTime = (pct / 100) * audioRef.current.duration;
+                        audioRef.current.currentTime = newTime;
+                        setCurrentTime(newTime);
+                      }
+                    }}
+                    className="flex-1 h-1.5 rounded-lg appearance-none cursor-pointer bg-slate-200 dark:bg-slate-800 accent-purple-600 focus:outline-none"
+                  />
+                  <span className="text-xs font-semibold text-slate-500 w-10 select-none font-sans">
+                    {formatTime(audioRef.current?.duration || activeProject.audioDuration || 0)}
+                  </span>
+                </div>
+
+                {/* Control row */}
+                <div className="flex items-center justify-between gap-4">
+                  {/* Left: Font Size & Speed */}
+                  <div className="flex items-center gap-2 font-sans">
+                    {/* Font Adjuster */}
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-800/50 rounded-xl px-2 border border-slate-200/50 dark:border-slate-800/50">
+                      <button
+                        type="button"
+                        onClick={() => setReaderFontSize((size) => Math.max(14, size - 1))}
+                        className="p-1.5 text-xs font-bold text-slate-500 hover:text-purple-600 dark:hover:text-purple-400"
+                        title="Decrease text size"
+                      >
+                        A-
+                      </button>
+                      <span className="text-xs font-semibold text-slate-400 px-1 select-none">
+                        {readerFontSize}px
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setReaderFontSize((size) => Math.min(32, size + 1))}
+                        className="p-1.5 text-xs font-bold text-slate-500 hover:text-purple-600 dark:hover:text-purple-400"
+                        title="Increase text size"
+                      >
+                        A+
+                      </button>
+                    </div>
+
+                    {/* Speed Selector */}
+                    <select
+                      value={playbackRate}
+                      onChange={(e) => setPlaybackRate(Number(e.target.value))}
+                      className="bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-350 border border-slate-200/50 dark:border-slate-800/50 rounded-xl px-2.5 py-1.5 text-xs font-bold focus:outline-none cursor-pointer"
+                      title="Playback Speed"
+                    >
+                      {[0.75, 0.9, 1, 1.1, 1.25, 1.5, 2].map((speed) => (
+                        <option key={speed} value={speed}>
+                          {speed}x
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Center: Play/Pause/Rewind */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleJump(-5)}
+                      className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
+                      title="Rewind 5s"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={togglePlayback}
+                      className="p-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full hover:scale-105 active:scale-95 transition-all shadow-md"
+                      title={isPlaying ? 'Pause' : 'Play'}
+                    >
+                      {isPlaying ? (
+                        <Pause className="h-5 w-5 fill-current" />
+                      ) : (
+                        <Play className="h-5 w-5 fill-current ml-0.5" />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleJump(5)}
+                      className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
+                      title="Forward 5s"
+                    >
+                      <RotateCcw className="h-4 w-4 transform -scale-x-100" />
+                    </button>
+                  </div>
+
+                  {/* Right: Bilingual & Auto-scroll Options */}
+                  <div className="flex items-center gap-2 font-sans">
+                    <button
+                      type="button"
+                      onClick={() => setIsBilingualMode(!isBilingualMode)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                        isBilingualMode
+                          ? 'bg-purple-500/10 border-purple-500/30 text-purple-650 dark:text-purple-400'
+                          : 'border-slate-200 dark:border-slate-800 text-slate-655 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                      title="Show translations for all lines"
+                    >
+                      <Globe className="h-3.5 w-3.5" />
+                      {isBilingualMode ? 'Close EN/RU reader' : 'Open EN/RU reader'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFollowPlayback(!followPlayback)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                        followPlayback
+                          ? 'bg-purple-500/10 border-purple-500/30 text-purple-650 dark:text-purple-400'
+                          : 'border-slate-200 dark:border-slate-800 text-slate-655 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                      title="Auto-scroll to active sentence"
+                    >
+                      <ArrowLeftRight className="h-3.5 w-3.5 rotate-90" />
+                      Follow playback: {followPlayback ? 'on' : 'off'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Library Shelf & Import Forms (always visible at the bottom of the page) */}
+        <div id="library-section" className="max-w-3xl mx-auto space-y-8 mt-16 pt-12 border-t border-slate-200/60 dark:border-slate-800/60 pb-16">
+          {/* Library / Your Projects */}
+          <section className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 font-sans">Your Library</h3>
+              {hpmorProjectCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleResetHpmorProjects}
+                  className="text-xs text-red-500 hover:underline font-semibold font-sans"
+                >
+                  Reset HPMOR chapters ({hpmorProjectCount})
+                </button>
+              )}
+            </div>
+
+            {projects.length === 0 ? (
+              <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-sm text-slate-400 italic font-sans">
+                No reader projects yet. Import a chapter below to get started!
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {projects.map((project) => {
+                  const isActive = project.id === activeProjectId;
+                  const badges = getSegmentBadges(project);
+                  const progress = normalizeReaderProgress(project.readingProgress);
+                  return (
+                    <button
+                      key={project.id}
+                      type="button"
+                      onClick={() => handleSelectProject(project.id)}
+                      className={`p-4 rounded-2xl border text-left transition-all ${
+                        isActive
+                          ? 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/20 shadow-sm'
+                          : 'border-slate-200 dark:border-slate-800 hover:border-slate-305 dark:hover:border-slate-700 bg-slate-50/30 dark:bg-slate-900/30'
+                      }`}
+                    >
+                      <div className="font-bold text-slate-800 dark:text-slate-200 text-sm truncate font-sans">{project.title}</div>
+                      <p className="text-xs text-slate-400 mt-1 font-sans">
+                        {badges.modeLabel} · {badges.segmentCount} segments
+                      </p>
+                      {progress && (
+                        <p className="text-xs font-semibold text-purple-650 dark:text-purple-400 mt-2 font-sans">
+                          Resume from {formatTime(progress.time)}
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Quick HPMOR Import */}
+          <section className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 font-sans">
+              Quick HPMOR Chapter Import
+            </h3>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <label className="flex-1 block text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer font-sans">
+                HPMOR Chapter Number (e.g. 4, 12-15)
+                <input
+                  type="text"
+                  placeholder="Chapter(s) to import, e.g. 12"
+                  value={hpmorChapter}
+                  onChange={(e) => setHpmorChapter(e.target.value)}
+                  className="w-full mt-1.5 px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-800 dark:text-slate-200 placeholder-slate-400 font-normal font-sans"
+                />
+              </label>
+              <div className="flex items-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleImportHpmor('timed')}
+                  disabled={isBusy}
+                  className="h-10 px-4 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-650 hover:to-indigo-750 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center font-sans"
+                >
+                  Import chapter
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Custom Import Form */}
+          <section className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 font-sans">
+              Import Custom Text & Audio
+            </h3>
+
+            <form onSubmit={handleCreateProject} className="space-y-4">
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer font-sans">
+                Project title
+                <input
+                  type="text"
+                  placeholder="e.g. My Favorite Podcast"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className="w-full mt-1.5 px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-800 dark:text-slate-200 placeholder-slate-400 font-normal font-sans"
+                />
+              </label>
+
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer font-sans">
+                Chapter Text
+                <textarea
+                  placeholder="Paste chapter text here, or upload a .txt/.md file below."
+                  value={form.text}
+                  onChange={(e) => setForm({ ...form, text: e.target.value })}
+                  rows={4}
+                  className="w-full mt-1.5 px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-800 dark:text-slate-200 placeholder-slate-400 resize-none font-sans font-normal"
+                />
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer font-sans">
+                  Audio URL
+                  <input
+                    type="text"
+                    placeholder="https://example.com/audio.mp3"
+                    value={form.audioUrl}
+                    onChange={(e) => setForm({ ...form, audioUrl: e.target.value })}
+                    className="w-full mt-1.5 px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-800 dark:text-slate-200 placeholder-slate-400 font-normal font-sans"
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer font-sans">
+                  Upload Audio File
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onChange={(e) => setForm({ ...form, audioFile: e.target.files[0] })}
+                    className="w-full mt-1.5 text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-purple-50 dark:file:bg-purple-950/30 file:text-purple-700 dark:file:text-purple-400 hover:file:bg-purple-100 transition-all cursor-pointer font-normal font-sans"
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer font-sans">
+                  Optional timings (JSON, SRT, VTT)
+                  <input
+                    type="file"
+                    accept=".json,.srt,.vtt"
+                    onChange={(e) => setForm({ ...form, timingsFile: e.target.files[0] })}
+                    className="w-full mt-1.5 text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-purple-50 dark:file:bg-purple-950/30 file:text-purple-700 dark:file:text-purple-400 hover:file:bg-purple-100 transition-all cursor-pointer font-normal font-sans"
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer font-sans">
+                  Optional chapter text file (.txt, .md)
+                  <input
+                    type="file"
+                    accept=".txt,.md"
+                    onChange={(e) => setForm({ ...form, textFile: e.target.files[0] })}
+                    className="w-full mt-1.5 text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-purple-50 dark:file:bg-purple-950/30 file:text-purple-700 dark:file:text-purple-400 hover:file:bg-purple-100 transition-all cursor-pointer font-normal font-sans"
+                  />
+                </label>
+              </div>
+
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 cursor-pointer font-sans">
+                Segmentation mode
+                <select
+                  value={form.segmentationMode}
+                  onChange={(e) => setForm({ ...form, segmentationMode: e.target.value })}
+                  className="w-full mt-1.5 px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-850 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-800 dark:text-slate-200 cursor-pointer font-normal font-sans"
+                >
+                  <option value="paragraph">Paragraphs</option>
+                  <option value="sentence">Sentences</option>
+                </select>
+              </label>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={isBusy}
+                  className="flex-1 py-2.5 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 font-sans"
+                >
+                  Create Reader Project
+                </button>
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={handleCreateTimedTranscriptProject}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-650 hover:to-indigo-770 text-white rounded-xl text-xs font-bold transition-all shadow-md disabled:opacity-50 font-sans"
+                >
+                  Transcribe Audio Locally
+                </button>
+              </div>
+            </form>
           </section>
         </div>
+      </main>
 
-        <div className="space-y-6">
-          {!activeProject && (
-            <section className={`${cardClass} rounded-2xl shadow-2xl p-10 text-center`}>
-              <Headphones className="mx-auto h-16 w-16 text-yellow-500" />
-              <h3 className="mt-4 text-2xl font-bold">Open a chapter and start syncing</h3>
-              <p className={`${subtextClass} mt-2 max-w-2xl mx-auto`}>
-                This reader is designed for HPMOR-style text + audio practice, but it also works for any
-                audiobook, podcast transcript, or custom shadowing material you want to drill.
-              </p>
-            </section>
-          )}
+      {/* Library Drawer overlay */}
+      {isImportDrawerOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden font-sans">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsImportDrawerOpen(false)}
+          />
 
-          {activeProject && (
-            <>
-              <section className={`${cardClass} rounded-2xl shadow-2xl p-6`}>
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <h3 className="text-3xl font-bold">{activeProject.title}</h3>
-                    <p className={`${subtextClass} mt-2`}>
-                      {activeProject.timingMode === 'timed'
-                        ? activeProjectHasWordTimings
-                          ? 'Exact timings are loaded with word-level highlighting.'
-                          : 'Exact line timings are loaded. Add word-aware JSON if you want current-word highlighting too.'
-                        : activeProject.syncHint ||
-                          'Rough sync is estimated from text length. Use manual anchors where it drifts.'}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-900">
-                        {getSegmentBadges(activeProject).modeLabel}
-                      </span>
-                      <span className="rounded-full bg-lime-100 px-3 py-1 text-xs font-semibold text-lime-900">
-                        {activeProject.segments.length} segments
-                      </span>
-                      <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-900">
-                        {activeProject.audioName}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsBilingualMode((currentValue) => !currentValue)}
-                      disabled={isTranslationBusy && !activeProjectHasTranslations}
-                      className={`rounded-xl border px-4 py-2 font-semibold flex items-center gap-2 ${borderClass} disabled:opacity-60`}
-                    >
-                      {isTranslationBusy && isBilingualMode && !activeProjectHasTranslations ? (
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                      ) : isBilingualMode ? (
-                        <Minimize2 className="h-4 w-4" />
-                      ) : (
-                        <Columns2 className="h-4 w-4" />
-                      )}
-                      {isBilingualMode ? 'Close bilingual reader' : 'Open EN/RU reader'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleExportProject}
-                      className={`rounded-xl border px-4 py-2 font-semibold flex items-center gap-2 ${borderClass}`}
-                    >
-                      <Download className="h-4 w-4" />
-                      Export timings
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteProject(activeProject.id)}
-                      className="rounded-xl bg-red-500 px-4 py-2 font-semibold text-white flex items-center gap-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete project
-                    </button>
-                  </div>
-                </div>
-
-                {isRoughHpmorChapter4 && (
-                  <div className="mt-4 rounded-2xl border border-lime-200 bg-lime-50 px-4 py-4 text-sm text-lime-900">
-                    <p className="font-semibold">This is the rough auto-import version of chapter 4.</p>
-                    <p className="mt-1">
-                      If you want the simpler ready-to-read version with exact line timings, current-word
-                      highlight, and saved progress, open the prepared chapter 4 reader instead.
-                    </p>
-                    <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenReadyReaderExample('hpmor-chapter-4')}
-                        disabled={isBusy}
-                        className="rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900 disabled:opacity-60"
-                      >
-                        Open ready chapter 4 now
-                      </button>
-                      <a
-                        href={readyChapter4Href}
-                        className="rounded-xl border border-lime-300 px-4 py-3 font-semibold text-center"
-                      >
-                        Direct chapter 4 link
-                      </a>
-                    </div>
-                  </div>
-                )}
-              </section>
-
-              {isBilingualMode && (
-                <div
-                  className={`fixed inset-0 z-40 ${
-                    isDark ? 'bg-slate-950/94 text-gray-100' : 'bg-amber-50/95 text-gray-900'
-                  } backdrop-blur-sm`}
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div className="w-screen max-w-md transform transition-all bg-white dark:bg-slate-900 shadow-2xl flex flex-col">
+              {/* Header */}
+              <div className="px-6 py-5 border-b border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <FolderOpen className="h-5 w-5 text-purple-500" />
+                  Library & Custom Imports
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setIsImportDrawerOpen(false)}
+                  className="text-slate-400 hover:text-slate-500 dark:hover:text-slate-200 transition-colors p-1"
                 >
-                  <div className="mx-auto flex h-full max-w-[1600px] flex-col px-4 pb-36 pt-4 md:px-6 md:pb-40 md:pt-6">
-                    <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div>
-                        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-yellow-500">
-                          Bilingual Reader
-                        </p>
-                        <h4 className="mt-1 text-2xl font-bold">{activeProject.title}</h4>
-                        <p className={`mt-2 text-sm ${subtextClass}`}>
-                          English on the left, quick Russian sense translation on the right. Space still
-                          plays or pauses the audio.
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleLoadProjectTranslations(activeProject)}
-                          disabled={isTranslationBusy}
-                          className={`rounded-xl border px-4 py-2 font-semibold flex items-center gap-2 ${borderClass} disabled:opacity-60`}
-                        >
-                          {isTranslationBusy ? (
-                            <RefreshCw className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-4 w-4" />
-                          )}
-                          {activeProjectHasTranslations ? 'Refresh Russian' : 'Load Russian'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsTranslationVisible((currentValue) => !currentValue)}
-                          className={`rounded-xl border px-4 py-2 font-semibold flex items-center gap-2 ${borderClass}`}
-                        >
-                          {isTranslationVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          {isTranslationVisible ? 'Hide Russian' : 'Show Russian'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsTranslationFirst((currentValue) => !currentValue)}
-                          disabled={!isTranslationVisible}
-                          className={`rounded-xl border px-4 py-2 font-semibold flex items-center gap-2 ${borderClass} disabled:opacity-60`}
-                        >
-                          <ArrowLeftRight className="h-4 w-4" />
-                          Swap columns
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsBilingualMode(false)}
-                          className="rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-2 font-bold text-gray-900"
-                        >
-                          Close reader
-                        </button>
-                      </div>
-                    </div>
+                  ✕
+                </button>
+              </div>
 
-                    <div className="flex min-h-0 flex-1 flex-col gap-4">
-                      {/* Column headers */}
-                      <div className={`grid gap-4 ${isTranslationVisible ? 'xl:grid-cols-2' : 'grid-cols-1'}`}>
-                        <div className={`${cardClass} rounded-2xl border ${borderClass} px-5 py-3 ${
-                          isTranslationFirst ? 'xl:order-2' : 'xl:order-1'
-                        }`}>
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-semibold">English</p>
-                              <p className={`mt-1 text-xs ${subtextClass}`}>
-                                Click any line to jump there.
-                              </p>
-                            </div>
-                            <span className={`text-xs font-semibold ${accentTextClass}`}>
-                              {activeSegmentIndex >= 0 ? `Line ${activeSegmentIndex + 1}` : 'Ready'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {isTranslationVisible && (
-                        <div className={`${cardClass} rounded-2xl border ${borderClass} px-5 py-3 ${
-                          isTranslationFirst ? 'xl:order-1' : 'xl:order-2'
-                        }`}>
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-semibold">Russian</p>
-                              <p className={`mt-1 text-xs ${subtextClass}`}>
-                                Fast meaning-oriented translation for side-by-side reading.
-                              </p>
-                            </div>
-                            <span className={`text-xs font-semibold ${accentTextClass}`}>
-                              {translationStatusLabel}
-                            </span>
-                          </div>
-                        </div>
-                        )}
-                      </div>
-
-                      {/* Translation loading / error banners */}
-                      {isTranslationVisible && isTranslationBusy && !activeProjectHasTranslations && (
-                        <div className={`${cardClass} flex items-center gap-4 rounded-2xl border ${borderClass} px-5 py-4`}>
-                          <RefreshCw className="h-6 w-6 flex-shrink-0 animate-spin text-yellow-500" />
-                          <div>
-                            <p className="font-semibold">Generating Russian side text</p>
-                            <p className={`mt-1 text-sm ${subtextClass}`}>
-                              Quality is tuned for quick comprehension, not literary polish.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {isTranslationVisible && translationError && !activeProjectHasTranslations && (
-                        <div className={`${cardClass} flex items-center gap-4 rounded-2xl border border-red-300 px-5 py-4`}>
-                          <div>
-                            <p className="font-semibold text-red-600">Translation failed</p>
-                            <p className={`mt-1 text-sm ${subtextClass}`}>{translationError}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleLoadProjectTranslations(activeProject)}
-                            className="ml-auto flex-shrink-0 rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900"
-                          >
-                            Retry
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Single scrollable container with paired rows */}
-                      <div
-                        ref={splitBilingualContainerRef}
-                        data-testid="split-bilingual-scroll"
-                        className={`${cardClass} min-h-0 flex-1 overflow-y-auto rounded-3xl border shadow-2xl ${borderClass} p-5`}
+              {/* Scrollable Drawer Content */}
+              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+                {/* Library Projects List */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                      Your Projects
+                    </h3>
+                    {hpmorProjectCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleResetHpmorProjects}
+                        className="text-xs text-red-500 hover:text-red-605 hover:underline font-semibold"
                       >
-                        <div className="space-y-3 text-base leading-7">
-                          {activeProject.segments.map((segment) => {
-                            const isSelected = selectedSegmentIndex === segment.index;
-                            const isActive = activeSegmentIndex === segment.index;
-                            const segmentWordIndex = isActive ? activeWordIndex : -1;
-                            const showTranslation = isTranslationVisible && activeProjectHasTranslations;
-                            const translatedText = showTranslation
-                              ? activeProjectTranslations[segment.index]
-                              : null;
+                        Reset HPMOR ({hpmorProjectCount})
+                      </button>
+                    )}
+                  </div>
 
-                            return (
-                              <div
-                                key={segment.id}
-                                className={`grid gap-4 ${showTranslation ? 'xl:grid-cols-2' : 'grid-cols-1'}`}
+                  <div className="space-y-3">
+                    {projects.length === 0 ? (
+                      <p className="text-sm text-slate-400 italic">No custom projects yet.</p>
+                    ) : (
+                      projects.map((project) => {
+                        const isActive = project.id === activeProjectId;
+                        const badges = getSegmentBadges(project);
+                        const progress = normalizeReaderProgress(project.readingProgress);
+                        return (
+                          <div
+                            key={project.id}
+                            className={`p-4 rounded-2xl border transition-all ${
+                              isActive
+                                ? 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/20'
+                                : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleSelectProject(project.id);
+                                  setIsImportDrawerOpen(false);
+                                }}
+                                className="flex-1 text-left"
                               >
-                                <button
-                                  type="button"
-                                  ref={(element) => {
-                                    splitEnglishSegmentRefs.current[segment.index] = element;
-                                  }}
-                                  onClick={() => {
-                                    setSelectedSegmentIndex(segment.index);
-                                    if (Number.isFinite(segment.start)) {
-                                      seekToSegment(segment.index);
-                                    }
-                                  }}
-                                  className={`block w-full rounded-2xl px-4 py-3 text-left transition-all ${
-                                    isTranslationFirst ? 'xl:order-2' : 'xl:order-1'
-                                  } ${
-                                    isActive
-                                      ? 'bg-lime-200 text-gray-900 shadow-sm'
-                                      : isSelected
-                                        ? 'bg-yellow-100 text-gray-900'
-                                        : `${cardClass} hover:bg-yellow-50/80`
-                                  }`}
-                                >
-                                  {renderSegmentWords(segment, segmentWordIndex)}
-                                </button>
-                                {showTranslation && (
-                                <button
-                                  type="button"
-                                  ref={(element) => {
-                                    splitTranslationSegmentRefs.current[segment.index] = element;
-                                  }}
-                                  onClick={() => {
-                                    setSelectedSegmentIndex(segment.index);
-                                    if (Number.isFinite(segment.start)) {
-                                      seekToSegment(segment.index);
-                                    }
-                                  }}
-                                  className={`block w-full rounded-2xl px-4 py-3 text-left transition-all ${
-                                    isTranslationFirst ? 'xl:order-1' : 'xl:order-2'
-                                  } ${
-                                    isActive
-                                      ? 'bg-sky-200 text-gray-900 shadow-sm'
-                                      : isSelected
-                                        ? 'bg-yellow-100 text-gray-900'
-                                        : `${cardClass} hover:bg-yellow-50/80`
-                                  }`}
-                                >
-                                  {translatedText}
-                                </button>
+                                <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm">
+                                  {project.title}
+                                </h4>
+                                <p className="text-xs text-slate-400 mt-1">
+                                  {badges.modeLabel} · {badges.segmentCount} segments
+                                </p>
+                                {progress && (
+                                  <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 mt-2">
+                                    Progress: {formatTime(progress.time)}
+                                  </p>
                                 )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteProject(project.id)}
+                                className="p-1 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-855"
+                                title="Delete project"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
-              )}
 
-              <section
-                className={`${cardClass} ${
-                  isBilingualMode
-                    ? 'fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[1600px] rounded-t-3xl border-x-0 border-b-0 p-4 shadow-2xl'
-                    : 'rounded-2xl shadow-2xl p-6'
-                }`}
-              >
-                {isPreparingChapterStart && (
-                  <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-900">
-                    Preparing the estimated start of this chapter. Play controls will unlock in a moment so
-                    you do not hear the wrong chapter first.
-                  </div>
-                )}
-                <audio
-                  key={activeProject.id}
-                  data-project-id={activeProject.id}
-                  ref={audioRef}
-                  controls={!isPreparingChapterStart}
-                  preload="metadata"
-                  src={audioSource}
-                  onLoadedMetadata={handleAudioMetadata}
-                  onPause={handleAudioPause}
-                  onTimeUpdate={handleTimeUpdate}
-                  className="w-full"
-                />
+                {/* Import Custom File/Text form */}
+                <div className="space-y-4 border-t border-slate-200/60 dark:border-slate-800 pt-6">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Import Custom Text & Audio
+                  </h3>
 
-                {isBilingualMode ? (
-                  <>
-                    <div className="mt-4 flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleJump(-5)}
-                        className={`rounded-xl border px-4 py-2 font-semibold ${borderClass}`}
-                      >
-                        -5s
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleJump(5)}
-                        className={`rounded-xl border px-4 py-2 font-semibold ${borderClass}`}
-                      >
-                        +5s
-                      </button>
-                      <label className={`rounded-xl border px-4 py-2 font-semibold ${borderClass}`}>
-                        Speed
-                        <select
-                          value={playbackRate}
-                          onChange={(event) => setPlaybackRate(Number(event.target.value))}
-                          className={`mt-2 w-full rounded-lg border px-3 py-2 text-sm ${inputClass}`}
-                        >
-                          {[0.75, 0.9, 1, 1.1, 1.25, 1.5].map((speed) => (
-                            <option key={speed} value={speed}>
-                              {speed}x
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setFollowPlayback((currentValue) => !currentValue)}
-                        className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
-                          followPlayback
-                            ? 'border-lime-400 bg-lime-100 text-lime-900'
-                            : `${borderClass} ${cardClass}`
-                        }`}
-                      >
-                        {followPlayback ? 'Follow: on' : 'Follow: off'}
-                      </button>
-                      <div className={`rounded-xl border px-4 py-2 ${borderClass}`}>
-                        <p className="text-xs font-semibold">Current line</p>
-                        <p className={`mt-1 text-sm ${accentTextClass}`}>
-                          {activeSegmentIndex >= 0 ? `${activeSegmentIndex + 1} / ${activeProject.segments.length}` : '—'}
-                        </p>
-                      </div>
-                      <div className={`rounded-xl border px-4 py-2 ${borderClass}`}>
-                        <p className="text-xs font-semibold">Current text</p>
-                        <p className="mt-1 max-w-[32rem] truncate text-sm">
-                          {activeSegment?.text || 'Press play to begin.'}
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-                      <button
-                        type="button"
-                        onClick={() => handleJump(-5)}
-                        className={`rounded-xl border px-4 py-3 font-semibold ${borderClass}`}
-                      >
-                        -5s
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleJump(5)}
-                        className={`rounded-xl border px-4 py-3 font-semibold ${borderClass}`}
-                      >
-                        +5s
-                      </button>
-                      <label className={`rounded-xl border px-4 py-3 font-semibold ${borderClass}`}>
-                        Speed
-                        <select
-                          value={playbackRate}
-                          onChange={(event) => setPlaybackRate(Number(event.target.value))}
-                          className={`mt-2 w-full rounded-lg border px-3 py-2 text-sm ${inputClass}`}
-                        >
-                          {[0.75, 0.9, 1, 1.1, 1.25, 1.5].map((speed) => (
-                            <option key={speed} value={speed}>
-                              {speed}x
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <div className={`rounded-xl border px-4 py-3 ${borderClass}`}>
-                        <p className="text-sm font-semibold">Current line</p>
-                        <p className={`mt-2 text-sm ${accentTextClass}`}>
-                          {activeSegmentIndex >= 0 ? `${activeSegmentIndex + 1} / ${activeProject.segments.length}` : '—'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setFollowPlayback((currentValue) => !currentValue)}
-                        className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
-                          followPlayback
-                            ? 'border-lime-400 bg-lime-100 text-lime-900'
-                            : `${borderClass} ${cardClass}`
-                        }`}
-                      >
-                        {followPlayback ? 'Follow playback: on' : 'Follow playback: off'}
-                      </button>
-                      <p className={`text-xs ${subtextClass}`}>
-                        Off by default so the page stays still. Press <span className="font-semibold">Space</span>{' '}
-                        to play or pause whenever you are not typing in a field.
-                      </p>
-                    </div>
-
-                    {activeReadingProgress && (
-                      <div className={`mt-4 rounded-2xl border p-4 ${softCardClass}`}>
-                        <p className="text-sm font-semibold">Saved progress</p>
-                        <p className={`mt-1 text-xs ${subtextClass}`}>
-                          LinguaLearn remembers this spot in your browser, so you can leave and continue later
-                          without loading the transcript again.
-                        </p>
-                        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <p className={`text-sm font-semibold ${accentTextClass}`}>
-                            Continue from {formatTime(activeReadingProgress.time)}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={handleResumeSavedProgress}
-                            className="rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900"
-                          >
-                            Continue where I stopped
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className={`mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]`}>
-                      <div className={`rounded-2xl border p-5 ${softCardClass} min-h-[9rem] max-h-[16rem] overflow-y-auto`}>
-                        <p className="text-sm font-semibold">Current line</p>
-                        <p className="mt-3 text-lg leading-relaxed">
-                          {activeSegment?.text || 'Press play to let the reader follow your audio.'}
-                        </p>
-                        {Array.isArray(activeSegment?.words) && activeWordIndex >= 0 && (
-                          <p className={`mt-3 text-xs font-medium ${subtextClass}`}>
-                            Current word:{' '}
-                            <span className={accentTextClass}>
-                              {String(activeSegment.words[activeWordIndex]?.text || '').trim() || '—'}
-                            </span>
-                          </p>
-                        )}
-                        {activeProject?.timingMode === 'timed' && !activeProjectHasWordTimings && (
-                          <p className={`mt-3 text-xs ${subtextClass}`}>
-                            This transcript has line timings only. Current-word highlighting appears when the
-                            imported JSON also includes per-word timestamps.
-                          </p>
-                        )}
-                      </div>
-
-                      <div className={`rounded-2xl border p-5 ${softCardClass}`}>
-                        <p className="text-sm font-semibold">Shared bookmark</p>
-                        <p className={`mt-2 text-xs ${subtextClass}`}>
-                          One bookmark ties the audio position and the matching text line together.
-                        </p>
-                        <p data-testid="shared-bookmark-time" className={`mt-3 text-sm ${accentTextClass}`}>
-                          {activeBookmark ? formatTime(activeBookmark.time) : 'No bookmark yet'}
-                        </p>
-                        <p className="mt-2 text-sm leading-relaxed">
-                          {activeBookmark ? getBookmarkSnippet(activeBookmark) : 'Save the current spot whenever you want to come back later.'}
-                        </p>
-                        {activeReadingProgress && (
-                          <p className={`mt-3 text-xs ${subtextClass}`}>
-                            Auto-saved progress: {formatTime(activeReadingProgress.time)}
-                          </p>
-                        )}
-                        <div className="mt-4 flex flex-col gap-3">
-                          <button
-                            type="button"
-                            onClick={handleSaveBookmark}
-                            className={`w-full rounded-xl border px-4 py-3 font-semibold flex items-center justify-center gap-2 ${borderClass}`}
-                          >
-                            <Bookmark className="h-4 w-4" />
-                            Save bookmark here
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleJumpToBookmark}
-                            disabled={!activeBookmark}
-                            className="w-full rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900 disabled:opacity-60"
-                          >
-                            Jump to bookmark
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </section>
-
-              {!isBilingualMode && (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-                <section className={`${cardClass} rounded-2xl shadow-2xl p-6`}>
-                  <h4 className="text-xl font-bold">
-                    {activeProject.timingMode === 'timed' ? 'Navigation & bookmark' : 'Navigation & manual sync'}
-                  </h4>
-                  <p className={`${subtextClass} mt-2 text-sm`}>
-                    {activeProject.timingMode === 'timed'
-                      ? 'Jump through the transcript, keep one shared bookmark, and let the highlighted line track the audio.'
-                      : 'Best for HPMOR or audiobook chapters without subtitles: jump to a line, play until it drifts, then pin the current time.'}
-                  </p>
-
-                  <div className={`mt-4 rounded-xl border p-4 ${softCardClass}`}>
-                    <p className="text-sm font-semibold">Selected line</p>
-                    <p className="mt-2 text-sm leading-relaxed">
-                      {selectedSegment?.text || 'Select a line from the reader text.'}
-                    </p>
-                    <div className={`mt-3 text-xs ${subtextClass}`}>
-                      Start: {formatTime(selectedSegment?.start)} · End: {formatTime(selectedSegment?.end)}
-                    </div>
-                  </div>
-
-                  <div className={`mt-4 rounded-xl border p-4 ${softCardClass}`}>
-                    <p className="text-sm font-semibold">Bookmark</p>
-                    <p className={`mt-2 text-xs ${subtextClass}`}>
-                      {activeBookmark
-                        ? `${formatTime(activeBookmark.time)} · ${getBookmarkSnippet(activeBookmark)}`
-                        : 'No bookmark saved yet.'}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 space-y-3">
-                    {activeProject.source === 'hpmor' && activeProject.timingMode === 'estimated' && (
-                      <button
-                        type="button"
-                        onClick={() => seekToSegment(0)}
-                        className={`w-full rounded-xl border px-4 py-3 font-semibold ${borderClass}`}
-                      >
-                        Jump to estimated chapter start
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleSaveBookmark}
-                      className={`w-full rounded-xl border px-4 py-3 font-semibold flex items-center justify-center gap-2 ${borderClass}`}
-                    >
-                      <Bookmark className="h-4 w-4" />
-                      Save shared bookmark
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleJumpToBookmark}
-                      disabled={!activeBookmark}
-                      className={`w-full rounded-xl border px-4 py-3 font-semibold ${borderClass} disabled:opacity-60`}
-                    >
-                      Jump to bookmark
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => seekToSegment(selectedSegmentIndex)}
-                      className="w-full rounded-xl bg-gradient-to-r from-yellow-400 to-lime-400 px-4 py-3 font-bold text-gray-900"
-                    >
-                      Jump to selected line
-                    </button>
-
-                    {activeProject.timingMode === 'estimated' && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={handleSetAnchor}
-                          className={`w-full rounded-xl border px-4 py-3 font-semibold flex items-center justify-center gap-2 ${borderClass}`}
-                        >
-                          <Pin className="h-4 w-4" />
-                          Pin current time here
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleClearAnchor}
-                          className={`w-full rounded-xl border px-4 py-3 font-semibold ${borderClass}`}
-                        >
-                          Clear selected pin
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleResetEstimates}
-                          className={`w-full rounded-xl border px-4 py-3 font-semibold flex items-center justify-center gap-2 ${borderClass}`}
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                          Reset rough sync
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </section>
-
-                <section className={`${cardClass} rounded-2xl shadow-2xl p-6`}>
-                  <div className="flex items-center justify-between gap-3">
+                  <form onSubmit={handleCreateProject} className="space-y-4">
                     <div>
-                      <h4 className="text-xl font-bold">Reader text</h4>
-                      <p className={`${subtextClass} mt-1 text-sm`}>
-                        Continuous text view. Click any line to jump there; the active line stays highlighted,
-                        and JSON transcripts with word timings also highlight the current word.
-                      </p>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Project Title
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. My Favorite Podcast"
+                        value={form.title}
+                        onChange={(e) => setForm({ ...form, title: e.target.value })}
+                        className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-800 dark:text-slate-200 placeholder-slate-400"
+                      />
                     </div>
-                    <span className={`text-sm font-semibold ${accentTextClass}`}>
-                      {activeProject.timingMode === 'timed'
-                        ? activeProjectHasWordTimings
-                          ? 'word-level timings'
-                          : 'line timings'
-                        : `${countVisibleAnchors(activeProject)} manual pins`}
-                    </span>
-                  </div>
 
-                  <div
-                    ref={segmentsContainerRef}
-                    className={`mt-4 max-h-[70vh] overflow-y-auto rounded-2xl border p-5 pr-3 ${softCardClass}`}
-                  >
-                    <div className="text-lg leading-8">
-                    {activeProject.segments.map((segment) => {
-                      const isSelected = selectedSegmentIndex === segment.index;
-                      const isActive = activeSegmentIndex === segment.index;
-                      const segmentWordIndex = isActive ? activeWordIndex : -1;
-                      const hasManualAnchor =
-                        Number.isFinite(activeProject.manualAnchors?.[segment.index]) &&
-                        segment.index > 0 &&
-                        segment.index < activeProject.segments.length;
-
-                      return (
-                        <button
-                          key={segment.id}
-                          type="button"
-                          data-testid={`reader-line-${segment.index}`}
-                          data-active={isActive ? 'true' : 'false'}
-                          data-selected={isSelected ? 'true' : 'false'}
-                          ref={(element) => {
-                            segmentRefs.current[segment.index] = element;
-                          }}
-                          onClick={() => {
-                            setSelectedSegmentIndex(segment.index);
-                            if (Number.isFinite(segment.start)) {
-                              seekToSegment(segment.index);
-                            }
-                          }}
-                          className={`mb-1 mr-1 inline rounded-lg px-1.5 py-1 text-left align-baseline transition-all ${
-                            isActive
-                              ? 'bg-lime-200 text-gray-900 shadow-sm'
-                              : isSelected
-                                ? 'bg-yellow-100 text-gray-900'
-                                : 'text-inherit hover:bg-yellow-50/80'
-                          }`}
-                        >
-                          {renderSegmentWords(segment, segmentWordIndex)}
-                          {hasManualAnchor && (
-                            <span className="ml-1 rounded-full bg-yellow-200 px-2 py-0.5 text-[11px] font-semibold text-yellow-900">
-                              pin
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Pasted Text
+                      </label>
+                      <textarea
+                        placeholder="Paste the chapter text to read..."
+                        value={form.text}
+                        onChange={(e) => setForm({ ...form, text: e.target.value })}
+                        rows={4}
+                        className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-800 dark:text-slate-200 placeholder-slate-400 resize-none font-sans"
+                      />
                     </div>
-                  </div>
-                </section>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Audio URL (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="https://example.com/audio.mp3"
+                        value={form.audioUrl}
+                        onChange={(e) => setForm({ ...form, audioUrl: e.target.value })}
+                        className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-800 dark:text-slate-200 placeholder-slate-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Upload Audio File (Optional)
+                      </label>
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={(e) => setForm({ ...form, audioFile: e.target.files[0] })}
+                        className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-purple-50 dark:file:bg-purple-950/30 file:text-purple-700 dark:file:text-purple-400 hover:file:bg-purple-100 transition-all cursor-pointer"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Segmentation Mode
+                      </label>
+                      <select
+                        value={form.segmentationMode}
+                        onChange={(e) => setForm({ ...form, segmentationMode: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-800 dark:text-slate-200 cursor-pointer"
+                      >
+                        <option value="paragraph">Paragraphs</option>
+                        <option value="sentence">Sentences</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-2 pt-2">
+                      <button
+                        type="submit"
+                        disabled={isBusy}
+                        className="w-full py-2.5 bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                      >
+                        Import Text + Audio (Rough Sync)
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={handleCreateTimedTranscriptProject}
+                        className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md disabled:opacity-50"
+                      >
+                        Transcribe & Import (Local Whisper ASR)
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
-              )}
-            </>
-          )}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
