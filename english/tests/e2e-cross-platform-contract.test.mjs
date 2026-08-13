@@ -144,7 +144,15 @@ describe('Stage F / VAL-CROSS-006: Cross-Platform Contract Integration Test Suit
               isEnglish: true,
               correctedText: platform.correctedText,
               summaryRu: 'Исправление грамматики.',
-              errors: [],
+              errors: [
+                {
+                  original: 'go',
+                  correction: 'went',
+                  explanationRu: 'Доказательство ошибки.',
+                  topic: 'Past Simple (irregular verbs)',
+                  confidence: 0.88,
+                },
+              ],
               topicEvidence: [
                 {
                   topic: 'Past Simple (irregular verbs)',

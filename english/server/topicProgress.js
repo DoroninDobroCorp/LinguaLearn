@@ -115,12 +115,12 @@ export function recordTopicEvidence(
   const isHighConfidence = confidence >= minConfidence;
   const current = getUserTopicProgress(db, userId, curriculumTopicId);
 
-  if (!isHighConfidence && current.status === 'not_started') {
+  if (!isHighConfidence) {
     return {
-      score: 0,
-      status: 'not_started',
-      uniquePracticeDays: 0,
-      masteryConfidence: 0,
+      score: current.score || 0,
+      status: current.status || 'not_started',
+      uniquePracticeDays: current.unique_practice_days || 0,
+      masteryConfidence: calculateMasteryConfidence(current),
     };
   }
 

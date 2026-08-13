@@ -196,7 +196,15 @@ describe('Stage B: Mac Desktop Client Alignment (schemaVersion 1)', () => {
             isEnglish: true,
             correctedText: 'Yesterday I went to the market.',
             summaryRu: 'Исправлена форма глагола.',
-            errors: [],
+            errors: [
+              {
+                original: 'go',
+                correction: 'went',
+                explanationRu: 'Past Simple',
+                topic: 'Past Simple (irregular verbs)',
+                confidence: 0.9,
+              },
+            ],
             topicEvidence: [
               {
                 topic: 'Past Simple (irregular verbs)',

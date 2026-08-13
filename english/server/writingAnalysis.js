@@ -299,6 +299,25 @@ export function validateAnalyzerResult(response) {
   };
 }
 
+export function hasMatchingObjectiveError(evidence, errors) {
+  if (!evidence || !Array.isArray(errors) || errors.length === 0) return false;
+
+  const evTopicName = (evidence.topic || '').trim().toLowerCase();
+
+  return errors.some((err) => {
+    if (!err || typeof err !== 'object') return false;
+    const orig = (err.original || '').trim().toLowerCase();
+    const corr = (err.correction || '').trim().toLowerCase();
+    if (!orig || !corr || orig === corr) return false;
+
+    const errTopicName = (err.topic || '').trim().toLowerCase();
+    if (!errTopicName) {
+      return true;
+    }
+    return errTopicName === evTopicName;
+  });
+}
+
 function canonicalGrammarTopics(db) {
   return db.prepare(`
     SELECT id, name, category, level
@@ -311,6 +330,17 @@ function canonicalGrammarTopics(db) {
 function normalizeCanonicalEvidence(db, analysis) {
   let { isEnglish, assessment, correctedText, summaryRu, errors, topicEvidence } = analysis;
 
+  const canonicalTopics = canonicalGrammarTopics(db);
+  const topicsByName = new Map(
+    canonicalTopics.map((topic) => [topic.name.trim().toLocaleLowerCase('en-US'), topic]),
+  );
+
+  const normalizedErrors = errors.map((error) => {
+    if (!error.topic) return error;
+    const topic = topicsByName.get(error.topic.trim().toLocaleLowerCase('en-US'));
+    return { ...error, topic: topic ? topic.name : null };
+  });
+
   // Sanitization / Contradiction Guard
   if (assessment !== 'clear_error') {
     // mechanical_only, acceptable, correct MUST return errors = []
@@ -319,18 +349,26 @@ function normalizeCanonicalEvidence(db, analysis) {
     topicEvidence = topicEvidence.filter((ev) => ev.outcome !== 'error');
   } else {
     // assessment === 'clear_error'
+    // Negative evidence permitted ONLY when confidence >= 0.85 AND matching objective error in errors[]
+    topicEvidence = topicEvidence.filter((ev) => {
+      if (ev.outcome === 'error') {
+        return ev.confidence >= 0.85 && hasMatchingObjectiveError(ev, normalizedErrors);
+      }
+      return true;
+    });
+
     const hasErrorEvidence = topicEvidence.some((ev) => ev.outcome === 'error');
-    if (errors.length === 0 && !hasErrorEvidence) {
-      // Contradiction: clear_error but neither errors nor error topicEvidence. Sanitize assessment.
+    const hasObjectiveError = normalizedErrors.some(
+      (err) => err && typeof err === 'object' && err.original && err.correction && err.original.trim().toLowerCase() !== err.correction.trim().toLowerCase()
+    );
+
+    if (!hasObjectiveError && !hasErrorEvidence) {
+      // Contradiction: clear_error but neither objective errors nor error topicEvidence. Sanitize assessment.
       assessment = 'acceptable';
       topicEvidence = topicEvidence.filter((ev) => ev.outcome !== 'error');
     }
   }
 
-  const canonicalTopics = canonicalGrammarTopics(db);
-  const topicsByName = new Map(
-    canonicalTopics.map((topic) => [topic.name.trim().toLocaleLowerCase('en-US'), topic]),
-  );
   const evidenceByTopicId = new Map();
 
   for (const candidate of topicEvidence) {
@@ -354,12 +392,6 @@ function normalizeCanonicalEvidence(db, analysis) {
     }
   }
 
-  const normalizedErrors = errors.map((error) => {
-    if (!error.topic) return error;
-    const topic = topicsByName.get(error.topic.trim().toLocaleLowerCase('en-US'));
-    return { ...error, topic: topic ? topic.name : null };
-  });
-
   const canonicalEvidence = [...evidenceByTopicId.values()];
   const errorEvidence = canonicalEvidence.filter((evidence) => evidence.outcome === 'error');
   const scoreableEvidence = errorEvidence.length
@@ -374,7 +406,7 @@ function normalizeCanonicalEvidence(db, analysis) {
     assessment,
     correctedText,
     summaryRu,
-    errors: normalizedErrors,
+    errors: assessment === 'clear_error' ? normalizedErrors : [],
     topicEvidence: scoreableEvidence,
   };
 }
@@ -481,14 +513,23 @@ function completeAcceptedSample(db, sampleId, input, analysis, latencyMs) {
       `).get(evidence.topicId);
       if (!topic) continue;
 
-      const isHighConfidence = evidence.outcome === 'error'
-        ? (analysis.assessment === 'clear_error' && evidence.confidence >= 0.85)
-        : (evidence.confidence >= 0.7);
+      const isPermittedError = evidence.outcome === 'error' &&
+        analysis.assessment === 'clear_error' &&
+        evidence.confidence >= 0.85 &&
+        hasMatchingObjectiveError(evidence, analysis.errors);
 
-      const rawDelta = evidence.outcome === 'success'
+      const isPermittedSuccess = evidence.outcome === 'success' &&
+        evidence.confidence >= 0.7;
+
+      if ((evidence.outcome === 'error' && !isPermittedError) ||
+          (evidence.outcome === 'success' && !isPermittedSuccess)) {
+        // DO NOT insert grammar_evidence, DO NOT call recordTopicEvidence()
+        continue;
+      }
+
+      const scoreDelta = evidence.outcome === 'success'
         ? EXTERNAL_SCORE_WEIGHTS.success
         : EXTERNAL_SCORE_WEIGHTS.error;
-      const scoreDelta = isHighConfidence ? rawDelta : 0;
 
       let currentScore = 0;
       let newScore = 0;

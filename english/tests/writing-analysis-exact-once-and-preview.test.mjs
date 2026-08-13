@@ -94,9 +94,18 @@ test('VAL-CAPT-002: Exact-once scoring per eventId and multi-user isolation', as
       analyzerCalls++;
       return {
         isEnglish: true,
+        assessment: 'clear_error',
         correctedText: 'Yesterday I went to store.',
         summaryRu: 'Исправлена форма.',
-        errors: [],
+        errors: [
+          {
+            original: 'go',
+            correction: 'went',
+            explanationRu: 'Past Simple',
+            topic: 'Past Simple (irregular verbs)',
+            confidence: 0.9,
+          },
+        ],
         topicEvidence: [
           {
             topic: 'Past Simple (irregular verbs)',
@@ -186,9 +195,18 @@ test('VAL-CAPT-004: Error priority over success in score calculation', async (t)
     db,
     analyzer: async () => ({
       isEnglish: true,
+      assessment: 'clear_error',
       correctedText: 'Yesterday I went to a store.',
       summaryRu: 'Ошибка.',
-      errors: [],
+      errors: [
+        {
+          original: 'go',
+          correction: 'went',
+          explanationRu: 'Past Simple',
+          topic: 'Past Simple (irregular verbs)',
+          confidence: 0.9,
+        },
+      ],
       topicEvidence: [
         {
           topic: 'Past Simple (irregular verbs)',
@@ -214,7 +232,7 @@ test('VAL-CAPT-004: Error priority over success in score calculation', async (t)
   assert.equal(res.response.topicEvidence[0].scoreDelta, -2);
 });
 
-test('VAL-CAPT-005: Low confidence evidence filtering (< 0.7)', async (t) => {
+test('VAL-CAPT-005: Low confidence evidence filtering (< 0.85)', async (t) => {
   const db = createTestDatabase();
   t.after(() => db.close());
 
@@ -222,14 +240,23 @@ test('VAL-CAPT-005: Low confidence evidence filtering (< 0.7)', async (t) => {
     db,
     analyzer: async () => ({
       isEnglish: true,
+      assessment: 'clear_error',
       correctedText: 'I go store.',
       summaryRu: 'Возможная ошибка.',
-      errors: [],
+      errors: [
+        {
+          original: 'go',
+          correction: 'went',
+          explanationRu: 'Past Simple',
+          topic: 'Past Simple (irregular verbs)',
+          confidence: 0.5,
+        },
+      ],
       topicEvidence: [
         {
           topic: 'Past Simple (irregular verbs)',
           outcome: 'error',
-          confidence: 0.5, // Low confidence < 0.7
+          confidence: 0.5, // Low confidence < 0.85
           explanationRu: 'Низкая уверенность.',
         },
       ],
@@ -240,9 +267,7 @@ test('VAL-CAPT-005: Low confidence evidence filtering (< 0.7)', async (t) => {
   assert.equal(res.response.accepted, true);
 
   const evidenceRow = db.prepare('SELECT outcome, confidence, score_delta FROM grammar_evidence WHERE writing_sample_id = (SELECT id FROM writing_samples WHERE event_id = ?)').get('low-conf-1');
-  assert.equal(evidenceRow.outcome, 'error');
-  assert.equal(evidenceRow.confidence, 0.5);
-  assert.equal(evidenceRow.score_delta, 0); // score_delta is 0 for low confidence
+  assert.equal(evidenceRow, undefined, 'No grammar_evidence inserted for low confidence evidence');
 
   const progRow = db.prepare('SELECT score FROM user_topic_progress WHERE user_id = 1 AND curriculum_topic_id = (SELECT id FROM curriculum_topics WHERE name = ?)').get('Past Simple (irregular verbs)');
   assert.equal(progRow, undefined); // No score change applied to user_topic_progress
