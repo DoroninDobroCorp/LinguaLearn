@@ -7,6 +7,7 @@ final class CorrectionPopupController: NSObject {
         let response: WritingAnalyzeResponse
         let appURL: URL?
         let replaceDraft: ((String) -> Bool)?
+        let displayMode: PopupDisplayMode
     }
 
     private let panel: NSPanel
@@ -37,20 +38,22 @@ final class CorrectionPopupController: NSObject {
         event: CaptureEvent,
         response: WritingAnalyzeResponse,
         appURL: URL?,
-        replaceDraft: ((String) -> Bool)? = nil
+        replaceDraft: ((String) -> Bool)? = nil,
+        displayMode: PopupDisplayMode = .largeCard
     ) {
         let presentation = Presentation(
             event: event,
             response: response,
             appURL: appURL,
-            replaceDraft: replaceDraft
+            replaceDraft: replaceDraft,
+            displayMode: displayMode
         )
         if analyzingEventID == event.eventID {
             analyzingEventID = nil
             rebuildContent(for: presentation)
             positionPanel()
             panel.orderFrontRegardless()
-            scheduleAutoDismiss()
+            scheduleAutoDismiss(seconds: presentation.displayMode == .compactChip ? 1.8 : 6.0)
             return
         }
         if presentations.count >= maximumPendingPresentations {
@@ -126,13 +129,23 @@ final class CorrectionPopupController: NSObject {
         rebuildContent(for: presentation)
         positionPanel()
         panel.orderFrontRegardless()
-        scheduleAutoDismiss()
+        scheduleAutoDismiss(seconds: presentation.displayMode == .compactChip ? 1.8 : 6.0)
     }
 
     private func rebuildContent(for presentation: Presentation) {
         for view in contentStack.arrangedSubviews {
             contentStack.removeArrangedSubview(view)
             view.removeFromSuperview()
+        }
+
+        if presentation.displayMode == .compactChip {
+            let chipLabel = makeLabel("Grammar OK ✓", font: .systemFont(ofSize: 13, weight: .semibold))
+            chipLabel.textColor = .labelColor
+            contentStack.addArrangedSubview(chipLabel)
+            contentStack.layoutSubtreeIfNeeded()
+            let fitting = contentStack.fittingSize
+            panel.setContentSize(NSSize(width: max(fitting.width + 36, 180), height: 42))
+            return
         }
 
         let source = makeLabel("From \(presentation.event.sourceApp)", font: .systemFont(ofSize: 11, weight: .medium))
@@ -292,24 +305,26 @@ final class CorrectionPopupController: NSObject {
         ))
     }
 
-    private func scheduleAutoDismiss() {
+    private func scheduleAutoDismiss(seconds: TimeInterval = 6.0) {
         cancelAutoDismiss()
-        remainingAutoDismissSeconds = 6
+        remainingAutoDismissSeconds = Int(ceil(seconds))
         updateCountdownLabel()
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] timer in
-            guard let self else {
-                timer.invalidate()
-                return
+        if remainingAutoDismissSeconds > 2 {
+            countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] timer in
+                guard let self else {
+                    timer.invalidate()
+                    return
+                }
+                self.remainingAutoDismissSeconds -= 1
+                self.updateCountdownLabel()
+                if self.remainingAutoDismissSeconds <= 0 { timer.invalidate() }
             }
-            self.remainingAutoDismissSeconds -= 1
-            self.updateCountdownLabel()
-            if self.remainingAutoDismissSeconds <= 0 { timer.invalidate() }
         }
         let workItem = DispatchWorkItem { [weak self] in
             self?.advanceQueue()
         }
         autoDismissWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 6, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: workItem)
     }
 
     private func updateCountdownLabel() {

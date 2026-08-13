@@ -226,13 +226,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         return
                     }
                     let appURL = try? configuration.validatedAppURL()
+                    let displayMode = PopupPolicy.displayMode(for: response, isPreviewHotkey: true)
                     self.popupController.enqueue(
                         event: event,
                         response: response,
                         appURL: appURL,
                         replaceDraft: { correctedText in
                             monitor?.replaceDraft(preview, with: correctedText) ?? false
-                        }
+                        },
+                        displayMode: displayMode
                     )
                     self.setStatus("Draft correction ready")
                 case .failure(let error):
@@ -251,13 +253,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         setStatus("Capturing • queue \(coordinator?.queueDepth ?? 0)")
 
-        let corrected = response.correctedText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let original = event.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let changed = !corrected.isEmpty && corrected != original
-        let shouldShow = configuration?.showOnlyWhenChanged == false || changed || !response.errors.isEmpty
-        guard shouldShow else { return }
         let appURL = try? configuration?.validatedAppURL()
-        popupController.enqueue(event: event, response: response, appURL: appURL ?? nil)
+        let displayMode = PopupPolicy.displayMode(for: response, isPreviewHotkey: false)
+        popupController.enqueue(event: event, response: response, appURL: appURL ?? nil, displayMode: displayMode)
     }
 
     private func setStatus(_ text: String) {

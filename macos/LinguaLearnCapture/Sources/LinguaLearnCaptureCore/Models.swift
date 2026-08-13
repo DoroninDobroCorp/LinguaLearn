@@ -42,6 +42,8 @@ public struct WritingError: Codable, Equatable, Sendable {
     public let topic: String?
     public let level: String?
     public let confidence: Double?
+    public let kind: String?
+    public let category: String?
 
     public init(
         original: String? = nil,
@@ -50,7 +52,9 @@ public struct WritingError: Codable, Equatable, Sendable {
         explanation: String? = nil,
         topic: String? = nil,
         level: String? = nil,
-        confidence: Double? = nil
+        confidence: Double? = nil,
+        kind: String? = nil,
+        category: String? = nil
     ) {
         self.original = original
         self.correction = correction
@@ -59,6 +63,8 @@ public struct WritingError: Codable, Equatable, Sendable {
         self.topic = topic
         self.level = level
         self.confidence = confidence
+        self.kind = kind
+        self.category = category
     }
 
     public var displayExplanation: String? {
@@ -134,9 +140,14 @@ public struct WritingAnalyzeResponse: Codable, Equatable, Sendable {
     public let sourceApp: String?
     public let originalText: String?
     public let correctedText: String?
+    public let recommendedText: String?
+    public let assessment: String?
+    public let hasClearError: Bool?
     public let changed: Bool?
     public let summaryRu: String?
     public let errors: [WritingError]
+    public let mechanicalCorrections: [WritingError]
+    public let optionalSuggestions: [WritingError]
     public let topicEvidence: [TopicEvidence]
     public let topicChanges: [TopicChange]
 
@@ -150,9 +161,14 @@ public struct WritingAnalyzeResponse: Codable, Equatable, Sendable {
         sourceApp: String? = nil,
         originalText: String? = nil,
         correctedText: String? = nil,
+        recommendedText: String? = nil,
+        assessment: String? = nil,
+        hasClearError: Bool? = nil,
         changed: Bool? = nil,
         summaryRu: String? = nil,
         errors: [WritingError] = [],
+        mechanicalCorrections: [WritingError] = [],
+        optionalSuggestions: [WritingError] = [],
         topicEvidence: [TopicEvidence] = [],
         topicChanges: [TopicChange] = []
     ) {
@@ -165,15 +181,32 @@ public struct WritingAnalyzeResponse: Codable, Equatable, Sendable {
         self.sourceApp = sourceApp
         self.originalText = originalText
         self.correctedText = correctedText
+        self.recommendedText = recommendedText
+        self.assessment = assessment
+        self.hasClearError = hasClearError
         self.changed = changed
         self.summaryRu = summaryRu
         self.errors = errors
+        self.mechanicalCorrections = mechanicalCorrections
+        self.optionalSuggestions = optionalSuggestions
         self.topicEvidence = topicEvidence
         self.topicChanges = topicChanges
     }
 
+    public var isClearError: Bool {
+        if let hasClearError = hasClearError {
+            return hasClearError
+        }
+        if let assessment = assessment {
+            return assessment == "clear_error"
+        }
+        return !errors.isEmpty
+    }
+
     private enum CodingKeys: String, CodingKey {
-        case schemaVersion, eventId, sampleId, previewOnly, accepted, rejectionReason, sourceApp, originalText, correctedText, changed, summaryRu, errors, topicEvidence, topicChanges
+        case schemaVersion, eventId, sampleId, previewOnly, accepted, rejectionReason, sourceApp
+        case originalText, correctedText, recommendedText, assessment, hasClearError, changed, summaryRu
+        case errors, mechanicalCorrections, optionalSuggestions, topicEvidence, topicChanges
     }
 
     public init(from decoder: Decoder) throws {
@@ -187,11 +220,30 @@ public struct WritingAnalyzeResponse: Codable, Equatable, Sendable {
         sourceApp = try container.decodeIfPresent(String.self, forKey: .sourceApp)
         originalText = try container.decodeIfPresent(String.self, forKey: .originalText)
         correctedText = try container.decodeIfPresent(String.self, forKey: .correctedText)
+        recommendedText = try container.decodeIfPresent(String.self, forKey: .recommendedText)
+        assessment = try container.decodeIfPresent(String.self, forKey: .assessment)
+        hasClearError = try container.decodeIfPresent(Bool.self, forKey: .hasClearError)
         changed = try container.decodeIfPresent(Bool.self, forKey: .changed)
         summaryRu = try container.decodeIfPresent(String.self, forKey: .summaryRu)
         errors = try container.decodeIfPresent([WritingError].self, forKey: .errors) ?? []
+        mechanicalCorrections = try container.decodeIfPresent([WritingError].self, forKey: .mechanicalCorrections) ?? []
+        optionalSuggestions = try container.decodeIfPresent([WritingError].self, forKey: .optionalSuggestions) ?? []
         topicEvidence = try container.decodeIfPresent([TopicEvidence].self, forKey: .topicEvidence) ?? []
         topicChanges = try container.decodeIfPresent([TopicChange].self, forKey: .topicChanges) ?? []
+    }
+}
+
+public enum PopupDisplayMode: Equatable, Sendable {
+    case compactChip
+    case largeCard
+}
+
+public struct PopupPolicy: Sendable {
+    public static func displayMode(for response: WritingAnalyzeResponse, isPreviewHotkey: Bool) -> PopupDisplayMode {
+        if isPreviewHotkey {
+            return .largeCard
+        }
+        return response.isClearError ? .largeCard : .compactChip
     }
 }
 

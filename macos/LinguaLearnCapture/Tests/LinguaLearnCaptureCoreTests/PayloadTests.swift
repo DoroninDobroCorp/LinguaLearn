@@ -102,4 +102,91 @@ final class PayloadTests: XCTestCase {
         emptyIngress.ingressToken = ""
         XCTAssertThrowsError(try emptyIngress.validatedIngressToken())
     }
+
+    func testDecodesStructuredContractAndAssessmentFields() throws {
+        let json = Data(#"""
+        {
+          "accepted": true,
+          "assessment": "clear_error",
+          "hasClearError": true,
+          "originalText": "Yesterday I go to market.",
+          "correctedText": "Yesterday I went to the market.",
+          "recommendedText": "Yesterday I went to the market.",
+          "changed": true,
+          "errors": [
+            {
+              "original": "go",
+              "correction": "went",
+              "explanationRu": "Используйте Past Simple.",
+              "topic": "Past Simple",
+              "level": "A2",
+              "kind": "grammar_error",
+              "category": "verb_tense"
+            }
+          ],
+          "mechanicalCorrections": [
+            {
+              "original": "market",
+              "correction": "the market",
+              "kind": "mechanical",
+              "category": "article"
+            }
+          ],
+          "optionalSuggestions": [
+            {
+              "original": "market",
+              "correction": "supermarket",
+              "kind": "style",
+              "category": "vocabulary"
+            }
+          ]
+        }
+        """#.utf8)
+
+        let response = try PayloadCoding.makeDecoder().decode(WritingAnalyzeResponse.self, from: json)
+        XCTAssertTrue(response.accepted)
+        XCTAssertEqual(response.assessment, "clear_error")
+        XCTAssertEqual(response.hasClearError, true)
+        XCTAssertTrue(response.isClearError)
+        XCTAssertEqual(response.recommendedText, "Yesterday I went to the market.")
+        XCTAssertEqual(response.errors.first?.kind, "grammar_error")
+        XCTAssertEqual(response.errors.first?.category, "verb_tense")
+        XCTAssertEqual(response.mechanicalCorrections.first?.kind, "mechanical")
+        XCTAssertEqual(response.mechanicalCorrections.first?.category, "article")
+        XCTAssertEqual(response.optionalSuggestions.first?.kind, "style")
+        XCTAssertEqual(response.optionalSuggestions.first?.category, "vocabulary")
+    }
+
+    func testPopupPolicyEnforcesCompactChipAndLargeCardRules() throws {
+        let clearErrorResp = WritingAnalyzeResponse(
+            assessment: "clear_error",
+            hasClearError: true,
+            errors: [WritingError(original: "go", correction: "went")]
+        )
+        let mechanicalOnlyResp = WritingAnalyzeResponse(
+            assessment: "mechanical_only",
+            hasClearError: false,
+            mechanicalCorrections: [WritingError(original: "i", correction: "I")]
+        )
+        let acceptableResp = WritingAnalyzeResponse(
+            assessment: "acceptable",
+            hasClearError: false
+        )
+        let correctResp = WritingAnalyzeResponse(
+            assessment: "correct",
+            hasClearError: false
+        )
+
+        // Automatic capture policy checks
+        XCTAssertEqual(PopupPolicy.displayMode(for: clearErrorResp, isPreviewHotkey: false), .largeCard)
+        XCTAssertEqual(PopupPolicy.displayMode(for: mechanicalOnlyResp, isPreviewHotkey: false), .compactChip)
+        XCTAssertEqual(PopupPolicy.displayMode(for: acceptableResp, isPreviewHotkey: false), .compactChip)
+        XCTAssertEqual(PopupPolicy.displayMode(for: correctResp, isPreviewHotkey: false), .compactChip)
+
+        // Manual preview hotkey (Control+Option+G) policy checks - ALWAYS largeCard
+        XCTAssertEqual(PopupPolicy.displayMode(for: clearErrorResp, isPreviewHotkey: true), .largeCard)
+        XCTAssertEqual(PopupPolicy.displayMode(for: mechanicalOnlyResp, isPreviewHotkey: true), .largeCard)
+        XCTAssertEqual(PopupPolicy.displayMode(for: acceptableResp, isPreviewHotkey: true), .largeCard)
+        XCTAssertEqual(PopupPolicy.displayMode(for: correctResp, isPreviewHotkey: true), .largeCard)
+    }
 }
