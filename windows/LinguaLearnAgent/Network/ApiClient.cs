@@ -49,6 +49,15 @@ public class AnalysisErrorItem
 
     [JsonPropertyName("confidence")]
     public double Confidence { get; set; }
+
+    [JsonPropertyName("level")]
+    public string? Level { get; set; }
+
+    [JsonPropertyName("kind")]
+    public string? Kind { get; set; }
+
+    [JsonPropertyName("category")]
+    public string? Category { get; set; }
 }
 
 public class AnalysisEvidenceItem
@@ -86,17 +95,29 @@ public class AnalysisResponse
     [JsonPropertyName("correctedText")]
     public string CorrectedText { get; set; } = string.Empty;
 
+    [JsonPropertyName("recommendedText")]
+    public string RecommendedText { get; set; } = string.Empty;
+
     [JsonPropertyName("changed")]
     public bool Changed { get; set; }
 
     [JsonPropertyName("assessment")]
     public string Assessment { get; set; } = "correct";
 
+    [JsonPropertyName("hasClearError")]
+    public bool HasClearError { get; set; }
+
     [JsonPropertyName("summaryRu")]
     public string SummaryRu { get; set; } = string.Empty;
 
     [JsonPropertyName("errors")]
     public List<AnalysisErrorItem> Errors { get; set; } = new();
+
+    [JsonPropertyName("mechanicalCorrections")]
+    public List<AnalysisErrorItem> MechanicalCorrections { get; set; } = new();
+
+    [JsonPropertyName("optionalSuggestions")]
+    public List<AnalysisErrorItem> OptionalSuggestions { get; set; } = new();
 
     [JsonPropertyName("topicEvidence")]
     public List<AnalysisEvidenceItem> TopicEvidence { get; set; } = new();
@@ -110,6 +131,11 @@ public class AnalysisResponse
 
 public class ApiClient
 {
+    private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly HttpClient _httpClient;
     private readonly PrivacyConsentManager _settings;
     private string _baseUrl = "http://localhost:3001";
@@ -130,7 +156,7 @@ public class ApiClient
         try
         {
             string url = $"{_baseUrl}/api/writing/analyze";
-            string json = JsonSerializer.Serialize(payload);
+            string json = JsonSerializer.Serialize(payload, JsonOptions);
             using var request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -144,7 +170,7 @@ public class ApiClient
             if (!response.IsSuccessStatusCode) return null;
 
             string respJson = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<AnalysisResponse>(respJson);
+            return JsonSerializer.Deserialize<AnalysisResponse>(respJson, JsonOptions);
         }
         catch (Exception ex)
         {

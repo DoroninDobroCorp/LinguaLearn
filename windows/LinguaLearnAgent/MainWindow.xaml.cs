@@ -1,4 +1,6 @@
+using System;
 using System.Windows;
+using System.Windows.Interop;
 using LinguaLearnAgent.Settings;
 
 namespace LinguaLearnAgent;
@@ -9,6 +11,32 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         LoadSettingsIntoUI();
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        try
+        {
+            var handle = new WindowInteropHelper(this).Handle;
+            if (handle != IntPtr.Zero && App.HotkeyManager != null)
+            {
+                App.HotkeyManager.RegisterWindowHandle(handle);
+                App.HotkeyManager.HotkeyPressed += OnHotkeyPressed;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MainWindow] Hotkey registration exception: {ex.Message}");
+        }
+    }
+
+    private async void OnHotkeyPressed(object? sender, EventArgs e)
+    {
+        if (App.AutomationListener != null)
+        {
+            await App.AutomationListener.TriggerHotkeyCaptureAsync();
+        }
     }
 
     private void LoadSettingsIntoUI()

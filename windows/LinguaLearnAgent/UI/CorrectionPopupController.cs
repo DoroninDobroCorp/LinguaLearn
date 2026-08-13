@@ -24,7 +24,10 @@ public class ErrorDetailViewModel
     public string Correction { get; set; } = string.Empty;
     public string ExplanationRu { get; set; } = string.Empty;
     public string Topic { get; set; } = string.Empty;
-    public string DetailsText => $"{Original} ➔ {Correction} ({Topic})";
+    public string? Kind { get; set; }
+    public string? Category { get; set; }
+    public string? Level { get; set; }
+    public string DetailsText => $"{Original} ➔ {Correction} ({Topic}{(string.IsNullOrEmpty(Kind) ? "" : $" [{Kind}]")})";
 }
 
 public static class CorrectionPopupController
@@ -34,13 +37,17 @@ public static class CorrectionPopupController
     public static CorrectionUiModel BuildUiModel(AnalysisResponse response)
     {
         string tier = response.Assessment ?? "correct";
-        bool isClearError = string.Equals(tier, "clear_error", StringComparison.OrdinalIgnoreCase);
+        bool isClearError = response.HasClearError || string.Equals(tier, "clear_error", StringComparison.OrdinalIgnoreCase);
+
+        string displayCorrected = !string.IsNullOrWhiteSpace(response.RecommendedText)
+            ? response.RecommendedText
+            : response.CorrectedText;
 
         var model = new CorrectionUiModel
         {
             AssessmentTier = tier,
             OriginalText = response.OriginalText,
-            CorrectedText = response.CorrectedText,
+            CorrectedText = displayCorrected,
             SummaryRu = string.IsNullOrWhiteSpace(response.SummaryRu) ?
                 (isClearError ? "Найдены ошибки в тексте." : "Ошибок не обнаружено.") : response.SummaryRu,
             Changed = response.Changed,
@@ -58,7 +65,10 @@ public static class CorrectionPopupController
                     Original = err.Original,
                     Correction = err.Correction,
                     ExplanationRu = err.ExplanationRu,
-                    Topic = err.Topic
+                    Topic = err.Topic,
+                    Kind = err.Kind,
+                    Category = err.Category,
+                    Level = err.Level
                 });
             }
         }

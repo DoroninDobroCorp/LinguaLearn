@@ -1,0 +1,35 @@
+name: Windows Agent CI
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows-ci.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows-ci.yml'
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore windows/LinguaLearnAgent.sln
+
+    - name: Build solution
+      run: dotnet build windows/LinguaLearnAgent.sln --configuration Release --no-restore
+
+    - name: Run unit tests
+      run: dotnet test windows/LinguaLearnAgent.sln --configuration Release --no-build --verbosity normal
