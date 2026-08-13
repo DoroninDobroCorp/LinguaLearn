@@ -12,7 +12,7 @@ export default function TodayDashboard() {
   const [practiceSession, setPracticeSession] = useState(null);
   const [loadingPractice, setLoadingPractice] = useState(true);
   const [deviceTokens, setDeviceTokens] = useState([]);
-  const [stats, setStats] = useState({ analyzedCount: 0, weakTopicsCount: 0, improvingCount: 0 });
+  const [stats, setStats] = useState({ analyzedCount: 0, clearErrorsCount: 0, grammarOkCount: 0, weakTopicsCount: 0, improvingCount: 0 });
 
   useEffect(() => {
     fetchTodayPractice();
@@ -64,7 +64,17 @@ export default function TodayDashboard() {
       if (res.ok) {
         const data = await res.json();
         const samples = Array.isArray(data) ? data : data.samples || [];
-        setStats((prev) => ({ ...prev, analyzedCount: samples.length }));
+        const clearErrorsCount = samples.filter((s) => {
+          const a = s.analysis || {};
+          return a.hasClearError === true || a.assessment === 'clear_error';
+        }).length;
+        const grammarOkCount = samples.length - clearErrorsCount;
+        setStats((prev) => ({
+          ...prev,
+          analyzedCount: samples.length,
+          clearErrorsCount,
+          grammarOkCount,
+        }));
       }
     } catch (e) {
       console.error("Error fetching stats:", e);
@@ -166,14 +176,18 @@ export default function TodayDashboard() {
               <TrendingUp className="h-4 w-4 text-lime-500" />
               <span>Capture & Progress Overview</span>
             </h3>
-            <div className="grid grid-cols-2 gap-3 text-center">
+            <div className="grid grid-cols-3 gap-3 text-center">
               <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
                 <span className="text-2xl font-extrabold text-yellow-600 dark:text-yellow-400">{stats.analyzedCount}</span>
-                <span className="block text-[11px] text-gray-500 dark:text-gray-400 font-medium">Sentences Analyzed</span>
+                <span className="block text-[11px] text-gray-500 dark:text-gray-400 font-medium">Analyzed</span>
               </div>
-              <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
-                <span className="text-2xl font-extrabold text-lime-600 dark:text-lime-400">{user?.cefr_level || "B1"}</span>
-                <span className="block text-[11px] text-gray-500 dark:text-gray-400 font-medium">Target Level</span>
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/40">
+                <span className="text-2xl font-extrabold text-red-600 dark:text-red-400">{stats.clearErrorsCount || 0}</span>
+                <span className="block text-[11px] text-red-700 dark:text-red-300 font-medium">Clear Errors</span>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800/40">
+                <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">{stats.grammarOkCount || 0}</span>
+                <span className="block text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">Grammar OK</span>
               </div>
             </div>
           </div>

@@ -19,8 +19,10 @@ import {
   Tag,
   Laptop,
   HelpCircle,
-  AlertTriangle
+  AlertTriangle,
+  Sparkle
 } from 'lucide-react';
+import { getSampleTierInfo } from '../utils/tierResolver.js';
 
 function CorrectionInbox() {
   const [samples, setSamples] = useState([]);
@@ -174,16 +176,25 @@ function CorrectionInbox() {
   const filteredSamples = useMemo(() => {
     return samples.filter((sample) => {
       const originalText = sample.originalText || '';
-      const correctedText = sample.analysis?.correctedText || '';
-      const summaryRu = sample.analysis?.summaryRu || '';
-      const errors = sample.analysis?.errors || [];
+      const tierInfo = getSampleTierInfo(sample);
+      const {
+        tier,
+        hasClearError,
+        recommendedText,
+        correctedText,
+        summaryRu,
+        errors,
+        mechanicalCorrections,
+        optionalSuggestions,
+      } = tierInfo;
 
-      // Keyword search
+      // Keyword search (indexes original, recommended, summary, errors, mechanical, suggestions)
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const matchesOriginal = originalText.toLowerCase().includes(query);
-        const matchesCorrected = correctedText.toLowerCase().includes(query);
+        const matchesRecommended = recommendedText.toLowerCase().includes(query) || correctedText.toLowerCase().includes(query);
         const matchesSummary = summaryRu.toLowerCase().includes(query);
+
         const matchesError = errors.some(
           (e) =>
             (e.original && e.original.toLowerCase().includes(query)) ||
@@ -192,7 +203,33 @@ function CorrectionInbox() {
             (e.topic && e.topic.toLowerCase().includes(query))
         );
 
-        if (!matchesOriginal && !matchesCorrected && !matchesSummary && !matchesError) {
+        const matchesMechanical = mechanicalCorrections.some(
+          (m) =>
+            typeof m === 'string'
+              ? m.toLowerCase().includes(query)
+              : (m.original && m.original.toLowerCase().includes(query)) ||
+                (m.correction && m.correction.toLowerCase().includes(query)) ||
+                (m.explanationRu && m.explanationRu.toLowerCase().includes(query))
+        );
+
+        const matchesOptional = optionalSuggestions.some(
+          (s) =>
+            typeof s === 'string'
+              ? s.toLowerCase().includes(query)
+              : (s.original && s.original.toLowerCase().includes(query)) ||
+                (s.suggestion && s.suggestion.toLowerCase().includes(query)) ||
+                (s.correction && s.correction.toLowerCase().includes(query)) ||
+                (s.explanationRu && s.explanationRu.toLowerCase().includes(query))
+        );
+
+        if (
+          !matchesOriginal &&
+          !matchesRecommended &&
+          !matchesSummary &&
+          !matchesError &&
+          !matchesMechanical &&
+          !matchesOptional
+        ) {
           return false;
         }
       }
@@ -202,13 +239,17 @@ function CorrectionInbox() {
         return false;
       }
 
-      // Status filter (CHANGED vs NO_ERRORS)
-      const hasErrors = (sample.analysis?.changed ?? false) || errors.length > 0;
-      if (selectedStatus === 'CHANGED' && !hasErrors) {
-        return false;
-      }
-      if (selectedStatus === 'NO_ERRORS' && hasErrors) {
-        return false;
+      // Status filter (checks assessment and hasClearError instead of changed)
+      if (selectedStatus === 'CHANGED' || selectedStatus === 'CLEAR_ERROR') {
+        if (!hasClearError && tier !== 'clear_error') return false;
+      } else if (selectedStatus === 'MECHANICAL') {
+        if (tier !== 'mechanical_only') return false;
+      } else if (selectedStatus === 'ACCEPTABLE') {
+        if (tier !== 'acceptable') return false;
+      } else if (selectedStatus === 'CORRECT') {
+        if (tier !== 'correct') return false;
+      } else if (selectedStatus === 'NO_ERRORS') {
+        if (hasClearError || tier === 'clear_error') return false;
       }
 
       // Topic filter
@@ -257,12 +298,11 @@ function CorrectionInbox() {
     }
   };
 
-  // Helper to render diff between original and corrected text
+  // Helper to render 4-tier visual diff between original and recommended text
   const renderDiffViewer = (sample) => {
     const original = sample.originalText;
-    const corrected = sample.analysis?.correctedText || '';
-    const errors = sample.analysis?.errors || [];
     const isPurged = sample.retentionPurged || original === null || original === undefined;
+    const { tier, recommendedText } = getSampleTierInfo(sample);
 
     if (isPurged) {
       return (
@@ -271,28 +311,83 @@ function CorrectionInbox() {
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>Исходный текст удален в соответствии с вашими настройками хранения данных (retention policy).</span>
           </div>
-          {corrected && (
+          {recommendedText && (
             <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-              <span className="text-xs font-semibold text-green-700 dark:text-green-400 block mb-1">Исправленный вариант:</span>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{corrected}</p>
+              <span className="text-xs font-semibold text-green-700 dark:text-green-400 block mb-1">Рекомендуемый вариант:</span>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{recommendedText}</p>
             </div>
           )}
         </div>
       );
     }
 
-    if (!sample.analysis?.changed && errors.length === 0) {
+    if (tier === 'correct') {
       return (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
           <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-1 text-xs font-semibold">
             <CheckCircle2 className="h-4 w-4" />
-            <span>Отлично! Текст написан без грамматических ошибок.</span>
+            <span>Всё правильно! Текст написан без грамматических ошибок и опечаток.</span>
           </div>
           <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">{original}</p>
         </div>
       );
     }
 
+    if (tier === 'acceptable') {
+      return (
+        <div className="space-y-3">
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-1 text-xs font-semibold">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>Фраза корректна. Текст грамотен и естественен.</span>
+            </div>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">{original}</p>
+          </div>
+          {recommendedText && recommendedText !== original && (
+            <div className="bg-slate-500/10 border border-slate-500/20 rounded-xl p-3.5">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                Рекомендуемый стилистический вариант:
+              </span>
+              <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">{recommendedText}</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (tier === 'mechanical_only') {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                  <FileText className="h-3.5 w-3.5" /> Оригинал (Захвачено)
+                </span>
+              </div>
+              <p className="text-sm text-gray-800 dark:text-gray-200 font-normal leading-relaxed whitespace-pre-wrap">
+                {original}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-slate-500/10 border border-slate-500/20 rounded-xl p-4 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> С оформлением и опечатками
+                </span>
+              </div>
+              <p className="text-sm text-gray-900 dark:text-gray-100 font-medium leading-relaxed whitespace-pre-wrap">
+                {recommendedText}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // clear_error tier (red objective error section)
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Original Text Box */}
@@ -309,16 +404,16 @@ function CorrectionInbox() {
           </div>
         </div>
 
-        {/* Corrected Text Box */}
+        {/* Corrected / Recommended Text Box */}
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Исправленный вариант
+                <CheckCircle2 className="h-3.5 w-3.5" /> Рекомендуемый вариант
               </span>
             </div>
             <p className="text-sm text-gray-900 dark:text-gray-100 font-medium leading-relaxed whitespace-pre-wrap">
-              {corrected}
+              {recommendedText}
             </p>
           </div>
         </div>
@@ -417,7 +512,10 @@ function CorrectionInbox() {
             >
               <option value="ALL">Все статусы</option>
               <option value="CHANGED">С ошибками</option>
-              <option value="NO_ERRORS">Без ошибок</option>
+              <option value="MECHANICAL">Опечатки и оформление</option>
+              <option value="ACCEPTABLE">Фраза корректна</option>
+              <option value="CORRECT">Всё правильно</option>
+              <option value="NO_ERRORS">Без грамматических ошибок</option>
             </select>
           </div>
 
@@ -503,8 +601,16 @@ function CorrectionInbox() {
           {/* Sample Cards List */}
           <div className="space-y-6">
             {paginatedSamples.map((sample) => {
-              const errors = sample.analysis?.errors || [];
-              const summaryRu = sample.analysis?.summaryRu;
+              const tierInfo = getSampleTierInfo(sample);
+              const {
+                tier,
+                hasClearError,
+                recommendedText,
+                summaryRu,
+                errors,
+                mechanicalCorrections,
+                optionalSuggestions,
+              } = tierInfo;
               const feedbackList = sample.feedback || [];
               const isHelpfulSubmitted = feedbackList.some((f) => f.feedbackType === 'helpful');
               const isUndoSubmitted = feedbackList.some((f) => f.feedbackType === 'undo_progress');
@@ -528,14 +634,26 @@ function CorrectionInbox() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {sample.analysis?.changed || errors.length > 0 ? (
-                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                          {errors.length} {errors.length === 1 ? 'ошибка' : 'ошибок'}
+                    <div className="flex items-center gap-2" data-testid={`tier-badge-${sample.id || sample.eventId}`}>
+                      {tier === 'clear_error' ? (
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-700 dark:text-red-300 border border-red-500/30 flex items-center gap-1">
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          {errors.length > 0 ? `${errors.length} ${errors.length === 1 ? 'ошибка' : 'ошибок'}` : 'Ошибки грамматики'}
+                        </span>
+                      ) : tier === 'mechanical_only' ? (
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                          <FileText className="h-3.5 w-3.5" />
+                          Опечатки и оформление
+                        </span>
+                      ) : tier === 'acceptable' ? (
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Фраза корректна {optionalSuggestions.length > 0 ? '(есть варианты)' : ''}
                         </span>
                       ) : (
                         <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Без ошибок
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Всё правильно
                         </span>
                       )}
                     </div>
@@ -557,20 +675,21 @@ function CorrectionInbox() {
                     </div>
                   )}
 
-                  {/* Error Breakdown Badges */}
+                  {/* Objective Grammar Errors Section (clear_error tier) */}
                   {errors.length > 0 && (
-                    <div className="space-y-3 pt-1">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Найденные недочеты ({errors.length}):
+                    <div className="space-y-3 pt-1" data-testid="grammar-errors-section">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400 flex items-center gap-1">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        Грамматические ошибки ({errors.length}):
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {errors.map((err, idx) => (
                           <div
                             key={idx}
-                            className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700/80 space-y-2"
+                            className="p-3.5 rounded-xl bg-red-500/5 dark:bg-red-950/20 border border-red-500/20 space-y-2"
                           >
                             <div className="flex items-center justify-between text-xs font-medium">
-                              <span className="px-2 py-0.5 rounded-md bg-yellow-400/20 text-yellow-800 dark:text-yellow-300 font-semibold border border-yellow-400/30 flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded-md bg-red-500/20 text-red-800 dark:text-red-300 font-semibold border border-red-500/30 flex items-center gap-1">
                                 <Tag className="h-3 w-3" /> {err.topic || 'Общая грамматика'}
                               </span>
                               {err.confidence && (
@@ -591,6 +710,68 @@ function CorrectionInbox() {
                             )}
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mechanical Corrections Section (neutral "Опечатки и оформление") */}
+                  {mechanicalCorrections.length > 0 && (
+                    <div className="space-y-3 pt-1" data-testid="mechanical-corrections-section">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                        <FileText className="h-3.5 w-3.5" />
+                        Опечатки и оформление ({mechanicalCorrections.length}):
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {mechanicalCorrections.map((item, idx) => {
+                          const orig = typeof item === 'string' ? '' : item.original;
+                          const corr = typeof item === 'string' ? item : item.correction;
+                          const expl = typeof item === 'string' ? '' : item.explanationRu;
+
+                          return (
+                            <div
+                              key={idx}
+                              className="p-3.5 rounded-xl bg-blue-500/5 dark:bg-blue-950/20 border border-blue-500/20 space-y-2"
+                            >
+                              <div className="flex items-center gap-2 text-sm font-semibold">
+                                {orig && <span className="line-through text-blue-500 dark:text-blue-400">{orig}</span>}
+                                {orig && <ArrowRight className="h-4 w-4 text-gray-400 shrink-0" />}
+                                <span className="text-slate-700 dark:text-slate-200">{corr}</span>
+                              </div>
+                              {expl && <p className="text-xs text-gray-600 dark:text-gray-300">{expl}</p>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Optional Suggestions Section ("Варианты и стилистика") */}
+                  {optionalSuggestions.length > 0 && (
+                    <div className="space-y-3 pt-1" data-testid="optional-suggestions-section">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 flex items-center gap-1">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Варианты и стилистика ({optionalSuggestions.length}):
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {optionalSuggestions.map((item, idx) => {
+                          const orig = typeof item === 'string' ? '' : item.original;
+                          const sugg = typeof item === 'string' ? item : (item.suggestion || item.correction);
+                          const expl = typeof item === 'string' ? '' : item.explanationRu;
+
+                          return (
+                            <div
+                              key={idx}
+                              className="p-3.5 rounded-xl bg-teal-500/5 dark:bg-teal-950/20 border border-teal-500/20 space-y-2"
+                            >
+                              <div className="flex items-center gap-2 text-sm font-semibold">
+                                {orig && <span className="text-gray-500 font-normal">{orig}</span>}
+                                {orig && <ArrowRight className="h-4 w-4 text-gray-400 shrink-0" />}
+                                <span className="text-teal-700 dark:text-teal-300 font-bold">{sugg}</span>
+                              </div>
+                              {expl && <p className="text-xs text-gray-600 dark:text-gray-300">{expl}</p>}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
