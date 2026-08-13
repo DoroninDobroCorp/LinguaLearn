@@ -1168,29 +1168,15 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
   };
 }
 
-export function createGeminiWritingAnalyzer({
-  genAI,
-  modelName = String(
-    process.env.GEMINI_WRITING_MODEL || 'gemini-3.5-flash-lite'
-  ).trim(),
-}) {
-  return async ({ text, canonicalTopics }) => {
-    if (!genAI) {
-      throw httpError(
-        503,
-        'Writing analysis is unavailable because GEMINI_API_KEY is not configured.',
-        'WRITING_ANALYZER_UNAVAILABLE',
-      );
-    }
+export function buildWritingSystemInstruction({ canonicalTopics = [], promptVersion = 'v1' } = {}) {
+  const topicNames = Array.isArray(canonicalTopics)
+    ? canonicalTopics
+        .map((topic) => (typeof topic === 'string' ? topic : `${topic.name} (${topic.level})`))
+        .filter(Boolean)
+        .join('\n')
+    : '';
 
-    const topicNames = canonicalTopics.map((topic) => `${topic.name} (${topic.level})`).join('\n');
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: ANALYSIS_SCHEMA,
-      },
-      systemInstruction: `You are a conservative English error detector, not a stylistic editor.
+  return `You are a conservative English error detector, not a stylistic editor.
 You analyze a single message written by an English learner.
 Return only JSON matching the supplied response schema.
 
@@ -1221,10 +1207,33 @@ Schema constraints:
 - Emit each grammar topic at most once. If it has both correct and incorrect evidence, choose error.
 - For an error-free message, emit at most ONE success: the central, clearly demonstrated grammar structure.
 - Never award success merely because a subject pronoun, article, or ordinary preposition appears. Basic word presence is not grammar mastery.
-- confidence is between 0 and 1.
+- confidence is between 0 and 1.${topicNames ? `\n\nCanonical grammar topics:\n${topicNames}` : ''}`;
+}
 
-Canonical grammar topics:
-${topicNames}`,
+export function createGeminiWritingAnalyzer({
+  genAI,
+  modelName = String(
+    process.env.GEMINI_WRITING_MODEL || 'gemini-3.5-flash-lite'
+  ).trim(),
+  promptVersion = 'v1',
+}) {
+  return async ({ text, canonicalTopics }) => {
+    if (!genAI) {
+      throw httpError(
+        503,
+        'Writing analysis is unavailable because GEMINI_API_KEY is not configured.',
+        'WRITING_ANALYZER_UNAVAILABLE',
+      );
+    }
+
+    const systemInstruction = buildWritingSystemInstruction({ canonicalTopics, promptVersion });
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: ANALYSIS_SCHEMA,
+      },
+      systemInstruction,
     });
 
     const result = await model.generateContent(`Analyze this message:\n<message>\n${text}\n</message>`);
