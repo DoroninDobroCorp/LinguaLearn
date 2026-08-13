@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "timestamp": "2026-08-13T21:50:28Z",
+  "gitCommit": "36d7fb14db7e1511060575c158154d7fa7122b1a",
+  "originMainCommit": "1ee867a4fbaf8e841a2fc8792f24a9f7001e8159",
+  "gitPushed": false,
+  "localVerification": {
+    "nodeBackendTests": {
+      "status": "PASSED",
+      "passed": 215,
+      "failed": 0,
+      "skipped": 1
+    },
+    "webFrontendBuild": {
+      "status": "PASSED"
+    },
+    "macOSSwiftTests": {
+      "status": "PASSED",
+      "passed": 47
+    },
+    "iOSSimulatorTests": {
+      "status": "PASSED",
+      "passed": 26
+    },
+    "androidGradleTests": {
+      "status": "PASSED",
+      "tasksPassed": 44
+    },
+    "windowsDotnetTests": {
+      "status": "SKIPPED_HOST_UNSUPPORTED",
+      "reason": "dotnet toolchain not installed on macOS host environment"
+    }
+  },
+  "ciStatus": {
+    "status": "CI_BLOCKED_EXTERNAL",
+    "reason": "GitHub Actions runner billing/quota is locked externally; remote workflows cannot execute",
+    "hasFalsePositivePassedClaims": false,
+    "matrixJobs": {
+      "nodeBackendAndFrontend": "CI_BLOCKED_EXTERNAL",
+      "macOSSwift": "CI_BLOCKED_EXTERNAL",
+      "iOSSimulator": "CI_BLOCKED_EXTERNAL",
+      "androidGradle": "CI_BLOCKED_EXTERNAL",
+      "windowsDotnet": "CI_BLOCKED_EXTERNAL"
+    }
+  },
+  "overallStatus": "VERIFIED_LOCAL_PASSED_CI_BLOCKED"
+}
