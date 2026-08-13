@@ -62,9 +62,7 @@ describe('Live Gemini Model Evaluation Harness (VAL-LIVE-001)', () => {
     assert.ok(typeof lat.avgQueueMs === 'number', 'avgQueueMs must be a number');
 
     // Verify report file was written to server/reports/eval-gemini-live.json
-    const baseServerDir = fs.existsSync('/srv/LinguaLearn/english/server')
-      ? '/srv/LinguaLearn/english/server'
-      : path.resolve(__dirname, '../server');
+    const baseServerDir = path.resolve(__dirname, '../server');
     const reportPath = path.join(baseServerDir, 'reports', 'eval-gemini-live.json');
     assert.ok(fs.existsSync(reportPath), `Report file must exist at ${reportPath}`);
 

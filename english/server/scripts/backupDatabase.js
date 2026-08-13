@@ -6,10 +6,14 @@ import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 import { getDatabasePath, getDb } from '../db.js';
 
-const BACKUP_DIR = '/srv/backups/lingualearn';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DEFAULT_REPO_ROOT = path.resolve(__dirname, '../../..');
+const REPO_ROOT = process.env.REPO_ROOT || DEFAULT_REPO_ROOT;
+const DEFAULT_BACKUP_DIR = process.env.BACKUP_DIR || path.join(REPO_ROOT, 'backups');
 
 export async function createOnlineBackup(options = {}) {
-  const targetDir = options.backupDir || BACKUP_DIR;
+  const targetDir = options.backupDir || DEFAULT_BACKUP_DIR;
   if (!fs.existsSync(targetDir)) {
     fs.mkdirSync(targetDir, { recursive: true });
   }
@@ -46,7 +50,7 @@ export async function createOnlineBackup(options = {}) {
   // 4. Fetch git commit SHA
   let commitSha = 'unknown';
   try {
-    commitSha = execSync('git rev-parse HEAD', { cwd: '/srv/LinguaLearn', encoding: 'utf8' }).trim();
+    commitSha = execSync('git rev-parse HEAD', { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
   } catch {
     // Ignore git error if repo unavailable
   }
@@ -97,7 +101,6 @@ export async function createOnlineBackup(options = {}) {
   return metadata;
 }
 
-const __filename = fileURLToPath(import.meta.url);
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename)) {
   createOnlineBackup().catch((err) => {
     console.error('Backup failed:', err);

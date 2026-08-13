@@ -3,9 +3,12 @@ import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const BACKUP_DIR = '/srv/backups/lingualearn';
-const ENGLISH_DIR = '/srv/LinguaLearn/english';
-const REPO_ROOT = '/srv/LinguaLearn';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DEFAULT_REPO_ROOT = path.resolve(__dirname, '../../..');
+const REPO_ROOT = process.env.REPO_ROOT || DEFAULT_REPO_ROOT;
+const ENGLISH_DIR = process.env.ENGLISH_DIR || path.join(REPO_ROOT, 'english');
+const BACKUP_DIR = process.env.BACKUP_DIR || path.join(REPO_ROOT, 'backups');
 
 export function runInventoryCleanup() {
   console.log('=== Starting LinguaLearn Inventory Cleanup ===');

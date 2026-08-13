@@ -2,12 +2,14 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { getDb } from '../server/db.js';
 import { createWritingAnalysisService } from '../server/writingAnalysis.js';
 import { createDeviceTokenService } from '../server/deviceTokens.js';
 
-const isServer = fs.existsSync('/srv/LinguaLearn');
-const rootDir = isServer ? '/srv/LinguaLearn' : process.cwd();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = process.env.REPO_ROOT || path.resolve(__dirname, '../..');
 const windowsDir = path.join(rootDir, 'windows/LinguaLearnAgent');
 
 function createTestDatabase() {

@@ -706,10 +706,8 @@ export async function runLiveGeminiModelEval(options = {}) {
   };
 
   // Save report to server/reports/eval-gemini-live.json
-  const baseServerDir = fs.existsSync('/srv/LinguaLearn/english/server')
-    ? '/srv/LinguaLearn/english/server'
-    : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  const reportDir = path.join(baseServerDir, 'reports');
+  const baseServerDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const reportDir = process.env.REPORT_DIR || path.join(baseServerDir, 'reports');
   if (!fs.existsSync(reportDir)) {
     fs.mkdirSync(reportDir, { recursive: true });
   }

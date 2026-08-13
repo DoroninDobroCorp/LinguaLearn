@@ -468,7 +468,8 @@ export async function runGeminiModelEval(options = {}) {
   };
 
   // Write report output file
-  const reportDir = path.join('/srv/LinguaLearn/english/server/reports');
+  const baseServerDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const reportDir = process.env.REPORT_DIR || path.join(baseServerDir, 'reports');
   if (!fs.existsSync(reportDir)) {
     fs.mkdirSync(reportDir, { recursive: true });
   }
@@ -480,9 +481,11 @@ export async function runGeminiModelEval(options = {}) {
 }
 
 const __filename = fileURLToPath(import.meta.url);
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename)) {
+if (process.argv[1] && (path.resolve(process.argv[1]) === path.resolve(__filename) || process.argv[1].endsWith('evalGeminiModel.js'))) {
   runGeminiModelEval()
     .then((report) => {
+      const baseServerDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+      const reportFile = path.join(process.env.REPORT_DIR || path.join(baseServerDir, 'reports'), 'eval-gemini-model.json');
       console.log('=== Gemini 3.5 Flash-Lite Model Evaluation Report ===');
       console.log(`Model:                ${report.modelName}`);
       console.log(`Total Samples:        ${report.metrics.totalSamples}`);
@@ -492,7 +495,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename
       console.log(`Schema Validity Rate: ${(report.metrics.schemaValidityRate * 100).toFixed(1)}%`);
       console.log(`Topic Accuracy Rate:  ${(report.metrics.topicAccuracyRate * 100).toFixed(1)}%`);
       console.log(`Avg Latency Total:    ${report.metrics.latencyBreakdown.avgTotalMs} ms`);
-      console.log(`Report written to:    /srv/LinguaLearn/english/server/reports/eval-gemini-model.json`);
+      console.log(`Report written to:    ${reportFile}`);
       process.exit(0);
     })
     .catch((err) => {
