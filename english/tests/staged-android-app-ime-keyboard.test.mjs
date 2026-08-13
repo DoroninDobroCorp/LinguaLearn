@@ -178,10 +178,12 @@ describe('Stage D: Android App and Input Method Editor (IME Keyboard Service) (s
           errors: [
             {
               original: "don't",
-              correction: "don't",
+              correction: "doesn't",
               explanationRu: 'Пояснение.',
               topic: 'Past Simple (irregular verbs)',
               confidence: 0.85,
+              kind: 'grammar_error',
+              category: 'subject_verb_agreement',
             },
           ],
           topicEvidence: [

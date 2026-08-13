@@ -41,6 +41,8 @@ describe('Strict Corrections & Server Evidence Guard (VAL-TIER-001 & VAL-GUARD-0
           explanationRu: 'Для третьего лица единственного числа нужно использовать doesn’t.',
           topic: 'Subject-Verb Agreement',
           confidence: 0.95,
+          kind: 'grammar_error',
+          category: 'subject_verb_agreement',
         },
       ],
       topicEvidence: [
@@ -157,6 +159,8 @@ describe('Strict Corrections & Server Evidence Guard (VAL-TIER-001 & VAL-GUARD-0
           explanationRu: 'Опечатка',
           topic: 'Subject-Verb Agreement',
           confidence: 0.9,
+          kind: 'mechanical',
+          category: 'spelling',
         },
       ],
       topicEvidence: [
@@ -199,6 +203,8 @@ describe('Strict Corrections & Server Evidence Guard (VAL-TIER-001 & VAL-GUARD-0
           explanationRu: 'Возможная ошибка',
           topic: 'Subject-Verb Agreement',
           confidence: 0.80,
+          kind: 'grammar_error',
+          category: 'subject_verb_agreement',
         },
       ],
       topicEvidence: [
@@ -235,6 +241,8 @@ describe('Strict Corrections & Server Evidence Guard (VAL-TIER-001 & VAL-GUARD-0
           explanationRu: 'Ошибка в согласовании',
           topic: 'Subject-Verb Agreement',
           confidence: 0.90,
+          kind: 'grammar_error',
+          category: 'subject_verb_agreement',
         },
       ],
       topicEvidence: [
@@ -291,7 +299,7 @@ describe('Strict Corrections & Server Evidence Guard (VAL-TIER-001 & VAL-GUARD-0
         assessment: 'clear_error',
         correctedText: 'She does not know.',
         summaryRu: 'Возможная ошибка',
-        errors: [{ original: "don't", correction: "doesn't", explanationRu: 'Ошибка', topic: 'Subject-Verb Agreement', confidence: 0.80 }],
+        errors: [{ original: "don't", correction: "doesn't", explanationRu: 'Ошибка', topic: 'Subject-Verb Agreement', confidence: 0.80, kind: 'grammar_error', category: 'subject_verb_agreement' }],
         topicEvidence: [{ topic: 'Subject-Verb Agreement', outcome: 'error', confidence: 0.80, explanationRu: 'Ошибка' }],
       }),
     });
@@ -329,7 +337,7 @@ describe('Strict Corrections & Server Evidence Guard (VAL-TIER-001 & VAL-GUARD-0
         assessment: 'clear_error',
         correctedText: 'She does not know.',
         summaryRu: 'Ошибка',
-        errors: [{ original: 'same', correction: 'same', explanationRu: 'Не ошибка', topic: 'Subject-Verb Agreement', confidence: 0.95 }],
+        errors: [{ original: 'same', correction: 'same', explanationRu: 'Не ошибка', topic: 'Subject-Verb Agreement', confidence: 0.95, kind: 'grammar_error', category: 'grammar' }],
         topicEvidence: [{ topic: 'Subject-Verb Agreement', outcome: 'error', confidence: 0.95, explanationRu: 'Ошибка' }],
       }),
     });
@@ -348,7 +356,7 @@ describe('Strict Corrections & Server Evidence Guard (VAL-TIER-001 & VAL-GUARD-0
         assessment: 'clear_error',
         correctedText: 'She does not know.',
         summaryRu: 'Ошибка в согласовании подлежащего и сказуемого.',
-        errors: [{ original: "don't", correction: "doesn't", explanationRu: 'Используйте doesn’t.', topic: 'Subject-Verb Agreement', confidence: 0.90 }],
+        errors: [{ original: "don't", correction: "doesn't", explanationRu: 'Используйте doesn’t.', topic: 'Subject-Verb Agreement', confidence: 0.90, kind: 'grammar_error', category: 'subject_verb_agreement' }],
         topicEvidence: [{ topic: 'Subject-Verb Agreement', outcome: 'error', confidence: 0.90, explanationRu: 'Ошибка в согласовании.' }],
       }),
     });

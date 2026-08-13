@@ -49,6 +49,8 @@ test('VAL-PERF-001: POST /api/writing/analyze returns X-Response-Time header and
         explanationRu: 'Past Simple forma.',
         topic: 'Past Simple (irregular verbs)',
         confidence: 0.95,
+        kind: 'grammar_error',
+        category: 'verb_tense',
       },
     ],
     topicEvidence: [

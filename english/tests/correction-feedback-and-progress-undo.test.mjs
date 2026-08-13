@@ -56,6 +56,8 @@ test('VAL-CAPT-007: Correction feedback submission records feedback in correctio
           explanationRu: 'Используйте Past Simple.',
           topic: 'Past Simple (irregular verbs)',
           confidence: 0.95,
+          kind: 'grammar_error',
+          category: 'verb_tense',
         },
       ],
       topicEvidence: [
@@ -121,6 +123,8 @@ test('VAL-CAPT-008: Idempotent progress undo via feedback reverses score deltas 
           explanationRu: 'Используйте Past Simple.',
           topic: 'Past Simple (irregular verbs)',
           confidence: 0.95,
+          kind: 'grammar_error',
+          category: 'verb_tense',
         },
       ],
       topicEvidence: [

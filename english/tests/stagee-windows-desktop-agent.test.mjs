@@ -162,6 +162,8 @@ describe('Stage E: Windows Desktop Agent MVP (schemaVersion 1)', () => {
               explanationRu: "Пояснение.",
               topic: 'Past Simple (irregular verbs)',
               confidence: 0.9,
+              kind: 'grammar_error',
+              category: 'subject_verb_agreement',
             },
           ],
           topicEvidence: [

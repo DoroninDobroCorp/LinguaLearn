@@ -58,6 +58,8 @@ test('VAL-CAPT-001: Structured writing analysis output with changed field', asyn
           explanationRu: 'Используйте Past Simple.',
           topic: 'Past Simple (irregular verbs)',
           confidence: 0.95,
+          kind: 'grammar_error',
+          category: 'verb_tense',
         },
       ],
       topicEvidence: [
@@ -105,6 +107,8 @@ test('VAL-CAPT-002: Exact-once scoring per eventId and multi-user isolation', as
             explanationRu: 'Past Simple',
             topic: 'Past Simple (irregular verbs)',
             confidence: 0.9,
+            kind: 'grammar_error',
+            category: 'verb_tense',
           },
         ],
         topicEvidence: [
@@ -161,6 +165,8 @@ test('VAL-CAPT-003: Preview hotkey mode score isolation (previewOnly: 1)', async
           explanationRu: 'Используйте Past Simple.',
           topic: 'Past Simple (irregular verbs)',
           confidence: 0.95,
+          kind: 'grammar_error',
+          category: 'verb_tense',
         },
       ],
       topicEvidence: [
@@ -207,6 +213,8 @@ test('VAL-CAPT-004: Error priority over success in score calculation', async (t)
           explanationRu: 'Past Simple',
           topic: 'Past Simple (irregular verbs)',
           confidence: 0.9,
+          kind: 'grammar_error',
+          category: 'verb_tense',
         },
       ],
       topicEvidence: [
@@ -252,6 +260,8 @@ test('VAL-CAPT-005: Low confidence evidence filtering (< 0.85)', async (t) => {
           explanationRu: 'Past Simple',
           topic: 'Past Simple (irregular verbs)',
           confidence: 0.5,
+          kind: 'grammar_error',
+          category: 'verb_tense',
         },
       ],
       topicEvidence: [

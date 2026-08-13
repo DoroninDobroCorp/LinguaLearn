@@ -92,6 +92,8 @@ describe('Stage F / VAL-CROSS-006: Cross-Platform Contract Integration Test Suit
                 explanationRu: 'Объяснение ошибки.',
                 topic: 'Past Simple (irregular verbs)',
                 confidence: 0.92,
+                kind: 'grammar_error',
+                category: 'verb_tense',
               },
             ],
             topicEvidence: [
@@ -153,6 +155,8 @@ describe('Stage F / VAL-CROSS-006: Cross-Platform Contract Integration Test Suit
                   explanationRu: 'Доказательство ошибки.',
                   topic: 'Past Simple (irregular verbs)',
                   confidence: 0.88,
+                  kind: 'grammar_error',
+                  category: 'verb_tense',
                 },
               ],
               topicEvidence: [
@@ -218,6 +222,8 @@ describe('Stage F / VAL-CROSS-006: Cross-Platform Contract Integration Test Suit
                 explanationRu: 'Объяснение.',
                 topic: 'Past Simple (irregular verbs)',
                 confidence: 0.95,
+                kind: 'grammar_error',
+                category: 'verb_tense',
               },
             ],
             topicEvidence: [

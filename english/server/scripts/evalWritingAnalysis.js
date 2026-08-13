@@ -164,6 +164,8 @@ function createSyntheticMockAnalyzer() {
             explanationRu: 'Используйте Past Simple (went).',
             topic: 'Past Simple (irregular verbs)',
             confidence: 0.95,
+            kind: 'grammar_error',
+            category: 'verb_tense',
           },
         ],
         topicEvidence: [
@@ -188,6 +190,8 @@ function createSyntheticMockAnalyzer() {
             explanationRu: "Для she/he/it используется doesn't.",
             topic: 'Present Simple (negative & questions)',
             confidence: 0.98,
+            kind: 'grammar_error',
+            category: 'subject_verb_agreement',
           },
         ],
         topicEvidence: [
@@ -212,6 +216,8 @@ function createSyntheticMockAnalyzer() {
             explanationRu: 'Для указания периода времени используется for, а не since.',
             topic: 'Prepositions of time (in/on/at)',
             confidence: 0.92,
+            kind: 'grammar_error',
+            category: 'preposition',
           },
         ],
         topicEvidence: [
@@ -236,6 +242,8 @@ function createSyntheticMockAnalyzer() {
             explanationRu: 'Для односложных прилагательных используется только суффикс -er.',
             topic: 'Comparative adjectives (-er/more)',
             confidence: 0.96,
+            kind: 'grammar_error',
+            category: 'comparative',
           },
         ],
         topicEvidence: [
@@ -260,6 +268,8 @@ function createSyntheticMockAnalyzer() {
             explanationRu: 'В придаточном условии используется Present Simple.',
             topic: 'First Conditional (if + will)',
             confidence: 0.94,
+            kind: 'grammar_error',
+            category: 'conditional',
           },
         ],
         topicEvidence: [

@@ -42,6 +42,8 @@ describe('Stage B: Mac Desktop Client Alignment (schemaVersion 1)', () => {
               explanationRu: "Используйте doesn't для третьего лица единственного числа.",
               topic: 'Past Simple (irregular verbs)',
               confidence: 0.95,
+              kind: 'grammar_error',
+              category: 'subject_verb_agreement',
             },
           ],
           topicEvidence: [
@@ -142,6 +144,8 @@ describe('Stage B: Mac Desktop Client Alignment (schemaVersion 1)', () => {
               explanationRu: 'Используйте Past Simple.',
               topic: 'Past Simple (irregular verbs)',
               confidence: 0.9,
+              kind: 'grammar_error',
+              category: 'verb_tense',
             },
           ],
           topicEvidence: [
@@ -203,6 +207,8 @@ describe('Stage B: Mac Desktop Client Alignment (schemaVersion 1)', () => {
                 explanationRu: 'Past Simple',
                 topic: 'Past Simple (irregular verbs)',
                 confidence: 0.9,
+                kind: 'grammar_error',
+                category: 'verb_tense',
               },
             ],
             topicEvidence: [

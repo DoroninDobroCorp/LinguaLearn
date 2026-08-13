@@ -46,7 +46,7 @@ const ANALYSIS_SCHEMA = Object.freeze({
           kind: { type: 'string' },
           category: { type: 'string' },
         },
-        required: ['original', 'correction', 'explanationRu', 'topic', 'confidence'],
+        required: ['original', 'correction', 'explanationRu', 'topic', 'confidence', 'kind', 'category'],
       },
     },
     mechanicalCorrections: {
@@ -321,8 +321,8 @@ export function validateAnalyzerResult(response) {
       explanationRu: requireString(item.explanationRu, `errors[${index}].explanationRu`),
       topic: normalizeTopicName(item.topic, `errors[${index}].topic`, { nullable: true }),
       confidence: normalizeConfidence(item.confidence, `errors[${index}].confidence`),
-      kind: typeof item.kind === 'string' ? item.kind : 'grammar_error',
-      category: typeof item.category === 'string' ? item.category : 'grammar',
+      kind: requireString(item.kind, `errors[${index}].kind`),
+      category: requireString(item.category, `errors[${index}].category`),
     };
   });
 
@@ -356,22 +356,71 @@ export function validateAnalyzerResult(response) {
   };
 }
 
-export function hasMatchingObjectiveError(evidence, errors) {
-  if (!evidence || !Array.isArray(errors) || errors.length === 0) return false;
+const PROHIBITED_KINDS = new Set([
+  'mechanical',
+  'spelling',
+  'typo',
+  'capitalization',
+  'punctuation',
+  'style',
+  'tone',
+  'optional_wording',
+  'naturalness',
+  'formatting',
+]);
 
-  const evTopicName = (evidence.topic || '').trim().toLowerCase();
+const PROHIBITED_CATEGORIES = new Set([
+  'mechanical',
+  'spelling',
+  'typo',
+  'capitalization',
+  'punctuation',
+  'style',
+  'tone',
+  'optional_wording',
+  'naturalness',
+  'formatting',
+  'wording',
+]);
+
+export function hasMatchingObjectiveError(evidence, errors) {
+  if (!evidence || !evidence.topic || typeof evidence.topic !== 'string' || !evidence.topic.trim()) {
+    return false;
+  }
+  if (!Array.isArray(errors) || errors.length === 0) return false;
+
+  const evTopicName = evidence.topic.trim().toLowerCase();
 
   return errors.some((err) => {
     if (!err || typeof err !== 'object') return false;
+
     const orig = (err.original || '').trim().toLowerCase();
     const corr = (err.correction || '').trim().toLowerCase();
     if (!orig || !corr || orig === corr) return false;
 
-    const errTopicName = (err.topic || '').trim().toLowerCase();
-    if (!errTopicName) {
-      return true;
+    const kind = typeof err.kind === 'string' ? err.kind.trim().toLowerCase() : '';
+    const category = typeof err.category === 'string' ? err.category.trim().toLowerCase() : '';
+
+    if (!kind || !category) return false;
+
+    if (PROHIBITED_KINDS.has(kind) || PROHIBITED_CATEGORIES.has(category)) {
+      return false;
     }
-    return errTopicName === evTopicName;
+
+    if (kind !== 'grammar_error' && kind !== 'grammar') {
+      return false;
+    }
+
+    if (!err.topic || typeof err.topic !== 'string') {
+      return false;
+    }
+
+    const errTopicName = err.topic.trim().toLowerCase();
+    if (!errTopicName || errTopicName !== evTopicName) {
+      return false;
+    }
+
+    return true;
   });
 }
 
@@ -425,9 +474,17 @@ function normalizeCanonicalEvidence(db, analysis) {
     });
 
     const hasErrorEvidence = topicEvidence.some((ev) => ev.outcome === 'error');
-    const hasObjectiveError = normalizedErrors.some(
-      (err) => err && typeof err === 'object' && err.original && err.correction && err.original.trim().toLowerCase() !== err.correction.trim().toLowerCase()
-    );
+    const hasObjectiveError = normalizedErrors.some((err) => {
+      if (!err || typeof err !== 'object') return false;
+      const orig = (err.original || '').trim().toLowerCase();
+      const corr = (err.correction || '').trim().toLowerCase();
+      if (!orig || !corr || orig === corr) return false;
+      const kind = typeof err.kind === 'string' ? err.kind.trim().toLowerCase() : '';
+      const category = typeof err.category === 'string' ? err.category.trim().toLowerCase() : '';
+      if (!kind || !category || PROHIBITED_KINDS.has(kind) || PROHIBITED_CATEGORIES.has(category)) return false;
+      if (kind !== 'grammar_error' && kind !== 'grammar') return false;
+      return true;
+    });
 
     if (!hasObjectiveError && !hasErrorEvidence) {
       // Contradiction: clear_error but neither objective errors nor error topicEvidence. Sanitize assessment.
@@ -1158,6 +1215,7 @@ assessment values:
 
 Schema constraints:
 - errors[] is used ONLY when assessment is "clear_error". For mechanical_only, acceptable, and correct, errors MUST be empty [].
+- Each item in errors[] MUST include "kind" (set to "grammar_error") and "category" (e.g. "verb_tense", "subject_verb_agreement", "articles", "word_order", etc.).
 - Explain errors briefly in Russian (summaryRu and explanationRu).
 - topicEvidence tracks grammar only. Use ONLY exact canonical topic names from the list below.
 - Never create error outcome in topicEvidence for mechanical_only, acceptable, or correct inputs.

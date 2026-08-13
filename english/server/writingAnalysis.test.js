@@ -104,6 +104,8 @@ function analyzerResponse(overrides = {}) {
         explanationRu: 'Нужна форма Past Simple.',
         topic: 'past simple (irregular verbs)',
         confidence: 0.99,
+        kind: 'grammar_error',
+        category: 'verb_tense',
       },
       {
         original: 'the store',
@@ -111,6 +113,8 @@ function analyzerResponse(overrides = {}) {
         explanationRu: 'Несуществующая тема должна быть отброшена.',
         topic: 'Invented AI topic',
         confidence: 0.8,
+        kind: 'grammar_error',
+        category: 'grammar',
       },
     ],
     topicEvidence: [

@@ -1,3 +1,5 @@
+export { hasMatchingObjectiveError } from './writingAnalysis.js';
+
 export const EXTERNAL_SCORE_WEIGHTS = Object.freeze({
   success: 1,
   error: -2,

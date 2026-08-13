@@ -93,6 +93,8 @@ describe('E2E Beta Isolation & Lifecycle Test Harness (tests/e2e-beta-isolation.
             explanationRu: 'Используйте Past Simple.',
             topic: 'Past Simple (irregular verbs)',
             confidence: 0.95,
+            kind: 'grammar_error',
+            category: 'verb_tense',
           }
         ] : [],
         topicEvidence: isGo ? [

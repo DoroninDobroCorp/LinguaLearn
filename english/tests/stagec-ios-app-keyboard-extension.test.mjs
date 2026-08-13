@@ -155,6 +155,8 @@ describe('Stage C: iOS App and Custom Keyboard Extension (schemaVersion 1)', () 
               explanationRu: "Используйте doesn't для третьего лица.",
               topic: 'Past Simple (irregular verbs)',
               confidence: 0.9,
+              kind: 'grammar_error',
+              category: 'subject_verb_agreement',
             },
           ],
           topicEvidence: [
