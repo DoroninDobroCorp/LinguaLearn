@@ -6,6 +6,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.factory.lingualearn.auth.AuthManager
+import com.factory.lingualearn.ime.net.ApiClient
+import com.factory.lingualearn.ime.queue.BackgroundSyncQueue
+import kotlin.concurrent.thread
 
 @Composable
 fun SettingsScreen(
@@ -17,6 +20,16 @@ fun SettingsScreen(
     var consentGiven by remember { mutableStateOf(privacyManager.isConsentGiven()) }
     var apiBaseUrlInput by remember { mutableStateOf(authManager.getApiBaseUrl()) }
     var urlSavedMessage by remember { mutableStateOf<String?>(null) }
+
+    var backendCommit by remember { mutableStateOf("Not tested") }
+    var syncStatus by remember { mutableStateOf("Idle") }
+    var isTestingConnection by remember { mutableStateOf(false) }
+
+    val appVersion = "1.0.0"
+    val configuredUrl = authManager.getApiBaseUrl()
+    val authStatus = if (authManager.isAuthenticated()) "Authenticated (${authManager.getUserEmail() ?: ""})" else "Unauthenticated"
+    val deviceTokenStatus = if (!authManager.getDeviceToken().isNullOrEmpty()) "Present" else "None"
+    val queueDepth = remember { BackgroundSyncQueue(authManager.context).getQueueItems().size }
 
     Column(
         modifier = Modifier
@@ -52,6 +65,44 @@ fun SettingsScreen(
                 urlSavedMessage?.let { msg ->
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(msg, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Diagnostics & Test Connection", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("App Version: $appVersion", style = MaterialTheme.typography.bodySmall)
+                Text("Configured URL: $configuredUrl", style = MaterialTheme.typography.bodySmall)
+                Text("Backend Commit: $backendCommit", style = MaterialTheme.typography.bodySmall)
+                Text("Auth Status: $authStatus", style = MaterialTheme.typography.bodySmall)
+                Text("Device Token: $deviceTokenStatus", style = MaterialTheme.typography.bodySmall)
+                Text("Queue Depth: $queueDepth items", style = MaterialTheme.typography.bodySmall)
+                Text("Sync Status: $syncStatus", style = MaterialTheme.typography.bodySmall)
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = {
+                        isTestingConnection = true
+                        syncStatus = "Testing..."
+                        thread {
+                            val client = ApiClient(authManager.getApiBaseUrl())
+                            val (success, commit) = client.testConnection()
+                            if (success) {
+                                backendCommit = commit
+                                syncStatus = "Connected (HTTP 200)"
+                            } else {
+                                backendCommit = "Error"
+                                syncStatus = "Error: $commit"
+                            }
+                            isTestingConnection = false
+                        }
+                    },
+                    enabled = !isTestingConnection
+                ) {
+                    Text(if (isTestingConnection) "Testing..." else "Test Connection")
                 }
             }
         }

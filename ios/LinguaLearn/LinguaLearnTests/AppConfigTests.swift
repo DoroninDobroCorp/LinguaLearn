@@ -14,7 +14,8 @@ final class AppConfigTests: XCTestCase {
 
     func testDefaultBaseUrl() {
         XCTAssertFalse(AppConfig.baseUrl.isEmpty)
-        XCTAssertEqual(ApiClient().baseUrl, AppConfig.baseUrl)
+        XCTAssertEqual(AppConfig.baseUrl, "https://145.239.82.124.sslip.io/english")
+        XCTAssertEqual(ApiClient().baseUrl, "https://145.239.82.124.sslip.io/english")
     }
 
     func testCustomBaseUrlConfiguration() {

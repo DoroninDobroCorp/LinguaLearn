@@ -55,6 +55,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openConfig.target = self
         menu.addItem(openConfig)
 
+        let diagnostics = NSMenuItem(title: "Diagnostics / Test Connection…", action: #selector(openDiagnostics), keyEquivalent: "d")
+        diagnostics.target = self
+        menu.addItem(diagnostics)
+
         let reload = NSMenuItem(title: "Reload config", action: #selector(reloadFromMenu), keyEquivalent: "r")
         reload.target = self
         menu.addItem(reload)
@@ -309,6 +313,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return "Hook ready • Input Monitoring permission needed"
         }
         return "Hook ready • event monitor unavailable"
+    }
+
+    private var lastBackendCommit: String = "Not tested"
+
+    @objc private func openDiagnostics() {
+        let appVersion = "1.0.0"
+        let configuredURL = configuration?.apiURL ?? "Not configured"
+        let tokenPresent = !(configuration?.bearerToken.isEmpty ?? true) && configuration?.bearerToken != "CHANGE_ME"
+        let authStatus = tokenPresent ? "Authenticated (Token Present)" : "Unauthenticated / Missing Token"
+        let deviceTokenStatus = tokenPresent ? "Present" : "None"
+        let queueDepth = coordinator?.queueDepth ?? 0
+        let syncStatus = coordinator?.isPaused == true ? "Paused" : "Active"
+
+        let message = """
+        App Version: \(appVersion)
+        Configured URL: \(configuredURL)
+        Backend Commit: \(lastBackendCommit)
+        Auth Status: \(authStatus)
+        Device Token Status: \(deviceTokenStatus)
+        Queue Depth: \(queueDepth) items
+        Sync Status: \(syncStatus)
+        """
+
+        let alert = NSAlert()
+        alert.messageText = "LinguaLearn macOS Diagnostics"
+        alert.informativeText = message
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Test Connection")
+        alert.addButton(withTitle: "Close")
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            testConnectionFromDiagnostics()
+        }
+    }
+
+    private func testConnectionFromDiagnostics() {
+        guard let configuration else {
+            showAlert(title: "Diagnostics Error", message: "Configuration not loaded")
+            return
+        }
+        let client = AnalysisAPIClient(configuration: configuration)
+        client.testConnection { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let health):
+                    let commit = health.gitCommit ?? "unknown"
+                    self?.lastBackendCommit = commit
+                    self?.showAlert(
+                        title: "Connection Test Succeeded ✓",
+                        message: "Backend status: \(health.status ?? "healthy")\nBackend commit: \(commit)\nApp version: \(health.appVersion ?? "1.0.0")"
+                    )
+                case .failure(let error):
+                    self?.lastBackendCommit = "Error"
+                    self?.showAlert(
+                        title: "Connection Test Failed",
+                        message: error.localizedDescription
+                    )
+                }
+            }
+        }
     }
 
     @objc private func openConfiguration() {

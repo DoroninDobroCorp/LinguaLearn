@@ -17,7 +17,7 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>LinguaLearnApiUrl</key>
-	<string>https://lingualearn.ai</string>
+	<string>https://145.239.82.124.sslip.io/english</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

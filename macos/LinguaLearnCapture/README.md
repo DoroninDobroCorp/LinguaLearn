@@ -36,7 +36,7 @@ Menu-bar агент сразу при старте и затем каждые т
 
 ## API-контракт
 
-Запрос на настраиваемый `apiURL` (обычно `/english/api/writing/analyze`):
+Запрос на настраиваемый `apiURL` (обычно `https://145.239.82.124.sslip.io/english/api/writing/analyze`):
 
 ```json
 {

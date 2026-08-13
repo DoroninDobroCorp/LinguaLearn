@@ -10,7 +10,7 @@ public class ApiClientTests
     {
         var settings = new PrivacyConsentManager();
         settings.DeviceToken = "YOUR_DEVICE_TOKEN_HERE";
-        if (settings.ApiUrl != "https://lingua.factory.ai") throw new Exception("Default ApiUrl must be HTTPS https://lingua.factory.ai");
+        if (settings.ApiUrl != "https://145.239.82.124.sslip.io/english") throw new Exception("Default ApiUrl must be HTTPS https://145.239.82.124.sslip.io/english");
 
         var client = new ApiClient(settings);
         client.SetBaseUrl("https://api.lingualearn.ai");

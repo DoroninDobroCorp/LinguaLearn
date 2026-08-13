@@ -82,7 +82,30 @@ data class TopicEvidence(
 class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
 
     companion object {
-        const val DEFAULT_BASE_URL = "https://lingualearn.factory.ai"
+        const val DEFAULT_BASE_URL = "https://145.239.82.124.sslip.io/english"
+    }
+
+    fun testConnection(): Pair<Boolean, String> {
+        return try {
+            val endpoint = if (baseUrl.endsWith("/")) "${baseUrl}health" else "$baseUrl/health"
+            val url = URL(endpoint)
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "GET"
+            conn.connectTimeout = 8000
+            conn.readTimeout = 8000
+            val statusCode = conn.responseCode
+            val inputStream = if (statusCode in 200..299) conn.inputStream else conn.errorStream
+            val responseStr = BufferedReader(InputStreamReader(inputStream, "UTF-8")).use { it.readText() }
+            if (statusCode in 200..299) {
+                val json = JSONObject(responseStr)
+                val gitCommit = json.optString("gitCommit", "unknown")
+                Pair(true, gitCommit)
+            } else {
+                Pair(false, "HTTP $statusCode")
+            }
+        } catch (e: Exception) {
+            Pair(false, e.message ?: "Connection failed")
+        }
     }
 
     fun login(email: String, password: String): AuthResult {

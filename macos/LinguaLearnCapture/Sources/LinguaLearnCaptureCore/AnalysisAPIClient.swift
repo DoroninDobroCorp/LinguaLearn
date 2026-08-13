@@ -20,6 +20,12 @@ public enum AnalysisAPIError: LocalizedError {
     }
 }
 
+public struct HealthResponse: Codable, Sendable {
+    public let status: String?
+    public let gitCommit: String?
+    public let appVersion: String?
+}
+
 public final class AnalysisAPIClient: @unchecked Sendable {
     private let configuration: CaptureConfiguration
     private let session: URLSession
@@ -94,6 +100,38 @@ public final class AnalysisAPIClient: @unchecked Sendable {
             }
             do {
                 completion(.success(try decoder.decode(WritingAnalyzeResponse.self, from: data)))
+            } catch {
+                completion(.failure(.decoding(error)))
+            }
+        }.resume()
+    }
+
+    public func testConnection(completion: @escaping (Result<HealthResponse, AnalysisAPIError>) -> Void) {
+        guard let appURL = try? configuration.validatedAppURL() else {
+            completion(.failure(.invalidConfiguration(ConfigurationError.invalidAppURL)))
+            return
+        }
+        let healthURL = appURL.appendingPathComponent("health")
+        var request = URLRequest(url: healthURL)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 10
+
+        session.dataTask(with: request) { data, response, error in
+            if let error {
+                completion(.failure(.transport(error)))
+                return
+            }
+            guard let httpResponse = response as? HTTPURLResponse, let data else {
+                completion(.failure(.invalidResponse))
+                return
+            }
+            guard (200..<300).contains(httpResponse.statusCode) else {
+                completion(.failure(.httpStatus(httpResponse.statusCode, "HTTP \(httpResponse.statusCode)")))
+                return
+            }
+            do {
+                let res = try JSONDecoder().decode(HealthResponse.self, from: data)
+                completion(.success(res))
             } catch {
                 completion(.failure(.decoding(error)))
             }

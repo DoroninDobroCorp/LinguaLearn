@@ -65,9 +65,9 @@ public struct CaptureConfiguration: Codable, Equatable, Sendable {
 
     public static var template: CaptureConfiguration {
         CaptureConfiguration(
-            apiURL: "https://YOUR_LINGUALEARN_HOST/english/api/writing/analyze",
+            apiURL: "https://145.239.82.124.sslip.io/english/api/writing/analyze",
             bearerToken: "CHANGE_ME",
-            appURL: "https://YOUR_LINGUALEARN_HOST/english",
+            appURL: "https://145.239.82.124.sslip.io/english",
             ingressToken: UUID().uuidString.replacingOccurrences(of: "-", with: "")
         )
     }

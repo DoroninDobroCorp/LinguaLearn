@@ -5,7 +5,7 @@ It captures learner writing on explicit Send or Hotkey trigger from focused edit
 
 ## Key Features
 
-- **HTTPS API Base URL Configuration**: User-configurable HTTPS API base URL (default `https://lingua.factory.ai` without hardcoded HTTP fallback) accessible via agent UI settings.
+- **HTTPS API Base URL Configuration**: User-configurable HTTPS API base URL (default `https://145.239.82.124.sslip.io/english` without hardcoded HTTP fallback) accessible via agent UI settings.
 - **DPAPI Credential & Queue Security**: Device tokens and offline retry queue (`offline_retry_queue.dat`) are encrypted on disk using Windows Data Protection API (`System.Security.Cryptography.ProtectedData` under `DataProtectionScope.CurrentUser`).
 - **UI Automation Edit Control Capture**: Listens to focus change events (`UIAutomationListener`) to track active controls without automatic text capture on focus change. Focus changes never trigger text capture; analysis occurs strictly on explicit trigger.
 - **System Tray Notification UI**: System tray menu providing Pause/Resume capture, Pair Device Token, Settings, Preview Hotkey Mode toggle, and Sync Retry Queue.

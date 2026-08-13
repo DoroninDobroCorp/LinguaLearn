@@ -29,7 +29,7 @@ public class ApiClientTests
     public void ApiClient_HttpsBaseUrlConfiguration()
     {
         var settings = new PrivacyConsentManager();
-        Assert.Equal("https://lingua.factory.ai", settings.ApiUrl);
+        Assert.Equal("https://145.239.82.124.sslip.io/english", settings.ApiUrl);
 
         var client = new ApiClient(settings);
         client.SetBaseUrl("https://api.lingualearn.ai");

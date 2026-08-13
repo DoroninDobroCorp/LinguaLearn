@@ -14,7 +14,7 @@ class ApiClientTest {
     @Test
     fun testDefaultHttpsBaseUrl() {
         val client = ApiClient()
-        assertEquals("https://lingualearn.factory.ai", client.baseUrl)
+        assertEquals("https://145.239.82.124.sslip.io/english", client.baseUrl)
         assertFalse("Default API URL must not be HTTP 127.0.0.1 in prod", client.baseUrl.contains("127.0.0.1"))
     }
 

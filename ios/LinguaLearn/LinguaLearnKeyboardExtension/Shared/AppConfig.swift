@@ -1,11 +1,7 @@
 import Foundation
 
 public class AppConfig {
-    #if DEBUG
-    public static let defaultBaseUrl = "http://127.0.0.1:3001"
-    #else
-    public static let defaultBaseUrl = "https://lingualearn.ai"
-    #endif
+    public static let defaultBaseUrl = "https://145.239.82.124.sslip.io/english"
 
     public static let suiteName = "group.ai.factory.lingualearn"
     public static let apiKey = "lingualearn_api_url"

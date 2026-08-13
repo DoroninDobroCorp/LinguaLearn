@@ -144,7 +144,7 @@ public class ApiClient
     {
         _settings = settings;
         _httpClient = customClient ?? new HttpClient();
-        _baseUrl = string.IsNullOrWhiteSpace(_settings.ApiUrl) ? "https://lingua.factory.ai" : _settings.ApiUrl;
+        _baseUrl = string.IsNullOrWhiteSpace(_settings.ApiUrl) ? "https://145.239.82.124.sslip.io/english" : _settings.ApiUrl;
     }
 
     public void SetBaseUrl(string baseUrl)
@@ -189,5 +189,32 @@ public class ApiClient
     {
         var result = await AnalyzeWritingAsync(payload);
         return result != null && result.Accepted;
+    }
+
+    public async Task<(bool Success, string Commit, string Version, string Error)> TestConnectionAsync()
+    {
+        try
+        {
+            string baseUrl = !string.IsNullOrWhiteSpace(_baseUrl) ? _baseUrl : _settings.ApiUrl;
+            string url = $"{baseUrl.TrimEnd('/')}/health";
+            using var response = await _httpClient.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                string respJson = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(respJson);
+                var root = doc.RootElement;
+                string commit = root.TryGetProperty("gitCommit", out var c) ? c.GetString() ?? "unknown" : "unknown";
+                string version = root.TryGetProperty("appVersion", out var v) ? v.GetString() ?? "1.0.0" : "1.0.0";
+                return (true, commit, version, string.Empty);
+            }
+            else
+            {
+                return (false, "unknown", string.Empty, $"HTTP {(int)response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            return (false, "unknown", string.Empty, ex.Message);
+        }
     }
 }

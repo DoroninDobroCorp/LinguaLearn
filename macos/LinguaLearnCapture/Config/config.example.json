@@ -1,7 +1,7 @@
 {
-  "apiURL": "https://YOUR_LINGUALEARN_HOST/english/api/writing/analyze",
+  "apiURL": "https://145.239.82.124.sslip.io/english/api/writing/analyze",
   "bearerToken": "CHANGE_ME",
-  "appURL": "https://YOUR_LINGUALEARN_HOST/english",
+  "appURL": "https://145.239.82.124.sslip.io/english",
   "ingressPort": 43119,
   "ingressToken": "GENERATED_BY_INSTALLER",
   "captureEnabled": true,

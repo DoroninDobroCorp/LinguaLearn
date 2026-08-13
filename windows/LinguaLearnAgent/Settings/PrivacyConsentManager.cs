@@ -9,7 +9,7 @@ namespace LinguaLearnAgent.Settings;
 
 public class SettingsData
 {
-    public string ApiUrl { get; set; } = "https://lingua.factory.ai";
+    public string ApiUrl { get; set; } = "https://145.239.82.124.sslip.io/english";
     public string ProtectedDeviceToken { get; set; } = string.Empty;
     public bool IsPaused { get; set; } = false;
     public List<string> DeniedApps { get; set; } = new();
@@ -23,10 +23,10 @@ public class PrivacyConsentManager
 
     public string ApiUrl
     {
-        get => string.IsNullOrWhiteSpace(_data.ApiUrl) ? "https://lingua.factory.ai" : _data.ApiUrl;
+        get => string.IsNullOrWhiteSpace(_data.ApiUrl) ? "https://145.239.82.124.sslip.io/english" : _data.ApiUrl;
         set
         {
-            _data.ApiUrl = string.IsNullOrWhiteSpace(value) ? "https://lingua.factory.ai" : value.Trim();
+            _data.ApiUrl = string.IsNullOrWhiteSpace(value) ? "https://145.239.82.124.sslip.io/english" : value.Trim();
         }
     }
 
