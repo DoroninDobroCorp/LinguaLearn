@@ -22,7 +22,14 @@ enum ConfigurationStore {
             try write(CaptureConfiguration.template, to: url)
         }
         let data = try Data(contentsOf: url)
-        return try PayloadCoding.makeDecoder().decode(CaptureConfiguration.self, from: data)
+        var config = try PayloadCoding.makeDecoder().decode(CaptureConfiguration.self, from: data)
+
+        if let keychainToken = KeychainTokenStorage.getToken(), !keychainToken.isEmpty {
+            if config.bearerToken.isEmpty || config.bearerToken == "CHANGE_ME" {
+                config.bearerToken = keychainToken
+            }
+        }
+        return config
     }
 
     static func write(_ configuration: CaptureConfiguration, to url: URL = configurationURL) throws {
@@ -35,5 +42,9 @@ enum ConfigurationStore {
         let data = try PayloadCoding.makeEncoder().encode(configuration)
         try data.write(to: url, options: [.atomic])
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+
+        if !configuration.bearerToken.isEmpty && configuration.bearerToken != "CHANGE_ME" {
+            KeychainTokenStorage.saveToken(configuration.bearerToken)
+        }
     }
 }

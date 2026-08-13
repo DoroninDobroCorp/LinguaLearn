@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         configureStatusItem()
+        SparkleUpdater.shared.start()
         reloadConfiguration(showErrors: true)
     }
 
@@ -54,6 +55,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let openConfig = NSMenuItem(title: "Open config…", action: #selector(openConfiguration), keyEquivalent: ",")
         openConfig.target = self
         menu.addItem(openConfig)
+
+        let pairMac = NSMenuItem(title: "Pair This Mac…", action: #selector(pairThisMac), keyEquivalent: "")
+        pairMac.target = self
+        menu.addItem(pairMac)
+
+        let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "u")
+        updates.target = self
+        menu.addItem(updates)
 
         let diagnostics = NSMenuItem(title: "Diagnostics / Test Connection…", action: #selector(openDiagnostics), keyEquivalent: "d")
         diagnostics.target = self
@@ -387,6 +396,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func reloadFromMenu() {
         reloadConfiguration(showErrors: true)
+    }
+
+    @objc private func checkForUpdates() {
+        SparkleUpdater.shared.checkForUpdates()
+    }
+
+    @objc private func pairThisMac() {
+        let alert = NSAlert()
+        alert.messageText = "Pair This Mac"
+        alert.informativeText = "Enter your device token (ll_dev_...) to pair this Mac with your LinguaLearn account:"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Pair")
+        alert.addButton(withTitle: "Cancel")
+
+        let inputTextField = NSTextField(frame: NSRect(x: 0, y: 0, width: 300, height: 24))
+        inputTextField.placeholderString = "ll_dev_..."
+        if let currentToken = configuration?.bearerToken, currentToken != "CHANGE_ME" {
+            inputTextField.stringValue = currentToken
+        }
+        alert.accessoryView = inputTextField
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            let newToken = inputTextField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !newToken.isEmpty else { return }
+
+            _ = KeychainTokenStorage.saveToken(newToken)
+
+            if var config = configuration {
+                config.bearerToken = newToken
+                do {
+                    try ConfigurationStore.write(config)
+                    configuration = config
+                    reloadConfiguration(showErrors: true)
+                    showAlert(title: "Pairing Successful", message: "This Mac has been paired with LinguaLearn!")
+                } catch {
+                    showAlert(title: "Pairing Error", message: error.localizedDescription)
+                }
+            }
+        }
     }
 
     private func showAlert(title: String, message: String) {
