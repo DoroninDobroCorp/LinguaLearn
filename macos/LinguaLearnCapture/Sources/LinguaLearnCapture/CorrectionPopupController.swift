@@ -7,6 +7,15 @@ final class CorrectionPopupController: NSObject {
         let response: WritingAnalyzeResponse
         let appURL: URL?
         let replaceDraft: ((String) -> Bool)?
+        let isPreview: Bool
+
+        var displayMode: PopupDisplayMode {
+            PopupPresentationPolicy.displayMode(for: response, isPreview: isPreview)
+        }
+
+        var isCompact: Bool {
+            displayMode == .compactChip
+        }
     }
 
     private let panel: NSPanel
@@ -37,20 +46,22 @@ final class CorrectionPopupController: NSObject {
         event: CaptureEvent,
         response: WritingAnalyzeResponse,
         appURL: URL?,
-        replaceDraft: ((String) -> Bool)? = nil
+        replaceDraft: ((String) -> Bool)? = nil,
+        isPreview: Bool = false
     ) {
         let presentation = Presentation(
             event: event,
             response: response,
             appURL: appURL,
-            replaceDraft: replaceDraft
+            replaceDraft: replaceDraft,
+            isPreview: isPreview
         )
         if analyzingEventID == event.eventID {
             analyzingEventID = nil
             rebuildContent(for: presentation)
             positionPanel()
             panel.orderFrontRegardless()
-            scheduleAutoDismiss()
+            scheduleAutoDismiss(duration: presentation.isCompact ? 1.8 : 6.0)
             return
         }
         if presentations.count >= maximumPendingPresentations {
@@ -126,7 +137,7 @@ final class CorrectionPopupController: NSObject {
         rebuildContent(for: presentation)
         positionPanel()
         panel.orderFrontRegardless()
-        scheduleAutoDismiss()
+        scheduleAutoDismiss(duration: presentation.isCompact ? 1.8 : 6.0)
     }
 
     private func rebuildContent(for presentation: Presentation) {
@@ -134,7 +145,45 @@ final class CorrectionPopupController: NSObject {
             contentStack.removeArrangedSubview(view)
             view.removeFromSuperview()
         }
+        countdownLabel = nil
 
+        if presentation.isCompact {
+            rebuildCompactContent(for: presentation)
+        } else {
+            rebuildDetailedContent(for: presentation)
+        }
+    }
+
+    private func rebuildCompactContent(for presentation: Presentation) {
+        contentStack.spacing = 6
+        contentStack.edgeInsets = NSEdgeInsets(top: 10, left: 14, bottom: 10, right: 14)
+
+        let hStack = NSStackView()
+        hStack.orientation = .horizontal
+        hStack.spacing = 8
+        hStack.alignment = .centerY
+
+        let title = makeLabel("Grammar OK ✓", font: .systemFont(ofSize: 13, weight: .bold))
+        title.textColor = .systemGreen
+        hStack.addArrangedSubview(title)
+
+        let sourceApp = presentation.event.sourceApp.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !sourceApp.isEmpty {
+            let source = makeLabel("(\(sourceApp))", font: .systemFont(ofSize: 11, weight: .regular))
+            source.textColor = .secondaryLabelColor
+            hStack.addArrangedSubview(source)
+        }
+
+        contentStack.addArrangedSubview(hStack)
+
+        contentStack.layoutSubtreeIfNeeded()
+        let fitting = contentStack.fittingSize
+        let width = max(fitting.width + 28, 160)
+        let height = max(fitting.height + 20, 40)
+        panel.setContentSize(NSSize(width: width, height: height))
+    }
+
+    private func rebuildDetailedContent(for presentation: Presentation) {
         let source = makeLabel("From \(presentation.event.sourceApp)", font: .systemFont(ofSize: 11, weight: .medium))
         source.textColor = .secondaryLabelColor
         contentStack.addArrangedSubview(source)
@@ -292,24 +341,26 @@ final class CorrectionPopupController: NSObject {
         ))
     }
 
-    private func scheduleAutoDismiss() {
+    private func scheduleAutoDismiss(duration: TimeInterval = 6.0) {
         cancelAutoDismiss()
-        remainingAutoDismissSeconds = 6
-        updateCountdownLabel()
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] timer in
-            guard let self else {
-                timer.invalidate()
-                return
+        remainingAutoDismissSeconds = Int(ceil(duration))
+        if duration > 2.0 {
+            updateCountdownLabel()
+            countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] timer in
+                guard let self else {
+                    timer.invalidate()
+                    return
+                }
+                self.remainingAutoDismissSeconds -= 1
+                self.updateCountdownLabel()
+                if self.remainingAutoDismissSeconds <= 0 { timer.invalidate() }
             }
-            self.remainingAutoDismissSeconds -= 1
-            self.updateCountdownLabel()
-            if self.remainingAutoDismissSeconds <= 0 { timer.invalidate() }
         }
         let workItem = DispatchWorkItem { [weak self] in
             self?.advanceQueue()
         }
         autoDismissWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 6, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: workItem)
     }
 
     private func updateCountdownLabel() {
