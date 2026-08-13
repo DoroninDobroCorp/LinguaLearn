@@ -202,6 +202,37 @@ if [[ -f "${configuration_file}" ]]; then
     fi
 fi
 
+# Check Sparkle 2 Updater settings in Info.plist
+info_plist_path="${package_root}/Resources/Info.plist"
+if [[ -f "${info_plist_path}" ]] && /usr/bin/grep -q 'SUFeedURL' "${info_plist_path}" && /usr/bin/grep -q 'SUPublicEDKey' "${info_plist_path}"; then
+    pass_check "Sparkle 2 Updater keys present in Info.plist (SUFeedURL, SUPublicEDKey)"
+else
+    fail_check "Sparkle 2 Updater keys missing in Info.plist"
+fi
+
+# Check release and update scripts
+if [[ -x "${package_root}/Scripts/release-mac.sh" ]]; then
+    pass_check "Release script executable: Scripts/release-mac.sh"
+else
+    fail_check "Release script missing or not executable: Scripts/release-mac.sh"
+fi
+
+if [[ -x "${package_root}/Scripts/update-installed.sh" ]]; then
+    pass_check "Update script executable: Scripts/update-installed.sh"
+else
+    fail_check "Update script missing or not executable: Scripts/update-installed.sh"
+fi
+
+# Check Keychain & device token pairing status
+if [[ -f "${configuration_file}" ]]; then
+    bearer_token="$(/usr/bin/jq -r '.bearerToken // empty' "${configuration_file}")"
+    if [[ -n "${bearer_token}" && "${bearer_token}" != "CHANGE_ME" ]]; then
+        pass_check "Device token paired (token present in config/Keychain)"
+    else
+        info_check "Device token not paired yet (run 'Pair This Mac' in menu bar)"
+    fi
+fi
+
 /bin/echo
 if [[ "${errors}" -gt 0 ]]; then
     /bin/echo "ИТОГ: ${errors} автоматических ошибок; сначала исправить их. Ручных действий: ${manual_actions}."
