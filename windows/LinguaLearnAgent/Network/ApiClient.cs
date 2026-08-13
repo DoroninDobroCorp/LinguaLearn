@@ -138,24 +138,30 @@ public class ApiClient
 
     private readonly HttpClient _httpClient;
     private readonly PrivacyConsentManager _settings;
-    private string _baseUrl = "http://localhost:3001";
+    private string _baseUrl;
 
     public ApiClient(PrivacyConsentManager settings, HttpClient? customClient = null)
     {
         _settings = settings;
         _httpClient = customClient ?? new HttpClient();
+        _baseUrl = string.IsNullOrWhiteSpace(_settings.ApiUrl) ? "https://lingua.factory.ai" : _settings.ApiUrl;
     }
 
     public void SetBaseUrl(string baseUrl)
     {
-        _baseUrl = baseUrl.TrimEnd('/');
+        if (!string.IsNullOrWhiteSpace(baseUrl))
+        {
+            _baseUrl = baseUrl.TrimEnd('/');
+            _settings.ApiUrl = _baseUrl;
+        }
     }
 
     public async Task<AnalysisResponse?> AnalyzeWritingAsync(AnalysisPayload payload)
     {
         try
         {
-            string url = $"{_baseUrl}/api/writing/analyze";
+            string baseUrl = !string.IsNullOrWhiteSpace(_baseUrl) ? _baseUrl : _settings.ApiUrl;
+            string url = $"{baseUrl.TrimEnd('/')}/api/writing/analyze";
             string json = JsonSerializer.Serialize(payload, JsonOptions);
             using var request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Content = new StringContent(json, Encoding.UTF8, "application/json");

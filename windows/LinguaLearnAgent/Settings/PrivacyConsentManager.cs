@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace LinguaLearnAgent.Settings;
 
 public class SettingsData
 {
-    public string DeviceToken { get; set; } = string.Empty;
+    public string ApiUrl { get; set; } = "https://lingua.factory.ai";
+    public string ProtectedDeviceToken { get; set; } = string.Empty;
     public bool IsPaused { get; set; } = false;
     public List<string> DeniedApps { get; set; } = new();
 }
@@ -16,11 +19,25 @@ public class PrivacyConsentManager
 {
     private readonly string _settingsFilePath;
     private SettingsData _data = new();
+    private string _inMemoryDeviceToken = string.Empty;
+
+    public string ApiUrl
+    {
+        get => string.IsNullOrWhiteSpace(_data.ApiUrl) ? "https://lingua.factory.ai" : _data.ApiUrl;
+        set
+        {
+            _data.ApiUrl = string.IsNullOrWhiteSpace(value) ? "https://lingua.factory.ai" : value.Trim();
+        }
+    }
 
     public string DeviceToken
     {
-        get => _data.DeviceToken;
-        set => _data.DeviceToken = value;
+        get => _inMemoryDeviceToken;
+        set
+        {
+            _inMemoryDeviceToken = value ?? string.Empty;
+            _data.ProtectedDeviceToken = ProtectToken(_inMemoryDeviceToken);
+        }
     }
 
     public bool IsPaused
@@ -38,6 +55,51 @@ public class PrivacyConsentManager
         Directory.CreateDirectory(folder);
         _settingsFilePath = customPath ?? Path.Combine(folder, "settings.json");
         Load();
+    }
+
+    public static string ProtectToken(string token)
+    {
+        if (string.IsNullOrEmpty(token)) return string.Empty;
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                byte[] plainBytes = Encoding.UTF8.GetBytes(token);
+                byte[] cipherBytes = ProtectedData.Protect(plainBytes, null, DataProtectionScope.CurrentUser);
+                return "DPAPI:" + Convert.ToBase64String(cipherBytes);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PrivacyConsentManager] DPAPI Protect failed: {ex.Message}");
+        }
+        return "PLAIN:" + token;
+    }
+
+    public static string UnprotectToken(string protectedToken)
+    {
+        if (string.IsNullOrEmpty(protectedToken)) return string.Empty;
+        if (protectedToken.StartsWith("DPAPI:"))
+        {
+            try
+            {
+                if (OperatingSystem.IsWindows())
+                {
+                    byte[] cipherBytes = Convert.FromBase64String(protectedToken.Substring(6));
+                    byte[] plainBytes = ProtectedData.Unprotect(cipherBytes, null, DataProtectionScope.CurrentUser);
+                    return Encoding.UTF8.GetString(plainBytes);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PrivacyConsentManager] DPAPI Unprotect failed: {ex.Message}");
+            }
+        }
+        else if (protectedToken.StartsWith("PLAIN:"))
+        {
+            return protectedToken.Substring(6);
+        }
+        return protectedToken;
     }
 
     public void Save()
@@ -64,6 +126,7 @@ public class PrivacyConsentManager
                 if (loaded != null)
                 {
                     _data = loaded;
+                    _inMemoryDeviceToken = UnprotectToken(_data.ProtectedDeviceToken);
                 }
             }
         }

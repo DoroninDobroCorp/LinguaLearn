@@ -26,11 +26,27 @@ public class ApiClientTests
     }
 
     [Fact]
-    public void ApiClient_BaseUrlConfiguration()
+    public void ApiClient_HttpsBaseUrlConfiguration()
     {
         var settings = new PrivacyConsentManager();
+        Assert.Equal("https://lingua.factory.ai", settings.ApiUrl);
+
         var client = new ApiClient(settings);
-        client.SetBaseUrl("http://localhost:3001/");
-        Assert.NotNull(client);
+        client.SetBaseUrl("https://api.lingualearn.ai");
+        Assert.Equal("https://api.lingualearn.ai", settings.ApiUrl);
+    }
+
+    [Fact]
+    public void PrivacyConsentManager_DeviceTokenProtection()
+    {
+        var settings = new PrivacyConsentManager();
+        var originalToken = "YOUR_DEVICE_TOKEN_HERE";
+
+        settings.DeviceToken = originalToken;
+        Assert.Equal(originalToken, settings.DeviceToken);
+
+        string protectedStr = PrivacyConsentManager.ProtectToken(originalToken);
+        string unprotectedStr = PrivacyConsentManager.UnprotectToken(protectedStr);
+        Assert.Equal(originalToken, unprotectedStr);
     }
 }

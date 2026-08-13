@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using LinguaLearnAgent.Network;
 using LinguaLearnAgent.Settings;
@@ -21,7 +23,7 @@ public class OfflineRetryQueue
         string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         string folder = Path.Combine(appData, "LinguaLearnAgent");
         Directory.CreateDirectory(folder);
-        _queueFilePath = customPath ?? Path.Combine(folder, "offline_retry_queue.json");
+        _queueFilePath = customPath ?? Path.Combine(folder, "offline_retry_queue.dat");
         LoadQueue();
     }
 
@@ -79,7 +81,22 @@ public class OfflineRetryQueue
         try
         {
             string json = JsonSerializer.Serialize(_queue);
-            File.WriteAllText(_queueFilePath, json);
+            byte[] rawBytes = Encoding.UTF8.GetBytes(json);
+            byte[] protectedBytes = rawBytes;
+
+            if (OperatingSystem.IsWindows())
+            {
+                try
+                {
+                    protectedBytes = ProtectedData.Protect(rawBytes, null, DataProtectionScope.CurrentUser);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[OfflineRetryQueue] DPAPI Protect failed: {ex.Message}");
+                }
+            }
+
+            File.WriteAllBytes(_queueFilePath, protectedBytes);
         }
         catch (Exception ex)
         {
@@ -93,7 +110,24 @@ public class OfflineRetryQueue
         {
             if (File.Exists(_queueFilePath))
             {
-                string json = File.ReadAllText(_queueFilePath);
+                byte[] protectedBytes = File.ReadAllBytes(_queueFilePath);
+                if (protectedBytes.Length == 0) return;
+
+                byte[] rawBytes = protectedBytes;
+
+                if (OperatingSystem.IsWindows())
+                {
+                    try
+                    {
+                        rawBytes = ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
+                    }
+                    catch
+                    {
+                        rawBytes = protectedBytes;
+                    }
+                }
+
+                string json = Encoding.UTF8.GetString(rawBytes);
                 var items = JsonSerializer.Deserialize<List<AnalysisPayload>>(json);
                 if (items != null)
                 {

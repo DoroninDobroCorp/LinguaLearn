@@ -9,8 +9,12 @@ public class ApiClientTests
     public static void RunAll()
     {
         var settings = new PrivacyConsentManager();
-        settings.DeviceToken = "ll_dev_test_token_12345";
+        settings.DeviceToken = "YOUR_DEVICE_TOKEN_HERE";
+        if (settings.ApiUrl != "https://lingua.factory.ai") throw new Exception("Default ApiUrl must be HTTPS https://lingua.factory.ai");
+
         var client = new ApiClient(settings);
+        client.SetBaseUrl("https://api.lingualearn.ai");
+        if (settings.ApiUrl != "https://api.lingualearn.ai") throw new Exception("SetBaseUrl must update settings ApiUrl");
 
         var payload = new AnalysisPayload
         {

@@ -38,6 +38,9 @@ public static class CorrectionPopupController
     {
         string tier = response.Assessment ?? "correct";
         bool isClearError = response.HasClearError || string.Equals(tier, "clear_error", StringComparison.OrdinalIgnoreCase);
+        bool isManualPreview = response.PreviewOnly;
+
+        bool showFullCard = isClearError || isManualPreview;
 
         string displayCorrected = !string.IsNullOrWhiteSpace(response.RecommendedText)
             ? response.RecommendedText
@@ -49,27 +52,65 @@ public static class CorrectionPopupController
             OriginalText = response.OriginalText,
             CorrectedText = displayCorrected,
             SummaryRu = string.IsNullOrWhiteSpace(response.SummaryRu) ?
-                (isClearError ? "Найдены ошибки в тексте." : "Ошибок не обнаружено.") : response.SummaryRu,
+                (isClearError ? "Найдены ошибки в тексте." : (isManualPreview ? "Предварительный просмотр фраз." : "Ошибок не обнаружено.")) : response.SummaryRu,
             Changed = response.Changed,
-            IsCompactChip = !isClearError,
-            AutoDismissMs = !isClearError ? 1800 : 0
+            IsCompactChip = !showFullCard,
+            AutoDismissMs = !showFullCard ? 1800 : 0
         };
 
-        if (isClearError)
+        if (showFullCard)
         {
-            model.HeaderTitle = "Grammar Correction Card";
-            foreach (var err in response.Errors)
+            model.HeaderTitle = isManualPreview ? "Grammar Preview (Hotkey)" : "Grammar Correction Card";
+
+            if (response.Errors != null)
             {
-                model.ErrorsList.Add(new ErrorDetailViewModel
+                foreach (var err in response.Errors)
                 {
-                    Original = err.Original,
-                    Correction = err.Correction,
-                    ExplanationRu = err.ExplanationRu,
-                    Topic = err.Topic,
-                    Kind = err.Kind,
-                    Category = err.Category,
-                    Level = err.Level
-                });
+                    model.ErrorsList.Add(new ErrorDetailViewModel
+                    {
+                        Original = err.Original,
+                        Correction = err.Correction,
+                        ExplanationRu = err.ExplanationRu,
+                        Topic = err.Topic,
+                        Kind = string.IsNullOrEmpty(err.Kind) ? "grammar_error" : err.Kind,
+                        Category = err.Category,
+                        Level = err.Level
+                    });
+                }
+            }
+
+            if (response.MechanicalCorrections != null)
+            {
+                foreach (var mech in response.MechanicalCorrections)
+                {
+                    model.ErrorsList.Add(new ErrorDetailViewModel
+                    {
+                        Original = mech.Original,
+                        Correction = mech.Correction,
+                        ExplanationRu = mech.ExplanationRu,
+                        Topic = string.IsNullOrEmpty(mech.Topic) ? "Опечатки и оформление" : mech.Topic,
+                        Kind = string.IsNullOrEmpty(mech.Kind) ? "mechanical" : mech.Kind,
+                        Category = mech.Category,
+                        Level = mech.Level
+                    });
+                }
+            }
+
+            if (response.OptionalSuggestions != null)
+            {
+                foreach (var opt in response.OptionalSuggestions)
+                {
+                    model.ErrorsList.Add(new ErrorDetailViewModel
+                    {
+                        Original = opt.Original,
+                        Correction = opt.Correction,
+                        ExplanationRu = opt.ExplanationRu,
+                        Topic = string.IsNullOrEmpty(opt.Topic) ? "Рекомендации по стилю" : opt.Topic,
+                        Kind = string.IsNullOrEmpty(opt.Kind) ? "style" : opt.Kind,
+                        Category = opt.Category,
+                        Level = opt.Level
+                    });
+                }
             }
         }
         else

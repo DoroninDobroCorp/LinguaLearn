@@ -1,5 +1,8 @@
 name: Windows Agent CI
 
+# Status: Configured for Windows WPF Agent .NET 8 CI.
+# Note: If GitHub Actions Windows runner billing/quota is locked externally, mark status BLOCKED_EXTERNAL in audit report artifacts.
+
 on:
   push:
     branches: [ main, master ]
@@ -32,4 +35,14 @@ jobs:
       run: dotnet build windows/LinguaLearnAgent.sln --configuration Release --no-restore
 
     - name: Run unit tests
-      run: dotnet test windows/LinguaLearnAgent.sln --configuration Release --no-build --verbosity normal
+      run: dotnet test windows/LinguaLearnAgent.sln --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test_results.trx"
+
+    - name: Upload Test Results & Build Artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-dotnet-test-results
+        path: |
+          windows/**/TestResults/*.trx
+          windows/LinguaLearnAgent/bin/Release/net8.0-windows/
+

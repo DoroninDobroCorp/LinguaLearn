@@ -41,10 +41,24 @@ public partial class MainWindow : Window
 
     private void LoadSettingsIntoUI()
     {
+        ApiUrlTextBox.Text = App.SettingsManager.ApiUrl;
         DeviceTokenTextBox.Text = App.SettingsManager.DeviceToken;
         PauseCaptureCheckBox.IsChecked = App.SettingsManager.IsPaused;
         PreviewModeCheckBox.IsChecked = App.HotkeyManager.IsPreviewOnly;
         UpdateQueueStatus();
+    }
+
+    private void SaveApiUrlButton_Click(object sender, RoutedEventArgs e)
+    {
+        var url = ApiUrlTextBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            url = "https://lingua.factory.ai";
+        }
+        App.SettingsManager.ApiUrl = url;
+        App.ApiClient.SetBaseUrl(url);
+        App.SettingsManager.Save();
+        MessageBox.Show($"HTTPS API URL saved: {url}", "LinguaLearn Agent", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void SaveTokenButton_Click(object sender, RoutedEventArgs e)

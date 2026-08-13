@@ -104,47 +104,70 @@ public class ResponseParserTests
     }
 
     [Fact]
-    public void MechanicalOnlyResponse_RendersCompactChip()
+    public void ManualHotkey_PreviewOnly_RendersFullPreviewWithMechanicalAndSuggestions()
     {
         string json = @"{
             ""accepted"": true,
             ""schemaVersion"": 1,
-            ""eventId"": ""win-evt-003"",
+            ""eventId"": ""win-evt-004"",
             ""sourceApp"": ""LinguaLearnAgent"",
-            ""originalText"": ""she does not know."",
-            ""correctedText"": ""She does not know."",
-            ""recommendedText"": ""She does not know."",
+            ""originalText"": ""she don't know the answer."",
+            ""correctedText"": ""She does not know the answer."",
+            ""recommendedText"": ""She does not know the answer."",
             ""changed"": true,
-            ""assessment"": ""mechanical_only"",
-            ""hasClearError"": false,
-            ""summaryRu"": ""Механические исправления."",
-            ""errors"": [],
+            ""assessment"": ""clear_error"",
+            ""hasClearError"": true,
+            ""summaryRu"": ""Предварительный просмотр фраз."",
+            ""errors"": [
+                {
+                    ""original"": ""don't"",
+                    ""correction"": ""doesn't"",
+                    ""explanationRu"": ""Используйте doesn't для третьего лица."",
+                    ""topic"": ""Present Simple"",
+                    ""confidence"": 0.95,
+                    ""level"": ""A2"",
+                    ""kind"": ""grammar_error"",
+                    ""category"": ""verb_tense""
+                }
+            ],
             ""mechanicalCorrections"": [
                 {
                     ""original"": ""she"",
                     ""correction"": ""She"",
-                    ""explanationRu"": ""Капитализация первой буквы."",
+                    ""explanationRu"": ""Заглавная буква в начале предложения."",
                     ""topic"": ""Capitalization"",
                     ""confidence"": 0.99,
                     ""kind"": ""mechanical"",
                     ""category"": ""capitalization""
                 }
             ],
-            ""optionalSuggestions"": [],
+            ""optionalSuggestions"": [
+                {
+                    ""original"": ""does not know"",
+                    ""correction"": ""is unaware of"",
+                    ""explanationRu"": ""Более формальный вариант."",
+                    ""topic"": ""Style"",
+                    ""confidence"": 0.85,
+                    ""kind"": ""style"",
+                    ""category"": ""vocabulary""
+                }
+            ],
             ""topicEvidence"": [],
-            ""previewOnly"": false
+            ""previewOnly"": true
         }";
 
         var response = JsonSerializer.Deserialize<AnalysisResponse>(json, JsonOptions);
 
         Assert.NotNull(response);
-        Assert.Equal("mechanical_only", response.Assessment);
-        Assert.False(response.HasClearError);
-        Assert.Single(response.MechanicalCorrections);
+        Assert.True(response.PreviewOnly);
 
         var uiModel = CorrectionPopupController.BuildUiModel(response);
-        Assert.True(uiModel.IsCompactChip, "mechanical_only assessment must render compact chip");
-        Assert.Equal("Grammar OK ✓", uiModel.HeaderTitle);
-        Assert.Equal(1800, uiModel.AutoDismissMs);
+        Assert.False(uiModel.IsCompactChip, "Manual hotkey previewOnly=true must render full card");
+        Assert.Equal("Grammar Preview (Hotkey)", uiModel.HeaderTitle);
+        Assert.Equal(3, uiModel.ErrorsList.Count);
+
+        Assert.Equal("grammar_error", uiModel.ErrorsList[0].Kind);
+        Assert.Equal("mechanical", uiModel.ErrorsList[1].Kind);
+        Assert.Equal("style", uiModel.ErrorsList[2].Kind);
     }
 }
