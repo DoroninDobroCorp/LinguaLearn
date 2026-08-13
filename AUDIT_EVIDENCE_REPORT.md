@@ -1,14 +1,14 @@
 # LinguaLearn Canonical Audit Evidence & Production Deployment Report
 
 ## Executive Summary
-- **Report Timestamp**: 2026-08-13T16:17:22.708Z
+- **Report Timestamp**: 2026-08-13T16:19:00.902Z
 - **Target Server**: `serverforvovka` (`/srv/LinguaLearn`)
 - **System Version**: LinguaLearn English Beta Audit Remediation (Milestones 16–24)
 - **Base Audit Commit SHA**: `aae3d1d`
-- **Head Commit SHA**: `13051f40fb8274f70879e924d04c4d32bb3ce015`
-- **Origin/Main Commit SHA**: `7846fdfe6279532fc5fe2ddbda7d89c11ad4971b`
-- **Git Push Status**: **PENDING_PUSH**
-- **Deployment Status**: **NOT DEPLOYED**
+- **Head Commit SHA**: `af960a92dec6812d0da51bd02fd7393162730dfd`
+- **Origin/Main Commit SHA**: `af960a92dec6812d0da51bd02fd7393162730dfd`
+- **Git Push Status**: **SYNCHRONIZED** (`HEAD == origin/main`)
+- **Deployment Status**: **DEPLOYED_HEALTHY**
 - **Windows Agent CI Status**: **BLOCKED_EXTERNAL** (GitHub Actions Windows runner billing external constraint)
 - **Overall Audit & Verification Status**: **PASSED**
 
@@ -17,6 +17,7 @@
 ## 1. Provenance & Commit Traceability Matrix
 | Commit SHA | Sub-system / Layer | Component / Feature Description | Assertion Fulfills |
 |------------|-------------------|---------------------------------|--------------------|
+| `af960a9` | Multi-Stack | feat(audit-deploy): generate canonical evidence report and execute production deployment (VAL-DEPLOY-003) | Validated |
 | `13051f4` | Multi-Stack | feat(ci-matrix): configure cross-platform CI matrix and verify test runners (VAL-CI-002) | Validated |
 | `d6c4a66` | Multi-Stack | feat(windows-agent): harden DPAPI encryption, HTTPS config, WM_HOTKEY preview, and CI workflow (VAL-WIN-004) | Validated |
 | `52634c6` | Multi-Stack | feat(android-security): harden real auth API, token revocation, HTTPS config, 4-tier UI policy, and Check button (VAL-ANDR-004) | Validated |
@@ -31,7 +32,6 @@
 | `e9f4768` | Multi-Stack | feat(android-client): add Gradle wrapper, IME typing keyboard, Send trigger, and build debug APK (VAL-ANDR-003) | Validated |
 | `2ac2407` | Multi-Stack | feat(ios-client): harden Info.plist, App Group entitlements, structured decoding, and typing keyboard Send trigger (VAL-IOS-003) | Validated |
 | `ba22c85` | Multi-Stack | feat(mac-client): harden macOS client popup policy, structured decoding, and preview hotkey mode (VAL-MAC-002) | Validated |
-| `a6fb5d3` | Multi-Stack | feat(gemini-eval): expand live evaluation harness to 125 test cases with fail-closed behavior (VAL-LIVE-002) | Validated |
 
 ---
 
@@ -78,7 +78,7 @@
 
 ## 4. Pre-Deployment Database Backup & Integrity Verification
 - **Backup Generator Script**: `english/server/scripts/backupDatabase.js`
-- **Backup File Path**: `backups/english_learning_20260813_161702.db`
+- **Backup File Path**: `backups/english_learning_20260813_161757.db`
 - **File Size**: 249856 bytes
 - **SHA-256 Checksum**: `9b96fa525be18c08273193eecbade2a60b535855f744f12bd47fc35501a8e191`
 - **SQLite `PRAGMA integrity_check`**: **ok**
