@@ -97,7 +97,7 @@ export function runInventoryCleanup() {
 
   // Remove stray duplicate test files at english/ root (since they exist in english/tests/)
   for (const f of fs.readdirSync(ENGLISH_DIR)) {
-    if (f.endsWith('.test.mjs') || f.endsWith('.test.js') || f.endsWith('.spec.js') || f.endsWith('.spec.cjs') || f.endsWith('.spec.ts') || f.endsWith('.cjs')) {
+    if (f !== 'playwright.config.cjs' && !f.includes('.config.') && (f.endsWith('.test.mjs') || f.endsWith('.test.js') || f.endsWith('.spec.js') || f.endsWith('.spec.cjs') || f.endsWith('.spec.ts'))) {
       const p = path.join(ENGLISH_DIR, f);
       if (fs.existsSync(p) && fs.statSync(p).isFile()) {
         fs.unlinkSync(p);
@@ -109,7 +109,6 @@ export function runInventoryCleanup() {
   console.log('=== LinguaLearn Inventory Cleanup Complete ===');
 }
 
-const __filename = fileURLToPath(import.meta.url);
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename)) {
   runInventoryCleanup();
 }
