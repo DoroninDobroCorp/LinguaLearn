@@ -50,3 +50,15 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Incident containment & Staging rules
+new/
+run_game/
+.codex-stage/
+.remote_staging/
+.remote_patch/
+.remote_rebase/
+.staging/
+*.secret*
+
+
