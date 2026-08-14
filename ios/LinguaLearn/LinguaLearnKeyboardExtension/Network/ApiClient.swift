@@ -272,6 +272,11 @@ public class ApiClient {
         deviceToken: String,
         completion: @escaping (Result<AnalysisResponse, Error>) -> Void
     ) {
+        guard AppConfig.isSecureUrl(baseUrl) else {
+            completion(.failure(NSError(domain: "ApiClient", code: 400, userInfo: [NSLocalizedDescriptionKey: "HTTPS Enforced: Plaintext HTTP URL rejected for remote domain."])))
+            return
+        }
+
         guard let url = URL(string: "\(baseUrl)/api/writing/analyze") else {
             completion(.failure(NSError(domain: "ApiClient", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return

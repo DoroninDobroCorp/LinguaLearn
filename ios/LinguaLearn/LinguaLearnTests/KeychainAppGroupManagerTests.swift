@@ -51,4 +51,11 @@ final class KeychainAppGroupManagerTests: XCTestCase {
         let token = KeychainAppGroupManager.loadDeviceToken()
         XCTAssertNil(token, "Keychain missing item must return nil without fallback")
     }
+
+    func testDynamicKeychainAccessGroupResolutionWithPrefix() {
+        let keychain = KeychainAppGroupManager.shared
+        XCTAssertEqual(keychain.baseAccessGroup, "group.ai.factory.lingualearn")
+        XCTAssertEqual(keychain.expandedAccessGroup, "$(AppIdentifierPrefix)group.ai.factory.lingualearn")
+        XCTAssertEqual(keychain.resolveAccessGroup(), "group.ai.factory.lingualearn")
+    }
 }

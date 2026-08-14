@@ -149,4 +149,33 @@ final class StructuredResponseDecodingTests: XCTestCase {
         XCTAssertEqual(tier4, .correct)
         XCTAssertFalse(tier4.isDetailedCard)
     }
+
+    func testDeviceTokenServerResponseDecoding() throws {
+        let jsonStr = """
+        {
+            "tokens": [
+                {
+                    "id": 42,
+                    "device_name": "iOS Test Keyboard",
+                    "app_version": "1.0.0",
+                    "last_used_at": "2026-08-14T02:00:00.000Z",
+                    "revoked_at": null,
+                    "created_at": "2026-08-14T01:00:00.000Z"
+                }
+            ]
+        }
+        """
+
+        let data = jsonStr.data(using: .utf8)!
+        let response = try JSONDecoder().decode(DeviceTokenResponse.self, from: data)
+
+        XCTAssertEqual(response.tokens.count, 1)
+        let token = response.tokens.first
+        XCTAssertEqual(token?.id, 42)
+        XCTAssertEqual(token?.deviceName, "iOS Test Keyboard")
+        XCTAssertEqual(token?.appVersion, "1.0.0")
+        XCTAssertEqual(token?.lastUsedAt, "2026-08-14T02:00:00.000Z")
+        XCTAssertNil(token?.revokedAt)
+        XCTAssertEqual(token?.createdAt, "2026-08-14T01:00:00.000Z")
+    }
 }
