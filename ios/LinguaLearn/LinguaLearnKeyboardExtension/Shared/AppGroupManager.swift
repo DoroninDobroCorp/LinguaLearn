@@ -17,11 +17,15 @@ public class AppGroupManager {
         self.userDefaults = UserDefaults(suiteName: suiteName) ?? UserDefaults.standard
     }
 
-    public func saveDeviceToken(_ token: String) {
-        _ = keychainManager.saveDeviceToken(token)
-        // Securely store token exclusively in Keychain; purge legacy plaintext token from UserDefaults if present
-        userDefaults?.removeObject(forKey: Keys.deviceToken)
-        userDefaults?.synchronize()
+    @discardableResult
+    public func saveDeviceToken(_ token: String) -> Bool {
+        let success = keychainManager.saveDeviceToken(token)
+        if success {
+            // Securely store token exclusively in Keychain; purge legacy plaintext token from UserDefaults if present
+            userDefaults?.removeObject(forKey: Keys.deviceToken)
+            userDefaults?.synchronize()
+        }
+        return success
     }
 
     public func getDeviceToken() -> String? {
@@ -33,10 +37,12 @@ public class AppGroupManager {
         return keychainManager.getDeviceToken()
     }
 
-    public func clearDeviceToken() {
-        _ = keychainManager.deleteDeviceToken()
+    @discardableResult
+    public func clearDeviceToken() -> Bool {
+        let success = keychainManager.deleteDeviceToken()
         userDefaults?.removeObject(forKey: Keys.deviceToken)
         userDefaults?.synchronize()
+        return success
     }
 
     public func saveCapturePaused(_ paused: Bool) {

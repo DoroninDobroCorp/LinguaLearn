@@ -45,5 +45,20 @@ final class AppConfigTests: XCTestCase {
 
         let validHttps = "https://custom.api.org"
         XCTAssertEqual(AppConfig.sanitizeUrl(validHttps), "https://custom.api.org")
+
+        let insecureRemote = "http://insecure.example.com"
+        XCTAssertEqual(AppConfig.sanitizeUrl(insecureRemote), AppConfig.defaultBaseUrl)
+    }
+
+    func testHttpsEnforcementByRejection() {
+        let insecureUrl = "http://insecure.example.com"
+        let success = AppConfig.setBaseUrl(insecureUrl)
+        XCTAssertFalse(success, "Plaintext HTTP remote URL must be rejected")
+        XCTAssertEqual(AppConfig.baseUrl, AppConfig.defaultBaseUrl)
+
+        XCTAssertTrue(AppConfig.isSecureUrl("https://secure.example.com"))
+        XCTAssertTrue(AppConfig.isSecureUrl("http://127.0.0.1:3001"))
+        XCTAssertTrue(AppConfig.isSecureUrl("http://localhost:3001"))
+        XCTAssertFalse(AppConfig.isSecureUrl("http://insecure.example.com"))
     }
 }

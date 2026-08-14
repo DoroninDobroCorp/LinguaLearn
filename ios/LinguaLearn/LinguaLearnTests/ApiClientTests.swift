@@ -196,4 +196,23 @@ final class ApiClientTests: XCTestCase {
 
         waitForExpectations(timeout: 2.0, handler: nil)
     }
+
+    func testApiClientRejectsInsecurePlaintextHttpUrl() {
+        let expectation = self.expectation(description: "Insecure HTTP rejection completion")
+        let client = ApiClient(baseUrl: "http://insecure.example.com", session: session)
+        let payload = QueuedWritingPayload(eventId: "evt-http-reject", originalText: "Test.")
+
+        client.analyze(payload: payload, deviceToken: "dummy_token") { result in
+            switch result {
+            case .success:
+                XCTFail("Expected failure due to HTTPS enforcement rejection")
+            case .failure(let error as NSError):
+                XCTAssertEqual(error.code, 400)
+                XCTAssertTrue(error.localizedDescription.contains("HTTPS Enforced"))
+            }
+            expectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 2.0, handler: nil)
+    }
 }

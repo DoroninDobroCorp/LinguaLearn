@@ -19,31 +19,43 @@ public class AppConfig {
         return defaultBaseUrl
     }
 
+    /// Verifies whether the URL string uses HTTPS or is a permitted local loopback address.
+    public static func isSecureUrl(_ urlStr: String) -> Bool {
+        let trimmed = urlStr.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return false }
+
+        // Allow loopback HTTP in development/testing environments
+        if trimmed.hasPrefix("http://127.0.0.1") || trimmed.hasPrefix("http://localhost") {
+            return true
+        }
+
+        // Require HTTPS for all remote domains
+        return trimmed.hasPrefix("https://")
+    }
+
     public static func sanitizeUrl(_ urlStr: String) -> String {
         let trimmed = urlStr.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return defaultBaseUrl }
 
-        #if DEBUG
-        return trimmed
-        #else
-        // Allow loopback HTTP in debug/test environments, require HTTPS for production domains
-        if trimmed.hasPrefix("http://127.0.0.1") || trimmed.hasPrefix("http://localhost") {
+        if isSecureUrl(trimmed) {
             return trimmed
         }
-        if trimmed.hasPrefix("http://") {
-            return "https://" + trimmed.dropFirst(7)
-        }
-        if !trimmed.hasPrefix("https://") {
-            return "https://" + trimmed
-        }
-        return trimmed
-        #endif
+
+        // HTTPS enforcement by rejection of plaintext HTTP remote URLs
+        return defaultBaseUrl
     }
 
-    public static func setBaseUrl(_ url: String) {
-        let sanitized = sanitizeUrl(url)
-        UserDefaults(suiteName: suiteName)?.set(sanitized, forKey: apiKey)
+    @discardableResult
+    public static func setBaseUrl(_ url: String) -> Bool {
+        let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isSecureUrl(trimmed) else {
+            // HTTPS enforcement by rejection: reject setting insecure non-loopback HTTP URL
+            return false
+        }
+
+        UserDefaults(suiteName: suiteName)?.set(trimmed, forKey: apiKey)
         UserDefaults(suiteName: suiteName)?.synchronize()
+        return true
     }
 
     public static func clearBaseUrl() {
