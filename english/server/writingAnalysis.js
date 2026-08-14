@@ -843,7 +843,7 @@ function completeAcceptedSample(db, sampleId, input, analysis, latencyMs) {
   return execute();
 }
 
-export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs = 45_000 }) {
+export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs = 45_000, bypassCandidateFilter = false }) {
   if (!db) throw new TypeError('db is required');
   if (typeof analyzer !== 'function') throw new TypeError('analyzer must be a function');
   if (!Number.isFinite(analysisTimeoutMs) || analysisTimeoutMs <= 0) {
@@ -928,21 +928,23 @@ export function createWritingAnalysisService({ db, analyzer, analysisTimeoutMs =
           return { response, replayed: false, latencyMs };
         }
 
-        const filterResult = filterWritingCandidate(input.text);
-        if (!filterResult.accepted) {
-          const response = buildRejectedResponse(input, filterResult.reason);
-          runDb(() => completeRejectedSample(db, sampleId, response, filterResult.reason));
-          const latencyMs = calcLatency();
-          response.latencyMs = latencyMs;
-          console.log(JSON.stringify({
-            type: 'writing_analysis_latency',
-            eventId: input.eventId,
-            userId: input.userId || 1,
-            sourceApp: input.sourceApp,
-            latencyMs,
-            replayed: false,
-          }));
-          return { response, replayed: false, latencyMs };
+        if (!bypassCandidateFilter) {
+          const filterResult = filterWritingCandidate(input.text);
+          if (!filterResult.accepted) {
+            const response = buildRejectedResponse(input, filterResult.reason);
+            runDb(() => completeRejectedSample(db, sampleId, response, filterResult.reason));
+            const latencyMs = calcLatency();
+            response.latencyMs = latencyMs;
+            console.log(JSON.stringify({
+              type: 'writing_analysis_latency',
+              eventId: input.eventId,
+              userId: input.userId || 1,
+              sourceApp: input.sourceApp,
+              latencyMs,
+              replayed: false,
+            }));
+            return { response, replayed: false, latencyMs };
+          }
         }
 
         const topics = runDb(() => canonicalGrammarTopics(db));

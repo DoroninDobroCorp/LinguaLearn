@@ -654,7 +654,7 @@ export async function runLiveGeminiModelEval(options = {}) {
   } else {
     // Live mode: fail-closed if no API key
     if (!apiKey) {
-      throw new Error('Fail-closed: GEMINI_EVAL_API_KEY or GEMINI_API_KEY is missing for live Gemini evaluation. Pass --mock flag to run with synthetic mock analyzer.');
+      throw new Error('BLOCKED_LIVE_EVAL: Fail-closed: GEMINI_EVAL_API_KEY or GEMINI_API_KEY is missing for live Gemini evaluation. Pass --mock flag to run with synthetic mock analyzer.');
     }
     if (evalApiKey) {
       console.log('[LiveEval] Using isolated GEMINI_EVAL_API_KEY for evaluation quota.');
@@ -674,15 +674,22 @@ export async function runLiveGeminiModelEval(options = {}) {
 
   const baseAnalyzer = liveAnalyzer;
   const instrumentedAnalyzer = async (params) => {
-    modelCalledThisAttempt = true;
-    realModelCallCount++;
+    if (!modelCalledThisAttempt) {
+      realModelCallCount++;
+      modelCalledThisAttempt = true;
+    }
     return await baseAnalyzer(params);
   };
+
+  const bypassCandidateFilter = options.bypassCandidateFilter !== undefined
+    ? options.bypassCandidateFilter
+    : (mode === 'live');
 
   const liveService = createWritingAnalysisService({
     db,
     analyzer: instrumentedAnalyzer,
-    analysisTimeoutMs: 60_000,
+    analysisTimeoutMs: 25_000,
+    bypassCandidateFilter,
     logger: { info: () => {}, warn: () => {}, error: () => {} },
   });
 
@@ -696,10 +703,11 @@ export async function runLiveGeminiModelEval(options = {}) {
     const maxRetries = mode === 'live' ? 3 : 0;
     let analyzeResult = null;
 
+    serviceAttemptCount++;
+    modelCalledThisAttempt = false;
+
     while (retries <= maxRetries && !analyzeResult) {
       try {
-        serviceAttemptCount++;
-        modelCalledThisAttempt = false;
         analyzeResult = await liveService.analyze({
           userId,
           eventId: `live-eval-${sample.id}-${index}-${Date.now()}`,
@@ -722,7 +730,7 @@ export async function runLiveGeminiModelEval(options = {}) {
             await new Promise((resolve) => setTimeout(resolve, delay));
           } else {
             // Fail-closed on quota exhaustion in live mode!
-            throw new Error(`Fail-closed: Gemini API quota exceeded on sample ${sample.id} (${sample.text}): ${err.message}`);
+            throw new Error(`BLOCKED_LIVE_EVAL: Gemini API quota exceeded on sample ${sample.id} (${sample.text}): ${err.message}`);
           }
         } else if (mode === 'live') {
           retries++;
@@ -732,7 +740,7 @@ export async function runLiveGeminiModelEval(options = {}) {
             await new Promise((resolve) => setTimeout(resolve, 3000));
           } else {
             // Fail-closed on API error in live mode!
-            throw new Error(`Fail-closed: Gemini API error on sample ${sample.id} (${sample.text}): ${err.message}`);
+            throw new Error(`BLOCKED_LIVE_EVAL: Gemini API error on sample ${sample.id} (${sample.text}): ${err.message}`);
           }
         } else {
           // Custom / Mock mode error
@@ -996,7 +1004,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename
         }
       } else {
         const modeFailed = report.mode !== 'live';
-        const realModelCallsFailed = report.realModelCallCount <= 0;
+        const realModelCallsFailed = report.realModelCallCount !== report.metrics.totalSamples;
         const precisionFailed = report.metrics.precision < 0.95;
         const recallFailed = report.metrics.recall < 0.95;
         const f1Failed = report.metrics.f1Score < 0.95;
@@ -1019,7 +1027,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename
           failed = true;
           console.error('❌ EVALUATION FAILED STRICT LIVE QUALITY GATES:');
           if (modeFailed) console.error(`  - Evaluator mode is not 'live': ${report.mode} (required === 'live')`);
-          if (realModelCallsFailed) console.error(`  - Real model call count too low: ${report.realModelCallCount} (required > 0)`);
+          if (realModelCallsFailed) console.error(`  - Real model call count mismatch: ${report.realModelCallCount} vs ${report.metrics.totalSamples} (required == totalSamples)`);
           if (precisionFailed) console.error(`  - Precision too low: ${report.metrics.precision} (required >= 0.95)`);
           if (recallFailed) console.error(`  - Recall too low: ${report.metrics.recall} (required >= 0.95)`);
           if (f1Failed) console.error(`  - F1 score too low: ${report.metrics.f1Score} (required >= 0.95)`);
