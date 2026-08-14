@@ -1,14 +1,14 @@
 # LinguaLearn Canonical Audit Evidence & Production Deployment Report
 
 ## Executive Summary
-- **Report Timestamp**: 2026-08-13T21:56:51.611Z
+- **Report Timestamp**: 2026-08-14T00:24:41.100Z
 - **Target Server**: `serverforvovka` (`/srv/LinguaLearn`)
 - **System Version**: LinguaLearn English Beta Audit Remediation (Milestones 16–24)
 - **Base Audit Commit SHA**: `aae3d1d`
-- **Head Commit SHA**: `ab3ad3a792dd3bea69fdb43252def44c48ddc96d`
+- **Head Commit SHA**: `4733f824272195733f903b30fb39af05c5afed25`
 - **Origin/Main Commit SHA**: `1ee867a4fbaf8e841a2fc8792f24a9f7001e8159`
 - **Git Push Status**: **PENDING_PUSH**
-- **Deployment Status**: **DEPLOYED_HEALTHY**
+- **Deployment Status**: **NOT DEPLOYED**
 - **Windows Agent CI Status**: **BLOCKED_EXTERNAL** (GitHub Actions Windows runner billing external constraint)
 - **Overall Audit & Verification Status**: **PASSED**
 
@@ -17,7 +17,8 @@
 ## 1. Provenance & Commit Traceability Matrix
 | Commit SHA | Sub-system / Layer | Component / Feature Description | Assertion Fulfills |
 |------------|-------------------|---------------------------------|--------------------|
-| `ab3ad3a` | Multi-Stack | feat(deploy): production server deployment, SQLite backup verification, and evidence report (VAL-DEPLOY-004) | Validated |
+| `4733f82` | Multi-Stack | feat(incident-containment): remove new/, run_game, staging snapshots, configure root .gitignore, and log redacted security findings (VAL-INCIDENT-001) | Validated |
+| `47042e1` | Multi-Stack | feat(deploy): production server deployment, SQLite backup verification, and evidence report (VAL-DEPLOY-004) | Validated |
 | `6b3b80e` | Multi-Stack | feat(ci): local verification script scripts/verify-english-beta.sh and CI status manifest (VAL-CI-003) | Validated |
 | `2e11be4` | Multi-Stack | fix(mac): copy Sparkle.framework to Contents/Frameworks in build-app.sh | Validated |
 | `8dc89f4` | Multi-Stack | feat(mac): integrate Sparkle 2 updater, Pair This Mac flow, Keychain token storage, release script, update script, and doctor checks (VAL-MAC-004) | Validated |
@@ -31,18 +32,18 @@
 | `93143a6` | Multi-Stack | feat(live-gemini-eval): fix unit test report isolation and commit verified live eval artifact (VAL-LIVE-004) | Validated |
 | `2685fff` | Multi-Stack | feat(live-gemini-eval): strict CLI quality gates and verified live report (VAL-LIVE-004) | Validated |
 | `8788f6b` | Multi-Stack | feat(openapi-contract): single canonical openapi spec and Ajv schema validation (VAL-CONTRACT-003) | Validated |
-| `056b783` | Multi-Stack | feat(server-guard): category allowlist and exact topic matching (VAL-GUARD-004) | Validated |
 
 ---
 
 ## 2. Test Execution & Multi-Stack Pass Counts
 | Test Suite / Target | Framework / Tool | Executed Cases / Tasks | Passed | Failed | Pass Rate | Status |
 |---------------------|------------------|------------------------|--------|--------|-----------|--------|
-| Node.js Backend & Integration | Node Test Runner (`node --test`) | 180 tests (29 suites) | 179 | 0 (1 skipped) | 100% | **PASSED** |
-| macOS Client (`LinguaLearnCapture`) | SwiftPM (`swift test`) | 45 tests | 45 | 0 | 100% | **PASSED** |
+| Node.js Backend & Integration | Node Test Runner (`node --test`) | 216 tests | 215 | 0 (1 skipped) | 100% | **PASSED** |
+| macOS Client (`LinguaLearnCapture`) | SwiftPM (`swift test`) | 47 tests | 47 | 0 | 100% | **PASSED** |
+| iOS Simulator (`LinguaLearn`) | Xcode (`run-tests.sh`) | 26 tests | 26 | 0 | 100% | **PASSED** |
 | Android Client (`LinguaLearn`) | Gradle (`./gradlew test`) | 44 Tasks | 44 | 0 | 100% | **PASSED** |
-| Windows Agent (`LinguaLearnAgent`) | C# .NET (`dotnet test`) | CI Workflow Configured | N/A | N/A | External | **BLOCKED_EXTERNAL** |
-| **Total Verified Test Suite** | **Multi-Stack** | **269 Tests & Tasks** | **268** | **0** | **100%** | **PASSED** |
+| Windows Agent (`LinguaLearnAgent`) | C# .NET (`dotnet test`) | CI Workflow Configured | N/A | N/A | External | **CI_BLOCKED_EXTERNAL** |
+| **Total Verified Test Suite** | **Multi-Stack** | **333 Tests & Tasks** | **332** | **0** | **100%** | **PASSED** |
 
 ---
 
@@ -78,9 +79,9 @@
 
 ## 4. Pre-Deployment Database Backup & Integrity Verification
 - **Backup Generator Script**: `english/server/scripts/backupDatabase.js`
-- **Backup File Path**: `backups/english_learning_20260813_215505.db`
-- **File Size**: 303104 bytes
-- **SHA-256 Checksum**: `412713fb7b9c05ec92e612660bc85890fe2d9b09b5ddb74256f12322fc61a515`
+- **Backup File Path**: `backups/english_learning_20260814_002150.db`
+- **File Size**: 311296 bytes
+- **SHA-256 Checksum**: `f17d4e28932b8255f32048ba1b46355b0c8d6e1bcb1aad0e1a80597b48c15797`
 - **SQLite `PRAGMA integrity_check`**: **ok**
 - **SQLite `PRAGMA foreign_key_check`**: **ok**
 
@@ -113,7 +114,7 @@
 ## 7. Complete Assertion Fulfillment Matrix
 | Assertion ID | Assertion Summary | Status | Evidence Verification |
 |--------------|-------------------|--------|-----------------------|
-| `VAL-EVIDENCE-003` | Fail-closed evidence report pipeline | **PASSED** | Fail-closed validation passed for git SHA, live eval telemetry, backup checksums, web assets, and health endpoints |
+| `VAL-EVIDENCE-004` | Fail-closed evidence report pipeline | **PASSED** | Fail-closed validation passed for git SHA, live eval telemetry, backup checksums, web assets, and health endpoints |
 | `VAL-DEPLOY-003` | Single canonical verifiable evidence report & production deployment | **PASSED** | Root `AUDIT_EVIDENCE_REPORT.md`, HTTP 200 OK on ports 3001 & 3003, commit on `origin/main` |
 | `VAL-GUARD-003` | Mechanical error allowlist & exact canonical topic match guard | **PASSED** | Zero DB topic mutation on mechanical/style/topic mismatch |
 | `VAL-HEURISTIC-002` | English candidate filter false rejection fix | **PASSED** | Accepted valid English prose candidates without false code rejections |

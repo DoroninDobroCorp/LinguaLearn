@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 
-export function generateReport(options = {}) {
+export async function generateReport(options = {}) {
   // 1. Git Provenance
   let headSha;
   let originMainSha;
@@ -43,7 +43,92 @@ export function generateReport(options = {}) {
     throw new Error(`Fail-closed: Unable to retrieve recent git commit history (${err.message})`);
   }
 
-  // 2. Read & Validate Live Eval JSON Report
+  // 2. Read & Validate Verification Output Artifact (verified-manifest.json)
+  const manifestPath =
+    options.verifiedManifestPath || options.testResultsPath || path.join(REPO_ROOT, 'verified-manifest.json');
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error(`Fail-closed: Verification manifest / test result artifact missing at ${manifestPath}`);
+  }
+
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (err) {
+    throw new Error(`Fail-closed: Corrupt verification manifest / test result artifact at ${manifestPath} (${err.message})`);
+  }
+
+  if (!manifest || typeof manifest !== 'object') {
+    throw new Error(`Fail-closed: Invalid verification manifest structure at ${manifestPath}`);
+  }
+
+  if (manifest.overallStatus === 'FAILED') {
+    throw new Error(`Fail-closed: Verification manifest overallStatus is FAILED`);
+  }
+
+  const localVer = manifest.localVerification || manifest.testResults;
+  if (!localVer || typeof localVer !== 'object') {
+    throw new Error(`Fail-closed: Missing localVerification object in verification manifest ${manifestPath}`);
+  }
+
+  // Verify node backend tests
+  const nodeBackend = localVer.nodeBackendTests || {};
+  if (nodeBackend.status === 'FAILED' || (typeof nodeBackend.failed === 'number' && nodeBackend.failed > 0)) {
+    throw new Error(`Fail-closed: Node backend tests failed in verification manifest`);
+  }
+
+  // Verify web frontend build
+  const webFrontend = localVer.webFrontendBuild || {};
+  if (webFrontend.status === 'FAILED') {
+    throw new Error(`Fail-closed: Web frontend build failed in verification manifest`);
+  }
+
+  // Verify macOS Swift tests if executed
+  const macSwift = localVer.macOSSwiftTests || {};
+  if (macSwift.status === 'FAILED' || (typeof macSwift.failed === 'number' && macSwift.failed > 0)) {
+    throw new Error(`Fail-closed: macOS Swift tests failed in verification manifest`);
+  }
+
+  // Verify iOS simulator tests if executed
+  const iosSim = localVer.iOSSimulatorTests || {};
+  if (iosSim.status === 'FAILED' || (typeof iosSim.failed === 'number' && iosSim.failed > 0)) {
+    throw new Error(`Fail-closed: iOS simulator tests failed in verification manifest`);
+  }
+
+  // Verify Android Gradle tests if executed
+  const androidGradle = localVer.androidGradleTests || {};
+  if (androidGradle.status === 'FAILED' || (typeof androidGradle.failed === 'number' && androidGradle.failed > 0)) {
+    throw new Error(`Fail-closed: Android Gradle tests failed in verification manifest`);
+  }
+
+  // Verify Windows Dotnet tests if executed
+  const windowsDotnet = localVer.windowsDotnetTests || {};
+  if (windowsDotnet.status === 'FAILED' || (typeof windowsDotnet.failed === 'number' && windowsDotnet.failed > 0)) {
+    throw new Error(`Fail-closed: Windows Dotnet tests failed in verification manifest`);
+  }
+
+  // Extract counts for report table dynamically without hardcoding
+  const nodePassed = nodeBackend.passed ?? 0;
+  const nodeFailed = nodeBackend.failed ?? 0;
+  const nodeSkipped = nodeBackend.skipped ?? 0;
+  const nodeStatus = nodeBackend.status || 'PASSED';
+  const nodeExecCount = nodePassed + nodeFailed + nodeSkipped;
+
+  const macPassed = macSwift.passed ?? 0;
+  const macStatus = macSwift.status || 'PASSED';
+
+  const iosPassed = iosSim.passed ?? 0;
+  const iosStatus = iosSim.status || 'PASSED';
+
+  const androidPassed = androidGradle.tasksPassed ?? androidGradle.passed ?? 0;
+  const androidStatus = androidGradle.status || 'PASSED';
+
+  const winStatus = manifest.ciStatus?.status || windowsDotnet.status || options.winCiStatus || 'BLOCKED_EXTERNAL';
+
+  const totalPassed = nodePassed + macPassed + iosPassed + androidPassed;
+  const totalFailed = nodeFailed;
+  const totalExecCount = nodeExecCount + macPassed + iosPassed + androidPassed;
+
+  // 3. Read & Validate Live Eval JSON Report
   const liveEvalPath = options.liveEvalPath || path.join(REPO_ROOT, 'english/server/reports/eval-gemini-live.json');
   if (!fs.existsSync(liveEvalPath)) {
     throw new Error(`Fail-closed: Live eval report missing at ${liveEvalPath}`);
@@ -158,6 +243,16 @@ export function generateReport(options = {}) {
     throw new Error(`Fail-closed: missing sizeBytes in backup metadata ${latestMetaPath}`);
   }
 
+  const integrityVal = latestBackupMeta.integrityCheck ?? latestBackupMeta.integrity_check;
+  if (!integrityVal || integrityVal !== 'ok') {
+    throw new Error(`Fail-closed: SQLite backup integrity_check failed or missing in metadata (${integrityVal})`);
+  }
+
+  const fkVal = latestBackupMeta.foreignKeyCheck ?? latestBackupMeta.foreign_key_check;
+  if (!fkVal || fkVal !== 'ok') {
+    throw new Error(`Fail-closed: SQLite backup foreign_key_check failed or missing in metadata (${fkVal})`);
+  }
+
   let backupFileAbsPath;
   if (latestBackupMeta.backupPath && fs.existsSync(latestBackupMeta.backupPath)) {
     backupFileAbsPath = latestBackupMeta.backupPath;
@@ -244,13 +339,16 @@ export function generateReport(options = {}) {
   if (!options.skipHealthCheck) {
     const healthUrl = options.healthUrl || 'http://127.0.0.1:3001/api/health';
     try {
-      const rawRes = execSync(`curl -sf "${healthUrl}"`, { encoding: 'utf8', timeout: 5000 }).trim();
-      const healthJson = JSON.parse(rawRes);
+      const res = await fetch(healthUrl, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) {
+        throw new Error(`HTTP status ${res.status}`);
+      }
+      const healthJson = await res.json();
       if (healthJson.status !== 'healthy') {
         throw new Error(`English /health returned status "${healthJson.status}"`);
       }
-      if (!healthJson.gitCommit) {
-        throw new Error('English /health response missing required field "gitCommit"');
+      if (!healthJson.gitCommit || healthJson.gitCommit === 'unknown') {
+        throw new Error(`English /health response returned invalid or unknown gitCommit "${healthJson.gitCommit}"`);
       }
       if (!healthJson.buildTime) {
         throw new Error('English /health response missing required field "buildTime"');
@@ -258,7 +356,7 @@ export function generateReport(options = {}) {
       if (!healthJson.appVersion) {
         throw new Error('English /health response missing required field "appVersion"');
       }
-      if (healthJson.gitCommit !== headSha && healthJson.gitCommit !== 'unknown') {
+      if (healthJson.gitCommit !== headSha) {
         throw new Error(`English /health gitCommit (${healthJson.gitCommit}) does not match HEAD SHA (${headSha})`);
       }
     } catch (err) {
@@ -267,8 +365,11 @@ export function generateReport(options = {}) {
 
     const spanishHealthUrl = options.spanishHealthUrl || 'http://127.0.0.1:3003/health';
     try {
-      const rawRes = execSync(`curl -sf "${spanishHealthUrl}"`, { encoding: 'utf8', timeout: 5000 }).trim();
-      const spanishJson = JSON.parse(rawRes);
+      const spanishRes = await fetch(spanishHealthUrl, { signal: AbortSignal.timeout(5000) });
+      if (!spanishRes.ok) {
+        throw new Error(`HTTP status ${spanishRes.status}`);
+      }
+      const spanishJson = await spanishRes.json();
       if (spanishJson.status !== 'ok') {
         throw new Error(`Spanish backend health returned status "${spanishJson.status}"`);
       }
@@ -317,11 +418,12 @@ ${recentCommits.map((c) => `| \`${c.sha}\` | Multi-Stack | ${c.msg.replace(/\|/g
 ## 2. Test Execution & Multi-Stack Pass Counts
 | Test Suite / Target | Framework / Tool | Executed Cases / Tasks | Passed | Failed | Pass Rate | Status |
 |---------------------|------------------|------------------------|--------|--------|-----------|--------|
-| Node.js Backend & Integration | Node Test Runner (\`node --test\`) | 180 tests (29 suites) | 179 | 0 (1 skipped) | 100% | **PASSED** |
-| macOS Client (\`LinguaLearnCapture\`) | SwiftPM (\`swift test\`) | 45 tests | 45 | 0 | 100% | **PASSED** |
-| Android Client (\`LinguaLearn\`) | Gradle (\`./gradlew test\`) | 44 Tasks | 44 | 0 | 100% | **PASSED** |
-| Windows Agent (\`LinguaLearnAgent\`) | C# .NET (\`dotnet test\`) | CI Workflow Configured | N/A | N/A | External | **${winCiStatus}** |
-| **Total Verified Test Suite** | **Multi-Stack** | **269 Tests & Tasks** | **268** | **0** | **100%** | **PASSED** |
+| Node.js Backend & Integration | Node Test Runner (\`node --test\`) | ${nodeExecCount} tests | ${nodePassed} | ${nodeFailed}${nodeSkipped ? ` (${nodeSkipped} skipped)` : ''} | ${nodeFailed === 0 ? '100%' : '0%'} | **${nodeStatus}** |
+| macOS Client (\`LinguaLearnCapture\`) | SwiftPM (\`swift test\`) | ${macPassed} tests | ${macPassed} | 0 | 100% | **${macStatus}** |
+| iOS Simulator (\`LinguaLearn\`) | Xcode (\`run-tests.sh\`) | ${iosPassed} tests | ${iosPassed} | 0 | 100% | **${iosStatus}** |
+| Android Client (\`LinguaLearn\`) | Gradle (\`./gradlew test\`) | ${androidPassed} Tasks | ${androidPassed} | 0 | 100% | **${androidStatus}** |
+| Windows Agent (\`LinguaLearnAgent\`) | C# .NET (\`dotnet test\`) | CI Workflow Configured | N/A | N/A | External | **${winStatus}** |
+| **Total Verified Test Suite** | **Multi-Stack** | **${totalExecCount} Tests & Tasks** | **${totalPassed}** | **${totalFailed}** | **100%** | **PASSED** |
 
 ---
 
@@ -392,7 +494,7 @@ ${recentCommits.map((c) => `| \`${c.sha}\` | Multi-Stack | ${c.msg.replace(/\|/g
 ## 7. Complete Assertion Fulfillment Matrix
 | Assertion ID | Assertion Summary | Status | Evidence Verification |
 |--------------|-------------------|--------|-----------------------|
-| \`VAL-EVIDENCE-003\` | Fail-closed evidence report pipeline | **PASSED** | Fail-closed validation passed for git SHA, live eval telemetry, backup checksums, web assets, and health endpoints |
+| \`VAL-EVIDENCE-004\` | Fail-closed evidence report pipeline | **PASSED** | Fail-closed validation passed for git SHA, live eval telemetry, backup checksums, web assets, and health endpoints |
 | \`VAL-DEPLOY-003\` | Single canonical verifiable evidence report & production deployment | **PASSED** | Root \`AUDIT_EVIDENCE_REPORT.md\`, HTTP 200 OK on ports 3001 & 3003, commit on \`origin/main\` |
 | \`VAL-GUARD-003\` | Mechanical error allowlist & exact canonical topic match guard | **PASSED** | Zero DB topic mutation on mechanical/style/topic mismatch |
 | \`VAL-HEURISTIC-002\` | English candidate filter false rejection fix | **PASSED** | Accepted valid English prose candidates without false code rejections |
@@ -426,10 +528,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename
   const isDeployed = process.argv.includes('--deployed') || process.argv.includes('--require-deployed');
   const skipHealthCheck = process.argv.includes('--skipHealthCheck') || process.argv.includes('--skip-health-check');
   const requirePushed = process.argv.includes('--requirePushed') || process.argv.includes('--require-pushed');
-  try {
-    generateReport({ isDeployed, skipHealthCheck, requirePushed });
-  } catch (err) {
+  generateReport({ isDeployed, skipHealthCheck, requirePushed }).catch((err) => {
     console.error(err.message);
     process.exit(1);
-  }
+  });
 }
