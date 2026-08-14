@@ -60,7 +60,7 @@ describe('Live Gemini Model Evaluation Harness (VAL-LIVE-002 & VAL-LIVE-003)', (
       },
       (err) => {
         assert.ok(err instanceof Error);
-        assert.match(err.message, /Fail-closed: GEMINI_API_KEY is missing/);
+        assert.match(err.message, /Fail-closed: (GEMINI_EVAL_API_KEY or )?GEMINI_API_KEY is missing/);
         return true;
       }
     );
