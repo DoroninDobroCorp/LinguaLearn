@@ -2,7 +2,7 @@
   "evaluator": "Live Gemini API Evaluation Harness",
   "modelName": "gemini-3.5-flash-lite",
   "mode": "custom",
-  "timestamp": "2026-08-14T02:19:07.358Z",
+  "timestamp": "2026-08-14T02:29:16.623Z",
   "promptVersion": "v1",
   "promptHash": "2f93e4db198219a3f2df6ecf688473cb023466a75e616eecdb36f7006b998340",
   "corpusHash": "c931d03d7d1e1fd11809c411cd716284cd39503237b594aa83f35fbbe1a8e560",
@@ -36,12 +36,12 @@
     "f1Score": 1,
     "schemaValidityRate": 1,
     "latencyBreakdown": {
-      "avgQueueMs": 2.09,
-      "avgModelMs": 0.48,
-      "avgDbMs": 1.6,
-      "avgTotalMs": 4.17,
-      "p50TotalMs": 4.17,
-      "p95TotalMs": 4.17
+      "avgQueueMs": 1,
+      "avgModelMs": 0.21,
+      "avgDbMs": 0.65,
+      "avgTotalMs": 1.86,
+      "p50TotalMs": 1.86,
+      "p95TotalMs": 1.86
     }
   },
   "tierBreakdown": {
@@ -83,7 +83,7 @@
       "isSchemaValid": true,
       "scorePenaltyApplied": false,
       "falsePositivePenalty": false,
-      "latencyMs": 4.17
+      "latencyMs": 1.86
     }
   ]
 }
