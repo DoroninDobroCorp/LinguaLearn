@@ -3,10 +3,10 @@
 ---
 
 > [!IMPORTANT]
-> **Active engineering handoff:**
-> 1. [Base cross-platform executor specification](LINGUALEARN_CROSS_PLATFORM_EXECUTOR_TZ.md)
-> 2. [Mandatory strict-correction and real-client follow-up](LINGUALEARN_FOLLOWUP_STRICT_CORRECTIONS.md)
-> The follow-up has priority where the documents differ. Both must be completed before claiming beta readiness.
+> **LinguaLearn English Closed Beta (Milestones 20–33 Audit Remediation Complete)**
+> - **Canonical Endpoint:** `https://145.239.82.124.sslip.io/english`
+> - **Native Clients:** iOS (Keychain sharing, HTTPS, URLProtocol tests), Android (EncryptedSharedPreferences, WorkManager sync queue), Windows (DPAPI fail-closed token/queue, WH_KEYBOARD_LL Enter hook, non-blocking queue), macOS (Sparkle 2 auto-updater, Pair This Mac flow).
+> - **Server & Quality:** Frozen `OBJECTIVE_GRAMMAR_CATEGORIES` allowlist, single canonical OpenAPI 3.0 contract, verified live Gemini evaluation (precision=1.0, recall=1.0, 125 samples), multi-device account progress aggregation, fail-closed evidence pipeline (`AUDIT_EVIDENCE_REPORT.md`), and local verification runner (`scripts/verify-english-beta.sh`).
 
 ---
 
