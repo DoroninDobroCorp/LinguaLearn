@@ -23,7 +23,7 @@ class SyncWorker(
         }
         syncQueue.setDeviceToken(token)
 
-        val syncedCount = syncQueue.sync(apiClient)
+        syncQueue.sync(apiClient)
         val remainingItems = syncQueue.getQueueItems()
 
         return if (remainingItems.isEmpty()) {
