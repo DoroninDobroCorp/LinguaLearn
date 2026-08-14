@@ -3,3 +3,7 @@ DerivedData/
 *.xcuserstate
 __pycache__/
 *.pyc
+*.key
+*.private
+.sparkle*
+

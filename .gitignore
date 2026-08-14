@@ -60,5 +60,9 @@ run_game/
 .remote_rebase/
 .staging/
 *.secret*
+*.key
+*.private
+.sparkle*
+
 
 

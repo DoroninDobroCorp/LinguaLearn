@@ -17,9 +17,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.1.0</string>
+    <string>0.1.1</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>2</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
 	<key>LSUIElement</key>
@@ -37,7 +37,7 @@
     <key>SUFeedURL</key>
     <string>https://145.239.82.124.sslip.io/english/mac-appcast.xml</string>
     <key>SUPublicEDKey</key>
-    <string>d/8n/0v56MhJ8k5FwJ+mZ0Y+gq1B2C3D4E5F6G7H8I9=</string>
+    <string>956UdFfsNrOn73TkYT+TeF/fvhrA3AvA4T9vcKZynEg=</string>
     <key>SUEnableAutomaticChecks</key>
     <true/>
 </dict>
