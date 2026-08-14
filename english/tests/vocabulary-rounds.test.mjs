@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildVocabularyRound } from '../src/utils/vocabularyRounds.js';
+import { buildVocabularyRound, restoreVocabularyRound } from '../src/utils/vocabularyRounds.js';
 
 const words = [
   { id: 1, word: 'one', is_favorite: 1, learned_permanently_at: null },
@@ -24,4 +24,16 @@ test('favorites round excludes non-favorites and permanently learned words', () 
 test('due round is deduplicated and excludes permanently learned words', () => {
   const round = buildVocabularyRound(words, 'due', [words[1], words[1], words[3]], () => 0.5);
   assert.deepEqual(round.map((word) => word.id), [2]);
+});
+
+test('saved once-each queue resumes in the same order after a reload', () => {
+  const restored = restoreVocabularyRound(words, { mode: 'once_all', queueIds: [3, 1], roundTotal: 4 });
+  assert.deepEqual(restored.queue.map((word) => word.id), [3, 1]);
+  assert.equal(restored.roundTotal, 4);
+  assert.equal(restored.mode, 'once_all');
+});
+
+test('resume drops words learned forever or removed from favorites on another device', () => {
+  const restored = restoreVocabularyRound(words, { mode: 'favorites', queueIds: [4, 3, 2, 99], roundTotal: 4 });
+  assert.deepEqual(restored.queue.map((word) => word.id), [3]);
 });

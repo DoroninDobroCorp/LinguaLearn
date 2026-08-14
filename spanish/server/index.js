@@ -13,6 +13,7 @@ import {
   ensureVocabularyReviewSchema,
   exportVocabularyArchive,
   getVocabularyStats,
+  getLatestVocabularyStudySession,
   importVocabularyArchive,
   listDueReviewEntries,
   listLegacyDueVocabularyWords,
@@ -25,6 +26,7 @@ import {
   reviewVocabularyCard,
   setVocabularyFavorite,
   setVocabularyPermanentlyLearned,
+  saveVocabularyStudySession,
 } from './vocabularyReview.js';
 import { ensureCaseInsensitiveProfileNameIndex } from './profileNameMigration.js';
 import {
@@ -572,10 +574,14 @@ const vocabularyImportJsonParser = express.json({
     req.vocabularyImportBodyBytes = buffer.length;
   },
 });
+const vocabularyStudySessionJsonParser = express.json({ limit: '2mb' });
 
 app.use((req, res, next) => {
   if (req.path === '/api/vocabulary/import') {
     return vocabularyImportJsonParser(req, res, next);
+  }
+  if (req.path === '/api/vocabulary/study-session' && req.method === 'PUT') {
+    return vocabularyStudySessionJsonParser(req, res, next);
   }
 
   return defaultJsonParser(req, res, next);
@@ -587,6 +593,9 @@ app.use((error, req, res, next) => {
       error: 'Vocabulary import file is too large. Exports up to 2 MB are supported.',
       code: 'VOCABULARY_IMPORT_TOO_LARGE',
     });
+  }
+  if (req.path === '/api/vocabulary/study-session' && error?.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Vocabulary study session is too large.', code: 'STUDY_STATE_TOO_LARGE' });
   }
 
   return next(error);
@@ -1614,6 +1623,29 @@ app.post('/api/vocabulary/import', (req, res) => {
     });
   } catch (error) {
     handleVocabularyError(res, error, 'Error importing vocabulary:');
+  }
+});
+
+app.get('/api/vocabulary/study-session', (req, res) => {
+  try {
+    res.json({ session: getLatestVocabularyStudySession(db, getProfileId(req)) });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error fetching vocabulary study session:');
+  }
+});
+
+app.put('/api/vocabulary/study-session', (req, res) => {
+  try {
+    const session = saveVocabularyStudySession(
+      db,
+      getProfileId(req),
+      req.body?.mode,
+      req.body?.state,
+      new Date(),
+    );
+    res.json({ session });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error saving vocabulary study session:');
   }
 });
 

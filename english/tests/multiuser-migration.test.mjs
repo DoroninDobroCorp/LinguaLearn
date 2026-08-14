@@ -68,6 +68,9 @@ describe('Multi-User Database Schema Migration & Isolation Tests', () => {
     const vocabularyColumns = db.prepare('PRAGMA table_info(vocabulary)').all().map((column) => column.name);
     assert.ok(vocabularyColumns.includes('is_favorite'));
     assert.ok(vocabularyColumns.includes('learned_permanently_at'));
+    const sessionColumns = db.prepare('PRAGMA table_info(vocabulary_study_sessions)').all().map((column) => column.name);
+    assert.deepEqual(sessionColumns.includes('user_id'), true);
+    assert.deepEqual(sessionColumns.includes('queue_json'), true);
   });
 
   test('Unique constraints incorporate user_id (e.g. writing_samples UNIQUE(user_id, event_id))', () => {

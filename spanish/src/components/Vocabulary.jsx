@@ -501,6 +501,39 @@ function removeEntryFromReviewSession(session, entryId) {
   };
 }
 
+function restorePersistedReviewSession(saved, liveEntries) {
+  const mode = saved?.mode;
+  const state = saved?.state;
+  if (!['once_all', 'favorites_once'].includes(mode) || state?.session?.mode !== mode || !Array.isArray(state.session.entries)) {
+    return null;
+  }
+  const liveById = new Map(liveEntries.map((entry) => [Number(entry.id), entry]));
+  const remainingEntries = state.session.entries
+    .filter((item) => {
+      const live = liveById.get(Number(item.entryId));
+      return live && !live.learned_permanently_at && (mode !== 'favorites_once' || live.is_favorite);
+    })
+    .map((item) => {
+      const live = liveById.get(Number(item.entryId));
+      return { ...item, word: live.word, translation: live.translation, example: live.example, isFavorite: Boolean(live.is_favorite) };
+    });
+  const currentEntry = remainingEntries.find((item) => Number(item.entryId) === Number(state.currentCard?.id));
+  const fallback = currentEntry ? null : pickNextSessionCard(remainingEntries, mode);
+  const currentCard = currentEntry
+    ? { ...state.currentCard, word: currentEntry.word, translation: currentEntry.translation, example: currentEntry.example, is_favorite: currentEntry.isFavorite }
+    : fallback?.card || null;
+  return {
+    session: {
+      ...state.session,
+      mode,
+      entries: remainingEntries,
+      totalEntries: Math.max(Number(state.session.totalEntries) || 0, remainingEntries.length),
+      isComplete: remainingEntries.length === 0,
+    },
+    currentCard,
+  };
+}
+
 function VoiceActionButton({
   icon: Icon,
   label,
@@ -543,6 +576,7 @@ function Vocabulary() {
   const [typingFeedback, setTypingFeedback] = useState(null);
   const [showTools, setShowTools] = useState(false);
   const [expandedEntries, setExpandedEntries] = useState({});
+  const [studySessionHydrated, setStudySessionHydrated] = useState(false);
 
   const toggleEntryExpanded = (entryId) => {
     setExpandedEntries((prev) => ({
@@ -646,6 +680,7 @@ function Vocabulary() {
       stats: nextStats,
       queueStats: nextQueueStats,
     });
+    return { entries: nextEntries, stats: nextStats, queueStats: nextQueueStats };
   };
 
   const loadOfflineVocabularySnapshot = useCallback(() => {
@@ -698,12 +733,29 @@ function Vocabulary() {
       setNotice('');
       try {
         if (typeof navigator !== 'undefined' && navigator.onLine === false && loadOfflineVocabularySnapshot()) {
+          setStudySessionHydrated(true);
           return;
         }
 
-        await refreshVocabulary();
+        const loaded = await refreshVocabulary();
+        let restored = null;
+        try {
+          const sessionResponse = await profileFetch(profileApiUrl('/spanish/api/vocabulary/study-session'));
+          if (sessionResponse.ok) {
+            const sessionData = await sessionResponse.json();
+            restored = restorePersistedReviewSession(sessionData.session, loaded.entries);
+          }
+        } catch (sessionError) {
+          console.warn('Could not restore vocabulary study session:', sessionError);
+        }
         if (!cancelled) {
+          if (restored) {
+            setReviewSession(restored.session);
+            setReviewQueue(restored.currentCard ? [restored.currentCard] : []);
+            setNotice(restored.currentCard ? 'Resumed your saved vocabulary round.' : 'Your saved vocabulary round is complete.');
+          }
           setShowAnswer(false);
+          setStudySessionHydrated(true);
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -711,6 +763,7 @@ function Vocabulary() {
           if (!loadOfflineVocabularySnapshot()) {
             setError(loadError.message || 'Failed to load vocabulary');
           }
+          setStudySessionHydrated(true);
         }
       } finally {
         if (!cancelled) {
@@ -726,7 +779,7 @@ function Vocabulary() {
   }, [loadOfflineVocabularySnapshot]);
 
   useEffect(() => {
-    if (isLoading) {
+    if (isLoading || !studySessionHydrated) {
       return;
     }
 
@@ -737,7 +790,28 @@ function Vocabulary() {
     const nextState = createReviewSession(entries, 'due');
     setReviewSession(nextState.session);
     setReviewQueue(nextState.currentCard ? [nextState.currentCard] : []);
-  }, [entries, isLoading, reviewQueue.length, reviewSession.isComplete, reviewSession.totalEntries]);
+  }, [entries, isLoading, reviewQueue.length, reviewSession.isComplete, reviewSession.totalEntries, studySessionHydrated]);
+
+  useEffect(() => {
+    if (!studySessionHydrated || !['once_all', 'favorites_once'].includes(reviewSession.mode)) return undefined;
+    profileFetch(profileApiUrl('/spanish/api/vocabulary/study-session'), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode: reviewSession.mode,
+        state: { session: reviewSession, currentCard: reviewQueue[0] || null },
+      }),
+    }).then(async (response) => {
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to save vocabulary round');
+      }
+    }).catch((saveError) => {
+      console.error('Error saving vocabulary study session:', saveError);
+      setError(`Round progress is still on this page, but server save failed: ${saveError.message}`);
+    });
+    return undefined;
+  }, [reviewQueue, reviewSession, studySessionHydrated]);
 
   useEffect(() => {
     resetPractice();

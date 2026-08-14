@@ -17,3 +17,14 @@ export function buildVocabularyRound(words, mode, dueWords = [], random = Math.r
   const uniqueById = Array.from(new Map(source.map((word) => [word.id, word])).values());
   return shuffleVocabulary(uniqueById, random);
 }
+
+export function restoreVocabularyRound(words, saved) {
+  if (!saved || !['once_all', 'favorites'].includes(saved.mode) || !Array.isArray(saved.queueIds) || !Number.isSafeInteger(saved.roundTotal)) {
+    return null;
+  }
+  const wordById = new Map(words.map((word) => [Number(word.id), word]));
+  const queue = saved.queueIds
+    .map((id) => wordById.get(Number(id)))
+    .filter((word) => word && !word.learned_permanently_at && (saved.mode !== 'favorites' || word.is_favorite));
+  return { mode: saved.mode, queue, roundTotal: Math.max(saved.roundTotal, queue.length) };
+}

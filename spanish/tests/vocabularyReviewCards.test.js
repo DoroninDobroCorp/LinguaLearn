@@ -15,6 +15,8 @@ import {
   reviewVocabularyCard,
   setVocabularyFavorite,
   setVocabularyPermanentlyLearned,
+  getLatestVocabularyStudySession,
+  saveVocabularyStudySession,
 } from '../server/vocabularyReview.js';
 import { ensureVocabularyExactDuplicateIndex } from '../server/vocabularyUniquenessMigration.js';
 
@@ -54,6 +56,22 @@ function createTestDb() {
 }
 
 describe('Vocabulary review cards', () => {
+  it('persists resumable rounds per profile and replaces progress atomically', () => {
+    const db = createTestDb();
+    ensureVocabularyReviewSchema(db);
+    const firstState = { session: { mode: 'once_all', entries: [{ entryId: 10 }], totalEntries: 2 }, currentCard: { id: 10 } };
+    const nextState = { session: { mode: 'once_all', entries: [], totalEntries: 2, isComplete: true }, currentCard: null };
+
+    saveVocabularyStudySession(db, 1, 'once_all', firstState, new Date('2030-01-01T10:00:00.000Z'));
+    assert.deepEqual(getLatestVocabularyStudySession(db, 1).state, firstState);
+    assert.equal(getLatestVocabularyStudySession(db, 2), null);
+
+    saveVocabularyStudySession(db, 1, 'once_all', nextState, new Date('2030-01-01T10:01:00.000Z'));
+    assert.deepEqual(getLatestVocabularyStudySession(db, 1).state, nextState);
+    assert.throws(() => saveVocabularyStudySession(db, 1, 'due', firstState), { code: 'INVALID_STUDY_MODE' });
+    db.close();
+  });
+
   it('stores favorites and permanent learned state per profile without deleting the entry', () => {
     const db = createTestDb();
     ensureVocabularyReviewSchema(db);

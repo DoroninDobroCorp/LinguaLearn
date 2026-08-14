@@ -1354,6 +1354,45 @@ app.delete('/api/chat/clear', (req, res) => {
 
 // ==================== VOCABULARY API ====================
 
+const RESUMABLE_VOCABULARY_MODES = new Set(['once_all', 'favorites']);
+
+function validateVocabularyStudySession(userId, payload = {}) {
+  const mode = typeof payload.mode === 'string' ? payload.mode.trim() : '';
+  if (!RESUMABLE_VOCABULARY_MODES.has(mode)) {
+    const error = new Error('mode must be once_all or favorites');
+    error.status = 400;
+    throw error;
+  }
+  if (!Array.isArray(payload.queueIds) || payload.queueIds.length > 10000) {
+    const error = new Error('queueIds must be an array with at most 10000 items');
+    error.status = 400;
+    throw error;
+  }
+  const queueIds = payload.queueIds.map((id) => Number(id));
+  if (queueIds.some((id) => !Number.isSafeInteger(id) || id <= 0) || new Set(queueIds).size !== queueIds.length) {
+    const error = new Error('queueIds must contain unique positive integer ids');
+    error.status = 400;
+    throw error;
+  }
+  const roundTotal = Number(payload.roundTotal);
+  if (!Number.isSafeInteger(roundTotal) || roundTotal < queueIds.length || roundTotal > 10000) {
+    const error = new Error('roundTotal must be between the remaining queue size and 10000');
+    error.status = 400;
+    throw error;
+  }
+  if (queueIds.length > 0) {
+    const placeholders = queueIds.map(() => '?').join(',');
+    const rows = db.prepare(`SELECT id, is_favorite, learned_permanently_at FROM vocabulary WHERE user_id = ? AND id IN (${placeholders})`)
+      .all(userId, ...queueIds);
+    if (rows.length !== queueIds.length || rows.some((word) => word.learned_permanently_at || (mode === 'favorites' && !word.is_favorite))) {
+      const error = new Error('Study queue contains unavailable vocabulary entries');
+      error.status = 409;
+      throw error;
+    }
+  }
+  return { mode, queueIds, roundTotal };
+}
+
 // Получение всех слов
 app.get('/api/vocabulary', (req, res) => {
   try {
@@ -1376,6 +1415,43 @@ app.get('/api/vocabulary/due', (req, res) => {
   } catch (error) {
     console.error('Error fetching due words:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/vocabulary/study-session', (req, res) => {
+  try {
+    const row = db.prepare(`
+      SELECT mode, queue_json, round_total, updated_at
+      FROM vocabulary_study_sessions
+      WHERE user_id = ?
+      ORDER BY updated_at DESC, mode ASC
+      LIMIT 1
+    `).get(getUserId(req));
+    if (!row) return res.json({ session: null });
+    res.json({ session: { mode: row.mode, queueIds: JSON.parse(row.queue_json), roundTotal: row.round_total, updatedAt: row.updated_at } });
+  } catch (error) {
+    console.error('Error fetching vocabulary study session:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/vocabulary/study-session', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const session = validateVocabularyStudySession(userId, req.body || {});
+    const updatedAt = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO vocabulary_study_sessions (user_id, mode, queue_json, round_total, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, mode) DO UPDATE SET
+        queue_json = excluded.queue_json,
+        round_total = excluded.round_total,
+        updated_at = excluded.updated_at
+    `).run(userId, session.mode, JSON.stringify(session.queueIds), session.roundTotal, updatedAt);
+    res.json({ session: { ...session, updatedAt } });
+  } catch (error) {
+    console.error('Error saving vocabulary study session:', error);
+    res.status(error.status || 500).json({ error: error.message });
   }
 });
 

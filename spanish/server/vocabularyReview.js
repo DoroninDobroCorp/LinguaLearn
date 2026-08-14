@@ -16,6 +16,8 @@ const LEARNING_HARD_STEP_DAYS = 6 / (24 * 60); // 6 minutes
 export const REVIEW_CARD_DIRECTIONS = ['source_to_target', 'target_to_source'];
 export const REVIEW_GRADES = ['dont_know', 'hard', 'good', 'easy'];
 export const VOCABULARY_EXPORT_FORMAT_VERSION = 1;
+export const RESUMABLE_VOCABULARY_MODES = ['once_all', 'favorites_once'];
+const MAX_STUDY_SESSION_BYTES = 2 * 1024 * 1024;
 
 const REVIEW_CARD_COLUMNS = [
   { name: 'last_grade', sql: 'ALTER TABLE vocabulary_review_cards ADD COLUMN last_grade TEXT' },
@@ -825,6 +827,17 @@ export function ensureVocabularyReviewSchema(db) {
       ON vocabulary_review_cards(profile_id, next_review_at);
     CREATE INDEX IF NOT EXISTS idx_review_cards_vocabulary
       ON vocabulary_review_cards(vocabulary_id);
+
+    CREATE TABLE IF NOT EXISTS vocabulary_study_sessions (
+      profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+      mode TEXT NOT NULL CHECK (mode IN ('once_all', 'favorites_once')),
+      state_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (profile_id, mode)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_vocabulary_study_sessions_updated
+      ON vocabulary_study_sessions(profile_id, updated_at DESC);
   `);
 
   ensureReviewCardColumns(db);
@@ -894,6 +907,61 @@ export function ensureVocabularyReviewSchema(db) {
   });
 
   migrate();
+}
+
+function normalizeStudySessionMode(mode) {
+  const value = typeof mode === 'string' ? mode.trim() : '';
+  if (!RESUMABLE_VOCABULARY_MODES.includes(value)) {
+    throw new VocabularyApiError(400, 'mode must be once_all or favorites_once', 'INVALID_STUDY_MODE');
+  }
+  return value;
+}
+
+function serializeStudySessionState(state, mode) {
+  if (!state || typeof state !== 'object' || Array.isArray(state)) {
+    throw new VocabularyApiError(400, 'state must be an object', 'INVALID_STUDY_STATE');
+  }
+  if (state.session?.mode !== mode || !Array.isArray(state.session?.entries)) {
+    throw new VocabularyApiError(400, 'state does not match the study mode', 'INVALID_STUDY_STATE');
+  }
+  const serialized = JSON.stringify(state);
+  if (Buffer.byteLength(serialized, 'utf8') > MAX_STUDY_SESSION_BYTES) {
+    throw new VocabularyApiError(413, 'Study session is too large', 'STUDY_STATE_TOO_LARGE');
+  }
+  return serialized;
+}
+
+function presentStudySession(row) {
+  if (!row) return null;
+  try {
+    return { mode: row.mode, state: JSON.parse(row.state_json), updated_at: row.updated_at };
+  } catch {
+    return null;
+  }
+}
+
+export function getLatestVocabularyStudySession(db, profileId) {
+  return presentStudySession(db.prepare(`
+    SELECT mode, state_json, updated_at
+    FROM vocabulary_study_sessions
+    WHERE profile_id = ?
+    ORDER BY updated_at DESC, mode ASC
+    LIMIT 1
+  `).get(profileId));
+}
+
+export function saveVocabularyStudySession(db, profileId, mode, state, now = new Date()) {
+  const normalizedMode = normalizeStudySessionMode(mode);
+  const serialized = serializeStudySessionState(state, normalizedMode);
+  const updatedAt = toIso(now);
+  db.prepare(`
+    INSERT INTO vocabulary_study_sessions (profile_id, mode, state_json, updated_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(profile_id, mode) DO UPDATE SET
+      state_json = excluded.state_json,
+      updated_at = excluded.updated_at
+  `).run(profileId, normalizedMode, serialized, updatedAt);
+  return { mode: normalizedMode, state, updated_at: updatedAt };
 }
 
 export function createVocabularyEntry(db, profileId, payload, now = new Date()) {

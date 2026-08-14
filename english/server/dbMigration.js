@@ -488,6 +488,16 @@ export function migrateMultiUserSchema(db) {
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_vocabulary_user_favorite ON vocabulary(user_id, is_favorite);
       CREATE INDEX IF NOT EXISTS idx_vocabulary_user_permanent ON vocabulary(user_id, learned_permanently_at);
+      CREATE TABLE IF NOT EXISTS vocabulary_study_sessions (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        mode TEXT NOT NULL CHECK(mode IN ('once_all', 'favorites')),
+        queue_json TEXT NOT NULL,
+        round_total INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY(user_id, mode)
+      );
+      CREATE INDEX IF NOT EXISTS idx_vocabulary_study_sessions_user_updated
+        ON vocabulary_study_sessions(user_id, updated_at DESC);
     `);
 
     // 11. achievements

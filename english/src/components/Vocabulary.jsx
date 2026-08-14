@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, BookMarked, Check, Plus, RotateCcw, Star, Trash2, TrendingUp, Undo2, X } from 'lucide-react';
-import { buildVocabularyRound } from '../utils/vocabularyRounds';
+import { buildVocabularyRound, restoreVocabularyRound } from '../utils/vocabularyRounds';
 
 const MODES = { due: 'Due now', once_all: 'All words — once each', favorites: 'Favorites only' };
 
@@ -26,7 +26,11 @@ function Vocabulary() {
   const completed = Math.max(0, roundTotal - studyQueue.length);
 
   const loadVocabulary = async ({ initializeDue = false } = {}) => {
-    const [allResponse, dueResponse] = await Promise.all([fetch('/english/api/vocabulary'), fetch('/english/api/vocabulary/due')]);
+    const [allResponse, dueResponse, sessionResponse] = await Promise.all([
+      fetch('/english/api/vocabulary'),
+      fetch('/english/api/vocabulary/due'),
+      initializeDue ? fetch('/english/api/vocabulary/study-session') : Promise.resolve(null),
+    ]);
     if (!allResponse.ok || !dueResponse.ok) throw new Error('Failed to load vocabulary');
     const [allData, dueData] = await Promise.all([allResponse.json(), dueResponse.json()]);
     const nextWords = allData.words || [];
@@ -34,10 +38,20 @@ function Vocabulary() {
     setWords(nextWords);
     setDueWords(nextDue);
     if (initializeDue) {
-      const queue = buildVocabularyRound(nextWords, 'due', nextDue);
-      setStudyQueue(queue);
-      setRoundTotal(queue.length);
-      setStudyMode('due');
+      const savedData = sessionResponse?.ok ? await sessionResponse.json().catch(() => ({})) : {};
+      const saved = savedData.session;
+      const restored = restoreVocabularyRound(nextWords, saved);
+      if (restored) {
+        setStudyQueue(restored.queue);
+        setRoundTotal(restored.roundTotal);
+        setStudyMode(restored.mode);
+        setNotice(restored.queue.length ? `Resumed ${MODES[restored.mode]} round.` : `${MODES[restored.mode]} round is complete.`);
+      } else {
+        const queue = buildVocabularyRound(nextWords, 'due', nextDue);
+        setStudyQueue(queue);
+        setRoundTotal(queue.length);
+        setStudyMode('due');
+      }
     }
   };
 
@@ -45,7 +59,16 @@ function Vocabulary() {
     loadVocabulary({ initializeDue: true }).catch((loadError) => setError(loadError.message));
   }, []);
 
-  const startRound = (mode) => {
+  const persistStudySession = async (mode, queue, total) => {
+    if (mode !== 'once_all' && mode !== 'favorites') return;
+    await apiMutation('/english/api/vocabulary/study-session', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, queueIds: queue.map((word) => Number(word.id)), roundTotal: total }),
+    });
+  };
+
+  const startRound = async (mode) => {
     const queue = buildVocabularyRound(words, mode, dueWords);
     setStudyMode(mode);
     setStudyQueue(queue);
@@ -53,6 +76,11 @@ function Vocabulary() {
     setShowTranslation(false);
     setError('');
     setNotice(queue.length ? `${MODES[mode]} round started.` : 'There are no words in this mode yet.');
+    try {
+      await persistStudySession(mode, queue, queue.length);
+    } catch (saveError) {
+      setError(`Round started, but server save failed: ${saveError.message}`);
+    }
   };
 
   const apiMutation = async (url, options) => {
@@ -74,9 +102,11 @@ function Vocabulary() {
     } catch (mutationError) { setError(mutationError.message); } finally { setBusy(false); }
   };
 
-  const finishCurrent = () => {
-    setStudyQueue((queue) => queue.slice(1));
+  const finishCurrent = async () => {
+    const nextQueue = studyQueue.slice(1);
+    setStudyQueue(nextQueue);
     setShowTranslation(false);
+    await persistStudySession(studyMode, nextQueue, roundTotal);
   };
 
   const reviewWord = async (quality) => {
@@ -86,7 +116,7 @@ function Vocabulary() {
       await apiMutation(`/english/api/vocabulary/${currentWord.id}/review`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quality }),
       });
-      finishCurrent();
+      await finishCurrent();
       await loadVocabulary();
     } catch (mutationError) { setError(mutationError.message); } finally { setBusy(false); }
   };
@@ -98,7 +128,11 @@ function Vocabulary() {
       await apiMutation(`/english/api/vocabulary/${word.id}/favorite`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ favorite }),
       });
-      setStudyQueue((queue) => queue.map((item) => item.id === word.id ? { ...item, is_favorite: favorite ? 1 : 0 } : item));
+      const nextQueue = studyQueue
+        .map((item) => item.id === word.id ? { ...item, is_favorite: favorite ? 1 : 0 } : item)
+        .filter((item) => studyMode !== 'favorites' || item.is_favorite);
+      setStudyQueue(nextQueue);
+      await persistStudySession(studyMode, nextQueue, roundTotal);
       await loadVocabulary();
     } catch (mutationError) { setError(mutationError.message); } finally { setBusy(false); }
   };
@@ -110,7 +144,9 @@ function Vocabulary() {
       await apiMutation(`/english/api/vocabulary/${word.id}/permanent-learned`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ learned }),
       });
-      setStudyQueue((queue) => queue.filter((item) => item.id !== word.id));
+      const nextQueue = studyQueue.filter((item) => item.id !== word.id);
+      setStudyQueue(nextQueue);
+      await persistStudySession(studyMode, nextQueue, roundTotal);
       setShowTranslation(false);
       await loadVocabulary();
       setNotice(learned ? 'Saved as learned forever.' : 'Word restored to study queues.');
@@ -122,7 +158,9 @@ function Vocabulary() {
     setBusy(true); setError('');
     try {
       await apiMutation(`/english/api/vocabulary/${word.id}`, { method: 'DELETE' });
-      setStudyQueue((queue) => queue.filter((item) => item.id !== word.id));
+      const nextQueue = studyQueue.filter((item) => item.id !== word.id);
+      setStudyQueue(nextQueue);
+      await persistStudySession(studyMode, nextQueue, roundTotal);
       await loadVocabulary();
     } catch (mutationError) { setError(mutationError.message); } finally { setBusy(false); }
   };
