@@ -6,7 +6,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, join, resolve } from 'path';
+import { basename, dirname, join, resolve, sep } from 'path';
 import { buildHpmorChapterImport } from './hpmor.js';
 import { transcribeAudioLocally } from './localAudioTranscription.js';
 import { translateSegmentsWithGemini } from './geminiSegmentTranslation.js';
@@ -349,15 +349,24 @@ app.get(['/mac-appcast.xml', '/appcast.xml', '/english/mac-appcast.xml', '/engli
 });
 
 app.get(['/releases/:file', '/english/releases/:file'], (req, res) => {
-  const file = String(req.params.file || '').replace(/\.\./g, '');
-  const candidates = [
-    resolve('/srv/LinguaLearn/releases', file),
-    resolve(__dirname, '../../releases', file),
-    resolve(__dirname, '../../macos/LinguaLearnCapture/.build/release-dist', file),
+  const rawFile = String(req.params.file || '');
+  const safeFile = basename(rawFile);
+  if (!safeFile || safeFile === '.' || safeFile === '..' || safeFile !== rawFile) {
+    return res.status(400).json({ error: 'Invalid release file parameter' });
+  }
+
+  const baseDirs = [
+    resolve('/srv/LinguaLearn/releases'),
+    resolve(__dirname, '../../releases'),
+    resolve(__dirname, '../../macos/LinguaLearnCapture/.build/release-dist'),
   ];
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      return res.sendFile(candidate);
+
+  for (const baseDir of baseDirs) {
+    const targetPath = resolve(baseDir, safeFile);
+    if (targetPath.startsWith(baseDir + sep)) {
+      if (fs.existsSync(targetPath)) {
+        return res.sendFile(targetPath);
+      }
     }
   }
   return res.status(404).json({ error: 'Release file not found' });
