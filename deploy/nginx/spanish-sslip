@@ -73,6 +73,26 @@ server {
         return 301 /english/;
     }
 
+    location = /english/mac-appcast.xml {
+        alias /srv/LinguaLearn/releases/mac-appcast.xml;
+        default_type application/xml;
+        add_header Content-Type "application/xml; charset=utf-8" always;
+        add_header Cache-Control "no-cache" always;
+    }
+
+    location = /english/appcast.xml {
+        alias /srv/LinguaLearn/releases/mac-appcast.xml;
+        default_type application/xml;
+        add_header Content-Type "application/xml; charset=utf-8" always;
+        add_header Cache-Control "no-cache" always;
+    }
+
+    location /english/releases/ {
+        alias /srv/LinguaLearn/releases/;
+        autoindex off;
+        add_header Cache-Control "public, max-age=3600" always;
+    }
+
     location /english/ {
         alias /srv/LinguaLearn/english/dist/;
         index index.html;

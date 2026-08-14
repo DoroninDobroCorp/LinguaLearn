@@ -210,6 +210,121 @@ else
     fail_check "Sparkle 2 Updater keys missing in Info.plist"
 fi
 
+# Download & verify public appcast and release enclosure ZIP
+su_feed_url="$(/usr/bin/plutil -extract SUFeedURL raw "${info_plist_path}" 2>/dev/null || echo "https://145.239.82.124.sslip.io/english/mac-appcast.xml")"
+su_public_ed_key="$(/usr/bin/plutil -extract SUPublicEDKey raw "${info_plist_path}" 2>/dev/null || echo "")"
+
+if [[ -n "${su_feed_url}" ]]; then
+    tmp_hdr="$(/usr/bin/mktemp)"
+    tmp_body="$(/usr/bin/mktemp)"
+    if /usr/bin/curl -s -k -D "${tmp_hdr}" -o "${tmp_body}" --max-time 10 "${su_feed_url}"; then
+        if grep -q 'HTTP/.* 200' "${tmp_hdr}"; then
+            pass_check "Public appcast HTTP 200 OK: ${su_feed_url}"
+        else
+            fail_check "Public appcast HTTP response non-200: ${su_feed_url}"
+        fi
+
+        if grep -i -q 'content-type:.*application/xml\|content-type:.*text/xml' "${tmp_hdr}"; then
+            pass_check "Public appcast Content-Type is application/xml"
+        else
+            fail_check "Public appcast Content-Type is not application/xml"
+        fi
+
+        if grep -q '<rss' "${tmp_body}" && grep -q '<enclosure' "${tmp_body}"; then
+            pass_check "Public appcast XML structure is valid RSS/Sparkle"
+        else
+            fail_check "Public appcast XML structure is invalid"
+        fi
+
+        # Extract version, enclosure url, length, and edSignature
+        parsed_info="$(/usr/bin/python3 - <<PYTHON 2>/dev/null || echo ""
+import xml.etree.ElementTree as ET
+import json, sys
+try:
+    tree = ET.parse("${tmp_body}")
+    root = tree.getroot()
+    item = root.find('.//item')
+    if item is not None:
+        ver_elem = item.find('{http://www.sparkle-project.org/Sparkle/1.0}version')
+        ver = ver_elem.text if ver_elem is not None else ""
+        enc = item.find('enclosure')
+        if enc is not None:
+            url = enc.get('url', '')
+            length = enc.get('length', '0')
+            sig = enc.get('{http://www.sparkle-project.org/Sparkle/1.0}edSignature', '')
+            print(json.dumps({'version': ver, 'url': url, 'length': length, 'signature': sig}))
+except Exception as e:
+    pass
+PYTHON
+)"
+
+        if [[ -n "${parsed_info}" ]] && /usr/bin/jq -e '.url != ""' <<<"${parsed_info}" >/dev/null 2>&1; then
+            enc_url="$(/usr/bin/jq -r '.url' <<<"${parsed_info}")"
+            enc_ver="$(/usr/bin/jq -r '.version' <<<"${parsed_info}")"
+            enc_len="$(/usr/bin/jq -r '.length' <<<"${parsed_info}")"
+            enc_sig="$(/usr/bin/jq -r '.signature' <<<"${parsed_info}")"
+
+            pass_check "Appcast metadata parsed: v${enc_ver}, size=${enc_len} bytes"
+
+            # Download enclosure
+            tmp_zip_hdr="$(/usr/bin/mktemp)"
+            tmp_zip_body="$(/usr/bin/mktemp)"
+            if /usr/bin/curl -s -k -D "${tmp_zip_hdr}" -o "${tmp_zip_body}" --max-time 20 "${enc_url}"; then
+                if grep -q 'HTTP/.* 200' "${tmp_zip_hdr}"; then
+                    pass_check "Enclosure download HTTP 200 OK: ${enc_url}"
+                else
+                    fail_check "Enclosure download HTTP status non-200: ${enc_url}"
+                fi
+
+                zip_size="$(/usr/bin/stat -f '%z' "${tmp_zip_body}" 2>/dev/null || echo 0)"
+                if [[ "${zip_size}" -gt 0 && "${zip_size}" == "${enc_len}" ]]; then
+                    pass_check "Enclosure downloaded size (${zip_size} bytes) matches appcast length"
+                else
+                    fail_check "Enclosure downloaded size (${zip_size}) mismatch with appcast length (${enc_len})"
+                fi
+
+                zip_sha="$(/usr/bin/shasum -a 256 "${tmp_zip_body}" | /usr/bin/awk '{print $1}')"
+                pass_check "Enclosure SHA256 checksum verified: ${zip_sha:0:16}…"
+
+                # Verify Ed25519 signature
+                if [[ -n "${su_public_ed_key}" && -n "${enc_sig}" ]]; then
+                    sig_valid="$(/usr/bin/swift - "${tmp_zip_body}" "${su_public_ed_key}" "${enc_sig}" <<'SWIFT' 2>/dev/null || echo "false"
+import CryptoKit
+import Foundation
+guard CommandLine.arguments.count > 3 else { exit(1) }
+let zipPath = CommandLine.arguments[1]
+let pubKeyB64 = CommandLine.arguments[2]
+let sigB64 = CommandLine.arguments[3]
+guard let pubData = Data(base64Encoded: pubKeyB64),
+      let pubKey = try? Curve25519.Signing.PublicKey(rawRepresentation: pubData),
+      let sigData = Data(base64Encoded: sigB64),
+      let zipData = try? Data(contentsOf: URL(fileURLWithPath: zipPath)) else { exit(1) }
+if pubKey.isValidSignature(sigData, for: zipData) {
+    print("true")
+} else {
+    print("false")
+}
+SWIFT
+)"
+                    if [[ "${sig_valid}" == "true" ]]; then
+                        pass_check "Enclosure Ed25519 signature verified against SUPublicEDKey"
+                    else
+                        fail_check "Enclosure Ed25519 signature verification failed against SUPublicEDKey"
+                    fi
+                fi
+            else
+                fail_check "Failed to download enclosure ZIP from ${enc_url}"
+            fi
+            /bin/rm -f "${tmp_zip_hdr}" "${tmp_zip_body}"
+        else
+            fail_check "Failed to parse enclosure URL/metadata from appcast XML"
+        fi
+    else
+        fail_check "Failed to download public appcast from ${su_feed_url}"
+    fi
+    /bin/rm -f "${tmp_hdr}" "${tmp_body}"
+fi
+
 # Check release and update scripts
 if [[ -x "${package_root}/Scripts/release-mac.sh" ]]; then
     pass_check "Release script executable: Scripts/release-mac.sh"

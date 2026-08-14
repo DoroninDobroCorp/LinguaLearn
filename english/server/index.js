@@ -320,9 +320,20 @@ const publicApiEndpoints = new Set([
 ]);
 
 app.get(['/mac-appcast.xml', '/appcast.xml', '/english/mac-appcast.xml', '/english/appcast.xml'], (req, res) => {
-  const appcastPath = resolve(__dirname, '../../macos/LinguaLearnCapture/.build/release-dist/mac-appcast.xml');
+  const candidates = [
+    '/srv/LinguaLearn/releases/mac-appcast.xml',
+    resolve(__dirname, '../../releases/mac-appcast.xml'),
+    resolve(__dirname, '../../macos/LinguaLearnCapture/.build/release-dist/mac-appcast.xml'),
+  ];
+  let appcastPath = null;
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      appcastPath = candidate;
+      break;
+    }
+  }
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-  if (fs.existsSync(appcastPath)) {
+  if (appcastPath) {
     return res.sendFile(appcastPath);
   }
   const defaultXml = `<?xml version="1.0" encoding="utf-8"?>
@@ -339,9 +350,15 @@ app.get(['/mac-appcast.xml', '/appcast.xml', '/english/mac-appcast.xml', '/engli
 
 app.get(['/releases/:file', '/english/releases/:file'], (req, res) => {
   const file = String(req.params.file || '').replace(/\.\./g, '');
-  const releasePath = resolve(__dirname, '../../macos/LinguaLearnCapture/.build/release-dist', file);
-  if (fs.existsSync(releasePath)) {
-    return res.sendFile(releasePath);
+  const candidates = [
+    resolve('/srv/LinguaLearn/releases', file),
+    resolve(__dirname, '../../releases', file),
+    resolve(__dirname, '../../macos/LinguaLearnCapture/.build/release-dist', file),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return res.sendFile(candidate);
+    }
   }
   return res.status(404).json({ error: 'Release file not found' });
 });

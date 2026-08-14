@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.sparkle-project.org/Sparkle/1.0">
+  <channel>
+    <title>LinguaLearn Capture Updates</title>
+    <link>https://145.239.82.124.sslip.io/english/</link>
+    <description>Most recent updates to LinguaLearn Capture for macOS.</description>
+    <language>en</language>
+    <item>
+      <title>LinguaLearn Capture 0.1.1</title>
+      <sparkle:version>0.1.1</sparkle:version>
+      <sparkle:shortVersionString>0.1.1</sparkle:shortVersionString>
+      <pubDate>Fri, 14 Aug 2026 14:44:51 +0000</pubDate>
+      <enclosure url="https://145.239.82.124.sslip.io/english/releases/LinguaLearnCapture-v0.1.1.zip"
+                 length="6338420"
+                 type="application/octet-stream"
+                 sparkle:edSignature="dRXjbSANrpVLp/PlQvxTyvXmj2znVwAZ1xo4we7d6fudwh5hZDJ+UvNFDgznQoA2lOmqVv30Uyw9xM/APyvJCg=="/>
+    </item>
+  </channel>
+</rss>
