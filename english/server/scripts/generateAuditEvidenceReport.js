@@ -370,7 +370,7 @@ export async function generateReport(options = {}) {
         throw new Error(`HTTP status ${spanishRes.status}`);
       }
       const spanishJson = await spanishRes.json();
-      if (spanishJson.status !== 'ok') {
+      if (spanishJson.status !== 'ok' && spanishJson.status !== 'healthy') {
         throw new Error(`Spanish backend health returned status "${spanishJson.status}"`);
       }
     } catch (err) {
