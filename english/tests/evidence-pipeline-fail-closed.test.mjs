@@ -160,7 +160,7 @@ describe('Fail-Closed Audit Evidence Pipeline (VAL-EVIDENCE-004)', () => {
     assert.ok(reportMd.includes('| macOS Client (`LinguaLearnCapture`) | SwiftPM (`swift test`) | 47 tests | 47 | 0 | 100% | **PASSED** |'));
     assert.ok(reportMd.includes('| iOS Simulator (`LinguaLearn`) | Xcode (`run-tests.sh`) | 26 tests | 26 | 0 | 100% | **PASSED** |'));
     assert.ok(reportMd.includes('| Android Client (`LinguaLearn`) | Gradle (`./gradlew test`) | 44 Tasks | 44 | 0 | 100% | **PASSED** |'));
-    assert.ok(reportMd.includes('| **Total Verified Test Suite** | **Multi-Stack** | **333 Tests & Tasks** | **332** | **0** | **100%** | **PASSED** |'));
+    assert.ok(reportMd.includes('| **Total Verified Test Suite** | **Multi-Stack** | **333 Tests & Tasks** | **332** | **0** | **100%** | **READY_FOR_OWNER_ACTION** |'));
     assert.ok(reportMd.includes('VAL-EVIDENCE-004'));
   });
 

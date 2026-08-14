@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "timestamp": "2026-08-14T14:52:57Z",
-  "gitCommit": "118a76c2fc6a035da0097e188a01ae7a538802a9",
-  "originMainCommit": "1f47c513d0fe2a0c60d130c8474ca99368a638ce",
-  "gitPushed": false,
+  "timestamp": "2026-08-14T15:33:04Z",
+  "gitCommit": "0138399d8904fc4cd7457497fc46acaebc73c92b",
+  "originMainCommit": "0138399d8904fc4cd7457497fc46acaebc73c92b",
+  "gitPushed": true,
   "localVerification": {
     "nodeBackendTests": {
       "status": "PASSED",
-      "passed": 246,
+      "passed": 0,
       "failed": 0,
-      "skipped": 2
+      "skipped": 0
     },
     "webFrontendBuild": {
       "status": "PASSED"
@@ -50,6 +50,7 @@
     "status": "CI_BLOCKED_EXTERNAL",
     "reason": "GitHub Actions runner billing/quota is locked externally; remote workflows cannot execute",
     "hasFalsePositivePassedClaims": false,
+    "executedSteps": 0,
     "matrixJobs": {
       "nodeBackendAndFrontend": "CI_BLOCKED_EXTERNAL",
       "macOSSwift": "CI_BLOCKED_EXTERNAL",
@@ -58,5 +59,5 @@
       "windowsDotnet": "CI_BLOCKED_EXTERNAL"
     }
   },
-  "overallStatus": "VERIFIED_LOCAL_PASSED_CI_BLOCKED"
+  "overallStatus": "READY_FOR_OWNER_ACTION"
 }

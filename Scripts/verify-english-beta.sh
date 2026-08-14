@@ -260,6 +260,7 @@ cat <<EOF > "$MANIFEST_PATH"
     "status": "${CI_STATUS}",
     "reason": "${CI_REASON}",
     "hasFalsePositivePassedClaims": false,
+    "executedSteps": 0,
     "matrixJobs": {
       "nodeBackendAndFrontend": "CI_BLOCKED_EXTERNAL",
       "macOSSwift": "CI_BLOCKED_EXTERNAL",
@@ -268,7 +269,7 @@ cat <<EOF > "$MANIFEST_PATH"
       "windowsDotnet": "CI_BLOCKED_EXTERNAL"
     }
   },
-  "overallStatus": "VERIFIED_LOCAL_PASSED_CI_BLOCKED"
+  "overallStatus": "READY_FOR_OWNER_ACTION"
 }
 EOF
 
