@@ -42,7 +42,12 @@ describe('Fail-Closed Audit Evidence Pipeline (VAL-EVIDENCE-004)', () => {
     // 2. Valid eval-gemini-live.json
     const liveEvalPath = path.join(fixtureDir, 'eval-gemini-live.json');
     const liveEvalData = {
+      mode: 'live',
+      totalSamples: 125,
+      realModelCallCount: 125,
       metrics: {
+        totalSamples: 125,
+        realModelCallCount: 125,
         precision: 0.98,
         recall: 0.98,
         f1Score: 0.98,
@@ -249,7 +254,12 @@ describe('Fail-Closed Audit Evidence Pipeline (VAL-EVIDENCE-004)', () => {
     const baseOpts = createValidFixtures(tmpDir);
     const incompleteEvalPath = path.join(tmpDir, 'incomplete-eval.json');
     const payload = {
+      mode: 'live',
+      totalSamples: 125,
+      realModelCallCount: 125,
       metrics: {
+        totalSamples: 125,
+        realModelCallCount: 125,
         recall: 0.98,
         f1Score: 0.98,
       },
@@ -275,7 +285,12 @@ describe('Fail-Closed Audit Evidence Pipeline (VAL-EVIDENCE-004)', () => {
     const baseOpts = createValidFixtures(tmpDir);
     const lowPrecisionPath = path.join(tmpDir, 'low-precision-eval.json');
     const payload = {
+      mode: 'live',
+      totalSamples: 125,
+      realModelCallCount: 125,
       metrics: {
+        totalSamples: 125,
+        realModelCallCount: 125,
         precision: 0.85,
         recall: 0.95,
         f1Score: 0.90,

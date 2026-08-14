@@ -24,12 +24,17 @@ export async function generateReport(options = {}) {
   }
 
   try {
-    originMainSha = execSync('git rev-parse origin/main', { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
+    const lsRemoteOut = execSync('git ls-remote origin refs/heads/main', { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
+    originMainSha = lsRemoteOut ? lsRemoteOut.split(/\s+/)[0] : '';
     if (!originMainSha || originMainSha.length < 7) {
-      throw new Error('Invalid origin/main SHA returned by git');
+      originMainSha = execSync('git rev-parse origin/main', { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
     }
   } catch (err) {
-    throw new Error(`Fail-closed: Unable to determine origin/main commit SHA (${err.message})`);
+    try {
+      originMainSha = execSync('git rev-parse origin/main', { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
+    } catch (e) {
+      throw new Error(`Fail-closed: Unable to determine origin/main commit SHA (${err.message})`);
+    }
   }
 
   try {
@@ -145,9 +150,28 @@ export async function generateReport(options = {}) {
     throw new Error(`Fail-closed: Invalid live eval report structure at ${liveEvalPath}`);
   }
 
+  if (!options.allowMockEval && liveEval.mode !== 'live') {
+    throw new Error(`Fail-closed: live eval mode is "${liveEval.mode}", required "live"`);
+  }
+
   const evalMetrics = liveEval.metrics;
   if (!evalMetrics || typeof evalMetrics !== 'object') {
     throw new Error('Fail-closed: missing metrics object in live eval report');
+  }
+
+  const totalSamples = evalMetrics.totalSamples ?? liveEval.totalSamples ?? 0;
+  if (!options.allowSmallEval && totalSamples < 125) {
+    throw new Error(`Fail-closed: live eval totalSamples (${totalSamples}) below required 125`);
+  }
+
+  const realCalls = liveEval.realModelCallCount ?? evalMetrics.realModelCallCount;
+  if (!options.allowMockEval && realCalls !== totalSamples) {
+    throw new Error(`Fail-closed: live eval realModelCallCount (${realCalls}) does not match totalSamples (${totalSamples})`);
+  }
+
+  const minTierAccuracy = options.minTierAccuracy ?? 0.75;
+  if (typeof evalMetrics.tierAccuracy === 'number' && evalMetrics.tierAccuracy < minTierAccuracy) {
+    throw new Error(`Fail-closed: live eval tierAccuracy (${evalMetrics.tierAccuracy}) below required gate ${minTierAccuracy}`);
   }
 
   if (typeof evalMetrics.precision !== 'number') {

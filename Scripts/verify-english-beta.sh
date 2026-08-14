@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [ "${VERIFY_ENGLISH_BETA_RUNNING:-0}" = "1" ]; then
+    echo "❌ Error: Recursive execution of verify-english-beta.sh detected!" >&2
+    exit 1
+fi
 export VERIFY_ENGLISH_BETA_RUNNING=1
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -12,24 +16,37 @@ echo "========================================================================"
 
 TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 HEAD_SHA="$(git rev-parse HEAD 2>/dev/null || echo "unknown")"
-ORIGIN_MAIN_SHA="$(git rev-parse origin/main 2>/dev/null || echo "unknown")"
+ORIGIN_MAIN_SHA="$(git ls-remote origin refs/heads/main 2>/dev/null | awk '{print $1}')"
+if [ -z "$ORIGIN_MAIN_SHA" ]; then
+    ORIGIN_MAIN_SHA="$(git ls-remote origin HEAD 2>/dev/null | awk '{print $1}')"
+fi
+ORIGIN_MAIN_SHA="${ORIGIN_MAIN_SHA:-unknown}"
+
 GIT_PUSHED="false"
 if [ "$HEAD_SHA" = "$ORIGIN_MAIN_SHA" ] && [ "$HEAD_SHA" != "unknown" ]; then
     GIT_PUSHED="true"
 fi
 
 echo "[1/8] Running Node Backend & Integration Unit Tests..."
+NODE_LOG="$(mktemp)"
 NODE_STATUS="FAILED"
 NODE_PASSED=0
 NODE_FAILED=0
 NODE_SKIPPED=0
-if (cd "$REPO_ROOT/english" && node --test tests/*.test.mjs); then
+if (cd "$REPO_ROOT/english" && node --test tests/*.test.mjs > "$NODE_LOG" 2>&1); then
     NODE_STATUS="PASSED"
-    NODE_PASSED=215
-    NODE_SKIPPED=1
-    echo "✔ Node Backend Unit Tests Passed"
+    NODE_PASSED="$(grep -E '^# pass ' "$NODE_LOG" | tail -n 1 | awk '{print $3}' | tr -cd '0-9' || echo 0)"
+    NODE_FAILED="$(grep -E '^# fail ' "$NODE_LOG" | tail -n 1 | awk '{print $3}' | tr -cd '0-9' || echo 0)"
+    NODE_SKIPPED="$(grep -E '^# skipped ' "$NODE_LOG" | tail -n 1 | awk '{print $3}' | tr -cd '0-9' || echo 0)"
+    NODE_PASSED="${NODE_PASSED:-0}"
+    NODE_FAILED="${NODE_FAILED:-0}"
+    NODE_SKIPPED="${NODE_SKIPPED:-0}"
+    echo "✔ Node Backend Unit Tests Passed (${NODE_PASSED} passed, ${NODE_SKIPPED} skipped)"
+    rm -f "$NODE_LOG"
 else
     echo "❌ Node Backend Unit Tests Failed"
+    cat "$NODE_LOG"
+    rm -f "$NODE_LOG"
     exit 1
 fi
 
@@ -67,15 +84,23 @@ echo "[5/8] Running macOS Swift Desktop Client Tests..."
 MAC_STATUS="BLOCKED_HOST_UNSUPPORTED"
 MAC_REASON="macOS Swift toolchain unavailable"
 MAC_PASSED=0
+MAC_FAILED=0
 if command -v swift >/dev/null 2>&1 && [ -d "$REPO_ROOT/macos/LinguaLearnCapture" ]; then
     MAC_REASON="Executed swift test"
-    if (cd "$REPO_ROOT/macos/LinguaLearnCapture" && swift test); then
+    MAC_LOG="$(mktemp)"
+    if (cd "$REPO_ROOT/macos/LinguaLearnCapture" && swift test > "$MAC_LOG" 2>&1); then
         MAC_STATUS="PASSED"
-        MAC_PASSED=47
-        echo "✔ macOS Swift Tests Passed"
+        MAC_PASSED="$(grep -E 'Executed [0-9]+ tests?' "$MAC_LOG" | tail -n 1 | sed -E 's/.*Executed ([0-9]+) test.*/\1/' | tr -cd '0-9' || echo 0)"
+        MAC_FAILED="$(grep -E 'with [0-9]+ failures' "$MAC_LOG" | tail -n 1 | sed -E 's/.*with ([0-9]+) failures.*/\1/' | tr -cd '0-9' || echo 0)"
+        MAC_PASSED="${MAC_PASSED:-0}"
+        MAC_FAILED="${MAC_FAILED:-0}"
+        echo "✔ macOS Swift Tests Passed (${MAC_PASSED} passed)"
+        rm -f "$MAC_LOG"
     else
         MAC_STATUS="FAILED"
         echo "❌ macOS Swift Tests Failed"
+        cat "$MAC_LOG"
+        rm -f "$MAC_LOG"
         exit 1
     fi
 else
@@ -86,15 +111,23 @@ echo "[6/8] Running iOS Simulator Container & Keyboard Extension Tests..."
 IOS_STATUS="BLOCKED_HOST_UNSUPPORTED"
 IOS_REASON="iOS xcodebuild toolchain unavailable"
 IOS_PASSED=0
+IOS_FAILED=0
 if command -v xcodebuild >/dev/null 2>&1 && [ -f "$REPO_ROOT/ios/LinguaLearn/run-tests.sh" ]; then
     IOS_REASON="Executed run-tests.sh"
-    if (cd "$REPO_ROOT/ios/LinguaLearn" && ./run-tests.sh); then
+    IOS_LOG="$(mktemp)"
+    if (cd "$REPO_ROOT/ios/LinguaLearn" && ./run-tests.sh > "$IOS_LOG" 2>&1); then
         IOS_STATUS="PASSED"
-        IOS_PASSED=26
-        echo "✔ iOS Simulator Tests Passed"
+        IOS_PASSED="$(grep -E 'Executed [0-9]+ tests?' "$IOS_LOG" | tail -n 1 | sed -E 's/.*Executed ([0-9]+) test.*/\1/' | tr -cd '0-9' || echo 0)"
+        IOS_FAILED="$(grep -E 'with [0-9]+ failures' "$IOS_LOG" | tail -n 1 | sed -E 's/.*with ([0-9]+) failures.*/\1/' | tr -cd '0-9' || echo 0)"
+        IOS_PASSED="${IOS_PASSED:-0}"
+        IOS_FAILED="${IOS_FAILED:-0}"
+        echo "✔ iOS Simulator Tests Passed (${IOS_PASSED} passed)"
+        rm -f "$IOS_LOG"
     else
         IOS_STATUS="FAILED"
         echo "❌ iOS Simulator Tests Failed"
+        cat "$IOS_LOG"
+        rm -f "$IOS_LOG"
         exit 1
     fi
 else
@@ -105,15 +138,21 @@ echo "[7/8] Running Android IME & Container App Tests..."
 ANDROID_STATUS="BLOCKED_HOST_UNSUPPORTED"
 ANDROID_REASON="Android Gradle wrapper or SDK unavailable"
 ANDROID_TASKS_PASSED=0
+ANDROID_FAILED=0
 if [ -f "$REPO_ROOT/android/LinguaLearn/gradlew" ] && { [ -n "${ANDROID_HOME:-}" ] || [ -f "$REPO_ROOT/android/LinguaLearn/local.properties" ] || [ -d "$HOME/Library/Android/sdk" ] || [ -d "/opt/homebrew/share/android-commandlinetools" ]; }; then
     ANDROID_REASON="Executed ./gradlew test"
-    if (cd "$REPO_ROOT/android/LinguaLearn" && ./gradlew test); then
+    ANDROID_LOG="$(mktemp)"
+    if (cd "$REPO_ROOT/android/LinguaLearn" && ./gradlew test > "$ANDROID_LOG" 2>&1); then
         ANDROID_STATUS="PASSED"
-        ANDROID_TASKS_PASSED=44
-        echo "✔ Android Gradle Tests Passed"
+        ANDROID_TASKS_PASSED="$(grep -E '[0-9]+ actionable tasks:' "$ANDROID_LOG" | tail -n 1 | sed -E 's/([0-9]+) actionable tasks:.*/\1/' | tr -cd '0-9' || echo 0)"
+        ANDROID_TASKS_PASSED="${ANDROID_TASKS_PASSED:-0}"
+        echo "✔ Android Gradle Tests Passed (${ANDROID_TASKS_PASSED} tasks passed)"
+        rm -f "$ANDROID_LOG"
     else
         ANDROID_STATUS="FAILED"
         echo "❌ Android Gradle Tests Failed"
+        cat "$ANDROID_LOG"
+        rm -f "$ANDROID_LOG"
         exit 1
     fi
 else
@@ -125,12 +164,16 @@ WINDOWS_STATUS="BLOCKED_HOST_UNSUPPORTED"
 WINDOWS_REASON="dotnet toolchain not installed on macOS host environment"
 if command -v dotnet >/dev/null 2>&1 && [ -f "$REPO_ROOT/windows/LinguaLearnAgent.sln" ]; then
     WINDOWS_REASON="Executed dotnet test"
-    if (cd "$REPO_ROOT/windows" && dotnet test LinguaLearnAgent.sln); then
+    WIN_LOG="$(mktemp)"
+    if (cd "$REPO_ROOT/windows" && dotnet test LinguaLearnAgent.sln > "$WIN_LOG" 2>&1); then
         WINDOWS_STATUS="PASSED"
         echo "✔ Windows C# .NET Tests Passed"
+        rm -f "$WIN_LOG"
     else
         WINDOWS_STATUS="FAILED"
         echo "❌ Windows C# .NET Tests Failed"
+        cat "$WIN_LOG"
+        rm -f "$WIN_LOG"
         exit 1
     fi
 else

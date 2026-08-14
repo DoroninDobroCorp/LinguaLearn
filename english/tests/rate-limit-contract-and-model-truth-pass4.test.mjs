@@ -68,6 +68,8 @@ describe('VAL-CONTRACT-004: Canonical OpenAPI contract, Model Truth & 429 Rate-L
   it('3. Verifies isolated GEMINI_EVAL_API_KEY resolution in live eval runner', async () => {
     const originalEvalKey = process.env.GEMINI_EVAL_API_KEY;
     const originalProdKey = process.env.GEMINI_API_KEY;
+    const os = await import('node:os');
+    const tmpReportDir = fs.mkdtempSync(path.join(os.tmpdir(), 'eval-gemini-test-'));
 
     try {
       process.env.GEMINI_EVAL_API_KEY = 'eval-quota-key-isolated-12345';
@@ -76,6 +78,7 @@ describe('VAL-CONTRACT-004: Canonical OpenAPI contract, Model Truth & 429 Rate-L
       let capturedKey = null;
       await runLiveGeminiModelEval({
         mode: 'mock',
+        reportDir: tmpReportDir,
         apiKey: process.env.GEMINI_EVAL_API_KEY,
         analyzer: async () => ({
           isEnglish: true,
@@ -92,6 +95,9 @@ describe('VAL-CONTRACT-004: Canonical OpenAPI contract, Model Truth & 429 Rate-L
     } finally {
       process.env.GEMINI_EVAL_API_KEY = originalEvalKey;
       process.env.GEMINI_API_KEY = originalProdKey;
+      if (fs.existsSync(tmpReportDir)) {
+        fs.rmSync(tmpReportDir, { recursive: true, force: true });
+      }
     }
   });
 
