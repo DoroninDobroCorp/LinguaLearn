@@ -10,7 +10,9 @@ const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '../..');
 
 test('VAL-VERIFY-001 / VAL-CI-003: Reproducible verification runner & verified manifest', async (t) => {
-  const scriptPath = path.join(REPO_ROOT, 'scripts/verify-english-beta.sh');
+  const scriptPath = fs.existsSync(path.join(REPO_ROOT, 'scripts/verify-english-beta.sh'))
+    ? path.join(REPO_ROOT, 'scripts/verify-english-beta.sh')
+    : path.join(REPO_ROOT, 'Scripts/verify-english-beta.sh');
 
   if (process.env.VERIFY_ENGLISH_BETA_RUNNING === '1') {
     t.skip('Skipping recursive execution inside verify-english-beta.sh subshell');
