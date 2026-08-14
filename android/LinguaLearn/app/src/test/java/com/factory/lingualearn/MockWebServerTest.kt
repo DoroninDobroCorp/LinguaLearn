@@ -491,6 +491,132 @@ class MockWebServerTest {
         }
     }
 
+    @Test
+    fun testHttpsUrlEnforcementRejectionInApiClient() {
+        val insecureClient = ApiClient(baseUrl = "http://insecure-api.lingualearn.com")
+
+        val loginRes = insecureClient.login("test@example.com", "pass")
+        assertFalse("Insecure HTTP login must be rejected", loginRes.success)
+        assertTrue(loginRes.error?.contains("HTTPS Enforced") == true)
+
+        val analysisRes = insecureClient.analyzeWriting(
+            deviceToken = "tok",
+            eventId = "evt-http-reject",
+            sourceApp = "com.slack",
+            originalText = "Test",
+            sentAt = "2026-08-14T00:00:00Z",
+            previewOnly = false
+        )
+        assertFalse("Insecure HTTP analyzeWriting must be rejected", analysisRes.accepted)
+        assertTrue(analysisRes.rejectionReason?.contains("HTTPS Enforced") == true)
+
+        val connRes = insecureClient.testConnection()
+        assertFalse("Insecure HTTP testConnection must fail", connRes.first)
+        assertTrue(connRes.second.contains("HTTPS Enforced"))
+    }
+
+    @Test
+    fun testAuthManagerHttpsUrlEnforcement() {
+        val authManager = com.factory.lingualearn.auth.AuthManager(
+            context = createDummyContext(),
+            customPrefs = TestSharedPreferences()
+        )
+        try {
+            authManager.setApiBaseUrl("http://insecure.example.com")
+            fail("setApiBaseUrl must reject non-HTTPS URLs")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message?.contains("HTTPS Enforced") == true)
+        }
+
+        // HTTPS URL should succeed
+        authManager.setApiBaseUrl("https://145.239.82.124.sslip.io/english")
+        assertEquals("https://145.239.82.124.sslip.io/english", authManager.getApiBaseUrl())
+    }
+
+    @Test
+    fun testSyncQueue409ReplayHandling() {
+        val testPrefs = TestSharedPreferences()
+        val syncQueue = BackgroundSyncQueue(
+            context = createDummyContext(),
+            customPrefs = testPrefs
+        )
+
+        val eventId = "evt-409-replay-001"
+        syncQueue.setDeviceToken("dev_tok")
+        syncQueue.enqueue(
+            sourceApp = "com.slack",
+            originalText = "Testing 409 replay.",
+            eventId = eventId
+        )
+
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(409)
+                .setBody("""{"error": "Event already recorded"}""")
+        )
+
+        val client = ApiClient(baseUrl = baseUrl)
+        val synced = syncQueue.sync(client)
+
+        assertEquals(1, synced)
+        assertTrue("HTTP 409 Replay event must be dequeued as handled", syncQueue.getQueueItems().isEmpty())
+    }
+
+    @Test
+    fun testSyncQueue429RateLimitRetry() {
+        val testPrefs = TestSharedPreferences()
+        val syncQueue = BackgroundSyncQueue(
+            context = createDummyContext(),
+            customPrefs = testPrefs
+        )
+
+        val eventId = "evt-429-retry-001"
+        val sentAt = "2026-08-14T00:00:00Z"
+        syncQueue.setDeviceToken("dev_tok")
+        syncQueue.enqueue(
+            sourceApp = "com.slack",
+            originalText = "Testing 429 rate limit.",
+            eventId = eventId,
+            sentAt = sentAt
+        )
+
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(429)
+                .setBody("""{"error": "Too Many Requests"}""")
+        )
+
+        val client = ApiClient(baseUrl = baseUrl)
+        val synced = syncQueue.sync(client)
+
+        assertEquals(0, synced)
+        val items = syncQueue.getQueueItems()
+        assertEquals(1, items.size)
+        assertEquals(eventId, items[0].eventId)
+        assertEquals(sentAt, items[0].sentAt)
+        assertEquals(1, items[0].retryCount)
+    }
+
+    @Test
+    fun testPrivacyConsentManagerEncryptedStorage() {
+        val testPrefs = TestSharedPreferences()
+        val manager = com.factory.lingualearn.settings.PrivacyConsentManager(
+            context = createDummyContext(),
+            customPrefs = testPrefs
+        )
+
+        assertTrue(manager.isConsentGiven())
+        manager.setConsentGiven(false)
+        assertFalse(manager.isConsentGiven())
+
+        assertFalse(manager.isCapturePaused())
+        manager.setCapturePaused(true)
+        assertTrue(manager.isCapturePaused())
+
+        assertTrue(manager.isAppDenied("com.bank.app"))
+        assertTrue(manager.isAppDenied("my.secret.password.vault"))
+    }
+
     private class TestSharedPreferences : android.content.SharedPreferences {
         private val map = mutableMapOf<String, Any?>()
 

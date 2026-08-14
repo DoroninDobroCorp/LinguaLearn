@@ -2,10 +2,14 @@ package com.factory.lingualearn.settings
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.factory.lingualearn.devices.EncryptedTokenStorage
 
-class PrivacyConsentManager(context: Context) {
+class PrivacyConsentManager(
+    context: Context,
+    customPrefs: SharedPreferences? = null
+) {
 
-    private val prefs: SharedPreferences = context.getSharedPreferences("lingualearn_privacy_prefs", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = customPrefs ?: EncryptedTokenStorage.getEncryptedSharedPreferences(context, "lingualearn_privacy_prefs")
 
     companion object {
         private const val KEY_CAPTURE_PAUSED = "capture_paused"

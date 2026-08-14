@@ -6,9 +6,12 @@ import com.factory.lingualearn.devices.EncryptedTokenStorage
 import com.factory.lingualearn.ime.net.ApiClient
 import com.factory.lingualearn.ime.queue.BackgroundSyncQueue
 
-class AuthManager(val context: Context) {
+class AuthManager(
+    val context: Context,
+    customPrefs: SharedPreferences? = null
+) {
 
-    private val prefs: SharedPreferences = EncryptedTokenStorage.getEncryptedSharedPreferences(context, "lingualearn_auth_prefs")
+    private val prefs: SharedPreferences = customPrefs ?: EncryptedTokenStorage.getEncryptedSharedPreferences(context, "lingualearn_auth_prefs")
 
     companion object {
         private const val KEY_SESSION_TOKEN = "session_token"
@@ -25,6 +28,9 @@ class AuthManager(val context: Context) {
 
     fun setApiBaseUrl(url: String) {
         val cleanUrl = url.trim().removeSuffix("/")
+        if (cleanUrl.startsWith("http://") && !cleanUrl.startsWith("http://localhost") && !cleanUrl.startsWith("http://127.0.0.1") && !cleanUrl.startsWith("http://[::1]")) {
+            throw IllegalArgumentException("HTTPS Enforced: API base URL must use HTTPS (got '$cleanUrl')")
+        }
         prefs.edit().putString(KEY_API_BASE_URL, cleanUrl).apply()
     }
 

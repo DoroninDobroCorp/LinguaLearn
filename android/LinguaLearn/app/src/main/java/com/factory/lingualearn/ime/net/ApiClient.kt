@@ -59,7 +59,8 @@ data class AnalysisResponse(
     val errors: List<AnalysisError> = emptyList(),
     val mechanicalCorrections: List<MechanicalCorrection> = emptyList(),
     val optionalSuggestions: List<OptionalSuggestion> = emptyList(),
-    val topicEvidence: List<TopicEvidence> = emptyList()
+    val topicEvidence: List<TopicEvidence> = emptyList(),
+    val statusCode: Int? = null
 )
 
 data class AnalysisError(
@@ -85,9 +86,22 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
         const val DEFAULT_BASE_URL = "https://145.239.82.124.sslip.io/english"
         private const val CONNECT_TIMEOUT_MS = 10000
         private const val READ_TIMEOUT_MS = 15000
+
+        fun isHttpsEnforced(url: String): Boolean {
+            if (url.startsWith("http://")) {
+                if (url.startsWith("http://localhost") || url.startsWith("http://127.0.0.1") || url.startsWith("http://[::1]")) {
+                    return true
+                }
+                return false
+            }
+            return url.startsWith("https://")
+        }
     }
 
     fun testConnection(): Pair<Boolean, String> {
+        if (!isHttpsEnforced(baseUrl)) {
+            return Pair(false, "HTTPS Enforced: Insecure HTTP API URL rejected")
+        }
         return try {
             val endpoint = if (baseUrl.endsWith("/")) "${baseUrl}health" else "$baseUrl/health"
             val url = URL(endpoint)
@@ -111,6 +125,9 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
     }
 
     fun login(email: String, password: String): AuthResult {
+        if (!isHttpsEnforced(baseUrl)) {
+            return AuthResult(success = false, error = "HTTPS Enforced: Insecure HTTP API URL rejected")
+        }
         return try {
             val url = URL("$baseUrl/api/auth/login")
             val conn = url.openConnection() as HttpURLConnection
@@ -162,6 +179,9 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
     }
 
     fun signup(email: String, password: String, inviteCode: String): AuthResult {
+        if (!isHttpsEnforced(baseUrl)) {
+            return AuthResult(success = false, error = "HTTPS Enforced: Insecure HTTP API URL rejected")
+        }
         return try {
             val url = URL("$baseUrl/api/auth/signup")
             val conn = url.openConnection() as HttpURLConnection
@@ -214,6 +234,9 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
     }
 
     fun createDeviceToken(sessionToken: String, deviceName: String): DeviceTokenResult {
+        if (!isHttpsEnforced(baseUrl)) {
+            return DeviceTokenResult(success = false, error = "HTTPS Enforced: Insecure HTTP API URL rejected")
+        }
         return try {
             val url = URL("$baseUrl/api/devices/tokens")
             val conn = url.openConnection() as HttpURLConnection
@@ -268,6 +291,9 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
     }
 
     fun revokeDeviceToken(sessionToken: String, tokenId: String): Boolean {
+        if (!isHttpsEnforced(baseUrl)) {
+            return false
+        }
         return try {
             val url = URL("$baseUrl/api/devices/tokens/$tokenId/revoke")
             val conn = url.openConnection() as HttpURLConnection
@@ -288,6 +314,9 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
     }
 
     fun logout(sessionToken: String): Boolean {
+        if (!isHttpsEnforced(baseUrl)) {
+            return false
+        }
         return try {
             val url = URL("$baseUrl/api/auth/logout")
             val conn = url.openConnection() as HttpURLConnection
@@ -325,6 +354,30 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
         sentAt: String,
         previewOnly: Boolean
     ): AnalysisResponse {
+        if (!isHttpsEnforced(baseUrl)) {
+            return AnalysisResponse(
+                schemaVersion = 1,
+                eventId = eventId,
+                sampleId = null,
+                previewOnly = previewOnly,
+                accepted = false,
+                rejectionReason = "HTTPS Enforced: Insecure HTTP API URL rejected",
+                sourceApp = sourceApp,
+                originalText = originalText,
+                correctedText = null,
+                recommendedText = originalText,
+                assessment = null,
+                hasClearError = false,
+                changed = false,
+                summaryRu = null,
+                errors = emptyList(),
+                mechanicalCorrections = emptyList(),
+                optionalSuggestions = emptyList(),
+                topicEvidence = emptyList(),
+                statusCode = 400
+            )
+        }
+
         val url = URL("$baseUrl/api/writing/analyze")
         val conn = url.openConnection() as HttpURLConnection
         conn.requestMethod = "POST"
@@ -382,7 +435,8 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
                 errors = emptyList(),
                 mechanicalCorrections = emptyList(),
                 optionalSuggestions = emptyList(),
-                topicEvidence = emptyList()
+                topicEvidence = emptyList(),
+                statusCode = statusCode
             )
         }
 
@@ -483,7 +537,8 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
             errors = errorsList,
             mechanicalCorrections = mechList,
             optionalSuggestions = optList,
-            topicEvidence = topicList
+            topicEvidence = topicList,
+            statusCode = statusCode
         )
     }
 }

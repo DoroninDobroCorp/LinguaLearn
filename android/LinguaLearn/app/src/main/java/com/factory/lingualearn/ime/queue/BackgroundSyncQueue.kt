@@ -192,16 +192,31 @@ class BackgroundSyncQueue(
                         dequeue(item.eventId)
                         syncedCount++
                     } else {
+                        val status = response.statusCode ?: 0
                         val reason = response.rejectionReason ?: ""
-                        val isPermanent4xx = reason.startsWith("HTTP 400") ||
-                                reason.startsWith("HTTP 401") ||
-                                reason.startsWith("HTTP 403") ||
-                                reason.startsWith("HTTP 422")
-                        if (isPermanent4xx) {
-                            // Permanent client error -> drop to unblock queue
+
+                        val is401Permanent = status == 401 || reason.startsWith("HTTP 401") ||
+                                status == 400 || reason.startsWith("HTTP 400") ||
+                                status == 403 || reason.startsWith("HTTP 403") ||
+                                status == 422 || reason.startsWith("HTTP 422")
+
+                        val is409Replay = status == 409 || reason.startsWith("HTTP 409")
+
+                        val isRetryable = status == 429 || reason.startsWith("HTTP 429") ||
+                                (status in 500..599) || reason.contains("HTTP 5") ||
+                                status == 0
+
+                        if (is409Replay) {
+                            // 409 Conflict / replay: event already processed or in progress on server -> dequeue item
                             dequeue(item.eventId)
+                            syncedCount++
+                        } else if (is401Permanent) {
+                            // Permanent client error (401, 400, 403, 422) -> drop item to unblock queue
+                            dequeue(item.eventId)
+                        } else if (isRetryable) {
+                            // Transient error (429 rate limit, 5xx server error) -> increment retry with bounded backoff
+                            incrementRetry(item.eventId)
                         } else {
-                            // Transient error (5xx, 409, 429, etc.) -> increment retry
                             incrementRetry(item.eventId)
                         }
                     }
