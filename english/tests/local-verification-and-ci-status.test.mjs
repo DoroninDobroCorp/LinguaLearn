@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '../..');
 
-test('VAL-CI-003: Local verification script & honest GitHub Actions CI status', async (t) => {
+test('VAL-VERIFY-001 / VAL-CI-003: Reproducible verification runner & verified manifest', async (t) => {
   const scriptPath = path.join(REPO_ROOT, 'scripts/verify-english-beta.sh');
 
   if (process.env.VERIFY_ENGLISH_BETA_RUNNING === '1') {
@@ -25,12 +25,14 @@ test('VAL-CI-003: Local verification script & honest GitHub Actions CI status', 
     assert.equal(isExecutable, true, 'scripts/verify-english-beta.sh must be executable (chmod +x)');
   });
 
-  await t.test('2. scripts/verify-english-beta.sh executes successfully and outputs verified manifest', () => {
-    const output = execSync(`bash "${scriptPath}"`, { cwd: REPO_ROOT, encoding: 'utf8' });
+  await t.test('2. scripts/verify-english-beta.sh executes successfully and outputs verified manifest', { timeout: 300000 }, () => {
+    const output = execSync(`bash "${scriptPath}"`, { cwd: REPO_ROOT, encoding: 'utf8', timeout: 300000 });
     assert.match(output, /Verified Manifest Generated|VERIFIED/, 'Script stdout must indicate verified manifest generation');
 
     const manifestPath = path.join(REPO_ROOT, 'verified-manifest.json');
+    const reportsManifestPath = path.join(REPO_ROOT, 'english/server/reports/verified-manifest.json');
     assert.equal(fs.existsSync(manifestPath), true, 'verified-manifest.json must exist at REPO_ROOT');
+    assert.equal(fs.existsSync(reportsManifestPath), true, 'verified-manifest.json must exist in english/server/reports');
 
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
@@ -42,9 +44,27 @@ test('VAL-CI-003: Local verification script & honest GitHub Actions CI status', 
     assert.ok(manifest.localVerification, 'manifest must include localVerification object');
     assert.equal(manifest.localVerification.nodeBackendTests.status, 'PASSED', 'Node backend tests status must be PASSED');
     assert.equal(manifest.localVerification.webFrontendBuild.status, 'PASSED', 'Web frontend build status must be PASSED');
+    assert.equal(manifest.localVerification.openApiContractValidation.status, 'PASSED', 'OpenAPI contract validation status must be PASSED');
+    assert.equal(manifest.localVerification.npmAuditProductionGate.status, 'PASSED', 'npm audit production gate status must be PASSED');
     assert.equal(manifest.localVerification.macOSSwiftTests.status, 'PASSED', 'macOS Swift tests status must be PASSED');
     assert.equal(manifest.localVerification.iOSSimulatorTests.status, 'PASSED', 'iOS Simulator tests status must be PASSED');
     assert.equal(manifest.localVerification.androidGradleTests.status, 'PASSED', 'Android Gradle tests status must be PASSED');
+
+    // Check unexecuted platforms reported as BLOCKED/NOT_RUN (never false PASSED)
+    assert.ok(
+      manifest.localVerification.windowsDotnetTests.status.startsWith('BLOCKED') ||
+        manifest.localVerification.windowsDotnetTests.status === 'NOT_RUN' ||
+        manifest.localVerification.windowsDotnetTests.status === 'SKIPPED_HOST_UNSUPPORTED',
+      'Unexecuted platform suites must be reported as BLOCKED/NOT_RUN'
+    );
+    assert.notEqual(manifest.localVerification.windowsDotnetTests.status, 'PASSED', 'Unexecuted windows tests must not be falsely claimed as PASSED');
+
+    // Check artifact checksums
+    assert.ok(manifest.artifactChecksums, 'manifest must include artifactChecksums');
+    assert.equal(typeof manifest.artifactChecksums.webFrontendIndexHtml, 'string');
+    assert.equal(manifest.artifactChecksums.webFrontendIndexHtml.length, 64, 'webFrontendIndexHtml sha256 must be 64 hex characters');
+    assert.equal(typeof manifest.artifactChecksums.openApiSpec, 'string');
+    assert.equal(manifest.artifactChecksums.openApiSpec.length, 64, 'openApiSpec sha256 must be 64 hex characters');
 
     // Check CI status reporting
     assert.ok(manifest.ciStatus, 'manifest must include ciStatus object');
