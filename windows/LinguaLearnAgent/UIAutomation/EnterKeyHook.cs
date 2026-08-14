@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace LinguaLearnAgent.UIAutomation;
 
@@ -92,7 +93,8 @@ public class EnterKeyHook : IDisposable
                 var kbData = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
                 if (kbData.vkCode == VK_RETURN)
                 {
-                    OnEnterPressed();
+                    // Asynchronously dispatch off the low-level hook thread so NO network or UI Automation work occurs in the hook callback
+                    Task.Run(() => OnEnterPressed());
                 }
             }
             catch { }

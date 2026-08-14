@@ -241,4 +241,48 @@ describe('Stage E: Windows Desktop Agent MVP (schemaVersion 1)', () => {
     assert.match(hotkeyContent, /RegisterWindowHandle/i, 'Hotkey registration must wait for window handle');
     assert.doesNotMatch(hotkeyContent, /RegisterHotKey\(IntPtr\.Zero/i, 'Must NOT attempt premature IntPtr.Zero hotkey registration in constructor');
   });
+
+  it('VAL-WIN-006: Windows runtime correctness: fail-closed DPAPI, quarantine corrupt queue with UI notify, HWND timing, and WH_KEYBOARD_LL Enter hook without network in callback', () => {
+    // 1. Fail closed DPAPI token protection without PLAIN: fallback
+    const settingsPath = path.join(windowsDir, 'Settings/PrivacyConsentManager.cs');
+    assert.equal(fs.existsSync(settingsPath), true);
+    const settingsContent = fs.readFileSync(settingsPath, 'utf8');
+    assert.match(settingsContent, /DPAPI:/);
+    assert.doesNotMatch(settingsContent, /"PLAIN:"/);
+
+    // 2. Corrupt queue files quarantined with UI notification
+    const queuePath = path.join(windowsDir, 'Queue/OfflineRetryQueue.cs');
+    assert.equal(fs.existsSync(queuePath), true);
+    const queueContent = fs.readFileSync(queuePath, 'utf8');
+    assert.match(queueContent, /QueueCorruptQuarantined/, 'Must declare QueueCorruptQuarantined event');
+    assert.match(queueContent, /QuarantineQueueFile|\.quarantine/, 'Must implement queue file quarantine');
+    assert.match(queueContent, /ProtectedData\.Protect/, 'Must use DPAPI Protect');
+    assert.match(queueContent, /ProtectedData\.Unprotect/, 'Must use DPAPI Unprotect');
+
+    const appPath = path.join(windowsDir, 'App.xaml.cs');
+    assert.equal(fs.existsSync(appPath), true);
+    const appContent = fs.readFileSync(appPath, 'utf8');
+    assert.match(appContent, /QueueCorruptQuarantined|ShowBalloon/i, 'App must subscribe to queue quarantine event and show UI notification');
+
+    // 3. Hotkey registration postponed until HWND handle exists
+    const hotkeyPath = path.join(windowsDir, 'Hotkey/PreviewHotkeyManager.cs');
+    const hotkeyContent = fs.readFileSync(hotkeyPath, 'utf8');
+    assert.match(hotkeyContent, /RegisterWindowHandle/);
+    assert.doesNotMatch(hotkeyContent, /RegisterHotKey\(IntPtr\.Zero/);
+
+    const mainWinPath = path.join(windowsDir, 'MainWindow.xaml.cs');
+    const mainWinContent = fs.readFileSync(mainWinPath, 'utf8');
+    assert.match(mainWinContent, /OnSourceInitialized.*RegisterWindowHandle/s, 'MainWindow must register hotkey in OnSourceInitialized when HWND exists');
+
+    // 4. Low-level WH_KEYBOARD_LL Enter hook on focused non-password editable controls, no network in hook callback
+    const enterHookPath = path.join(windowsDir, 'UIAutomation/EnterKeyHook.cs');
+    const enterHookContent = fs.readFileSync(enterHookPath, 'utf8');
+    assert.match(enterHookContent, /WH_KEYBOARD_LL/, 'Must use WH_KEYBOARD_LL hook');
+    assert.match(enterHookContent, /Task\.Run|ThreadPool/i, 'Must dispatch asynchronously off hook callback thread to avoid blocking or network work');
+
+    const listenerPath = path.join(windowsDir, 'UIAutomation/UIAutomationListener.cs');
+    const listenerContent = fs.readFileSync(listenerPath, 'utf8');
+    assert.match(listenerContent, /IsEditableControl/, 'Must verify focused control is editable');
+    assert.match(listenerContent, /IsSecureField/, 'Must verify focused control is non-password/non-PIN');
+  });
 });

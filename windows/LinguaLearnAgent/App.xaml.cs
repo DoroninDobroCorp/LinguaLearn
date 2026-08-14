@@ -29,9 +29,16 @@ public partial class App : Application
         HotkeyManager = new PreviewHotkeyManager();
         AutomationListener = new UIAutomationListener(CandidateFilter, ApiClient, RetryQueue, SettingsManager, HotkeyManager);
 
+        RetryQueue.QueueCorruptQuarantined += OnQueueCorruptQuarantined;
+
         TrayController.Initialize();
         AutomationListener.StartListening();
         RetryQueue.StartBackgroundProcessor(ApiClient, TimeSpan.FromSeconds(15));
+    }
+
+    private void OnQueueCorruptQuarantined(object? sender, string message)
+    {
+        TrayController?.ShowBalloon("Offline Queue Quarantined", message);
     }
 
     protected override void OnExit(ExitEventArgs e)
