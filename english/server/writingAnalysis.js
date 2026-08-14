@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { migrateMultiUserSchema } from './dbMigration.js';
 import { recordTopicEvidence, recalculateTopicProgress, getUserTopicProgress } from './topicProgress.js';
+import { checkAnalyzeResponse } from './contractValidator.js';
 
 export const EXTERNAL_SCORE_WEIGHTS = Object.freeze({
   success: 1,
@@ -47,6 +48,80 @@ export const OBJECTIVE_GRAMMAR_CATEGORIES = Object.freeze(new Set([
   'conjunctions',
   'grammar',
 ]));
+
+export function parseRetryDelayMs(errorOrHeader) {
+  if (typeof errorOrHeader === 'number' && Number.isFinite(errorOrHeader) && errorOrHeader > 0) {
+    return errorOrHeader < 1000 ? errorOrHeader * 1000 : errorOrHeader;
+  }
+  const str = typeof errorOrHeader === 'string' ? errorOrHeader : (errorOrHeader?.message || String(errorOrHeader || ''));
+  const secMatch = str.match(/(?:retry(?:_|-|\s)?delay|retry(?:_|-|\s)?after)[\"']?:?\s*[\"']?(\d+(?:\.\d+)?)s?/i);
+  if (secMatch && secMatch[1]) {
+    const sec = parseFloat(secMatch[1]);
+    if (sec > 0) return Math.ceil(sec * 1000);
+  }
+  const msMatch = str.match(/(\d+)\s*ms/i);
+  if (msMatch && msMatch[1]) {
+    const ms = parseInt(msMatch[1], 10);
+    if (ms > 0) return ms;
+  }
+  return 5000;
+}
+
+export function calculateBackoffWithJitter(attempt, { baseMs = 1000, maxMs = 30000, jitterRange = 500 } = {}) {
+  const exponential = Math.min(maxMs, baseMs * Math.pow(2, attempt));
+  const jitter = Math.random() * jitterRange;
+  return Math.round(exponential + jitter);
+}
+
+export class CircuitBreaker {
+  constructor({ failureThreshold = 5, cooldownMs = 30000 } = {}) {
+    this.failureThreshold = failureThreshold;
+    this.cooldownMs = cooldownMs;
+    this.state = 'CLOSED';
+    this.consecutiveFailures = 0;
+    this.nextAttemptTime = 0;
+  }
+
+  canExecute() {
+    if (this.state === 'CLOSED') return true;
+    if (this.state === 'OPEN') {
+      if (Date.now() >= this.nextAttemptTime) {
+        this.state = 'HALF_OPEN';
+        return true;
+      }
+      return false;
+    }
+    if (this.state === 'HALF_OPEN') return true;
+    return false;
+  }
+
+  recordSuccess() {
+    this.consecutiveFailures = 0;
+    this.state = 'CLOSED';
+  }
+
+  recordFailure(isTransient429OrUpstream5xx = true) {
+    if (!isTransient429OrUpstream5xx) return;
+    this.consecutiveFailures++;
+    if (this.consecutiveFailures >= this.failureThreshold || this.state === 'HALF_OPEN') {
+      this.state = 'OPEN';
+      this.nextAttemptTime = Date.now() + this.cooldownMs;
+    }
+  }
+
+  getRetryAfterSeconds() {
+    if (this.state !== 'OPEN') return 1;
+    const remainingMs = Math.max(1000, this.nextAttemptTime - Date.now());
+    return Math.ceil(remainingMs / 1000);
+  }
+}
+
+export function isRateLimitError(error) {
+  if (!error) return false;
+  if (error.statusCode === 429 || error.status === 429 || error.code === 'RATE_LIMIT_EXCEEDED') return true;
+  const msg = String(error.message || '');
+  return msg.includes('429') || /rate\s*limit/i.test(msg) || /quota\s*exceeded/i.test(msg) || /ResourceExhausted/i.test(msg);
+}
 
 const ANALYSIS_SCHEMA = Object.freeze({
   type: 'object',
@@ -1219,6 +1294,7 @@ export function createGeminiWritingAnalyzer({
     process.env.GEMINI_WRITING_MODEL || 'gemini-3.5-flash-lite'
   ).trim(),
   promptVersion = 'v1',
+  circuitBreaker = null,
 }) {
   return async ({ text, canonicalTopics }) => {
     if (!genAI) {
@@ -1229,22 +1305,54 @@ export function createGeminiWritingAnalyzer({
       );
     }
 
-    const systemInstruction = buildWritingSystemInstruction({ canonicalTopics, promptVersion });
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: ANALYSIS_SCHEMA,
-      },
-      systemInstruction,
-    });
+    if (circuitBreaker && !circuitBreaker.canExecute()) {
+      const retryAfter = circuitBreaker.getRetryAfterSeconds();
+      const err = httpError(
+        429,
+        `Writing analyzer circuit breaker is OPEN. Upstream rate limit in effect. Retry after ${retryAfter}s.`,
+        'RATE_LIMIT_CIRCUIT_BREAKER_OPEN',
+      );
+      err.retryAfterSeconds = retryAfter;
+      throw err;
+    }
 
-    const result = await model.generateContent(`Analyze this message:\n<message>\n${text}\n</message>`);
-    const responseText = result.response.text();
     try {
-      return JSON.parse(responseText);
-    } catch {
-      throw httpError(502, 'Gemini returned invalid JSON for writing analysis.', 'INVALID_ANALYZER_JSON');
+      const systemInstruction = buildWritingSystemInstruction({ canonicalTopics, promptVersion });
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: ANALYSIS_SCHEMA,
+        },
+        systemInstruction,
+      });
+
+      const result = await model.generateContent(`Analyze this message:\n<message>\n${text}\n</message>`);
+      const responseText = result.response.text();
+      let parsed;
+      try {
+        parsed = JSON.parse(responseText);
+      } catch {
+        throw httpError(502, 'Gemini returned invalid JSON for writing analysis.', 'INVALID_ANALYZER_JSON');
+      }
+      if (circuitBreaker) circuitBreaker.recordSuccess();
+      return parsed;
+    } catch (error) {
+      if (isRateLimitError(error)) {
+        if (circuitBreaker) circuitBreaker.recordFailure(true);
+        const retryDelayMs = parseRetryDelayMs(error);
+        const rateLimitErr = httpError(
+          429,
+          `Gemini API rate limit exceeded: ${error.message}`,
+          'RATE_LIMIT_EXCEEDED',
+        );
+        rateLimitErr.retryAfterSeconds = Math.max(1, Math.ceil(retryDelayMs / 1000));
+        throw rateLimitErr;
+      }
+      if (circuitBreaker && (error.statusCode >= 500 || error.status >= 500)) {
+        circuitBreaker.recordFailure(true);
+      }
+      throw error;
     }
   };
 }
@@ -1296,11 +1404,17 @@ export function createWritingAnalyzeHandler({ service }) {
     } catch (error) {
       const durationMs = Math.round(performance.now() - handlerStart);
       res.set('X-Response-Time', `${durationMs}ms`);
-      const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
-      if (error.code === 'EVENT_IN_PROGRESS') res.set('Retry-After', '1');
+      const rateLimitHit = isRateLimitError(error);
+      const statusCode = rateLimitHit ? 429 : (Number.isInteger(error.statusCode) ? error.statusCode : 500);
+      if (rateLimitHit) {
+        const retrySec = error.retryAfterSeconds || Math.max(1, Math.ceil(parseRetryDelayMs(error) / 1000));
+        res.set('Retry-After', String(retrySec));
+      } else if (error.code === 'EVENT_IN_PROGRESS') {
+        res.set('Retry-After', '1');
+      }
       res.status(statusCode).json({
         error: error.message || 'Writing analysis failed.',
-        ...(error.code ? { code: error.code } : {}),
+        code: rateLimitHit ? (error.code || 'RATE_LIMIT_EXCEEDED') : (error.code || 'WRITING_ANALYSIS_FAILED'),
       });
     }
   };

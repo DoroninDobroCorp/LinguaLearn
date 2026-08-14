@@ -384,9 +384,15 @@ function buildHealthResponse() {
     gitCommit: getGitCommit(),
     buildTime: SERVER_BUILD_TIME,
     appVersion: SERVER_APP_VERSION,
+    modelTruth: {
+      writingModel: process.env.GEMINI_WRITING_MODEL || 'gemini-3.5-flash-lite',
+      chatModel: process.env.GEMINI_CHAT_MODEL || 'gemini-3.5-flash-lite',
+      canonicalModel: 'gemini-3.5-flash-lite',
+    },
     checks: {
       database: 'healthy',
       gemini: geminiEnabled ? 'configured' : 'not_configured',
+      model: 'gemini-3.5-flash-lite',
     },
     features: {
       aiChat: geminiEnabled,

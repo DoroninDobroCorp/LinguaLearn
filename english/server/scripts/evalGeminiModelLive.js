@@ -634,8 +634,9 @@ function extractRetryDelayMs(errorMessage) {
 
 export async function runLiveGeminiModelEval(options = {}) {
   const { db, ownerId: userId } = initLiveEvalDatabase();
-  const apiKey = options.apiKey !== undefined ? options.apiKey : process.env.GEMINI_API_KEY;
-  const modelName = options.modelName || process.env.GEMINI_WRITING_MODEL || 'gemini-3.1-flash-lite';
+  const evalApiKey = process.env.GEMINI_EVAL_API_KEY;
+  const apiKey = options.apiKey !== undefined ? options.apiKey : (evalApiKey || process.env.GEMINI_API_KEY);
+  const modelName = options.modelName || process.env.GEMINI_WRITING_MODEL || 'gemini-3.5-flash-lite';
   const isMock = options.mode === 'mock' || options.mock || process.argv.includes('--mock');
   const samples = options.samples || LIVE_BENCHMARK_SAMPLES;
   const promptVersion = options.promptVersion || PROMPT_VERSION;
@@ -653,7 +654,12 @@ export async function runLiveGeminiModelEval(options = {}) {
   } else {
     // Live mode: fail-closed if no API key
     if (!apiKey) {
-      throw new Error('Fail-closed: GEMINI_API_KEY is missing for live Gemini evaluation. Pass --mock flag to run with synthetic mock analyzer.');
+      throw new Error('Fail-closed: GEMINI_EVAL_API_KEY or GEMINI_API_KEY is missing for live Gemini evaluation. Pass --mock flag to run with synthetic mock analyzer.');
+    }
+    if (evalApiKey) {
+      console.log('[LiveEval] Using isolated GEMINI_EVAL_API_KEY for evaluation quota.');
+    } else {
+      console.log('[LiveEval] Isolated GEMINI_EVAL_API_KEY not found; using GEMINI_API_KEY fallback.');
     }
     const genAI = new GoogleGenerativeAI(apiKey);
     liveAnalyzer = createGeminiWritingAnalyzer({ genAI, modelName, promptVersion });
