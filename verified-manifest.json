@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "timestamp": "2026-08-14T01:56:19Z",
-  "gitCommit": "ebc48b61fff08e376152ed80af3e9a3f418ceb3b",
+  "timestamp": "2026-08-14T02:11:58Z",
+  "gitCommit": "99475f9520396bff41447e46a7bd757df43adb69",
   "originMainCommit": "1ee867a4fbaf8e841a2fc8792f24a9f7001e8159",
   "gitPushed": false,
   "localVerification": {
@@ -14,22 +14,37 @@
     "webFrontendBuild": {
       "status": "PASSED"
     },
+    "openApiContractValidation": {
+      "status": "PASSED"
+    },
+    "npmAuditProductionGate": {
+      "status": "PASSED"
+    },
     "macOSSwiftTests": {
       "status": "PASSED",
-      "passed": 47
+      "passed": 47,
+      "reason": "Executed swift test"
     },
     "iOSSimulatorTests": {
       "status": "PASSED",
-      "passed": 26
+      "passed": 26,
+      "reason": "Executed run-tests.sh"
     },
     "androidGradleTests": {
       "status": "PASSED",
-      "tasksPassed": 44
+      "tasksPassed": 44,
+      "reason": "Executed ./gradlew test"
     },
     "windowsDotnetTests": {
-      "status": "SKIPPED_HOST_UNSUPPORTED",
+      "status": "BLOCKED_HOST_UNSUPPORTED",
       "reason": "dotnet toolchain not installed on macOS host environment"
     }
+  },
+  "artifactChecksums": {
+    "webFrontendIndexHtml": "08d7115804f1c4180c120c9e7eaf5b304fbb99ca164ff096289745ce94416391",
+    "webFrontendJsAsset": "57ff6373f0eede502b2905e2ddb67dc22f429405678471b2547b96190976c711",
+    "webFrontendCssAsset": "22c59c3e339cc5e393955a0e5e1e11d16f408dd93d1a86dd7fae3b2ffa10ae64",
+    "openApiSpec": "63f8e1d28daeca7411bf0f9739143e40721c160fc327e7a5e982acfcfb7f2de2"
   },
   "ciStatus": {
     "status": "CI_BLOCKED_EXTERNAL",
