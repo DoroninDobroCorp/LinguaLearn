@@ -100,10 +100,19 @@ public class UIAutomationListener
     {
         if (_settings.IsPaused) return null;
 
-        if (_currentFocusedElement != null && IsSecureField(_currentFocusedElement))
+        if (_currentFocusedElement != null)
         {
-            Console.WriteLine("[UIAutomationListener] [EnterKeyHook] Excluded secure/password field.");
-            return null;
+            if (IsSecureField(_currentFocusedElement))
+            {
+                Console.WriteLine("[UIAutomationListener] [EnterKeyHook] Excluded secure/password field.");
+                return null;
+            }
+
+            if (!IsEditableControl(_currentFocusedElement))
+            {
+                Console.WriteLine("[UIAutomationListener] [EnterKeyHook] Excluded non-editable control.");
+                return null;
+            }
         }
 
         return await ExecuteTriggerAsync(textOverride, previewOnly: false, triggerName: "EnterKeyHookTrigger");
@@ -186,11 +195,16 @@ public class UIAutomationListener
             string name = element.Current.Name ?? "";
             string className = element.Current.ClassName ?? "";
             string automationId = element.Current.AutomationId ?? "";
+            string itemStatus = element.Current.ItemStatus ?? "";
             if (name.Contains("Password", StringComparison.OrdinalIgnoreCase) ||
                 className.Contains("Password", StringComparison.OrdinalIgnoreCase) ||
                 automationId.Contains("Password", StringComparison.OrdinalIgnoreCase) ||
+                itemStatus.Contains("Password", StringComparison.OrdinalIgnoreCase) ||
                 name.Contains("PIN", StringComparison.OrdinalIgnoreCase) ||
-                name.Contains("Secret", StringComparison.OrdinalIgnoreCase))
+                name.Contains("Passcode", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("Secret", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("CreditCard", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("CVV", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
@@ -198,6 +212,39 @@ public class UIAutomationListener
         catch
         {
             return true;
+        }
+        return false;
+    }
+
+    public bool IsEditableControl(AutomationElement element)
+    {
+        try
+        {
+            var controlType = element.Current.ControlType;
+            if (controlType == ControlType.Edit || controlType == ControlType.Document)
+            {
+                if (element.TryGetCurrentPattern(ValuePattern.Pattern, out object patternObj))
+                {
+                    var vp = (ValuePattern)patternObj;
+                    if (vp.Current.IsReadOnly) return false;
+                }
+                return true;
+            }
+
+            if (element.TryGetCurrentPattern(ValuePattern.Pattern, out object vpObj))
+            {
+                var vp = (ValuePattern)vpObj;
+                return !vp.Current.IsReadOnly;
+            }
+
+            if (element.TryGetCurrentPattern(TextPattern.Pattern, out _))
+            {
+                return true;
+            }
+        }
+        catch
+        {
+            // Fail safe on exception
         }
         return false;
     }

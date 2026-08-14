@@ -47,4 +47,17 @@ public class EnterKeyHookTests
         Assert.Equal(sampleText, listener.LastSentPayload.OriginalText);
         Assert.False(listener.LastSentPayload.PreviewOnly, "Enter key hook must trigger analysis with PreviewOnly = false");
     }
+
+    [Fact]
+    public void EnterKeyHook_HookCallback_DispatchesAsynchronouslyWithoutBlockingHookChain()
+    {
+        using var hook = new EnterKeyHook();
+        var startTime = DateTime.UtcNow;
+
+        // Verify OnEnterPressed fires without throwing
+        hook.OnEnterPressed();
+        var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+
+        Assert.True(elapsed < 100, "Hook callback must return immediately without blocking synchronous execution");
+    }
 }

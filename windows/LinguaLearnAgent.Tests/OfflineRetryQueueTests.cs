@@ -52,6 +52,39 @@ public class OfflineRetryQueueTests : IDisposable
         Assert.Equal(1, queue.Count);
     }
 
+    [Fact]
+    public void CorruptQueueFile_IsQuarantined_AndRaisesEvent()
+    {
+        var settings = new PrivacyConsentManager();
+        File.WriteAllText(_tempPath, "Corrupt non-JSON data inside retry queue");
+
+        bool eventFired = false;
+        string? notificationMessage = null;
+
+        using var queue = new OfflineRetryQueue(settings, _tempPath);
+        queue.QueueCorruptQuarantined += (sender, msg) =>
+        {
+            eventFired = true;
+            notificationMessage = msg;
+        };
+
+        // Trigger load
+        queue.LoadQueue();
+
+        Assert.True(eventFired, "QueueCorruptQuarantined event must be raised for corrupt queue files");
+        Assert.NotNull(notificationMessage);
+        Assert.Contains("quarantined", notificationMessage, StringComparison.OrdinalIgnoreCase);
+
+        string quarantinePath = $"{_tempPath}.quarantine";
+        Assert.True(File.Exists(quarantinePath), "Corrupt queue file must be moved to .quarantine path");
+        Assert.False(File.Exists(_tempPath), "Original corrupt file path must no longer exist after quarantine");
+
+        if (File.Exists(quarantinePath))
+        {
+            try { File.Delete(quarantinePath); } catch { }
+        }
+    }
+
     public void Dispose()
     {
         if (File.Exists(_tempPath))

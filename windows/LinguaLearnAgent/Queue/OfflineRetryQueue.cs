@@ -4,17 +4,6 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using LinguaLearnAgent.Network;
-using LinguaLearnAgent.Settings;
-
-namespace LinguaLearnAgent.Queue;
-
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,6 +31,8 @@ public class OfflineRetryQueue : IDisposable
     private readonly List<RetryQueueItem> _queue = new();
     private CancellationTokenSource? _cts;
     private Task? _backgroundTask;
+
+    public event EventHandler<string>? QueueCorruptQuarantined;
 
     public int Count
     {
@@ -228,6 +219,7 @@ public class OfflineRetryQueue : IDisposable
                     catch (Exception ex)
                     {
                         Console.WriteLine($"[OfflineRetryQueue] DPAPI Unprotect failed: {ex.Message}");
+                        QuarantineQueueFile($"DPAPI unprotect failed: {ex.Message}");
                         return; // FAIL CLOSED: Do not load unencrypted or corrupt queue data
                     }
                 }
@@ -252,25 +244,61 @@ public class OfflineRetryQueue : IDisposable
                 }
                 catch
                 {
-                    var legacyItems = JsonSerializer.Deserialize<List<AnalysisPayload>>(json);
-                    if (legacyItems != null)
+                    try
                     {
-                        lock (_queue)
+                        var legacyItems = JsonSerializer.Deserialize<List<AnalysisPayload>>(json);
+                        if (legacyItems != null)
                         {
-                            _queue.Clear();
-                            foreach (var p in legacyItems)
+                            lock (_queue)
                             {
-                                _queue.Add(new RetryQueueItem { Payload = p });
+                                _queue.Clear();
+                                foreach (var p in legacyItems)
+                                {
+                                    _queue.Add(new RetryQueueItem { Payload = p });
+                                }
                             }
+                            return;
                         }
                     }
+                    catch
+                    {
+                        QuarantineQueueFile("JSON deserialization failed");
+                        return;
+                    }
                 }
+
+                QuarantineQueueFile("Invalid queue format");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[OfflineRetryQueue] Load failed: {ex.Message}");
+            QuarantineQueueFile($"Load failed: {ex.Message}");
         }
+    }
+
+    public void QuarantineQueueFile(string reason)
+    {
+        try
+        {
+            if (File.Exists(_queueFilePath))
+            {
+                string quarantinePath = $"{_queueFilePath}.quarantine";
+                if (File.Exists(quarantinePath))
+                {
+                    File.Delete(quarantinePath);
+                }
+                File.Move(_queueFilePath, quarantinePath);
+                Console.WriteLine($"[OfflineRetryQueue] Quarantined corrupt queue file to {quarantinePath}: {reason}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[OfflineRetryQueue] Quarantine failed: {ex.Message}");
+        }
+
+        string message = $"Corrupt offline queue file quarantined: {reason}";
+        QueueCorruptQuarantined?.Invoke(this, message);
     }
 
     public void Dispose()
