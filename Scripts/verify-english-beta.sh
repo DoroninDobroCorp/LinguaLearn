@@ -103,9 +103,9 @@ fi
 
 echo "[7/8] Running Android IME & Container App Tests..."
 ANDROID_STATUS="BLOCKED_HOST_UNSUPPORTED"
-ANDROID_REASON="Android Gradle wrapper unavailable"
+ANDROID_REASON="Android Gradle wrapper or SDK unavailable"
 ANDROID_TASKS_PASSED=0
-if [ -f "$REPO_ROOT/android/LinguaLearn/gradlew" ]; then
+if [ -f "$REPO_ROOT/android/LinguaLearn/gradlew" ] && { [ -n "${ANDROID_HOME:-}" ] || [ -f "$REPO_ROOT/android/LinguaLearn/local.properties" ] || [ -d "$HOME/Library/Android/sdk" ] || [ -d "/opt/homebrew/share/android-commandlinetools" ]; }; then
     ANDROID_REASON="Executed ./gradlew test"
     if (cd "$REPO_ROOT/android/LinguaLearn" && ./gradlew test); then
         ANDROID_STATUS="PASSED"
