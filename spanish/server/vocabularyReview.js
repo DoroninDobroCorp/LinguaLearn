@@ -113,6 +113,22 @@ function ensureReviewCardColumns(db) {
   }
 }
 
+function ensureVocabularyCollectionColumns(db) {
+  const columns = new Set(db.prepare('PRAGMA table_info(vocabulary)').all().map((column) => column.name));
+  if (!columns.has('is_favorite')) {
+    db.exec('ALTER TABLE vocabulary ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!columns.has('learned_permanently_at')) {
+    db.exec('ALTER TABLE vocabulary ADD COLUMN learned_permanently_at TEXT');
+  }
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_vocabulary_profile_favorite
+      ON vocabulary(profile_id, is_favorite);
+    CREATE INDEX IF NOT EXISTS idx_vocabulary_profile_permanent
+      ON vocabulary(profile_id, learned_permanently_at);
+  `);
+}
+
 function addDays(baseDate, days) {
   return new Date(baseDate.getTime() + (days * MS_PER_DAY));
 }
@@ -211,6 +227,9 @@ function isCardReviewable(card) {
 }
 
 function assertCardReviewable(card) {
+  if (card.learned_permanently_at) {
+    throw new VocabularyApiError(409, 'This vocabulary entry is learned permanently. Restore it before reviewing.', 'VOCAB_LEARNED_PERMANENTLY');
+  }
   if (!isCardReviewable(card)) {
     throw new VocabularyApiError(
       409,
@@ -601,6 +620,8 @@ function fetchEntryRows(db, profileId) {
       v.word,
       v.translation,
       v.example,
+      v.is_favorite,
+      v.learned_permanently_at,
       v.created_at AS entry_created_at,
       c.id,
       c.vocabulary_id,
@@ -630,7 +651,8 @@ function fetchReviewCardRow(db, profileId, cardId) {
       c.*,
       v.word,
       v.translation,
-      v.example
+      v.example,
+      v.learned_permanently_at
     FROM vocabulary_review_cards c
     JOIN vocabulary v ON v.id = c.vocabulary_id
     WHERE c.id = ? AND c.profile_id = ?
@@ -651,6 +673,8 @@ function fetchEntryById(db, profileId, entryId, now = new Date()) {
       v.word,
       v.translation,
       v.example,
+      v.is_favorite,
+      v.learned_permanently_at,
       v.created_at AS entry_created_at,
       c.id,
       c.vocabulary_id,
@@ -696,6 +720,8 @@ function buildVocabularyEntries(rows, now = new Date()) {
         word: stripStudyHints(row.word),
         translation: stripStudyHints(row.translation),
         example: row.example,
+        is_favorite: Boolean(row.is_favorite),
+        learned_permanently_at: row.learned_permanently_at ? toIso(row.learned_permanently_at) : null,
         created_at: toIso(row.entry_created_at),
         cards: [],
       });
@@ -774,6 +800,7 @@ function insertVocabularyEntryRow(db, profileId, { word, translation, example, c
 }
 
 export function ensureVocabularyReviewSchema(db) {
+  ensureVocabularyCollectionColumns(db);
   db.exec(`
     CREATE TABLE IF NOT EXISTS vocabulary_review_cards (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -908,6 +935,9 @@ export function listVocabularyEntries(db, profileId, now = new Date()) {
     learning_cards: 0,
     new_cards: 0,
     snoozed_cards: 0,
+    favorite_entries: 0,
+    permanently_learned_entries: 0,
+    active_entries: 0,
     mastered_entries: 0,
     pending_completion_entries: 0,
     directions: {
@@ -923,6 +953,12 @@ export function listVocabularyEntries(db, profileId, now = new Date()) {
   };
 
   for (const entry of entries) {
+    if (entry.is_favorite) stats.favorite_entries += 1;
+    if (entry.learned_permanently_at) {
+      stats.permanently_learned_entries += 1;
+    } else {
+      stats.active_entries += 1;
+    }
     stats.total_cards += entry.card_summary.total_cards;
     stats.reviewable_cards += entry.card_summary.reviewable_cards;
     stats.unreviewable_cards += entry.card_summary.unreviewable_cards;
@@ -940,7 +976,7 @@ export function listVocabularyEntries(db, profileId, now = new Date()) {
       stats.pending_completion_entries += 1;
     }
 
-    if (reviewableCards.some((card) => card.is_due)) {
+    if (!entry.learned_permanently_at && reviewableCards.some((card) => card.is_due)) {
       stats.due_entries += 1;
     }
 
@@ -972,6 +1008,7 @@ export function listDueReviewCards(db, profileId, options = {}) {
     WHERE c.profile_id = ?
       AND TRIM(COALESCE(v.word, '')) != ''
       AND TRIM(COALESCE(v.translation, '')) != ''
+      AND v.learned_permanently_at IS NULL
       AND c.next_review_at <= ?
       AND (c.learned_until IS NULL OR c.learned_until <= ?)
     ORDER BY
@@ -989,6 +1026,7 @@ export function listDueReviewCards(db, profileId, options = {}) {
     WHERE c.profile_id = ?
       AND TRIM(COALESCE(v.word, '')) != ''
       AND TRIM(COALESCE(v.translation, '')) != ''
+      AND v.learned_permanently_at IS NULL
       AND c.next_review_at <= ?
       AND (c.learned_until IS NULL OR c.learned_until <= ?)
   `).get(profileId, nowIso, nowIso).count;
@@ -1105,6 +1143,30 @@ export function deleteVocabularyEntry(db, profileId, entryId) {
   return { success: true };
 }
 
+export function setVocabularyFavorite(db, profileId, entryId, favorite, now = new Date()) {
+  if (typeof favorite !== 'boolean') {
+    throw new VocabularyApiError(400, 'favorite must be a boolean', 'INVALID_FAVORITE');
+  }
+  const result = db.prepare('UPDATE vocabulary SET is_favorite = ? WHERE id = ? AND profile_id = ?')
+    .run(favorite ? 1 : 0, entryId, profileId);
+  if (result.changes === 0) {
+    throw new VocabularyApiError(404, 'Vocabulary entry not found', 'VOCAB_NOT_FOUND');
+  }
+  return fetchEntryById(db, profileId, entryId, now);
+}
+
+export function setVocabularyPermanentlyLearned(db, profileId, entryId, learned, now = new Date()) {
+  if (typeof learned !== 'boolean') {
+    throw new VocabularyApiError(400, 'learned must be a boolean', 'INVALID_LEARNED_STATE');
+  }
+  const result = db.prepare('UPDATE vocabulary SET learned_permanently_at = ? WHERE id = ? AND profile_id = ?')
+    .run(learned ? toIso(now) : null, entryId, profileId);
+  if (result.changes === 0) {
+    throw new VocabularyApiError(404, 'Vocabulary entry not found', 'VOCAB_NOT_FOUND');
+  }
+  return fetchEntryById(db, profileId, entryId, now);
+}
+
 function normalizeImportEntry(payload = {}, now = new Date()) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     throw new VocabularyApiError(400, 'Each imported entry must be an object', 'INVALID_IMPORT_ENTRY');
@@ -1130,6 +1192,8 @@ function normalizeImportEntry(payload = {}, now = new Date()) {
   return {
     ...baseEntry,
     created_at: createdAt,
+    is_favorite: payload.is_favorite === true,
+    learned_permanently_at: sanitizeImportedTimestamp(payload.learned_permanently_at, now),
     cards: normalizedCards,
   };
 }
@@ -1313,6 +1377,8 @@ export function exportVocabularyArchive(db, profile, now = new Date()) {
       word: entry.word,
       translation: entry.translation,
       example: entry.example,
+      is_favorite: entry.is_favorite,
+      learned_permanently_at: entry.learned_permanently_at,
       created_at: entry.created_at,
       cards: Object.fromEntries(entry.cards.map((card) => [card.direction, {
         direction: card.direction,
@@ -1402,6 +1468,13 @@ export function importVocabularyArchive(db, profileId, payload, now = new Date()
         summary.updated_examples += 1;
       }
 
+      db.prepare(`
+        UPDATE vocabulary
+        SET is_favorite = CASE WHEN is_favorite = 1 OR ? = 1 THEN 1 ELSE 0 END,
+            learned_permanently_at = COALESCE(learned_permanently_at, ?)
+        WHERE id = ? AND profile_id = ?
+      `).run(entry.is_favorite ? 1 : 0, entry.learned_permanently_at, existing.id, profileId);
+
       for (const direction of REVIEW_CARD_DIRECTIONS) {
         if (!entry.cards[direction]) {
           continue;
@@ -1473,6 +1546,8 @@ function buildLegacyWordPresentation(entry, now = new Date()) {
     word: entry.word,
     translation: entry.translation,
     example: entry.example,
+    is_favorite: entry.is_favorite,
+    learned_permanently_at: entry.learned_permanently_at,
     level: deriveLegacyLevelFromCard(primaryCard, now),
     next_review: primaryCard?.next_review_at ?? null,
     next_review_at: primaryCard?.next_review_at ?? null,
@@ -1480,7 +1555,7 @@ function buildLegacyWordPresentation(entry, now = new Date()) {
     last_reviewed: primaryCard?.last_reviewed_at ?? null,
     last_reviewed_at: primaryCard?.last_reviewed_at ?? null,
     last_grade: primaryCard?.last_grade ?? null,
-    due: Boolean(primaryCard?.is_due),
+    due: !entry.learned_permanently_at && Boolean(primaryCard?.is_due),
     state: primaryCard?.status ?? 'new',
     status: primaryCard?.status ?? 'new',
     card_id: primaryCard?.id ?? null,
@@ -1506,7 +1581,8 @@ function fetchEntryReviewCardRow(db, profileId, entryId, direction = 'source_to_
       c.*,
       v.word,
       v.translation,
-      v.example
+      v.example,
+      v.learned_permanently_at
     FROM vocabulary_review_cards c
     JOIN vocabulary v ON v.id = c.vocabulary_id
     WHERE c.vocabulary_id = ? AND c.profile_id = ? AND c.direction = ?

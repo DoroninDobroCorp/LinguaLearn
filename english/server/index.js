@@ -1358,7 +1358,7 @@ app.delete('/api/chat/clear', (req, res) => {
 app.get('/api/vocabulary', (req, res) => {
   try {
     const userId = getUserId(req);
-    const words = db.prepare('SELECT * FROM vocabulary WHERE user_id = ? ORDER BY next_review ASC').all(userId);
+    const words = db.prepare('SELECT * FROM vocabulary WHERE user_id = ? ORDER BY learned_permanently_at IS NOT NULL ASC, next_review ASC').all(userId);
     res.json({ words });
   } catch (error) {
     console.error('Error fetching vocabulary:', error);
@@ -1371,7 +1371,7 @@ app.get('/api/vocabulary/due', (req, res) => {
   try {
     const userId = getUserId(req);
     const today = new Date().toISOString().split('T')[0];
-    const words = db.prepare('SELECT * FROM vocabulary WHERE user_id = ? AND next_review <= ? ORDER BY next_review ASC').all(userId, today + 'T23:59:59');
+    const words = db.prepare('SELECT * FROM vocabulary WHERE user_id = ? AND learned_permanently_at IS NULL AND next_review <= ? ORDER BY next_review ASC').all(userId, today + 'T23:59:59');
     res.json({ words });
   } catch (error) {
     console.error('Error fetching due words:', error);
@@ -1415,6 +1415,9 @@ app.post('/api/vocabulary/:id/review', (req, res) => {
     if (!word) {
       return res.status(404).json({ error: 'Word not found' });
     }
+    if (word.learned_permanently_at) {
+      return res.status(409).json({ error: 'Restore this permanently learned word before reviewing it', code: 'VOCAB_LEARNED_PERMANENTLY' });
+    }
     
     let newLevel = word.level;
     
@@ -1428,6 +1431,14 @@ app.post('/api/vocabulary/:id/review', (req, res) => {
       newLevel = Math.min(5, word.level + 2);
     }
     
+    const qualityNumber = Number(quality);
+    if (![0, 1, 2, 3].includes(qualityNumber)) {
+      return res.status(400).json({ error: 'quality must be 0, 1, 2, or 3' });
+    }
+    const fallbackDays = [0, 1, 3, 7][qualityNumber];
+    const fallbackNextReview = new Date(Date.now() + fallbackDays * 24 * 60 * 60 * 1000).toISOString();
+    const safeNextReview = typeof nextReview === 'string' && !Number.isNaN(Date.parse(nextReview)) ? nextReview : fallbackNextReview;
+
     db.prepare(`
       UPDATE vocabulary 
       SET level = ?,
@@ -1435,7 +1446,7 @@ app.post('/api/vocabulary/:id/review', (req, res) => {
           review_count = review_count + 1,
           last_reviewed = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
-    `).run(newLevel, nextReview, id, userId);
+    `).run(newLevel, safeNextReview, id, userId);
     
     const updatedWord = db.prepare('SELECT * FROM vocabulary WHERE id = ? AND user_id = ?').get(id, userId);
     res.json(updatedWord);
@@ -1471,6 +1482,39 @@ app.put('/api/vocabulary/:id', (req, res) => {
     res.json(updated);
   } catch (error) {
     console.error('Error updating word:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch('/api/vocabulary/:id/favorite', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (typeof req.body?.favorite !== 'boolean') {
+      return res.status(400).json({ error: 'favorite must be a boolean' });
+    }
+    const result = db.prepare('UPDATE vocabulary SET is_favorite = ? WHERE id = ? AND user_id = ?')
+      .run(req.body.favorite ? 1 : 0, req.params.id, userId);
+    if (result.changes === 0) return res.status(404).json({ error: 'Word not found' });
+    res.json(db.prepare('SELECT * FROM vocabulary WHERE id = ? AND user_id = ?').get(req.params.id, userId));
+  } catch (error) {
+    console.error('Error updating favorite:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/vocabulary/:id/permanent-learned', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (typeof req.body?.learned !== 'boolean') {
+      return res.status(400).json({ error: 'learned must be a boolean' });
+    }
+    const timestamp = req.body.learned ? new Date().toISOString() : null;
+    const result = db.prepare('UPDATE vocabulary SET learned_permanently_at = ? WHERE id = ? AND user_id = ?')
+      .run(timestamp, req.params.id, userId);
+    if (result.changes === 0) return res.status(404).json({ error: 'Word not found' });
+    res.json(db.prepare('SELECT * FROM vocabulary WHERE id = ? AND user_id = ?').get(req.params.id, userId));
+  } catch (error) {
+    console.error('Error updating permanent learned state:', error);
     res.status(500).json({ error: error.message });
   }
 });

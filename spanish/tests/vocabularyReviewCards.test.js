@@ -13,6 +13,8 @@ import {
   markVocabularyCardLearned,
   reviewLegacyVocabularyEntry,
   reviewVocabularyCard,
+  setVocabularyFavorite,
+  setVocabularyPermanentlyLearned,
 } from '../server/vocabularyReview.js';
 import { ensureVocabularyExactDuplicateIndex } from '../server/vocabularyUniquenessMigration.js';
 
@@ -52,6 +54,31 @@ function createTestDb() {
 }
 
 describe('Vocabulary review cards', () => {
+  it('stores favorites and permanent learned state per profile without deleting the entry', () => {
+    const db = createTestDb();
+    ensureVocabularyReviewSchema(db);
+    const now = new Date('2030-01-01T10:00:00.000Z');
+    const entry = createVocabularyEntry(db, 1, { word: 'hola', translation: 'hello' }, now);
+    const other = createVocabularyEntry(db, 2, { word: 'hola', translation: 'hello' }, now);
+
+    setVocabularyFavorite(db, 1, entry.id, true, now);
+    setVocabularyPermanentlyLearned(db, 1, entry.id, true, now);
+
+    const profileOne = listVocabularyEntries(db, 1, now);
+    assert.equal(profileOne.entries.length, 1);
+    assert.equal(profileOne.entries[0].is_favorite, true);
+    assert.equal(profileOne.entries[0].learned_permanently_at, now.toISOString());
+    assert.equal(profileOne.stats.favorite_entries, 1);
+    assert.equal(profileOne.stats.permanently_learned_entries, 1);
+    assert.equal(listDueReviewCards(db, 1, { now }).cards.length, 0);
+    assert.equal(listDueReviewCards(db, 2, { now }).cards.length, 2);
+    assert.equal(listVocabularyEntries(db, 2, now).entries[0].id, other.id);
+
+    setVocabularyPermanentlyLearned(db, 1, entry.id, false, now);
+    assert.equal(listDueReviewCards(db, 1, { now }).cards.length, 2);
+    db.close();
+  });
+
   it('migrates legacy vocabulary rows into two review cards idempotently', () => {
     const db = createTestDb();
     db.prepare(`

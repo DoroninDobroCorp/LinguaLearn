@@ -23,6 +23,8 @@ import {
   markVocabularyCardLearned,
   reviewLegacyVocabularyEntry,
   reviewVocabularyCard,
+  setVocabularyFavorite,
+  setVocabularyPermanentlyLearned,
 } from './vocabularyReview.js';
 import { ensureCaseInsensitiveProfileNameIndex } from './profileNameMigration.js';
 import {
@@ -1709,6 +1711,32 @@ app.post('/api/vocabulary/:id/learned', (req, res) => {
     res.json(markedWord);
   } catch (error) {
     handleVocabularyError(res, error, 'Error marking vocabulary entry learned:');
+  }
+});
+
+app.patch('/api/vocabulary/:id/favorite', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const entryId = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(entryId) || entryId <= 0) {
+      throw new VocabularyApiError(400, 'Vocabulary id must be a positive integer', 'INVALID_VOCAB_ID');
+    }
+    res.json({ entry: setVocabularyFavorite(db, profileId, entryId, req.body?.favorite, new Date()) });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error updating vocabulary favorite:');
+  }
+});
+
+app.put('/api/vocabulary/:id/permanent-learned', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const entryId = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(entryId) || entryId <= 0) {
+      throw new VocabularyApiError(400, 'Vocabulary id must be a positive integer', 'INVALID_VOCAB_ID');
+    }
+    res.json({ entry: setVocabularyPermanentlyLearned(db, profileId, entryId, req.body?.learned, new Date()) });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error updating permanent learned state:');
   }
 });
 

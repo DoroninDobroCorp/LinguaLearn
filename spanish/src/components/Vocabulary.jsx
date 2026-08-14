@@ -19,6 +19,8 @@ import {
   Volume2,
   X,
   Settings,
+  Star,
+  Undo2,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
@@ -30,6 +32,7 @@ import {
   shouldStopSpeakingOnCardFlip,
 } from '../utils/speechPractice';
 import { scoreTypedAnswer } from '../utils/answerMatching';
+import { buildOnceEachChoices } from '../utils/vocabularyRounds';
 import {
   formatOfflineCacheTime,
   readOfflineVocabularyCache,
@@ -46,6 +49,9 @@ const INITIAL_STATS = {
   total_cards: 0,
   due_cards: 0,
   learned_cards: 0,
+  favorite_entries: 0,
+  permanently_learned_entries: 0,
+  active_entries: 0,
   mastered_entries: 0,
   pending_completion_entries: 0,
   unreviewable_cards: 0,
@@ -142,7 +148,11 @@ const ENTRY_FILTERS = {
   },
   learned: {
     label: 'Learned',
-    description: 'Explicitly hidden with the Learned button',
+    description: 'Marked learned forever and excluded from practice',
+  },
+  favorites: {
+    label: 'Favorites',
+    description: 'Saved to your favorites',
   },
   hard: {
     label: 'Hard',
@@ -187,7 +197,7 @@ function isEntryMastered(entry) {
 }
 
 function isEntryLearned(entry) {
-  return (Number(entry?.card_summary?.learned_cards) || 0) > 0;
+  return Boolean(entry?.learned_permanently_at);
 }
 
 function isEntrySnoozed(entry) {
@@ -218,6 +228,8 @@ function matchesEntryFilter(entry, filter) {
       return isEntrySnoozed(entry);
     case 'learned':
       return isEntryLearned(entry);
+    case 'favorites':
+      return Boolean(entry?.is_favorite);
     case 'hard':
     case 'good':
     case 'easy':
@@ -290,13 +302,13 @@ function findEntryCard(entry, direction) {
 }
 
 function isEntryEligibleForRandomStudy(entry) {
-  return !isEntryBlocked(entry)
+  return !entry?.learned_permanently_at && !isEntryBlocked(entry)
     && Array.isArray(entry?.cards)
     && entry.cards.some((card) => card.is_reviewable && card.is_due);
 }
 
 function isEntryEligibleForPracticeAll(entry) {
-  return !isEntryBlocked(entry)
+  return !entry?.learned_permanently_at && !isEntryBlocked(entry)
     && Array.isArray(entry?.cards)
     && entry.cards.some((card) => card.is_reviewable)
     && !entry.cards.every((card) => card.status === 'learned');
@@ -367,22 +379,29 @@ function chooseRandomItem(values = []) {
 }
 
 function buildReviewSessionEntries(entries, mode = 'due') {
-  const practiceOnly = mode === 'practice_all';
-  const eligibleEntries = entries.filter(
-    practiceOnly ? isEntryEligibleForPracticeAll : isEntryEligibleForRandomStudy,
-  );
+  const exactOnce = mode === 'once_all' || mode === 'favorites_once';
+  const practiceOnly = mode === 'practice_all' || exactOnce;
+  const eligibleEntries = entries.filter((entry) => {
+    if (mode === 'favorites_once' && !entry.is_favorite) return false;
+    return practiceOnly ? isEntryEligibleForPracticeAll(entry) : isEntryEligibleForRandomStudy(entry);
+  });
 
-  return eligibleEntries
-    .map((entry) => {
-      const variants = buildStudyVariantsForEntry(entry, { practiceOnly });
+  const choices = exactOnce
+    ? buildOnceEachChoices(eligibleEntries, (entry) => buildStudyVariantsForEntry(entry, { practiceOnly }))
+    : eligibleEntries.map((entry) => ({ entry, variant: null }));
+
+  return choices
+    .map(({ entry, variant }) => {
+      const selectedVariants = variant ? [variant] : buildStudyVariantsForEntry(entry, { practiceOnly });
       return {
         entryId: entry.id,
         word: entry.word,
         translation: entry.translation,
         example: entry.example,
+        isFavorite: Boolean(entry.is_favorite),
         dueCardCount: Number(entry?.card_summary?.due_cards) || 0,
-        totalVariants: variants.length,
-        remainingVariants: variants,
+        totalVariants: selectedVariants.length,
+        remainingVariants: selectedVariants,
       };
     })
     .filter((entry) => entry.remainingVariants.length > 0);
@@ -412,6 +431,7 @@ function pickNextSessionCard(sessionEntries, sessionMode = 'due', previousEntryI
       word: selectedEntry.word,
       translation: selectedEntry.translation,
       example: selectedEntry.example,
+      is_favorite: selectedEntry.isFavorite,
       due_card_count: selectedEntry.dueCardCount,
       total_forms_for_word: selectedEntry.totalVariants,
       forms_remaining_for_word: selectedEntry.remainingVariants.length,
@@ -789,6 +809,10 @@ function Vocabulary() {
     () => entries.filter((entry) => isEntryEligibleForPracticeAll(entry)).length,
     [entries],
   );
+  const favoriteCandidateCount = useMemo(
+    () => entries.filter((entry) => entry.is_favorite && isEntryEligibleForPracticeAll(entry)).length,
+    [entries],
+  );
   const remainingSessionEntries = reviewSession.entries.length;
   const completedSessionEntries = Math.max(0, reviewSession.totalEntries - remainingSessionEntries);
   const reviewProgressPercent = reviewSession.totalEntries > 0
@@ -796,6 +820,8 @@ function Vocabulary() {
     : 100;
   const reviewRoundCompleted = reviewSession.isComplete && reviewSession.mode === 'due' && reviewSession.totalEntries > 0;
   const practiceRoundCompleted = reviewSession.isComplete && reviewSession.mode === 'practice_all' && reviewSession.totalEntries > 0;
+  const onceRoundCompleted = reviewSession.isComplete && reviewSession.mode === 'once_all' && reviewSession.totalEntries > 0;
+  const favoritesRoundCompleted = reviewSession.isComplete && reviewSession.mode === 'favorites_once' && reviewSession.totalEntries > 0;
 
   const entryCounts = useMemo(() => {
     const filterKeys = Object.keys(ENTRY_FILTERS);
@@ -819,9 +845,9 @@ function Vocabulary() {
   const dueLabel = useMemo(() => {
     if (reviewSession.totalEntries > 0 && currentCard) {
       const wordLabel = `${remainingSessionEntries} ${remainingSessionEntries === 1 ? 'word' : 'words'} left`;
-      return reviewSession.mode === 'practice_all'
-        ? `${wordLabel} in random practice`
-        : `${wordLabel} in this round`;
+      if (reviewSession.mode === 'favorites_once') return `${wordLabel} in favorites round`;
+      if (reviewSession.mode === 'once_all') return `${wordLabel} in exact-once round`;
+      return reviewSession.mode === 'practice_all' ? `${wordLabel} in random practice` : `${wordLabel} in this round`;
     }
 
     if (reviewRoundCompleted) {
@@ -966,17 +992,79 @@ function Vocabulary() {
   const handleLearned = async () => {
     if (!currentCard) return;
     if (isOfflineRuntime()) {
-      setNotice('Marking cards learned needs internet. You can still continue offline practice.');
+      setError('Marking a word learned forever needs internet.');
+      return;
+    }
+    if (!window.confirm(`Mark “${currentCard.word}” learned forever? It will leave every study queue, but you can restore it from the Learned list.`)) return;
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/${currentCard.id}/permanent-learned`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ learned: true }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to mark word learned forever');
+      }
       advanceCurrentSessionCard(currentCard, { removeEntry: true });
+      await refreshVocabulary();
+      setNotice('Saved as learned forever. You can restore it from the Learned list.');
+    } catch (learnError) {
+      setError(learnError.message || 'Failed to mark word learned forever');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const updateFavorite = async (entry, favorite) => {
+    if (isOfflineRuntime()) {
+      setError('Updating favorites needs internet.');
       return;
     }
-
-    const success = await submitReview(`/spanish/api/vocabulary/${currentCard.id}/learned`);
-    if (!success) {
-      return;
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/${entry.id}/favorite`), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ favorite }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to update favorite');
+      }
+      setReviewQueue((queue) => queue.map((card) => card.id === entry.id ? { ...card, is_favorite: favorite } : card));
+      await refreshVocabulary();
+      setNotice(favorite ? 'Added to favorites.' : 'Removed from favorites.');
+    } catch (favoriteError) {
+      setError(favoriteError.message || 'Failed to update favorite');
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
-    advanceCurrentSessionCard(currentCard, { removeEntry: true });
+  const restoreLearnedEntry = async (entry) => {
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/${entry.id}/permanent-learned`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ learned: false }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to restore word');
+      }
+      await refreshVocabulary();
+      setNotice('Word restored to study queues.');
+    } catch (restoreError) {
+      setError(restoreError.message || 'Failed to restore word');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const deleteWord = async (entryId) => {
@@ -1171,6 +1259,22 @@ function Vocabulary() {
           </div>
         )}
 
+        <div className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+          <p className="mb-3 text-sm font-semibold text-indigo-900">Choose a study round</p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <button type="button" onClick={() => startReviewSession('due')} disabled={dueStudyCandidateCount === 0} className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-indigo-700 shadow-sm disabled:opacity-45">
+              Due now ({dueStudyCandidateCount})
+            </button>
+            <button type="button" onClick={() => startReviewSession('once_all')} disabled={practiceAllCandidateCount === 0} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-45">
+              All words — once each ({practiceAllCandidateCount})
+            </button>
+            <button type="button" onClick={() => startReviewSession('favorites_once')} disabled={favoriteCandidateCount === 0} className="rounded-xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-45">
+              <Star className="mr-1 inline h-4 w-4" /> Favorites only ({favoriteCandidateCount})
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-indigo-700">The once-each modes use a shuffled snapshot: a word cannot repeat until every word in that round has appeared.</p>
+        </div>
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
           {summaryCards.map((card) => {
             const isSelected = entryFilter === card.key;
@@ -1315,7 +1419,7 @@ function Vocabulary() {
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
             <div>
               <p className="text-sm text-gray-500">
-                {currentCard.session_mode === 'practice_all' ? 'Random practice round' : 'Random word round'}
+                {currentCard.session_mode === 'favorites_once' ? 'Favorites — once each' : currentCard.session_mode === 'once_all' ? 'All words — once each' : currentCard.session_mode === 'practice_all' ? 'Random practice round' : 'Due round'}
               </p>
               <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <Brain className="h-6 w-6 text-indigo-600" />
@@ -1324,6 +1428,15 @@ function Vocabulary() {
             </div>
 
             <div className="flex flex-wrap gap-2 items-center">
+              <button
+                type="button"
+                onClick={() => updateFavorite(currentCard, !currentCard.is_favorite)}
+                disabled={isSubmitting}
+                className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold ${currentCard.is_favorite ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}
+              >
+                <Star className={`h-4 w-4 ${currentCard.is_favorite ? 'fill-current' : ''}`} />
+                {currentCard.is_favorite ? 'Favorite' : 'Add favorite'}
+              </button>
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-semibold">
                 <Languages className="h-4 w-4" />
                 {currentCard.direction_label}
@@ -1503,7 +1616,7 @@ function Vocabulary() {
                 className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-700 transition-all shadow-md flex items-center justify-center gap-2 leading-tight disabled:opacity-60 sm:text-base"
               >
                 <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
-                Learned — hide this word for 15 days
+                Learned forever — remove from study queues
               </button>
             </div>
           )}
@@ -1597,7 +1710,11 @@ function Vocabulary() {
                 : 'All caught up! 🎉'}
           </h3>
           <p className="text-gray-600">
-            {reviewRoundCompleted
+            {favoritesRoundCompleted
+              ? 'Favorites round finished!'
+              : onceRoundCompleted
+                ? 'Every active word appeared exactly once.'
+                : reviewRoundCompleted
               ? 'You went through every currently available word in random order and kept each word in the round until all three forms were done.'
               : practiceRoundCompleted
                 ? 'You repeated every active word in random order.'
@@ -1691,6 +1808,12 @@ function Vocabulary() {
                         </button>
                         <span className="text-gray-400">→</span>
                         <p className="text-gray-700 text-lg">{entry.translation || 'Missing translation'}</p>
+                        {entry.is_favorite && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800"><Star className="h-3.5 w-3.5 fill-current" /> Favorite</span>
+                        )}
+                        {entry.learned_permanently_at && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800"><Check className="h-3.5 w-3.5" /> Learned forever</span>
+                        )}
                         {entry.needs_completion && (
                           <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold border border-amber-200">
                             <AlertCircle className="h-3.5 w-3.5" />
@@ -1775,6 +1898,26 @@ function Vocabulary() {
                     </div>
 
                     <div className="flex items-center gap-2 self-end lg:self-start">
+                      <button
+                        type="button"
+                        onClick={() => updateFavorite(entry, !entry.is_favorite)}
+                        disabled={isSubmitting}
+                        className={`p-2 rounded-lg transition-colors disabled:opacity-60 ${entry.is_favorite ? 'bg-amber-100 text-amber-600' : 'text-slate-400 hover:bg-amber-50 hover:text-amber-600'}`}
+                        title={entry.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
+                      >
+                        <Star className={`h-5 w-5 ${entry.is_favorite ? 'fill-current' : ''}`} />
+                      </button>
+                      {entry.learned_permanently_at && (
+                        <button
+                          type="button"
+                          onClick={() => restoreLearnedEntry(entry)}
+                          disabled={isSubmitting}
+                          className="p-2 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors disabled:opacity-60"
+                          title="Restore to study queues"
+                        >
+                          <Undo2 className="h-5 w-5" />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => toggleEntryExpanded(entry.id)}

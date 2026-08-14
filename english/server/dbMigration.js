@@ -478,6 +478,18 @@ export function migrateMultiUserSchema(db) {
       `);
     }
 
+    const vocabularyCollectionCols = db.prepare("PRAGMA table_info(vocabulary)").all().map(c => c.name);
+    if (!vocabularyCollectionCols.includes('is_favorite')) {
+      db.exec("ALTER TABLE vocabulary ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0;");
+    }
+    if (!vocabularyCollectionCols.includes('learned_permanently_at')) {
+      db.exec("ALTER TABLE vocabulary ADD COLUMN learned_permanently_at TEXT;");
+    }
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_vocabulary_user_favorite ON vocabulary(user_id, is_favorite);
+      CREATE INDEX IF NOT EXISTS idx_vocabulary_user_permanent ON vocabulary(user_id, learned_permanently_at);
+    `);
+
     // 11. achievements
     const achCols = db.prepare("PRAGMA table_info(achievements)").all().map(c => c.name);
     if (achCols.length > 0 && !achCols.includes('user_id')) {

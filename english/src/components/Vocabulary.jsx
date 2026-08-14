@@ -1,311 +1,180 @@
-import React, { useState, useEffect } from 'react';
-import { BookMarked, Plus, RotateCcw, Trash2, Check, X, AlertCircle, TrendingUp } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, BookMarked, Check, Plus, RotateCcw, Star, Trash2, TrendingUp, Undo2, X } from 'lucide-react';
+import { buildVocabularyRound } from '../utils/vocabularyRounds';
+
+const MODES = { due: 'Due now', once_all: 'All words — once each', favorites: 'Favorites only' };
 
 function Vocabulary() {
   const [words, setWords] = useState([]);
   const [dueWords, setDueWords] = useState([]);
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [studyQueue, setStudyQueue] = useState([]);
+  const [studyMode, setStudyMode] = useState('due');
+  const [roundTotal, setRoundTotal] = useState(0);
   const [showTranslation, setShowTranslation] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newWord, setNewWord] = useState({ word: '', translation: '', example: '' });
-  const [stats, setStats] = useState({ total: 0, due: 0, mastered: 0 });
+  const [filter, setFilter] = useState('active');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
-  useEffect(() => {
-    fetchWords();
-    fetchDueWords();
-  }, []);
+  const activeWords = useMemo(() => words.filter((word) => !word.learned_permanently_at), [words]);
+  const favoriteWords = useMemo(() => activeWords.filter((word) => Boolean(word.is_favorite)), [activeWords]);
+  const learnedWords = useMemo(() => words.filter((word) => Boolean(word.learned_permanently_at)), [words]);
+  const mastered = useMemo(() => activeWords.filter((word) => Number(word.level) >= 5).length, [activeWords]);
+  const currentWord = studyQueue[0] || null;
+  const completed = Math.max(0, roundTotal - studyQueue.length);
 
-  const fetchWords = async () => {
-    try {
-      const response = await fetch('/english/api/vocabulary');
-      const data = await response.json();
-      setWords(data.words);
-      
-      const mastered = data.words.filter(w => w.level >= 5).length;
-      setStats(prev => ({ ...prev, total: data.words.length, mastered }));
-    } catch (error) {
-      console.error('Error fetching words:', error);
+  const loadVocabulary = async ({ initializeDue = false } = {}) => {
+    const [allResponse, dueResponse] = await Promise.all([fetch('/english/api/vocabulary'), fetch('/english/api/vocabulary/due')]);
+    if (!allResponse.ok || !dueResponse.ok) throw new Error('Failed to load vocabulary');
+    const [allData, dueData] = await Promise.all([allResponse.json(), dueResponse.json()]);
+    const nextWords = allData.words || [];
+    const nextDue = dueData.words || [];
+    setWords(nextWords);
+    setDueWords(nextDue);
+    if (initializeDue) {
+      const queue = buildVocabularyRound(nextWords, 'due', nextDue);
+      setStudyQueue(queue);
+      setRoundTotal(queue.length);
+      setStudyMode('due');
     }
   };
 
-  const fetchDueWords = async () => {
-    try {
-      const response = await fetch('/english/api/vocabulary/due');
-      const data = await response.json();
-      setDueWords(data.words);
-      setStats(prev => ({ ...prev, due: data.words.length }));
-    } catch (error) {
-      console.error('Error fetching due words:', error);
-    }
+  useEffect(() => {
+    loadVocabulary({ initializeDue: true }).catch((loadError) => setError(loadError.message));
+  }, []);
+
+  const startRound = (mode) => {
+    const queue = buildVocabularyRound(words, mode, dueWords);
+    setStudyMode(mode);
+    setStudyQueue(queue);
+    setRoundTotal(queue.length);
+    setShowTranslation(false);
+    setError('');
+    setNotice(queue.length ? `${MODES[mode]} round started.` : 'There are no words in this mode yet.');
+  };
+
+  const apiMutation = async (url, options) => {
+    const response = await fetch(url, options);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Request failed');
+    return data;
   };
 
   const addWord = async () => {
     if (!newWord.word.trim() || !newWord.translation.trim()) return;
-    
+    setBusy(true); setError('');
     try {
-      await fetch('/english/api/vocabulary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newWord),
-      });
-      
+      await apiMutation('/english/api/vocabulary', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newWord) });
       setNewWord({ word: '', translation: '', example: '' });
       setShowAddForm(false);
-      fetchWords();
-      fetchDueWords();
-    } catch (error) {
-      console.error('Error adding word:', error);
-      alert('Failed to add word. It might already exist.');
-    }
+      await loadVocabulary();
+      setNotice('Word added.');
+    } catch (mutationError) { setError(mutationError.message); } finally { setBusy(false); }
+  };
+
+  const finishCurrent = () => {
+    setStudyQueue((queue) => queue.slice(1));
+    setShowTranslation(false);
   };
 
   const reviewWord = async (quality) => {
-    if (dueWords.length === 0) return;
-    
-    const currentWord = dueWords[currentWordIndex];
-    
+    if (!currentWord) return;
+    setBusy(true); setError('');
     try {
-      await fetch(`/english/api/vocabulary/${currentWord.id}/review`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quality }),
+      await apiMutation(`/english/api/vocabulary/${currentWord.id}/review`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quality }),
       });
-      
-      // Переход к следующему слову
-      if (currentWordIndex < dueWords.length - 1) {
-        setCurrentWordIndex(currentWordIndex + 1);
-      } else {
-        setCurrentWordIndex(0);
-        fetchDueWords();
-      }
-      
-      setShowTranslation(false);
-      fetchWords();
-    } catch (error) {
-      console.error('Error reviewing word:', error);
-    }
+      finishCurrent();
+      await loadVocabulary();
+    } catch (mutationError) { setError(mutationError.message); } finally { setBusy(false); }
   };
 
-  const deleteWord = async (id) => {
-    if (!confirm('Delete this word?')) return;
-    
+  const toggleFavorite = async (word) => {
+    setBusy(true); setError('');
     try {
-      await fetch(`/english/api/vocabulary/${id}`, { method: 'DELETE' });
-      fetchWords();
-      fetchDueWords();
-    } catch (error) {
-      console.error('Error deleting word:', error);
-    }
+      const favorite = !Boolean(word.is_favorite);
+      await apiMutation(`/english/api/vocabulary/${word.id}/favorite`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ favorite }),
+      });
+      setStudyQueue((queue) => queue.map((item) => item.id === word.id ? { ...item, is_favorite: favorite ? 1 : 0 } : item));
+      await loadVocabulary();
+    } catch (mutationError) { setError(mutationError.message); } finally { setBusy(false); }
   };
 
-  const currentWord = dueWords[currentWordIndex];
+  const setLearnedForever = async (word, learned) => {
+    if (learned && !window.confirm(`Mark “${word.word}” learned forever? You can restore it from the Learned list.`)) return;
+    setBusy(true); setError('');
+    try {
+      await apiMutation(`/english/api/vocabulary/${word.id}/permanent-learned`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ learned }),
+      });
+      setStudyQueue((queue) => queue.filter((item) => item.id !== word.id));
+      setShowTranslation(false);
+      await loadVocabulary();
+      setNotice(learned ? 'Saved as learned forever.' : 'Word restored to study queues.');
+    } catch (mutationError) { setError(mutationError.message); } finally { setBusy(false); }
+  };
+
+  const deleteWord = async (word) => {
+    if (!window.confirm(`Delete “${word.word}” and all its progress?`)) return;
+    setBusy(true); setError('');
+    try {
+      await apiMutation(`/english/api/vocabulary/${word.id}`, { method: 'DELETE' });
+      setStudyQueue((queue) => queue.filter((item) => item.id !== word.id));
+      await loadVocabulary();
+    } catch (mutationError) { setError(mutationError.message); } finally { setBusy(false); }
+  };
+
+  const visibleWords = filter === 'learned' ? learnedWords : filter === 'favorites' ? words.filter((word) => word.is_favorite) : filter === 'all' ? words : activeWords;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      {/* Статистика */}
       <div className="bg-white rounded-2xl shadow-2xl p-6">
-        <h2 className="text-3xl font-bold text-gray-800 mb-4 flex items-center">
-          <BookMarked className="h-8 w-8 mr-3 text-indigo-600" />
-          Vocabulary Practice
-        </h2>
-        
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-gradient-to-r from-indigo-100 to-indigo-200 rounded-xl p-4">
-            <p className="text-sm text-indigo-700">Total Words</p>
-            <p className="text-3xl font-bold text-indigo-900">{stats.total}</p>
-          </div>
-          
-          <div className="bg-gradient-to-r from-orange-100 to-orange-200 rounded-xl p-4">
-            <p className="text-sm text-orange-700">Due Today</p>
-            <p className="text-3xl font-bold text-orange-900">{stats.due}</p>
-          </div>
-          
-          <div className="bg-gradient-to-r from-green-100 to-green-200 rounded-xl p-4">
-            <p className="text-sm text-green-700">Mastered</p>
-            <p className="text-3xl font-bold text-green-900">{stats.mastered}</p>
-          </div>
+        <h2 className="text-3xl font-bold text-gray-800 mb-4 flex items-center"><BookMarked className="h-8 w-8 mr-3 text-indigo-600" />Vocabulary Practice</h2>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {[['Total', words.length], ['Active', activeWords.length], ['Due', dueWords.length], ['Favorites', words.filter((word) => word.is_favorite).length], ['Learned', learnedWords.length]].map(([label, value]) => (
+            <div key={label} className="rounded-xl bg-indigo-50 p-3"><p className="text-xs text-indigo-700">{label}</p><p className="text-2xl font-bold text-indigo-900">{value}</p></div>
+          ))}
         </div>
-        
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="mt-4 w-full px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md font-semibold flex items-center justify-center space-x-2"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Add New Word</span>
-        </button>
+        <div className="grid gap-2 sm:grid-cols-3 mt-5">
+          <button onClick={() => startRound('due')} className="rounded-xl bg-white border border-indigo-200 px-4 py-3 font-semibold text-indigo-700">Due now ({dueWords.length})</button>
+          <button onClick={() => startRound('once_all')} className="rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white">All words — once each ({activeWords.length})</button>
+          <button onClick={() => startRound('favorites')} className="rounded-xl bg-amber-500 px-4 py-3 font-semibold text-white"><Star className="inline h-4 w-4 mr-1" />Favorites only ({favoriteWords.length})</button>
+        </div>
+        <p className="mt-2 text-xs text-gray-500">Once-each rounds use a shuffled snapshot, so no word repeats before the whole queue is complete.</p>
+        <button onClick={() => setShowAddForm((value) => !value)} className="mt-4 w-full px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-semibold flex items-center justify-center gap-2"><Plus className="h-5 w-5" />Add New Word</button>
       </div>
 
-      {/* Форма добавления слова */}
-      {showAddForm && (
-        <div className="bg-white rounded-2xl shadow-2xl p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">Add New Word</h3>
-          
-          <div className="space-y-3">
-            <input
-              type="text"
-              placeholder="English word..."
-              value={newWord.word}
-              onChange={(e) => setNewWord({ ...newWord, word: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl focus:outline-none focus:border-indigo-500"
-            />
-            
-            <input
-              type="text"
-              placeholder="Translation (Russian)..."
-              value={newWord.translation}
-              onChange={(e) => setNewWord({ ...newWord, translation: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl focus:outline-none focus:border-indigo-500"
-            />
-            
-            <textarea
-              placeholder="Example sentence (optional)..."
-              value={newWord.example}
-              onChange={(e) => setNewWord({ ...newWord, example: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl focus:outline-none focus:border-indigo-500 resize-none"
-              rows="2"
-            />
-            
-            <div className="flex space-x-3">
-              <button
-                onClick={addWord}
-                disabled={!newWord.word.trim() || !newWord.translation.trim()}
-                className="flex-1 px-4 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-              >
-                Add Word
-              </button>
-              <button
-                onClick={() => setShowAddForm(false)}
-                className="px-4 py-3 bg-gray-300 text-gray-700 rounded-xl hover:bg-gray-400 font-semibold"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {error && <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-red-700">{error}</div>}
+      {notice && <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-emerald-700">{notice}</div>}
 
-      {/* Карточка для повторения */}
-      {dueWords.length > 0 && currentWord ? (
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <div className="text-center mb-6">
-            <p className="text-sm text-gray-600 mb-2">
-              Card {currentWordIndex + 1} of {dueWords.length}
-            </p>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all"
-                style={{ width: `${((currentWordIndex + 1) / dueWords.length) * 100}%` }}
-              />
-            </div>
-          </div>
-          
-          <div
-            className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-12 min-h-[300px] flex flex-col items-center justify-center cursor-pointer border-4 border-indigo-300 hover:border-indigo-400 transition-all"
-            onClick={() => setShowTranslation(!showTranslation)}
-          >
-            <p className="text-5xl font-bold text-indigo-900 mb-8">{currentWord.word}</p>
-            
-            {showTranslation ? (
-              <div className="text-center space-y-4 animate-fadeIn">
-                <p className="text-3xl text-purple-800">{currentWord.translation}</p>
-                {currentWord.example && (
-                  <p className="text-lg text-gray-700 italic mt-4 max-w-xl">
-                    "{currentWord.example}"
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-lg">Click to reveal translation</p>
-            )}
-          </div>
-          
-          {showTranslation && (
-            <div className="grid grid-cols-4 gap-3 mt-6">
-              <button
-                onClick={() => reviewWord(0)}
-                className="px-4 py-4 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shadow-md font-bold flex flex-col items-center space-y-1"
-              >
-                <X className="h-6 w-6" />
-                <span>Don't Know</span>
-              </button>
-              
-              <button
-                onClick={() => reviewWord(1)}
-                className="px-4 py-4 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-all shadow-md font-bold flex flex-col items-center space-y-1"
-              >
-                <AlertCircle className="h-6 w-6" />
-                <span>Hard</span>
-              </button>
-              
-              <button
-                onClick={() => reviewWord(2)}
-                className="px-4 py-4 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all shadow-md font-bold flex flex-col items-center space-y-1"
-              >
-                <Check className="h-6 w-6" />
-                <span>Good</span>
-              </button>
-              
-              <button
-                onClick={() => reviewWord(3)}
-                className="px-4 py-4 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all shadow-md font-bold flex flex-col items-center space-y-1"
-              >
-                <TrendingUp className="h-6 w-6" />
-                <span>Easy</span>
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="bg-white rounded-2xl shadow-2xl p-12 text-center">
-          <RotateCcw className="h-16 w-16 mx-auto text-green-500 mb-4" />
-          <h3 className="text-2xl font-bold text-gray-800 mb-2">All caught up! 🎉</h3>
-          <p className="text-gray-600">No words to review right now. Great job!</p>
-        </div>
-      )}
+      {showAddForm && <div className="bg-white rounded-2xl shadow-2xl p-6 space-y-3">
+        <input placeholder="English word" value={newWord.word} onChange={(event) => setNewWord({ ...newWord, word: event.target.value })} className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl" />
+        <input placeholder="Translation" value={newWord.translation} onChange={(event) => setNewWord({ ...newWord, translation: event.target.value })} className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl" />
+        <textarea placeholder="Example (optional)" value={newWord.example} onChange={(event) => setNewWord({ ...newWord, example: event.target.value })} className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl" />
+        <button onClick={addWord} disabled={busy} className="w-full rounded-xl bg-green-500 px-4 py-3 font-semibold text-white disabled:opacity-50">Add Word</button>
+      </div>}
 
-      {/* Список всех слов */}
+      {currentWord ? <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="flex justify-between gap-3 mb-4"><div><p className="text-sm text-gray-500">{MODES[studyMode]} · {completed + 1} of {roundTotal}</p><p className="text-xs text-gray-500">{studyQueue.length} remaining</p></div><button onClick={() => toggleFavorite(currentWord)} disabled={busy} className={`rounded-full p-2 ${currentWord.is_favorite ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'}`}><Star className={`h-5 w-5 ${currentWord.is_favorite ? 'fill-current' : ''}`} /></button></div>
+        <div onClick={() => setShowTranslation((value) => !value)} className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-12 min-h-[280px] flex flex-col items-center justify-center cursor-pointer border-4 border-indigo-200">
+          <p className="text-5xl font-bold text-indigo-900 mb-8">{currentWord.word}</p>
+          {showTranslation ? <div className="text-center"><p className="text-3xl text-purple-800">{currentWord.translation}</p>{currentWord.example && <p className="text-lg text-gray-600 italic mt-4">“{currentWord.example}”</p>}</div> : <p className="text-gray-500">Click to reveal translation</p>}
+        </div>
+        {showTranslation && <div className="space-y-3 mt-5"><div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {[[0, X, "Don't Know", 'bg-red-500'], [1, AlertCircle, 'Hard', 'bg-orange-500'], [2, Check, 'Good', 'bg-blue-500'], [3, TrendingUp, 'Easy', 'bg-green-500']].map(([quality, Icon, label, color]) => <button key={quality} onClick={() => reviewWord(quality)} disabled={busy} className={`${color} rounded-xl p-3 font-semibold text-white disabled:opacity-50`}><Icon className="h-5 w-5 mx-auto" />{label}</button>)}
+        </div><button onClick={() => setLearnedForever(currentWord, true)} disabled={busy} className="w-full rounded-xl bg-violet-600 px-4 py-3 font-semibold text-white">Learned forever — remove from every study queue</button></div>}
+      </div> : <div className="bg-white rounded-2xl shadow-2xl p-10 text-center"><RotateCcw className="h-14 w-14 mx-auto text-green-500" /><h3 className="text-2xl font-bold mt-3">Round complete</h3><p className="text-gray-600">Choose a mode above to start a new shuffled round.</p></div>}
+
       <div className="bg-white rounded-2xl shadow-2xl p-6">
-        <h3 className="text-2xl font-bold text-gray-800 mb-4">All Words ({words.length})</h3>
-        
-        {words.length === 0 ? (
-          <p className="text-gray-600 text-center py-8">No words yet. Add some above!</p>
-        ) : (
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {words.map(word => (
-              <div
-                key={word.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all"
-              >
-                <div className="flex-1">
-                  <p className="font-bold text-gray-800 text-lg">{word.word}</p>
-                  <p className="text-gray-600">{word.translation}</p>
-                  {word.example && (
-                    <p className="text-sm text-gray-500 italic mt-1">"{word.example}"</p>
-                  )}
-                </div>
-                
-                <div className="flex items-center space-x-3">
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Level</p>
-                    <p className="font-bold text-indigo-600">{word.level.toFixed(1)}/5</p>
-                  </div>
-                  
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Reviews</p>
-                    <p className="font-bold text-purple-600">{word.review_count}</p>
-                  </div>
-                  
-                  <button
-                    onClick={() => deleteWord(word.id)}
-                    className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2 mb-4">{[['active', `Active (${activeWords.length})`], ['favorites', `Favorites (${words.filter((word) => word.is_favorite).length})`], ['learned', `Learned (${learnedWords.length})`], ['all', `All (${words.length})`]].map(([key, label]) => <button key={key} onClick={() => setFilter(key)} className={`rounded-full px-3 py-2 text-sm font-semibold ${filter === key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>{label}</button>)}</div>
+        <p className="text-xs text-gray-500 mb-3">{mastered} active words have reached SRS level 5.</p>
+        <div className="space-y-2 max-h-[34rem] overflow-y-auto">{visibleWords.map((word) => <div key={word.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-xl">
+          <div><p className="font-bold text-gray-800 text-lg">{word.word} {word.is_favorite && <Star className="inline h-4 w-4 fill-amber-500 text-amber-500" />}</p><p className="text-gray-600">{word.translation}</p>{word.learned_permanently_at && <p className="text-xs font-semibold text-emerald-700">Learned forever</p>}</div>
+          <div className="flex gap-2"><button onClick={() => toggleFavorite(word)} disabled={busy} title="Toggle favorite" className="p-2 rounded-lg bg-amber-50 text-amber-600"><Star className={`h-5 w-5 ${word.is_favorite ? 'fill-current' : ''}`} /></button>{word.learned_permanently_at ? <button onClick={() => setLearnedForever(word, false)} disabled={busy} title="Restore to study" className="p-2 rounded-lg bg-emerald-50 text-emerald-700"><Undo2 className="h-5 w-5" /></button> : <button onClick={() => setLearnedForever(word, true)} disabled={busy} title="Learned forever" className="p-2 rounded-lg bg-violet-50 text-violet-700"><Check className="h-5 w-5" /></button>}<button onClick={() => deleteWord(word)} disabled={busy} className="p-2 rounded-lg bg-red-50 text-red-600"><Trash2 className="h-5 w-5" /></button></div>
+        </div>)}</div>
       </div>
     </div>
   );

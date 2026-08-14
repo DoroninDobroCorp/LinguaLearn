@@ -64,6 +64,10 @@ describe('Multi-User Database Schema Migration & Isolation Tests', () => {
       // Note: user_settings has user_id as PK referencing users(id)
       assert.ok(hasUserFk, `Table ${tableName} must have foreign key referencing users(id). FKs: ${JSON.stringify(foreignKeys)}`);
     }
+
+    const vocabularyColumns = db.prepare('PRAGMA table_info(vocabulary)').all().map((column) => column.name);
+    assert.ok(vocabularyColumns.includes('is_favorite'));
+    assert.ok(vocabularyColumns.includes('learned_permanently_at'));
   });
 
   test('Unique constraints incorporate user_id (e.g. writing_samples UNIQUE(user_id, event_id))', () => {
