@@ -4,6 +4,7 @@ import cors from 'cors';
 import { execSync } from 'child_process';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Database from 'better-sqlite3';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
 import { buildHpmorChapterImport } from './hpmor.js';
@@ -312,7 +313,38 @@ const publicApiEndpoints = new Set([
   '/api/status',
   '/api/ready',
   '/api/live',
+  '/mac-appcast.xml',
+  '/appcast.xml',
+  '/english/mac-appcast.xml',
+  '/english/appcast.xml',
 ]);
+
+app.get(['/mac-appcast.xml', '/appcast.xml', '/english/mac-appcast.xml', '/english/appcast.xml'], (req, res) => {
+  const appcastPath = resolve(__dirname, '../../macos/LinguaLearnCapture/.build/release-dist/mac-appcast.xml');
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  if (fs.existsSync(appcastPath)) {
+    return res.sendFile(appcastPath);
+  }
+  const defaultXml = `<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.sparkle-project.org/Sparkle/1.0">
+  <channel>
+    <title>LinguaLearn Capture Updates</title>
+    <link>https://145.239.82.124.sslip.io/english/</link>
+    <description>Most recent updates to LinguaLearn Capture for macOS.</description>
+    <language>en</language>
+  </channel>
+</rss>`;
+  return res.send(defaultXml);
+});
+
+app.get(['/releases/:file', '/english/releases/:file'], (req, res) => {
+  const file = String(req.params.file || '').replace(/\.\./g, '');
+  const releasePath = resolve(__dirname, '../../macos/LinguaLearnCapture/.build/release-dist', file);
+  if (fs.existsSync(releasePath)) {
+    return res.sendFile(releasePath);
+  }
+  return res.status(404).json({ error: 'Release file not found' });
+});
 
 app.use('/api', (req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');

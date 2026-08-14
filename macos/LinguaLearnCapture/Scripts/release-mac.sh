@@ -42,9 +42,39 @@ file_size="$(/usr/bin/stat -f '%z' "${zip_path}")"
 sha256_hash="$(/usr/bin/shasum -a 256 "${zip_path}" | /usr/bin/awk '{print $1}')"
 pub_date="$(/bin/date -u +"%a, %d %b %Y %H:%M:%S %z")"
 
-ed_signature="$(echo -n "${sha256_hash}" | /usr/bin/shasum -a 512 | /usr/bin/awk '{print $1}')"
+ed_signature="$(/usr/bin/swift - "${zip_path}" <<'SWIFT'
+import CryptoKit
+import Foundation
+
+guard CommandLine.arguments.count > 1 else { exit(1) }
+let zipPath = CommandLine.arguments[1]
+let home = FileManager.default.homeDirectoryForCurrentUser
+let keyPath = home.appendingPathComponent(".sparkle_ed25519_key")
+
+let sparkleSigner: Curve25519.Signing.PrivateKey
+if FileManager.default.fileExists(atPath: keyPath.path) {
+    let b64 = try String(contentsOf: keyPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let data = Data(base64Encoded: b64),
+          let loadedKey = try? Curve25519.Signing.PrivateKey(rawRepresentation: data) else {
+        exit(1)
+    }
+    sparkleSigner = loadedKey
+} else {
+    sparkleSigner = Curve25519.Signing.PrivateKey()
+    let b64 = sparkleSigner.rawRepresentation.base64EncodedString()
+    try b64.write(to: keyPath, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: keyPath.path)
+}
+
+let archiveData = try Data(contentsOf: URL(fileURLWithPath: zipPath))
+let signature = try sparkleSigner.signature(for: archiveData)
+print(signature.base64EncodedString())
+SWIFT
+)"
 
 appcast_path="${output_dir}/mac-appcast.xml"
+appcast_alt_path="${output_dir}/appcast.xml"
+
 cat <<XML > "${appcast_path}"
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.sparkle-project.org/Sparkle/1.0">
@@ -66,6 +96,8 @@ cat <<XML > "${appcast_path}"
   </channel>
 </rss>
 XML
+
+/bin/cp -f "${appcast_path}" "${appcast_alt_path}"
 
 echo "Release package created successfully:"
 echo "  Zip artifact: ${zip_path} (${file_size} bytes)"
