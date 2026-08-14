@@ -108,8 +108,9 @@ final class ApiClientTests: XCTestCase {
 
         let client = ApiClient(baseUrl: "https://145.239.82.124.sslip.io/english", session: session)
         let payload = QueuedWritingPayload(eventId: "evt-urlprotocol-101", originalText: "She don't know.")
+        let sampleTokenVal = "YOUR_API_KEY_HERE"
 
-        client.analyze(payload: payload, deviceToken: "ll_dev_test_token_456") { result in
+        client.analyze(payload: payload, deviceToken: sampleTokenVal) { result in
             switch result {
             case .success(let response):
                 XCTAssertEqual(response.assessment, "clear_error")
@@ -128,7 +129,7 @@ final class ApiClientTests: XCTestCase {
 
         XCTAssertNotNil(capturedRequest)
         XCTAssertEqual(capturedRequest?.httpMethod, "POST")
-        XCTAssertEqual(capturedRequest?.value(forHTTPHeaderField: "Authorization"), "Bearer ll_dev_test_token_456")
+        XCTAssertEqual(capturedRequest?.value(forHTTPHeaderField: "Authorization"), "Bearer " + sampleTokenVal)
         XCTAssertEqual(capturedRequest?.value(forHTTPHeaderField: "Content-Type"), "application/json")
         XCTAssertTrue(capturedRequest?.url?.path.contains("/api/writing/analyze") ?? false)
     }
@@ -151,8 +152,9 @@ final class ApiClientTests: XCTestCase {
 
         let client = ApiClient(baseUrl: "https://145.239.82.124.sslip.io/english", session: session)
         let payload = QueuedWritingPayload(eventId: "evt-cookie-1", originalText: "Good.")
+        let secondTokenVal = "YOUR_API_KEY_HERE"
 
-        client.analyze(payload: payload, deviceToken: "ll_dev_cookie_token_789") { result in
+        client.analyze(payload: payload, deviceToken: secondTokenVal) { result in
             switch result {
             case .success(let response):
                 XCTAssertTrue(response.accepted)
@@ -164,7 +166,7 @@ final class ApiClientTests: XCTestCase {
 
         waitForExpectations(timeout: 2.0, handler: nil)
 
-        XCTAssertEqual(capturedAuthHeader, "Bearer ll_dev_cookie_token_789")
+        XCTAssertEqual(capturedAuthHeader, "Bearer " + secondTokenVal)
     }
 
     func testApiClientUrlProtocolHttpError401Handling() {
