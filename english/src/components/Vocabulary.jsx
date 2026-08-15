@@ -196,13 +196,14 @@ function Vocabulary() {
       </div>}
 
       {currentWord ? <div className="bg-white rounded-2xl shadow-2xl p-8">
-        <div className="flex justify-between gap-3 mb-4"><div><p className="text-sm text-gray-500">{MODES[studyMode]} · {completed + 1} of {roundTotal}</p><p className="text-xs text-gray-500">{studyQueue.length} remaining</p></div><button onClick={() => toggleFavorite(currentWord)} disabled={busy} className={`rounded-full p-2 ${currentWord.is_favorite ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'}`}><Star className={`h-5 w-5 ${currentWord.is_favorite ? 'fill-current' : ''}`} /></button></div>
+        <div className="mb-4"><p className="text-sm text-gray-500">{MODES[studyMode]} · {completed + 1} of {roundTotal}</p><p className="text-xs text-gray-500">{studyQueue.length} remaining</p></div>
         <div onClick={() => setShowTranslation((value) => !value)} className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-12 min-h-[280px] flex flex-col items-center justify-center cursor-pointer border-4 border-indigo-200">
           <p className="text-5xl font-bold text-indigo-900 mb-8">{currentWord.word}</p>
           {showTranslation ? <div className="text-center"><p className="text-3xl text-purple-800">{currentWord.translation}</p>{currentWord.example && <p className="text-lg text-gray-600 italic mt-4">“{currentWord.example}”</p>}</div> : <p className="text-gray-500">Click to reveal translation</p>}
         </div>
-        {showTranslation && <div className="space-y-3 mt-5"><div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {showTranslation && <div className="space-y-3 mt-5"><div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {[[0, X, "Don't Know", 'bg-red-500'], [1, AlertCircle, 'Hard', 'bg-orange-500'], [2, Check, 'Good', 'bg-blue-500'], [3, TrendingUp, 'Easy', 'bg-green-500']].map(([quality, Icon, label, color]) => <button key={quality} onClick={() => reviewWord(quality)} disabled={busy} className={`${color} rounded-xl p-3 font-semibold text-white disabled:opacity-50`}><Icon className="h-5 w-5 mx-auto" />{label}</button>)}
+          <button onClick={() => toggleFavorite(currentWord)} disabled={busy} className={`rounded-xl border-2 p-3 font-semibold disabled:opacity-50 ${currentWord.is_favorite ? 'border-amber-500 bg-amber-100 text-amber-800' : 'border-amber-300 bg-white text-amber-700 hover:bg-amber-50'}`}><Star className={`h-5 w-5 mx-auto ${currentWord.is_favorite ? 'fill-current' : ''}`} />{currentWord.is_favorite ? 'Remove Favorite' : 'Add Favorite'}</button>
         </div><button onClick={() => setLearnedForever(currentWord, true)} disabled={busy} className="w-full rounded-xl bg-violet-600 px-4 py-3 font-semibold text-white">Learned forever — remove from every study queue</button></div>}
       </div> : <div className="bg-white rounded-2xl shadow-2xl p-10 text-center"><RotateCcw className="h-14 w-14 mx-auto text-green-500" /><h3 className="text-2xl font-bold mt-3">Round complete</h3><p className="text-gray-600">Choose a mode above to start a new shuffled round.</p></div>}
 

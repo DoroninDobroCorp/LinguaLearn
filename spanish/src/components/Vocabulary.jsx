@@ -1502,15 +1502,6 @@ function Vocabulary() {
             </div>
 
             <div className="flex flex-wrap gap-2 items-center">
-              <button
-                type="button"
-                onClick={() => updateFavorite(currentCard, !currentCard.is_favorite)}
-                disabled={isSubmitting}
-                className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold ${currentCard.is_favorite ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}
-              >
-                <Star className={`h-4 w-4 ${currentCard.is_favorite ? 'fill-current' : ''}`} />
-                {currentCard.is_favorite ? 'Favorite' : 'Add favorite'}
-              </button>
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-semibold">
                 <Languages className="h-4 w-4" />
                 {currentCard.direction_label}
@@ -1681,6 +1672,15 @@ function Vocabulary() {
                     </button>
                   );
                 })}
+                <button
+                  type="button"
+                  onClick={() => updateFavorite(currentCard, !currentCard.is_favorite)}
+                  disabled={isSubmitting || isVoicePracticeBusy}
+                  className={`rounded-xl border-2 px-3 py-2.5 text-xs font-semibold transition-all shadow-md flex min-h-[3.25rem] items-center justify-center gap-1.5 text-center leading-tight disabled:opacity-60 sm:min-h-[4rem] sm:flex-col sm:gap-1 sm:px-3 sm:py-3 sm:text-sm ${currentCard.is_favorite ? 'border-amber-500 bg-amber-100 text-amber-800' : 'border-amber-300 bg-white text-amber-700 hover:bg-amber-50'}`}
+                >
+                  <Star className={`h-4 w-4 sm:h-5 sm:w-5 ${currentCard.is_favorite ? 'fill-current' : ''}`} />
+                  <span>{currentCard.is_favorite ? 'Remove Favorite' : 'Add Favorite'}</span>
+                </button>
               </div>
 
               <button
