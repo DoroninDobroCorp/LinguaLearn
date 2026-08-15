@@ -4,6 +4,7 @@ node_modules/
 # Environment variables (NEVER commit secrets!)
 .env
 *.env
+secrets/
 
 # Virtual Environments & Python Cache
 .venv*/
@@ -63,6 +64,5 @@ run_game/
 *.key
 *.private
 .sparkle*
-
 
 
