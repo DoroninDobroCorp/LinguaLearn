@@ -1007,7 +1007,7 @@ function Vocabulary() {
     }
   };
 
-  const submitReview = async (endpoint, body) => {
+  const submitReview = (endpoint, body) => {
     if (!currentCard) return false;
     if (isOfflineRuntime()) {
       setNotice('Offline practice only: this answer does not change the spaced repetition timer.');
@@ -1041,11 +1041,11 @@ function Vocabulary() {
     return true;
   };
 
-  const handleReview = async (grade) => {
+  const handleReview = (grade) => {
     if (!currentCard) return;
 
     if (currentCard.submits_review) {
-      const success = await submitReview(`/spanish/api/vocabulary/${currentCard.id}/review`, {
+      const success = submitReview(`/spanish/api/vocabulary/${currentCard.id}/review`, {
         grade,
         direction: currentCard.direction,
       });

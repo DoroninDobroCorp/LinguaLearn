@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, BookMarked, Check, Plus, RotateCcw, Star, Trash2, TrendingUp, Undo2, X } from 'lucide-react';
 import { buildVocabularyRound, restoreVocabularyRound } from '../utils/vocabularyRounds';
 
@@ -17,6 +17,9 @@ function Vocabulary() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  const reviewingWordIdsRef = useRef(new Set());
+  const studySessionSaveChainRef = useRef(Promise.resolve());
 
   const activeWords = useMemo(() => words.filter((word) => !word.learned_permanently_at), [words]);
   const favoriteWords = useMemo(() => activeWords.filter((word) => Boolean(word.is_favorite)), [activeWords]);
@@ -59,13 +62,22 @@ function Vocabulary() {
     loadVocabulary({ initializeDue: true }).catch((loadError) => setError(loadError.message));
   }, []);
 
-  const persistStudySession = async (mode, queue, total) => {
-    if (mode !== 'once_all' && mode !== 'favorites') return;
-    await apiMutation('/english/api/vocabulary/study-session', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode, queueIds: queue.map((word) => Number(word.id)), roundTotal: total }),
-    });
+  const persistStudySession = (mode, queue, total) => {
+    if (mode !== 'once_all' && mode !== 'favorites') return Promise.resolve();
+    const payload = {
+      mode,
+      queueIds: queue.map((word) => Number(word.id)),
+      roundTotal: total,
+    };
+    const save = studySessionSaveChainRef.current
+      .catch(() => undefined)
+      .then(() => apiMutation('/english/api/vocabulary/study-session', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }));
+    studySessionSaveChainRef.current = save;
+    return save;
   };
 
   const startRound = async (mode) => {
@@ -102,23 +114,30 @@ function Vocabulary() {
     } catch (mutationError) { setError(mutationError.message); } finally { setBusy(false); }
   };
 
-  const finishCurrent = async () => {
+  const reviewWord = (quality) => {
+    if (!currentWord) return;
+    const reviewedWord = currentWord;
+    if (reviewingWordIdsRef.current.has(reviewedWord.id)) return;
+    reviewingWordIdsRef.current.add(reviewedWord.id);
+
     const nextQueue = studyQueue.slice(1);
     setStudyQueue(nextQueue);
     setShowTranslation(false);
-    await persistStudySession(studyMode, nextQueue, roundTotal);
-  };
+    setError('');
+    setPendingReviewCount((count) => count + 1);
 
-  const reviewWord = async (quality) => {
-    if (!currentWord) return;
-    setBusy(true); setError('');
-    try {
-      await apiMutation(`/english/api/vocabulary/${currentWord.id}/review`, {
+    Promise.all([
+      apiMutation(`/english/api/vocabulary/${reviewedWord.id}/review`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quality }),
+      }),
+      persistStudySession(studyMode, nextQueue, roundTotal),
+    ])
+      .then(() => loadVocabulary())
+      .catch((mutationError) => setError(`The next card is ready, but saving the previous answer failed: ${mutationError.message}`))
+      .finally(() => {
+        reviewingWordIdsRef.current.delete(reviewedWord.id);
+        setPendingReviewCount((count) => Math.max(0, count - 1));
       });
-      await finishCurrent();
-      await loadVocabulary();
-    } catch (mutationError) { setError(mutationError.message); } finally { setBusy(false); }
   };
 
   const toggleFavorite = async (word) => {
@@ -196,7 +215,7 @@ function Vocabulary() {
       </div>}
 
       {currentWord ? <div className="bg-white rounded-2xl shadow-2xl p-8">
-        <div className="mb-4"><p className="text-sm text-gray-500">{MODES[studyMode]} · {completed + 1} of {roundTotal}</p><p className="text-xs text-gray-500">{studyQueue.length} remaining</p></div>
+        <div className="mb-4"><p className="text-sm text-gray-500">{MODES[studyMode]} · {completed + 1} of {roundTotal}</p><p className="text-xs text-gray-500">{studyQueue.length} remaining{pendingReviewCount > 0 ? ` · Saving ${pendingReviewCount} answer${pendingReviewCount === 1 ? '' : 's'}…` : ''}</p></div>
         <div onClick={() => setShowTranslation((value) => !value)} className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-12 min-h-[280px] flex flex-col items-center justify-center cursor-pointer border-4 border-indigo-200">
           <p className="text-5xl font-bold text-indigo-900 mb-8">{currentWord.word}</p>
           {showTranslation ? <div className="text-center"><p className="text-3xl text-purple-800">{currentWord.translation}</p>{currentWord.example && <p className="text-lg text-gray-600 italic mt-4">“{currentWord.example}”</p>}</div> : <p className="text-gray-500">Click to reveal translation</p>}
