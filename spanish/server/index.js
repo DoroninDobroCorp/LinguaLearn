@@ -1628,7 +1628,7 @@ app.post('/api/vocabulary/import', (req, res) => {
 
 app.get('/api/vocabulary/study-session', (req, res) => {
   try {
-    res.json({ session: getLatestVocabularyStudySession(db, getProfileId(req)) });
+    res.json({ session: getLatestVocabularyStudySession(db, getProfileId(req), req.query?.mode || null) });
   } catch (error) {
     handleVocabularyError(res, error, 'Error fetching vocabulary study session:');
   }
@@ -1642,6 +1642,7 @@ app.put('/api/vocabulary/study-session', (req, res) => {
       req.body?.mode,
       req.body?.state,
       new Date(),
+      { restart: req.body?.restart === true },
     );
     res.json({ session });
   } catch (error) {

@@ -1420,13 +1420,18 @@ app.get('/api/vocabulary/due', (req, res) => {
 
 app.get('/api/vocabulary/study-session', (req, res) => {
   try {
+    const requestedMode = typeof req.query?.mode === 'string' ? req.query.mode.trim() : '';
+    if (requestedMode && !RESUMABLE_VOCABULARY_MODES.has(requestedMode)) {
+      return res.status(400).json({ error: 'mode must be once_all or favorites' });
+    }
     const row = db.prepare(`
       SELECT mode, queue_json, round_total, updated_at
       FROM vocabulary_study_sessions
       WHERE user_id = ?
+        AND (? = '' OR mode = ?)
       ORDER BY updated_at DESC, mode ASC
       LIMIT 1
-    `).get(getUserId(req));
+    `).get(getUserId(req), requestedMode, requestedMode);
     if (!row) return res.json({ session: null });
     res.json({ session: { mode: row.mode, queueIds: JSON.parse(row.queue_json), roundTotal: row.round_total, updatedAt: row.updated_at } });
   } catch (error) {
@@ -1440,18 +1445,35 @@ app.put('/api/vocabulary/study-session', (req, res) => {
     const userId = getUserId(req);
     const session = validateVocabularyStudySession(userId, req.body || {});
     const updatedAt = new Date().toISOString();
-    db.prepare(`
-      INSERT INTO vocabulary_study_sessions (user_id, mode, queue_json, round_total, updated_at)
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT(user_id, mode) DO UPDATE SET
-        queue_json = excluded.queue_json,
-        round_total = excluded.round_total,
-        updated_at = excluded.updated_at
-    `).run(userId, session.mode, JSON.stringify(session.queueIds), session.roundTotal, updatedAt);
+    const saveSession = db.transaction(() => {
+      const existing = db.prepare(`
+        SELECT queue_json
+        FROM vocabulary_study_sessions
+        WHERE user_id = ? AND mode = ?
+      `).get(userId, session.mode);
+      if (existing && req.body?.restart !== true) {
+        const previousQueue = JSON.parse(existing.queue_json);
+        if (Array.isArray(previousQueue) && session.queueIds.length > previousQueue.length) {
+          const error = new Error('A newer exact-once position is already saved. Explicit restart is required to increase the queue.');
+          error.status = 409;
+          error.code = 'STUDY_SESSION_REGRESSION';
+          throw error;
+        }
+      }
+      db.prepare(`
+        INSERT INTO vocabulary_study_sessions (user_id, mode, queue_json, round_total, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, mode) DO UPDATE SET
+          queue_json = excluded.queue_json,
+          round_total = excluded.round_total,
+          updated_at = excluded.updated_at
+      `).run(userId, session.mode, JSON.stringify(session.queueIds), session.roundTotal, updatedAt);
+    });
+    saveSession();
     res.json({ session: { ...session, updatedAt } });
   } catch (error) {
     console.error('Error saving vocabulary study session:', error);
-    res.status(error.status || 500).json({ error: error.message });
+    res.status(error.status || 500).json({ error: error.message, code: error.code });
   }
 });
 

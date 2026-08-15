@@ -72,6 +72,39 @@ describe('Vocabulary review cards', () => {
     db.close();
   });
 
+  it('rejects delayed saves that would restore already completed exact-once words', () => {
+    const db = createTestDb();
+    ensureVocabularyReviewSchema(db);
+    const stateWithThreeLeft = {
+      session: { mode: 'once_all', entries: [{ entryId: 1 }, { entryId: 2 }, { entryId: 3 }], totalEntries: 5 },
+      currentCard: { id: 1 },
+    };
+    const stateWithOneLeft = {
+      session: { mode: 'once_all', entries: [{ entryId: 3 }], totalEntries: 5 },
+      currentCard: { id: 3 },
+    };
+
+    saveVocabularyStudySession(db, 1, 'once_all', stateWithThreeLeft, new Date('2030-01-01T10:00:00.000Z'));
+    saveVocabularyStudySession(db, 1, 'once_all', stateWithOneLeft, new Date('2030-01-01T10:01:00.000Z'));
+
+    assert.throws(
+      () => saveVocabularyStudySession(db, 1, 'once_all', stateWithThreeLeft, new Date('2030-01-01T10:02:00.000Z')),
+      { code: 'STUDY_SESSION_REGRESSION' },
+    );
+    assert.deepEqual(getLatestVocabularyStudySession(db, 1, 'once_all').state, stateWithOneLeft);
+
+    saveVocabularyStudySession(
+      db,
+      1,
+      'once_all',
+      stateWithThreeLeft,
+      new Date('2030-01-01T10:03:00.000Z'),
+      { restart: true },
+    );
+    assert.deepEqual(getLatestVocabularyStudySession(db, 1, 'once_all').state, stateWithThreeLeft);
+    db.close();
+  });
+
   it('stores favorites and permanent learned state per profile without deleting the entry', () => {
     const db = createTestDb();
     ensureVocabularyReviewSchema(db);

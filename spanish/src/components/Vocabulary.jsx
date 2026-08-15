@@ -588,6 +588,8 @@ function Vocabulary() {
   const autoPlayedCardKeyRef = useRef('');
   const typingInputRef = useRef(null);
   const latestRefreshIdRef = useRef(0);
+  const studySessionSaveChainRef = useRef(Promise.resolve());
+  const restartNextStudySessionSaveRef = useRef(false);
   const {
     capabilities: speechCapabilities,
     selectedVoice,
@@ -697,15 +699,56 @@ function Vocabulary() {
     return true;
   }, []);
 
-  const startReviewSession = useCallback((mode = 'due', sourceEntries = entries) => {
+  const startReviewSession = useCallback(async (mode = 'due', sourceEntries = entries, { forceRestart = false } = {}) => {
+    if (!forceRestart && reviewSession.mode === mode && reviewSession.entries.length > 0) {
+      resetPractice();
+      setShowAnswer(false);
+      setTypedAnswer('');
+      setTypingFeedback(null);
+      setNotice(`Continuing the saved round with ${reviewSession.entries.length} words left.`);
+      return;
+    }
+
+    let savedSession = null;
+    if (!forceRestart && ['once_all', 'favorites_once'].includes(mode)) {
+      try {
+        const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/study-session?mode=${encodeURIComponent(mode)}`));
+        if (response.ok) {
+          const data = await response.json();
+          savedSession = data.session;
+          const restored = restorePersistedReviewSession(savedSession, sourceEntries);
+          if (restored?.currentCard) {
+            setReviewSession(restored.session);
+            setReviewQueue([restored.currentCard]);
+            resetPractice();
+            setShowAnswer(false);
+            setTypedAnswer('');
+            setTypingFeedback(null);
+            setError('');
+            setNotice(`Resumed the saved round with ${restored.session.entries.length} words left.`);
+            return;
+          }
+        }
+      } catch (loadError) {
+        setError(`Could not check the saved vocabulary round: ${loadError.message}`);
+        return;
+      }
+    }
+
     const nextState = createReviewSession(sourceEntries, mode);
+    restartNextStudySessionSaveRef.current = forceRestart || Boolean(savedSession);
     setReviewSession(nextState.session);
     setReviewQueue(nextState.currentCard ? [nextState.currentCard] : []);
     resetPractice();
     setShowAnswer(false);
     setTypedAnswer('');
     setTypingFeedback(null);
-  }, [entries, resetPractice]);
+  }, [entries, resetPractice, reviewSession.entries.length, reviewSession.mode]);
+
+  const restartReviewSession = useCallback((mode) => {
+    if (!window.confirm('Restart this exact-once round? Saved progress in the current round will be cleared.')) return;
+    startReviewSession(mode, entries, { forceRestart: true });
+  }, [entries, startReviewSession]);
 
   const advanceCurrentSessionCard = useCallback((completedCard = currentCard, { removeEntry = false } = {}) => {
     if (!completedCard) {
@@ -794,21 +837,35 @@ function Vocabulary() {
 
   useEffect(() => {
     if (!studySessionHydrated || !['once_all', 'favorites_once'].includes(reviewSession.mode)) return undefined;
-    profileFetch(profileApiUrl('/spanish/api/vocabulary/study-session'), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mode: reviewSession.mode,
-        state: { session: reviewSession, currentCard: reviewQueue[0] || null },
-      }),
-    }).then(async (response) => {
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to save vocabulary round');
-      }
-    }).catch((saveError) => {
+    const payload = {
+      mode: reviewSession.mode,
+      state: { session: reviewSession, currentCard: reviewQueue[0] || null },
+      restart: restartNextStudySessionSaveRef.current,
+    };
+    restartNextStudySessionSaveRef.current = false;
+    const save = studySessionSaveChainRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        const response = await profileFetch(profileApiUrl('/spanish/api/vocabulary/study-session'), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          const error = new Error(data.error || 'Failed to save vocabulary round');
+          error.code = data.code;
+          throw error;
+        }
+      });
+    studySessionSaveChainRef.current = save;
+    save.catch((saveError) => {
       console.error('Error saving vocabulary study session:', saveError);
-      setError(`Round progress is still on this page, but server save failed: ${saveError.message}`);
+      if (saveError.code === 'STUDY_SESSION_REGRESSION') {
+        setNotice('The server kept the newer saved position and ignored an older delayed update.');
+      } else {
+        setError(`Round progress is still on this page, but server save failed: ${saveError.message}`);
+      }
     });
     return undefined;
   }, [reviewQueue, reviewSession, studySessionHydrated]);
@@ -888,6 +945,8 @@ function Vocabulary() {
     [entries],
   );
   const remainingSessionEntries = reviewSession.entries.length;
+  const continuingOnceRound = reviewSession.mode === 'once_all' && remainingSessionEntries > 0;
+  const continuingFavoritesRound = reviewSession.mode === 'favorites_once' && remainingSessionEntries > 0;
   const completedSessionEntries = Math.max(0, reviewSession.totalEntries - remainingSessionEntries);
   const reviewProgressPercent = reviewSession.totalEntries > 0
     ? Math.min(100, Math.round((completedSessionEntries / reviewSession.totalEntries) * 100))
@@ -1339,14 +1398,19 @@ function Vocabulary() {
             <button type="button" onClick={() => startReviewSession('due')} disabled={dueStudyCandidateCount === 0} className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-indigo-700 shadow-sm disabled:opacity-45">
               Due now ({dueStudyCandidateCount})
             </button>
-            <button type="button" onClick={() => startReviewSession('once_all')} disabled={practiceAllCandidateCount === 0} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-45">
-              All words — once each ({practiceAllCandidateCount})
+            <button type="button" onClick={() => startReviewSession('once_all')} disabled={!continuingOnceRound && practiceAllCandidateCount === 0} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-45">
+              {continuingOnceRound ? `Continue all words (${remainingSessionEntries} left)` : `All words — once each (${practiceAllCandidateCount})`}
             </button>
-            <button type="button" onClick={() => startReviewSession('favorites_once')} disabled={favoriteCandidateCount === 0} className="rounded-xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-45">
-              <Star className="mr-1 inline h-4 w-4" /> Favorites only ({favoriteCandidateCount})
+            <button type="button" onClick={() => startReviewSession('favorites_once')} disabled={!continuingFavoritesRound && favoriteCandidateCount === 0} className="rounded-xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-45">
+              <Star className="mr-1 inline h-4 w-4" /> {continuingFavoritesRound ? `Continue favorites (${remainingSessionEntries} left)` : `Favorites only (${favoriteCandidateCount})`}
             </button>
           </div>
-          <p className="mt-2 text-xs text-indigo-700">The once-each modes use a shuffled snapshot: a word cannot repeat until every word in that round has appeared.</p>
+          <p className="mt-2 text-xs text-indigo-700">The once-each modes use a saved snapshot. Adding or deleting other words does not reset completed progress.</p>
+          {(continuingOnceRound || continuingFavoritesRound) && (
+            <button type="button" onClick={() => restartReviewSession(reviewSession.mode)} className="mt-2 text-xs font-semibold text-red-600 hover:text-red-700">
+              Restart this round from the beginning
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">

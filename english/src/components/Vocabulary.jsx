@@ -62,12 +62,13 @@ function Vocabulary() {
     loadVocabulary({ initializeDue: true }).catch((loadError) => setError(loadError.message));
   }, []);
 
-  const persistStudySession = (mode, queue, total) => {
+  const persistStudySession = (mode, queue, total, { restart = false } = {}) => {
     if (mode !== 'once_all' && mode !== 'favorites') return Promise.resolve();
     const payload = {
       mode,
       queueIds: queue.map((word) => Number(word.id)),
       roundTotal: total,
+      restart,
     };
     const save = studySessionSaveChainRef.current
       .catch(() => undefined)
@@ -80,7 +81,37 @@ function Vocabulary() {
     return save;
   };
 
-  const startRound = async (mode) => {
+  const startRound = async (mode, { forceRestart = false } = {}) => {
+    if (!forceRestart && studyMode === mode && studyQueue.length > 0) {
+      setShowTranslation(false);
+      setNotice(`Continuing the saved ${MODES[mode]} round with ${studyQueue.length} words left.`);
+      return;
+    }
+
+    let savedSession = null;
+    if (!forceRestart && (mode === 'once_all' || mode === 'favorites')) {
+      try {
+        const response = await fetch(`/english/api/vocabulary/study-session?mode=${encodeURIComponent(mode)}`);
+        if (response.ok) {
+          const data = await response.json();
+          savedSession = data.session;
+          const restored = restoreVocabularyRound(words, savedSession);
+          if (restored?.queue.length > 0) {
+            setStudyMode(restored.mode);
+            setStudyQueue(restored.queue);
+            setRoundTotal(restored.roundTotal);
+            setShowTranslation(false);
+            setError('');
+            setNotice(`Resumed ${MODES[restored.mode]} with ${restored.queue.length} words left.`);
+            return;
+          }
+        }
+      } catch (loadError) {
+        setError(`Could not check the saved round: ${loadError.message}`);
+        return;
+      }
+    }
+
     const queue = buildVocabularyRound(words, mode, dueWords);
     setStudyMode(mode);
     setStudyQueue(queue);
@@ -89,10 +120,15 @@ function Vocabulary() {
     setError('');
     setNotice(queue.length ? `${MODES[mode]} round started.` : 'There are no words in this mode yet.');
     try {
-      await persistStudySession(mode, queue, queue.length);
+      await persistStudySession(mode, queue, queue.length, { restart: forceRestart || Boolean(savedSession) });
     } catch (saveError) {
       setError(`Round started, but server save failed: ${saveError.message}`);
     }
+  };
+
+  const restartRound = (mode) => {
+    if (!window.confirm(`Restart ${MODES[mode]}? Saved progress in the current round will be cleared.`)) return;
+    startRound(mode, { forceRestart: true });
   };
 
   const apiMutation = async (url, options) => {
@@ -185,6 +221,8 @@ function Vocabulary() {
   };
 
   const visibleWords = filter === 'learned' ? learnedWords : filter === 'favorites' ? words.filter((word) => word.is_favorite) : filter === 'all' ? words : activeWords;
+  const continuingAllRound = studyMode === 'once_all' && studyQueue.length > 0;
+  const continuingFavoritesRound = studyMode === 'favorites' && studyQueue.length > 0;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -197,10 +235,11 @@ function Vocabulary() {
         </div>
         <div className="grid gap-2 sm:grid-cols-3 mt-5">
           <button onClick={() => startRound('due')} className="rounded-xl bg-white border border-indigo-200 px-4 py-3 font-semibold text-indigo-700">Due now ({dueWords.length})</button>
-          <button onClick={() => startRound('once_all')} className="rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white">All words — once each ({activeWords.length})</button>
-          <button onClick={() => startRound('favorites')} className="rounded-xl bg-amber-500 px-4 py-3 font-semibold text-white"><Star className="inline h-4 w-4 mr-1" />Favorites only ({favoriteWords.length})</button>
+          <button onClick={() => startRound('once_all')} className="rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white">{continuingAllRound ? `Continue all words (${studyQueue.length} left)` : `All words — once each (${activeWords.length})`}</button>
+          <button onClick={() => startRound('favorites')} className="rounded-xl bg-amber-500 px-4 py-3 font-semibold text-white"><Star className="inline h-4 w-4 mr-1" />{continuingFavoritesRound ? `Continue favorites (${studyQueue.length} left)` : `Favorites only (${favoriteWords.length})`}</button>
         </div>
-        <p className="mt-2 text-xs text-gray-500">Once-each rounds use a shuffled snapshot, so no word repeats before the whole queue is complete.</p>
+        <p className="mt-2 text-xs text-gray-500">Once-each rounds use a saved snapshot. Adding or deleting other words does not reset completed progress.</p>
+        {(continuingAllRound || continuingFavoritesRound) && <button onClick={() => restartRound(studyMode)} className="mt-2 text-xs font-semibold text-red-600 hover:text-red-700">Restart this round from the beginning</button>}
         <button onClick={() => setShowAddForm((value) => !value)} className="mt-4 w-full px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-semibold flex items-center justify-center gap-2"><Plus className="h-5 w-5" />Add New Word</button>
       </div>
 

@@ -940,27 +940,44 @@ function presentStudySession(row) {
   }
 }
 
-export function getLatestVocabularyStudySession(db, profileId) {
+export function getLatestVocabularyStudySession(db, profileId, mode = null) {
+  const normalizedMode = mode === null ? null : normalizeStudySessionMode(mode);
   return presentStudySession(db.prepare(`
     SELECT mode, state_json, updated_at
     FROM vocabulary_study_sessions
     WHERE profile_id = ?
+      AND (? IS NULL OR mode = ?)
     ORDER BY updated_at DESC, mode ASC
     LIMIT 1
-  `).get(profileId));
+  `).get(profileId, normalizedMode, normalizedMode));
 }
 
-export function saveVocabularyStudySession(db, profileId, mode, state, now = new Date()) {
+export function saveVocabularyStudySession(db, profileId, mode, state, now = new Date(), { restart = false } = {}) {
   const normalizedMode = normalizeStudySessionMode(mode);
   const serialized = serializeStudySessionState(state, normalizedMode);
   const updatedAt = toIso(now);
-  db.prepare(`
-    INSERT INTO vocabulary_study_sessions (profile_id, mode, state_json, updated_at)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(profile_id, mode) DO UPDATE SET
-      state_json = excluded.state_json,
-      updated_at = excluded.updated_at
-  `).run(profileId, normalizedMode, serialized, updatedAt);
+  const save = db.transaction(() => {
+    const existing = getLatestVocabularyStudySession(db, profileId, normalizedMode);
+    const previousRemaining = Array.isArray(existing?.state?.session?.entries)
+      ? existing.state.session.entries.length
+      : null;
+    const nextRemaining = state.session.entries.length;
+    if (existing && !restart && previousRemaining !== null && nextRemaining > previousRemaining) {
+      throw new VocabularyApiError(
+        409,
+        'A newer exact-once position is already saved. Explicit restart is required to increase the queue.',
+        'STUDY_SESSION_REGRESSION',
+      );
+    }
+    db.prepare(`
+      INSERT INTO vocabulary_study_sessions (profile_id, mode, state_json, updated_at)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(profile_id, mode) DO UPDATE SET
+        state_json = excluded.state_json,
+        updated_at = excluded.updated_at
+    `).run(profileId, normalizedMode, serialized, updatedAt);
+  });
+  save();
   return { mode: normalizedMode, state, updated_at: updatedAt };
 }
 
