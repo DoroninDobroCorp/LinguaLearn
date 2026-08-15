@@ -577,6 +577,8 @@ function Vocabulary() {
   const [showTools, setShowTools] = useState(false);
   const [expandedEntries, setExpandedEntries] = useState({});
   const [studySessionHydrated, setStudySessionHydrated] = useState(false);
+  const [pendingFavoriteIds, setPendingFavoriteIds] = useState(() => new Set());
+  const [pendingLearnedIds, setPendingLearnedIds] = useState(() => new Set());
 
   const toggleEntryExpanded = (entryId) => {
     setExpandedEntries((prev) => ({
@@ -590,6 +592,8 @@ function Vocabulary() {
   const latestRefreshIdRef = useRef(0);
   const studySessionSaveChainRef = useRef(Promise.resolve());
   const restartNextStudySessionSaveRef = useRef(false);
+  const favoriteMutationIdsRef = useRef(new Set());
+  const learnedMutationIdsRef = useRef(new Set());
   const {
     capabilities: speechCapabilities,
     selectedVoice,
@@ -1122,60 +1126,102 @@ function Vocabulary() {
     advanceCurrentSessionCard(currentCard);
   };
 
-  const handleLearned = async () => {
+  const handleLearned = () => {
     if (!currentCard) return;
     if (isOfflineRuntime()) {
       setError('Marking a word learned forever needs internet.');
       return;
     }
     if (!window.confirm(`Mark “${currentCard.word}” learned forever? It will leave every study queue, but you can restore it from the Learned list.`)) return;
-    setIsSubmitting(true);
+    const learnedCard = currentCard;
+    const entryId = Number(learnedCard.id);
+    if (learnedMutationIdsRef.current.has(entryId)) return;
+    learnedMutationIdsRef.current.add(entryId);
+    setPendingLearnedIds((ids) => new Set(ids).add(entryId));
     setError('');
-    try {
-      const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/${currentCard.id}/permanent-learned`), {
+    setEntries((items) => items.map((item) => item.id === learnedCard.id
+      ? { ...item, learned_permanently_at: new Date().toISOString() }
+      : item));
+    advanceCurrentSessionCard(learnedCard, { removeEntry: true });
+    setNotice('Saved as learned forever. Syncing…');
+
+    profileFetch(profileApiUrl(`/spanish/api/vocabulary/${learnedCard.id}/permanent-learned`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ learned: true }),
+      })
+      .then(async (response) => {
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || 'Failed to mark word learned forever');
+        }
+        await refreshVocabulary();
+        setNotice('Saved as learned forever. You can restore it from the Learned list.');
+      })
+      .catch((learnError) => {
+        setEntries((items) => items.map((item) => item.id === learnedCard.id
+          ? { ...item, learned_permanently_at: null }
+          : item));
+        setError(`The next card is ready, but saving “learned forever” failed: ${learnError.message}`);
+      })
+      .finally(() => {
+        learnedMutationIdsRef.current.delete(entryId);
+        setPendingLearnedIds((ids) => {
+          const next = new Set(ids);
+          next.delete(entryId);
+          return next;
+        });
       });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to mark word learned forever');
-      }
-      advanceCurrentSessionCard(currentCard, { removeEntry: true });
-      await refreshVocabulary();
-      setNotice('Saved as learned forever. You can restore it from the Learned list.');
-    } catch (learnError) {
-      setError(learnError.message || 'Failed to mark word learned forever');
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
-  const updateFavorite = async (entry, favorite) => {
+  const updateFavorite = (entry, favorite) => {
     if (isOfflineRuntime()) {
       setError('Updating favorites needs internet.');
       return;
     }
-    setIsSubmitting(true);
+    const entryId = Number(entry.id);
+    if (favoriteMutationIdsRef.current.has(entryId)) return;
+    favoriteMutationIdsRef.current.add(entryId);
+    setPendingFavoriteIds((ids) => new Set(ids).add(entryId));
     setError('');
-    try {
-      const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/${entry.id}/favorite`), {
+    setEntries((items) => items.map((item) => item.id === entry.id ? { ...item, is_favorite: favorite } : item));
+    setReviewQueue((queue) => queue.map((card) => card.id === entry.id ? { ...card, is_favorite: favorite } : card));
+    setReviewSession((session) => ({
+      ...session,
+      entries: session.entries.map((item) => item.entryId === entry.id ? { ...item, isFavorite: favorite } : item),
+    }));
+    setNotice(favorite ? 'Added to favorites. Saving…' : 'Removed from favorites. Saving…');
+
+    profileFetch(profileApiUrl(`/spanish/api/vocabulary/${entry.id}/favorite`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ favorite }),
+      })
+      .then(async (response) => {
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || 'Failed to update favorite');
+        }
+        await refreshVocabulary();
+        setNotice(favorite ? 'Added to favorites.' : 'Removed from favorites.');
+      })
+      .catch((favoriteError) => {
+        setEntries((items) => items.map((item) => item.id === entry.id ? { ...item, is_favorite: !favorite } : item));
+        setReviewQueue((queue) => queue.map((card) => card.id === entry.id ? { ...card, is_favorite: !favorite } : card));
+        setReviewSession((session) => ({
+          ...session,
+          entries: session.entries.map((item) => item.entryId === entry.id ? { ...item, isFavorite: !favorite } : item),
+        }));
+        setError(`Favorite changed instantly, but server save failed: ${favoriteError.message}`);
+      })
+      .finally(() => {
+        favoriteMutationIdsRef.current.delete(entryId);
+        setPendingFavoriteIds((ids) => {
+          const next = new Set(ids);
+          next.delete(entryId);
+          return next;
+        });
       });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to update favorite');
-      }
-      setReviewQueue((queue) => queue.map((card) => card.id === entry.id ? { ...card, is_favorite: favorite } : card));
-      await refreshVocabulary();
-      setNotice(favorite ? 'Added to favorites.' : 'Removed from favorites.');
-    } catch (favoriteError) {
-      setError(favoriteError.message || 'Failed to update favorite');
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const restoreLearnedEntry = async (entry) => {
@@ -1728,7 +1774,7 @@ function Vocabulary() {
                       key={action.key}
                       type="button"
                       onClick={() => handleReview(action.key)}
-                      disabled={isSubmitting || isVoicePracticeBusy}
+                      disabled={isVoicePracticeBusy}
                       className={`rounded-xl px-3 py-2.5 text-xs font-semibold text-white transition-all shadow-md flex min-h-[3.25rem] items-center justify-center gap-1.5 text-center leading-tight disabled:opacity-60 sm:min-h-[4rem] sm:flex-col sm:gap-1 sm:px-3 sm:py-3 sm:text-sm ${action.className}`}
                     >
                       <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -1739,7 +1785,7 @@ function Vocabulary() {
                 <button
                   type="button"
                   onClick={() => updateFavorite(currentCard, !currentCard.is_favorite)}
-                  disabled={isSubmitting || isVoicePracticeBusy}
+                  disabled={pendingFavoriteIds.has(Number(currentCard.id)) || isVoicePracticeBusy}
                   className={`rounded-xl border-2 px-3 py-2.5 text-xs font-semibold transition-all shadow-md flex min-h-[3.25rem] items-center justify-center gap-1.5 text-center leading-tight disabled:opacity-60 sm:min-h-[4rem] sm:flex-col sm:gap-1 sm:px-3 sm:py-3 sm:text-sm ${currentCard.is_favorite ? 'border-amber-500 bg-amber-100 text-amber-800' : 'border-amber-300 bg-white text-amber-700 hover:bg-amber-50'}`}
                 >
                   <Star className={`h-4 w-4 sm:h-5 sm:w-5 ${currentCard.is_favorite ? 'fill-current' : ''}`} />
@@ -1750,7 +1796,7 @@ function Vocabulary() {
               <button
                 type="button"
                 onClick={handleLearned}
-                disabled={isSubmitting || isVoicePracticeBusy}
+                disabled={pendingLearnedIds.has(Number(currentCard.id)) || isVoicePracticeBusy}
                 className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-700 transition-all shadow-md flex items-center justify-center gap-2 leading-tight disabled:opacity-60 sm:text-base"
               >
                 <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -2039,7 +2085,7 @@ function Vocabulary() {
                       <button
                         type="button"
                         onClick={() => updateFavorite(entry, !entry.is_favorite)}
-                        disabled={isSubmitting}
+                        disabled={pendingFavoriteIds.has(Number(entry.id))}
                         className={`p-2 rounded-lg transition-colors disabled:opacity-60 ${entry.is_favorite ? 'bg-amber-100 text-amber-600' : 'text-slate-400 hover:bg-amber-50 hover:text-amber-600'}`}
                         title={entry.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
                       >

@@ -18,7 +18,11 @@ function Vocabulary() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  const [pendingFavoriteIds, setPendingFavoriteIds] = useState(() => new Set());
+  const [pendingLearnedIds, setPendingLearnedIds] = useState(() => new Set());
   const reviewingWordIdsRef = useRef(new Set());
+  const favoriteMutationIdsRef = useRef(new Set());
+  const learnedMutationIdsRef = useRef(new Set());
   const studySessionSaveChainRef = useRef(Promise.resolve());
 
   const activeWords = useMemo(() => words.filter((word) => !word.learned_permanently_at), [words]);
@@ -176,36 +180,84 @@ function Vocabulary() {
       });
   };
 
-  const toggleFavorite = async (word) => {
-    setBusy(true); setError('');
-    try {
-      const favorite = !Boolean(word.is_favorite);
-      await apiMutation(`/english/api/vocabulary/${word.id}/favorite`, {
+  const toggleFavorite = (word) => {
+    const wordId = Number(word.id);
+    if (favoriteMutationIdsRef.current.has(wordId)) return;
+    favoriteMutationIdsRef.current.add(wordId);
+    setPendingFavoriteIds((ids) => new Set(ids).add(wordId));
+    setError('');
+
+    const favorite = !Boolean(word.is_favorite);
+    const patchFavorite = (item, value) => item.id === word.id ? { ...item, is_favorite: value ? 1 : 0 } : item;
+    const nextQueue = studyQueue
+      .map((item) => patchFavorite(item, favorite))
+      .filter((item) => studyMode !== 'favorites' || item.is_favorite);
+    setWords((items) => items.map((item) => patchFavorite(item, favorite)));
+    setDueWords((items) => items.map((item) => patchFavorite(item, favorite)));
+    setStudyQueue(nextQueue);
+    setNotice(favorite ? 'Added to favorites. Saving…' : 'Removed from favorites. Saving…');
+
+    Promise.all([
+      apiMutation(`/english/api/vocabulary/${word.id}/favorite`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ favorite }),
+      }),
+      persistStudySession(studyMode, nextQueue, roundTotal),
+    ])
+      .then(() => loadVocabulary())
+      .then(() => setNotice(favorite ? 'Added to favorites.' : 'Removed from favorites.'))
+      .catch((mutationError) => {
+        setWords((items) => items.map((item) => patchFavorite(item, !favorite)));
+        setDueWords((items) => items.map((item) => patchFavorite(item, !favorite)));
+        setStudyQueue((items) => items.map((item) => patchFavorite(item, !favorite)));
+        setError(`Favorite changed instantly, but server save failed: ${mutationError.message}`);
+      })
+      .finally(() => {
+        favoriteMutationIdsRef.current.delete(wordId);
+        setPendingFavoriteIds((ids) => {
+          const next = new Set(ids);
+          next.delete(wordId);
+          return next;
+        });
       });
-      const nextQueue = studyQueue
-        .map((item) => item.id === word.id ? { ...item, is_favorite: favorite ? 1 : 0 } : item)
-        .filter((item) => studyMode !== 'favorites' || item.is_favorite);
-      setStudyQueue(nextQueue);
-      await persistStudySession(studyMode, nextQueue, roundTotal);
-      await loadVocabulary();
-    } catch (mutationError) { setError(mutationError.message); } finally { setBusy(false); }
   };
 
-  const setLearnedForever = async (word, learned) => {
+  const setLearnedForever = (word, learned) => {
     if (learned && !window.confirm(`Mark “${word.word}” learned forever? You can restore it from the Learned list.`)) return;
-    setBusy(true); setError('');
-    try {
-      await apiMutation(`/english/api/vocabulary/${word.id}/permanent-learned`, {
+    const wordId = Number(word.id);
+    if (learnedMutationIdsRef.current.has(wordId)) return;
+    learnedMutationIdsRef.current.add(wordId);
+    setPendingLearnedIds((ids) => new Set(ids).add(wordId));
+    setError('');
+
+    const learnedAt = learned ? new Date().toISOString() : null;
+    const patchLearned = (item, value) => item.id === word.id ? { ...item, learned_permanently_at: value } : item;
+    const nextQueue = learned ? studyQueue.filter((item) => item.id !== word.id) : studyQueue;
+    setWords((items) => items.map((item) => patchLearned(item, learnedAt)));
+    setDueWords((items) => learned ? items.filter((item) => item.id !== word.id) : items.map((item) => patchLearned(item, null)));
+    setStudyQueue(nextQueue);
+    setShowTranslation(false);
+    setNotice(learned ? 'Saved as learned forever. Syncing…' : 'Word restored. Syncing…');
+
+    Promise.all([
+      apiMutation(`/english/api/vocabulary/${word.id}/permanent-learned`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ learned }),
+      }),
+      persistStudySession(studyMode, nextQueue, roundTotal),
+    ])
+      .then(() => loadVocabulary())
+      .then(() => setNotice(learned ? 'Saved as learned forever.' : 'Word restored to study queues.'))
+      .catch((mutationError) => {
+        setWords((items) => items.map((item) => patchLearned(item, word.learned_permanently_at || null)));
+        setError(`The interface continued immediately, but saving “learned forever” failed: ${mutationError.message}`);
+      })
+      .finally(() => {
+        learnedMutationIdsRef.current.delete(wordId);
+        setPendingLearnedIds((ids) => {
+          const next = new Set(ids);
+          next.delete(wordId);
+          return next;
+        });
       });
-      const nextQueue = studyQueue.filter((item) => item.id !== word.id);
-      setStudyQueue(nextQueue);
-      await persistStudySession(studyMode, nextQueue, roundTotal);
-      setShowTranslation(false);
-      await loadVocabulary();
-      setNotice(learned ? 'Saved as learned forever.' : 'Word restored to study queues.');
-    } catch (mutationError) { setError(mutationError.message); } finally { setBusy(false); }
   };
 
   const deleteWord = async (word) => {
@@ -260,9 +312,9 @@ function Vocabulary() {
           {showTranslation ? <div className="text-center"><p className="text-3xl text-purple-800">{currentWord.translation}</p>{currentWord.example && <p className="text-lg text-gray-600 italic mt-4">“{currentWord.example}”</p>}</div> : <p className="text-gray-500">Click to reveal translation</p>}
         </div>
         {showTranslation && <div className="space-y-3 mt-5"><div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          {[[0, X, "Don't Know", 'bg-red-500'], [1, AlertCircle, 'Hard', 'bg-orange-500'], [2, Check, 'Good', 'bg-blue-500'], [3, TrendingUp, 'Easy', 'bg-green-500']].map(([quality, Icon, label, color]) => <button key={quality} onClick={() => reviewWord(quality)} disabled={busy} className={`${color} rounded-xl p-3 font-semibold text-white disabled:opacity-50`}><Icon className="h-5 w-5 mx-auto" />{label}</button>)}
-          <button onClick={() => toggleFavorite(currentWord)} disabled={busy} className={`rounded-xl border-2 p-3 font-semibold disabled:opacity-50 ${currentWord.is_favorite ? 'border-amber-500 bg-amber-100 text-amber-800' : 'border-amber-300 bg-white text-amber-700 hover:bg-amber-50'}`}><Star className={`h-5 w-5 mx-auto ${currentWord.is_favorite ? 'fill-current' : ''}`} />{currentWord.is_favorite ? 'Remove Favorite' : 'Add Favorite'}</button>
-        </div><button onClick={() => setLearnedForever(currentWord, true)} disabled={busy} className="w-full rounded-xl bg-violet-600 px-4 py-3 font-semibold text-white">Learned forever — remove from every study queue</button></div>}
+          {[[0, X, "Don't Know", 'bg-red-500'], [1, AlertCircle, 'Hard', 'bg-orange-500'], [2, Check, 'Good', 'bg-blue-500'], [3, TrendingUp, 'Easy', 'bg-green-500']].map(([quality, Icon, label, color]) => <button key={quality} onClick={() => reviewWord(quality)} className={`${color} rounded-xl p-3 font-semibold text-white`}><Icon className="h-5 w-5 mx-auto" />{label}</button>)}
+          <button onClick={() => toggleFavorite(currentWord)} disabled={pendingFavoriteIds.has(Number(currentWord.id))} className={`rounded-xl border-2 p-3 font-semibold disabled:opacity-50 ${currentWord.is_favorite ? 'border-amber-500 bg-amber-100 text-amber-800' : 'border-amber-300 bg-white text-amber-700 hover:bg-amber-50'}`}><Star className={`h-5 w-5 mx-auto ${currentWord.is_favorite ? 'fill-current' : ''}`} />{currentWord.is_favorite ? 'Remove Favorite' : 'Add Favorite'}</button>
+        </div><button onClick={() => setLearnedForever(currentWord, true)} disabled={pendingLearnedIds.has(Number(currentWord.id))} className="w-full rounded-xl bg-violet-600 px-4 py-3 font-semibold text-white disabled:opacity-50">Learned forever — remove from every study queue</button></div>}
       </div> : <div className="bg-white rounded-2xl shadow-2xl p-10 text-center"><RotateCcw className="h-14 w-14 mx-auto text-green-500" /><h3 className="text-2xl font-bold mt-3">Round complete</h3><p className="text-gray-600">Choose a mode above to start a new shuffled round.</p></div>}
 
       <div className="bg-white rounded-2xl shadow-2xl p-6">
@@ -270,7 +322,7 @@ function Vocabulary() {
         <p className="text-xs text-gray-500 mb-3">{mastered} active words have reached SRS level 5.</p>
         <div className="space-y-2 max-h-[34rem] overflow-y-auto">{visibleWords.map((word) => <div key={word.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-xl">
           <div><p className="font-bold text-gray-800 text-lg">{word.word} {word.is_favorite && <Star className="inline h-4 w-4 fill-amber-500 text-amber-500" />}</p><p className="text-gray-600">{word.translation}</p>{word.learned_permanently_at && <p className="text-xs font-semibold text-emerald-700">Learned forever</p>}</div>
-          <div className="flex gap-2"><button onClick={() => toggleFavorite(word)} disabled={busy} title="Toggle favorite" className="p-2 rounded-lg bg-amber-50 text-amber-600"><Star className={`h-5 w-5 ${word.is_favorite ? 'fill-current' : ''}`} /></button>{word.learned_permanently_at ? <button onClick={() => setLearnedForever(word, false)} disabled={busy} title="Restore to study" className="p-2 rounded-lg bg-emerald-50 text-emerald-700"><Undo2 className="h-5 w-5" /></button> : <button onClick={() => setLearnedForever(word, true)} disabled={busy} title="Learned forever" className="p-2 rounded-lg bg-violet-50 text-violet-700"><Check className="h-5 w-5" /></button>}<button onClick={() => deleteWord(word)} disabled={busy} className="p-2 rounded-lg bg-red-50 text-red-600"><Trash2 className="h-5 w-5" /></button></div>
+          <div className="flex gap-2"><button onClick={() => toggleFavorite(word)} disabled={pendingFavoriteIds.has(Number(word.id))} title="Toggle favorite" className="p-2 rounded-lg bg-amber-50 text-amber-600 disabled:opacity-50"><Star className={`h-5 w-5 ${word.is_favorite ? 'fill-current' : ''}`} /></button>{word.learned_permanently_at ? <button onClick={() => setLearnedForever(word, false)} disabled={pendingLearnedIds.has(Number(word.id))} title="Restore to study" className="p-2 rounded-lg bg-emerald-50 text-emerald-700 disabled:opacity-50"><Undo2 className="h-5 w-5" /></button> : <button onClick={() => setLearnedForever(word, true)} disabled={pendingLearnedIds.has(Number(word.id))} title="Learned forever" className="p-2 rounded-lg bg-violet-50 text-violet-700 disabled:opacity-50"><Check className="h-5 w-5" /></button>}<button onClick={() => deleteWord(word)} disabled={busy} className="p-2 rounded-lg bg-red-50 text-red-600"><Trash2 className="h-5 w-5" /></button></div>
         </div>)}</div>
       </div>
     </div>
