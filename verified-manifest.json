@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "timestamp": "2026-08-14T15:33:04Z",
-  "gitCommit": "0138399d8904fc4cd7457497fc46acaebc73c92b",
-  "originMainCommit": "0138399d8904fc4cd7457497fc46acaebc73c92b",
+  "timestamp": "2026-08-16T17:08:59Z",
+  "gitCommit": "c11c52fad167e538b081a8463f72bc38362c201f",
+  "originMainCommit": "c11c52fad167e538b081a8463f72bc38362c201f",
   "gitPushed": true,
   "localVerification": {
     "nodeBackendTests": {
@@ -21,19 +21,19 @@
       "status": "PASSED"
     },
     "macOSSwiftTests": {
-      "status": "PASSED",
-      "passed": 47,
-      "reason": "Executed swift test"
+      "status": "BLOCKED_HOST_UNSUPPORTED",
+      "passed": 0,
+      "reason": "macOS Swift toolchain unavailable"
     },
     "iOSSimulatorTests": {
-      "status": "PASSED",
-      "passed": 30,
-      "reason": "Executed run-tests.sh"
+      "status": "BLOCKED_HOST_UNSUPPORTED",
+      "passed": 0,
+      "reason": "iOS xcodebuild toolchain unavailable"
     },
     "androidGradleTests": {
-      "status": "PASSED",
-      "tasksPassed": 44,
-      "reason": "Executed ./gradlew test"
+      "status": "BLOCKED_HOST_UNSUPPORTED",
+      "tasksPassed": 0,
+      "reason": "Android Gradle wrapper or SDK unavailable"
     },
     "windowsDotnetTests": {
       "status": "BLOCKED_HOST_UNSUPPORTED",
@@ -41,9 +41,9 @@
     }
   },
   "artifactChecksums": {
-    "webFrontendIndexHtml": "08d7115804f1c4180c120c9e7eaf5b304fbb99ca164ff096289745ce94416391",
-    "webFrontendJsAsset": "57ff6373f0eede502b2905e2ddb67dc22f429405678471b2547b96190976c711",
-    "webFrontendCssAsset": "22c59c3e339cc5e393955a0e5e1e11d16f408dd93d1a86dd7fae3b2ffa10ae64",
+    "webFrontendIndexHtml": "afdf6262b857e7671aff729d42a85b21ab20fcc7572a6e535a0bf3ab3f73b82e",
+    "webFrontendJsAsset": "a32b3317be487be4fad01ae1d5bdcd79366fa6a83d402b87b8f15ad28ae15263",
+    "webFrontendCssAsset": "6248b641371ec7510d65c4bed51d06bdc830093f7170911ac92160b6691fc5e3",
     "openApiSpec": "63f8e1d28daeca7411bf0f9739143e40721c160fc327e7a5e982acfcfb7f2de2"
   },
   "ciStatus": {

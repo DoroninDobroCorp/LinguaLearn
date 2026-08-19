@@ -1,3 +1,4 @@
+import { generateSpanishExercise } from './grammarExerciseEngine.js';
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -27,6 +28,14 @@ import {
   setVocabularyFavorite,
   setVocabularyPermanentlyLearned,
   saveVocabularyStudySession,
+  listVocabularyGroups,
+  createVocabularyGroup,
+  updateVocabularyGroup,
+  deleteVocabularyGroup,
+  addWordToGroup,
+  removeWordFromGroup,
+  setGroupWords,
+  setWordGroups,
 } from './vocabularyReview.js';
 import { ensureCaseInsensitiveProfileNameIndex } from './profileNameMigration.js';
 import {
@@ -1393,6 +1402,19 @@ function updateTopic(name, category, level, success, profileId) {
       progress = { score: 0 };
     }
 
+    if (progress.is_locked) {
+      // Locked at 100% — score NEVER decreases, status stays mastered
+      db.prepare(`
+        UPDATE curriculum_progress 
+        SET score = 100, status = 'mastered',
+            success_count = success_count + ?,
+            failure_count = failure_count + ?,
+            last_practiced = CURRENT_TIMESTAMP
+        WHERE topic_id = ? AND profile_id = ?
+      `).run(success ? 1 : 0, success ? 0 : 1, existing.id, profileId);
+      return { isNew: false, name: existing.name, scoreChange: 0, newScore: 100, success };
+    }
+
     const scoreChange = success ? 5 : -10;
     const newScore = Math.max(0, Math.min(100, progress.score + scoreChange));
     const newStatus = newScore >= 80 ? 'mastered' : 'in_progress';
@@ -1458,7 +1480,7 @@ app.get('/api/topics', (req, res) => {
     
     const topics = db.prepare(`
       SELECT ct.id, ct.name, ct.category, ct.level, ct.source, ct.created_at,
-             cp.status, cp.score, cp.success_count, cp.failure_count, cp.last_practiced
+             cp.status, cp.score, COALESCE(cp.is_locked, 0) as is_locked, cp.success_count, cp.failure_count, cp.last_practiced
       FROM curriculum_topics ct
       INNER JOIN curriculum_progress cp ON cp.topic_id = ct.id AND cp.profile_id = ?
       WHERE cp.status != 'not_started'
@@ -1509,6 +1531,352 @@ app.get('/api/settings', (req, res) => {
     res.json(settings);
   } catch (error) {
     console.error('Error fetching settings:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// ==========================================
+// API: GENERATE PERSONALIZED EXERCISES (Batch of 10 & Nuanced AI Grammar)
+// ==========================================
+app.post('/api/exercises/generate', async (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const { topicId, type } = req.body || {};
+
+    const allWords = db.prepare('SELECT id, word, translation, example, learned_permanently_at FROM vocabulary WHERE profile_id = ?').all(profileId);
+    const learnedWords = allWords.filter((w) => w.learned_permanently_at !== null && w.learned_permanently_at !== undefined);
+    const activeWords = allWords.filter((w) => !w.learned_permanently_at);
+
+    let selectedPool = [];
+    let vocabularySource = 'combined';
+    let poolCount = allWords.length;
+    let poolLabel = 'Все слова словаря';
+
+    if (learnedWords.length >= 100) {
+      selectedPool = learnedWords;
+      vocabularySource = 'learned_forever';
+      poolCount = learnedWords.length;
+      poolLabel = `Полностью выученные слова (${learnedWords.length})`;
+    } else if (activeWords.length >= 100) {
+      selectedPool = activeWords;
+      vocabularySource = 'active_studying';
+      poolCount = activeWords.length;
+      poolLabel = `Изучаемые слова (${activeWords.length})`;
+    } else {
+      selectedPool = allWords.length > 0 ? allWords : [{ word: 'casa', translation: 'дом', example: 'Mi casa es grande.' }];
+      vocabularySource = 'combined';
+      poolCount = allWords.length;
+      poolLabel = `Все слова (${allWords.length})`;
+    }
+
+    const sampledWords = [...selectedPool].sort(() => 0.5 - Math.random()).slice(0, 20);
+    const vocabListStr = sampledWords.map((w) => `${w.word} (${w.translation})`).join(', ');
+
+    let topicObj = { name: 'General Grammar & Vocabulary Practice', category: 'Grammar', level: 'A2' };
+
+    if (topicId && topicId !== 'all') {
+      const topicRow = db.prepare('SELECT id, name, category, level FROM curriculum_topics WHERE id = ?').get(topicId);
+      if (topicRow) {
+        topicObj = topicRow;
+      }
+    }
+
+    const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
+    const prompt = `You are an elite Spanish language professor and curriculum examiner.
+Your mission is to generate a cohesive set of 10 interactive practice exercises for a student practicing the CEFR topic: "${topicObj.name}" (${topicObj.category}, Level: ${topicObj.level}).
+
+CRITICAL MANDATORY INSTRUCTIONS:
+1. GRAMMAR TOPIC & COMPREHENSIVE NUANCE COVERAGE:
+   - All 10 exercises MUST strictly test the specific grammar mechanism of "${topicObj.name}".
+   - ACROSS THE 10 EXERCISES, YOU MUST SYSTEMATICALLY COVER DIFFERENT NUANCES, ASPECTS, AND SUB-RULES OF THIS TOPIC:
+     * Different grammatical persons (yo, tú, él/ella/usted, nosotros, ellos/ellas/ustedes; 1st/2nd/3rd singular/plural).
+     * Affirmative sentences, negative sentences (no...), and interrogative/question sentences (¿...?).
+     * Regular forms vs irregular roots/stem changes/exceptions relevant to this topic.
+     * Different contextual situations (formal vs informal, different trigger verbs or prepositions).
+   - DO NOT repeat the same sentence structure or grammatical person repeatedly! Ensure variety and progressive pedagogical depth across the 10 tasks.
+   - DO NOT just ask for plain vocabulary translations of isolated words. Every exercise must be a meaningful sentence testing the grammar rule.
+
+2. STUDENT VOCABULARY INTEGRATION:
+   - Embed words from the student's vocabulary pool across the 10 exercises: ${vocabListStr}.
+   - Naturally integrate these vocabulary words into the subjects, objects, or context of the sentences.
+
+3. EXERCISE FORMAT:
+   - Generate an array of 10 items (mix of multiple-choice and fill-blank unless a specific type was requested).
+   - For multiple-choice: provide 4 distinct, plausible options in "options". One correct option, three realistic grammatical distractors.
+   - For fill-blank: use "___" in the sentence for the blank.
+   - For open: provide a clear instruction in Russian with the sentence.
+
+4. RUSSIAN EXPLANATIONS:
+   - Every exercise MUST include a clear, detailed "explanation" in Russian explaining the grammar rule, the conjugation/ending/form, and why this specific answer is correct.
+
+OUTPUT FORMAT:
+Respond ONLY with a valid JSON object matching this exact schema:
+{
+  "exercises": [
+    {
+      "type": "multiple-choice" | "fill-blank" | "open",
+      "question": "Question or sentence in Spanish (with Russian instructions/context if needed)",
+      "options": ["Option A", "Option B", "Option C", "Option D"], // if multiple-choice
+      "correctAnswer": "exact correct answer string",
+      "explanation": "Clear grammatical explanation in Russian",
+      "topic": "${topicObj.name}",
+      "level": "${topicObj.level}",
+      "targetWord": "Spanish word from student vocabulary used in this exercise",
+      "targetWordTranslation": "Russian translation"
+    }
+  ]
+}`;
+
+    let exercises = [];
+    const aiModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash-lite'];
+    for (const m of aiModels) {
+      try {
+        const aiRes = await Promise.race([
+          fetch(`http://127.0.0.1:58433/v1beta/models/${m}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: 'application/json', temperature: 0.7 }
+            })
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+        ]);
+
+        if (aiRes.ok) {
+          const aiData = await aiRes.json();
+          const rawJson = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+          const parsed = JSON.parse(rawJson);
+          if (Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
+            exercises = parsed.exercises;
+            break;
+          } else if (parsed.question && parsed.correctAnswer) {
+            exercises = [parsed];
+            break;
+          }
+        }
+      } catch (err) {
+        console.warn(`Model ${m} error in batch generation:`, err.message);
+      }
+    }
+
+    // Fallback if AI generation fails
+    if (!exercises || exercises.length === 0) {
+      const single = generateSpanishExercise({
+        topic: topicObj,
+        exerciseType: type || 'multiple-choice',
+        targetWordObj: selectedPool[0],
+        allUserWords: selectedPool
+      });
+      exercises = [single];
+    }
+
+    exercises.forEach((ex) => {
+      ex.vocabularySource = vocabularySource;
+      ex.wordPoolCount = poolCount;
+      ex.sourceLabel = poolLabel;
+    });
+
+    return res.json({
+      exercises,
+      exercise: exercises[0], // backwards compatibility
+      count: exercises.length,
+      vocabularySource,
+      wordPoolCount: poolCount,
+      sourceLabel: poolLabel
+    });
+  } catch (error) {
+    console.error('Error in /api/exercises/generate:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// API: GENERATE FULL-SENTENCE TRANSLATION EXERCISES (Multi-topic & Mastered Vocabulary)
+// ==========================================
+app.post('/api/exercises/generate-translation', async (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const { topicIds } = req.body || {};
+
+    const allWords = db.prepare('SELECT id, word, translation, example, learned_permanently_at FROM vocabulary WHERE profile_id = ?').all(profileId);
+    const learnedWords = allWords.filter((w) => w.learned_permanently_at !== null && w.learned_permanently_at !== undefined);
+    const activeWords = allWords.filter((w) => !w.learned_permanently_at);
+
+    let selectedPool = [];
+    let vocabularySource = 'combined';
+    let poolCount = allWords.length;
+    let poolLabel = 'Все слова словаря';
+
+    if (learnedWords.length >= 100) {
+      selectedPool = learnedWords;
+      vocabularySource = 'learned_forever';
+      poolCount = learnedWords.length;
+      poolLabel = `Полностью выученные слова (${learnedWords.length})`;
+    } else if (activeWords.length >= 100) {
+      selectedPool = activeWords;
+      vocabularySource = 'active_studying';
+      poolCount = activeWords.length;
+      poolLabel = `Изучаемые слова (${activeWords.length})`;
+    } else {
+      selectedPool = allWords.length > 0 ? allWords : [{ word: 'casa', translation: 'дом' }, { word: 'nuevo', translation: 'новый' }];
+      vocabularySource = 'combined';
+      poolCount = allWords.length;
+      poolLabel = `Все слова (${allWords.length})`;
+    }
+
+    const sampledWords = [...selectedPool].sort(() => 0.5 - Math.random()).slice(0, 30);
+    const vocabListStr = sampledWords.map((w) => `${w.word} (${w.translation})`).join(', ');
+
+    // Gather selected topic names
+    let selectedTopicRows = [];
+    if (Array.isArray(topicIds) && topicIds.length > 0) {
+      const placeholders = topicIds.map(() => '?').join(',');
+      selectedTopicRows = db.prepare(`SELECT id, name, category, level FROM curriculum_topics WHERE id IN (${placeholders})`).all(...topicIds);
+    } else if (topicIds && topicIds !== 'all') {
+      const single = db.prepare('SELECT id, name, category, level FROM curriculum_topics WHERE id = ?').get(topicIds);
+      if (single) selectedTopicRows = [single];
+    }
+
+    if (selectedTopicRows.length === 0) {
+      selectedTopicRows = db.prepare('SELECT id, name, category, level FROM curriculum_topics ORDER BY RANDOM() LIMIT 2').all();
+    }
+
+    const topicsStr = selectedTopicRows.map((t, idx) => `${idx + 1}. ${t.name} (${t.category}, ${t.level})`).join('\n');
+
+    const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
+    const prompt = `You are an elite Spanish language professor.
+Your task is to generate 10 full-sentence translation exercises for a student.
+
+SELECTED GRAMMAR TOPIC(S):
+${topicsStr}
+
+STUDENT'S MASTERED VOCABULARY POOL (YOU MUST COMPOSE SENTENCES PRIMARILY USING THESE KNOWN WORDS):
+${vocabListStr}
+
+CRITICAL MANDATORY INSTRUCTIONS:
+1. For each of the 10 tasks:
+   - "sourceSentence": A natural, meaningful Russian sentence for the student to translate into Spanish.
+   - "targetSentence": The perfect, accurate Spanish translation.
+   - "alternativeAnswers": Array of 1-3 valid alternative translations in Spanish (e.g. with/without subject pronouns like 'yo/tú', synonyms).
+   - "testedGrammar": Name of the specific grammar topic tested in this sentence.
+   - "usedVocabulary": Array of student vocabulary words embedded in this sentence.
+   - "explanation": Detailed Russian explanation of the grammar rule, word order, verb conjugations/endings, and why this translation is constructed this way.
+2. The sentences MUST strictly practice the chosen grammar topics while weaving together words from the student's vocabulary list.
+3. Provide progressive variety across the 10 sentences covering different persons (yo, tú, él/ella, nosotros, ellos), affirmative/negative/questions, and nuances.
+
+Respond ONLY with valid JSON matching this exact schema:
+{
+  "exercises": [
+    {
+      "sourceSentence": "Русское предложение для перевода",
+      "targetSentence": "Correct Spanish translation",
+      "alternativeAnswers": ["Alternative Spanish translation 1"],
+      "testedGrammar": "Grammar topic name",
+      "usedVocabulary": ["word1", "word2"],
+      "explanation": "Подробное объяснение грамматики и перевода на русском языке"
+    }
+  ]
+}`;
+
+    let exercises = [];
+    const aiModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash-lite'];
+    for (const m of aiModels) {
+      try {
+        const aiRes = await Promise.race([
+          fetch(`http://127.0.0.1:58433/v1beta/models/${m}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: 'application/json', temperature: 0.7 }
+            })
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 12000))
+        ]);
+
+        if (aiRes.ok) {
+          const aiData = await aiRes.json();
+          const rawJson = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+          const parsed = JSON.parse(rawJson);
+          if (Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
+            exercises = parsed.exercises;
+            break;
+          }
+        }
+      } catch (err) {
+        console.warn(`Translation generation error on model ${m}:`, err.message);
+      }
+    }
+
+    if (exercises.length === 0) {
+      exercises = [
+        {
+          sourceSentence: "Дама покупает новое вино в магазине.",
+          targetSentence: "La dama compra vino nuevo en la tienda.",
+          alternativeAnswers: ["La dama compra un vino nuevo en la tienda."],
+          testedGrammar: selectedTopicRows[0]?.name || "Present tense regular -ar verbs",
+          usedVocabulary: ["dama", "vino", "nuevo"],
+          explanation: "Глагол 'comprar' спрягается в 3-м лице единственного числа (la dama) с окончанием '-a' (compra). Прилагательное 'nuevo' согласуется с мужским родом 'vino'."
+        }
+      ];
+    }
+
+    exercises.forEach((ex, idx) => {
+      ex.id = `trans_${Date.now()}_${idx}`;
+      ex.vocabularySource = vocabularySource;
+      ex.wordPoolCount = poolCount;
+      ex.sourceLabel = poolLabel;
+    });
+
+    return res.json({
+      exercises,
+      count: exercises.length,
+      vocabularySource,
+      wordPoolCount: poolCount,
+      sourceLabel: poolLabel,
+      selectedTopics: selectedTopicRows
+    });
+  } catch (error) {
+    console.error('Error in /api/exercises/generate-translation:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+
+// API: Ручная установка прогресса темы (0%, 100% и Заморозка)
+app.post('/api/topics/:id/set-score', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const topicId = Number(req.params.id);
+    const { score, isLocked } = req.body || {};
+
+    const topic = db.prepare('SELECT * FROM curriculum_topics WHERE id = ?').get(topicId);
+    if (!topic) return res.status(404).json({ error: 'Topic not found' });
+
+    let targetScore = typeof score === 'number' ? Math.max(0, Math.min(100, score)) : (isLocked ? 100 : 0);
+    let targetStatus = targetScore >= 80 ? 'mastered' : (targetScore > 0 ? 'in_progress' : 'not_started');
+    let targetLocked = isLocked !== undefined ? (isLocked ? 1 : 0) : (targetScore === 100 ? 1 : 0);
+    if (targetScore === 0) targetLocked = 0;
+
+    const existing = db.prepare('SELECT * FROM curriculum_progress WHERE topic_id = ? AND profile_id = ?').get(topicId, profileId);
+    if (existing) {
+      db.prepare(`
+        UPDATE curriculum_progress
+        SET score = ?, status = ?, is_locked = ?, last_practiced = CURRENT_TIMESTAMP
+        WHERE topic_id = ? AND profile_id = ?
+      `).run(targetScore, targetStatus, targetLocked, topicId, profileId);
+    } else {
+      db.prepare(`
+        INSERT INTO curriculum_progress (topic_id, profile_id, score, status, is_locked, success_count, failure_count, last_practiced)
+        VALUES (?, ?, ?, ?, ?, 0, 0, CURRENT_TIMESTAMP)
+      `).run(topicId, profileId, targetScore, targetStatus, targetLocked);
+    }
+
+    res.json({ success: true, topicId, score: targetScore, status: targetStatus, isLocked: targetLocked === 1 });
+  } catch (error) {
+    console.error('Error in /api/topics/:id/set-score:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1575,6 +1943,90 @@ app.delete('/api/chat/clear', (req, res) => {
   const profileId = getProfileId(req);
   db.prepare('DELETE FROM chat_history WHERE profile_id = ?').run(profileId);
   res.json({ success: true });
+});
+
+
+// ==================== VOCABULARY GROUPS API ====================
+
+app.get('/api/vocabulary/groups', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    res.json({ groups: listVocabularyGroups(db, profileId) });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error fetching vocabulary groups:');
+  }
+});
+
+app.post('/api/vocabulary/groups', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const group = createVocabularyGroup(db, profileId, req.body?.name);
+    res.status(201).json({ group, groups: listVocabularyGroups(db, profileId) });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error creating vocabulary group:');
+  }
+});
+
+app.put('/api/vocabulary/groups/:id', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const groupId = Number.parseInt(req.params.id, 10);
+    const group = updateVocabularyGroup(db, profileId, groupId, req.body?.name);
+    res.json({ group, groups: listVocabularyGroups(db, profileId) });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error updating vocabulary group:');
+  }
+});
+
+app.delete('/api/vocabulary/groups/:id', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const groupId = Number.parseInt(req.params.id, 10);
+    deleteVocabularyGroup(db, profileId, groupId);
+    res.json({ success: true, groups: listVocabularyGroups(db, profileId) });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error deleting vocabulary group:');
+  }
+});
+
+app.post('/api/vocabulary/groups/:id/words', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const groupId = Number.parseInt(req.params.id, 10);
+    const { wordId, wordIds } = req.body || {};
+    if (Array.isArray(wordIds)) {
+      setGroupWords(db, profileId, groupId, wordIds);
+    } else if (wordId) {
+      addWordToGroup(db, profileId, groupId, Number(wordId));
+    }
+    res.json({ success: true, groups: listVocabularyGroups(db, profileId) });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error updating group words:');
+  }
+});
+
+app.delete('/api/vocabulary/groups/:id/words/:wordId', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const groupId = Number.parseInt(req.params.id, 10);
+    const wordId = Number.parseInt(req.params.wordId, 10);
+    removeWordFromGroup(db, profileId, groupId, wordId);
+    res.json({ success: true, groups: listVocabularyGroups(db, profileId) });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error removing word from group:');
+  }
+});
+
+app.put('/api/vocabulary/:id/groups', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const wordId = Number.parseInt(req.params.id, 10);
+    const groupIds = Array.isArray(req.body?.groupIds) ? req.body.groupIds : [];
+    setWordGroups(db, profileId, wordId, groupIds);
+    res.json({ success: true, groups: listVocabularyGroups(db, profileId) });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error setting word groups:');
+  }
 });
 
 // ==================== VOCABULARY API ====================
@@ -1798,6 +2250,7 @@ app.get('/api/curriculum', (req, res) => {
       SELECT ct.id, ct.name, ct.category, ct.level, ct.source, ct.created_at,
              COALESCE(cp.status, 'not_started') as status,
              COALESCE(cp.score, 0) as score,
+             COALESCE(cp.is_locked, 0) as is_locked,
              COALESCE(cp.success_count, 0) as success_count,
              COALESCE(cp.failure_count, 0) as failure_count,
              cp.last_practiced

@@ -13,11 +13,31 @@ export const DRILL_RUN_MODES = {
 
 export const PRONOUNS = [
   { id: 'yo', label: 'yo', answerAliases: ['yo'] },
+  { id: 'tu', label: 'tú', answerAliases: ['tú', 'tu'] },
   { id: 'vos', label: 'vos', answerAliases: ['vos'] },
   { id: 'el', label: 'él / ella / usted', answerAliases: ['él', 'el', 'ella', 'usted'] },
   { id: 'nosotros', label: 'nosotros / nosotras', answerAliases: ['nosotros', 'nosotras'] },
   { id: 'ellos', label: 'ellos / ellas / ustedes', answerAliases: ['ellos', 'ellas', 'ustedes'] },
 ];
+
+export const DRILL_PRONOUN_MODES = {
+  all: {
+    label: 'All (tú + vos)',
+    filter: () => true,
+  },
+  tu: {
+    label: 'Standard (tú)',
+    filter: (p) => p.id !== 'vos',
+  },
+  vos: {
+    label: 'Rioplatense (vos)',
+    filter: (p) => p.id !== 'tu',
+  },
+  second_person_only: {
+    label: 'Tú & Vos only',
+    filter: (p) => p.id === 'tu' || p.id === 'vos',
+  },
+};
 
 export const REGULAR_VERBS = [
   { infinitive: 'hablar', translation: 'говорить', ending: 'ar' },
@@ -35,6 +55,7 @@ export const REGULAR_VERBS = [
 const REGULAR_ENDINGS = {
   ar: {
     yo: 'o',
+    tu: 'as',
     vos: 'ás',
     el: 'a',
     nosotros: 'amos',
@@ -42,6 +63,7 @@ const REGULAR_ENDINGS = {
   },
   er: {
     yo: 'o',
+    tu: 'es',
     vos: 'és',
     el: 'e',
     nosotros: 'emos',
@@ -49,6 +71,7 @@ const REGULAR_ENDINGS = {
   },
   ir: {
     yo: 'o',
+    tu: 'es',
     vos: 'ís',
     el: 'e',
     nosotros: 'imos',
@@ -56,12 +79,15 @@ const REGULAR_ENDINGS = {
   },
 };
 
+export const FOUR_KEY_VERB_KEYS = ['ser', 'estar', 'tener', 'ir'];
+
 const IRREGULAR_VERBS = {
   ser: {
     infinitive: 'ser',
     translation: 'быть',
     forms: {
       yo: 'soy',
+      tu: 'eres',
       vos: 'sos',
       el: 'es',
       nosotros: 'somos',
@@ -73,6 +99,7 @@ const IRREGULAR_VERBS = {
     translation: 'быть, находиться',
     forms: {
       yo: 'estoy',
+      tu: 'estás',
       vos: 'estás',
       el: 'está',
       nosotros: 'estamos',
@@ -84,10 +111,23 @@ const IRREGULAR_VERBS = {
     translation: 'иметь',
     forms: {
       yo: 'tengo',
+      tu: 'tienes',
       vos: 'tenés',
       el: 'tiene',
       nosotros: 'tenemos',
       ellos: 'tienen',
+    },
+  },
+  ir: {
+    infinitive: 'ir',
+    translation: 'идти, ехать',
+    forms: {
+      yo: 'voy',
+      tu: 'vas',
+      vos: 'vas',
+      el: 'va',
+      nosotros: 'vamos',
+      ellos: 'van',
     },
   },
 };
@@ -97,6 +137,14 @@ export const SER_ESTAR_CONTEXTS = [
   { pronounId: 'yo', sentence: 'Yo ___ en casa.', translation: 'Я дома.', verb: 'estar', reason: 'location -> estar' },
   { pronounId: 'yo', sentence: 'Yo ___ cansado hoy.', translation: 'Я сегодня устал.', verb: 'estar', reason: 'temporary state -> estar' },
   { pronounId: 'yo', sentence: 'Yo ___ de Rusia.', translation: 'Я из России.', verb: 'ser', reason: 'origin -> ser' },
+  { pronounId: 'tu', sentence: 'Tú ___ estudiante.', translation: 'Ты студент.', verb: 'ser', reason: 'identity/profession -> ser' },
+  { pronounId: 'tu', sentence: 'Tú ___ en casa.', translation: 'Ты дома.', verb: 'estar', reason: 'location -> estar' },
+  { pronounId: 'tu', sentence: 'Tú ___ cansado hoy.', translation: 'Ты сегодня устал.', verb: 'estar', reason: 'temporary state -> estar' },
+  { pronounId: 'tu', sentence: 'Tú ___ de España.', translation: 'Ты из Испании.', verb: 'ser', reason: 'origin -> ser' },
+  { pronounId: 'tu', sentence: 'Tú ___ médico.', translation: 'Ты врач.', verb: 'ser', reason: 'profession -> ser' },
+  { pronounId: 'tu', sentence: 'Tú ___ listo para salir.', translation: 'Ты готов выйти.', verb: 'estar', reason: 'temporary readiness -> estar' },
+  { pronounId: 'tu', sentence: 'Tú ___ muy amable.', translation: 'Ты очень добрый.', verb: 'ser', reason: 'character trait -> ser' },
+  { pronounId: 'tu', sentence: 'Tú ___ en la oficina.', translation: 'Ты в офисе.', verb: 'estar', reason: 'location -> estar' },
   { pronounId: 'vos', sentence: 'Vos ___ médico.', translation: 'Ты врач.', verb: 'ser', reason: 'profession -> ser' },
   { pronounId: 'vos', sentence: 'Vos ___ listo para salir.', translation: 'Ты готов выйти.', verb: 'estar', reason: 'temporary readiness -> estar' },
   { pronounId: 'vos', sentence: 'Vos ___ muy amable.', translation: 'Ты очень добрый.', verb: 'ser', reason: 'character trait -> ser' },
@@ -118,11 +166,6 @@ export const SER_ESTAR_CONTEXTS = [
   { pronounId: 'ellos', sentence: 'Ellos ___ estudiantes.', translation: 'Они студенты.', verb: 'ser', reason: 'identity -> ser' },
   { pronounId: 'ellos', sentence: 'Ellos ___ en la plaza.', translation: 'Они на площади.', verb: 'estar', reason: 'location -> estar' },
   { pronounId: 'ellos', sentence: 'Ellas ___ cansadas.', translation: 'Они устали.', verb: 'estar', reason: 'temporary state -> estar' },
-  { pronounId: 'ellos', sentence: 'Ellas ___ mis hermanas.', translation: 'Они мои сестры.', verb: 'ser', reason: 'identity/relationship -> ser' },
-  { pronounId: 'el', sentence: 'Mi hermano ___ alto.', translation: 'Мой брат высокий.', verb: 'ser', reason: 'inherent description -> ser' },
-  { pronounId: 'el', sentence: 'Mi hermano ___ nervioso hoy.', translation: 'Мой брат сегодня нервничает.', verb: 'estar', reason: 'temporary state -> estar' },
-  { pronounId: 'el', sentence: 'La casa ___ grande.', translation: 'Дом большой.', verb: 'ser', reason: 'description/characteristic -> ser' },
-  { pronounId: 'el', sentence: 'La casa ___ limpia ahora.', translation: 'Дом сейчас чистый.', verb: 'estar', reason: 'current condition -> estar' },
   { pronounId: 'el', sentence: 'La puerta ___ abierta.', translation: 'Дверь открыта.', verb: 'estar', reason: 'condition/state -> estar' },
   { pronounId: 'el', sentence: 'La puerta ___ de madera.', translation: 'Дверь из дерева.', verb: 'ser', reason: 'material -> ser' },
   { pronounId: 'el', sentence: 'El café ___ caliente.', translation: 'Кофе горячий.', verb: 'estar', reason: 'current condition -> estar' },
@@ -136,7 +179,7 @@ export const SER_ESTAR_CONTEXTS = [
   { pronounId: 'el', sentence: 'El banco ___ cerca del mercado.', translation: 'Банк рядом с рынком.', verb: 'estar', reason: 'location -> estar' },
   { pronounId: 'el', sentence: 'El banco ___ grande.', translation: 'Банк большой.', verb: 'ser', reason: 'description -> ser' },
   { pronounId: 'el', sentence: 'La película ___ aburrida.', translation: 'Фильм скучный.', verb: 'ser', reason: 'description/opinion -> ser' },
-  { pronounId: 'el', sentence: 'El niño ___ aburrido ahora.', translation: 'Мальчику сейчас скучно.', verb: 'estar', reason: 'temporary state -> estar' },
+  { pronounId: 'el', sentence: 'El niño ___ aburrido сейчас.', translation: 'Мальчику сейчас скучно.', verb: 'estar', reason: 'temporary state -> estar' },
   { pronounId: 'ellos', sentence: 'Mis padres ___ en casa.', translation: 'Мои родители дома.', verb: 'estar', reason: 'location -> estar' },
   { pronounId: 'ellos', sentence: 'Mis padres ___ muy pacientes.', translation: 'Мои родители очень терпеливые.', verb: 'ser', reason: 'character trait -> ser' },
   { pronounId: 'el', sentence: 'La reunión ___ mañana.', translation: 'Встреча завтра.', verb: 'ser', reason: 'event time -> ser' },
@@ -148,9 +191,20 @@ export const DRILL_TYPES = {
     label: 'Normal verbs',
     level: 'A1',
     rules: [
-      '-ar: yo -o, vos -ás, él/ella/usted -a, nosotros -amos, ellos/ustedes -an.',
-      '-er: yo -o, vos -és, él/ella/usted -e, nosotros -emos, ellos/ustedes -en.',
-      '-ir: yo -o, vos -ís, él/ella/usted -e, nosotros -imos, ellos/ustedes -en.',
+      '-ar: yo -o, tú -as, vos -ás, él/ella/usted -a, nosotros -amos, ellos/ustedes -an.',
+      '-er: yo -o, tú -es, vos -és, él/ella/usted -e, nosotros -emos, ellos/ustedes -en.',
+      '-ir: yo -o, tú -es, vos -ís, él/ella/usted -e, nosotros -imos, ellos/ustedes -en.',
+    ],
+  },
+  fourKeyVerbs: {
+    label: '4 Key Verbs (All)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    rules: [
+      'ser (быть): yo soy, tú eres, vos sos, él/ella/usted es, nosotros somos, ellos/ustedes son.',
+      'estar (быть, находиться): yo estoy, tú estás, vos estás, él/ella/usted está, nosotros estamos, ellos/ustedes están.',
+      'tener (иметь): yo tengo, tú tienes, vos tenés, él/ella/usted tiene, nosotros tenemos, ellos/ustedes tienen.',
+      'ir (идти, ехать): yo voy, tú vas, vos vas, él/ella/usted va, nosotros vamos, ellos/ustedes van.',
     ],
   },
   ser: {
@@ -158,7 +212,7 @@ export const DRILL_TYPES = {
     topic: 'Ser vs Estar (basic)',
     level: 'A1',
     rules: [
-      'ser is irregular: yo soy, vos sos, él/ella/usted es, nosotros somos, ellos/ustedes son.',
+      'ser is irregular: yo soy, tú eres, vos sos, él/ella/usted es, nosotros somos, ellos/ustedes son.',
     ],
   },
   estar: {
@@ -166,7 +220,7 @@ export const DRILL_TYPES = {
     topic: 'Ser vs Estar (basic)',
     level: 'A1',
     rules: [
-      'estar is irregular: yo estoy, vos estás, él/ella/usted está, nosotros estamos, ellos/ustedes están.',
+      'estar is irregular: yo estoy, tú estás, vos estás, él/ella/usted está, nosotros estamos, ellos/ustedes están.',
     ],
   },
   tener: {
@@ -174,7 +228,15 @@ export const DRILL_TYPES = {
     topic: 'Tener (to have) and tener expressions',
     level: 'A1',
     rules: [
-      'tener is irregular: yo tengo, vos tenés, él/ella/usted tiene, nosotros tenemos, ellos/ustedes tienen.',
+      'tener is irregular: yo tengo, tú tienes, vos tenés, él/ella/usted tiene, nosotros tenemos, ellos/ustedes tienen.',
+    ],
+  },
+  ir: {
+    label: 'Ir',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    rules: [
+      'ir is irregular: yo voy, tú vas, vos vas, él/ella/usted va, nosotros vamos, ellos/ustedes van.',
     ],
   },
   serEstar: {
@@ -182,7 +244,7 @@ export const DRILL_TYPES = {
     topic: 'Ser vs Estar (basic)',
     level: 'A1',
     rules: [
-      'Write the correct present-tense form: soy/sos/es/somos/son or estoy/estás/está/estamos/están.',
+      'Write the correct present-tense form: soy/eres/sos/es/somos/son or estoy/estás/está/estamos/están.',
       'Use ser for identity, origin, profession, material, inherent descriptions, and event time/place.',
       'Use estar for location, temporary states, emotions, readiness, and current conditions.',
     ],
@@ -203,12 +265,19 @@ export function conjugateVerb(drillType, verb, pronounId) {
     return conjugateRegularVerb(verb, pronounId);
   }
 
-  return IRREGULAR_VERBS[drillType].forms[pronounId];
+  const irregularKey = drillType === 'fourKeyVerbs' ? (verb.infinitive || 'ser') : drillType;
+  return IRREGULAR_VERBS[irregularKey].forms[pronounId];
 }
 
-export function createVerbDrillQuestion(drillType = 'regular') {
+export function createVerbDrillQuestion(drillType = 'regular', pronounMode = 'all') {
+  const pronounFilter = DRILL_PRONOUN_MODES[pronounMode]?.filter || (() => true);
+  const eligiblePronouns = PRONOUNS.filter(pronounFilter);
+  const activePronouns = eligiblePronouns.length > 0 ? eligiblePronouns : PRONOUNS;
+
   if (drillType === 'serEstar') {
-    const example = SER_ESTAR_CONTEXTS[getRandomInt(SER_ESTAR_CONTEXTS.length)];
+    const eligibleContexts = SER_ESTAR_CONTEXTS.filter((ctx) => activePronouns.some((p) => p.id === ctx.pronounId));
+    const pool = eligibleContexts.length > 0 ? eligibleContexts : SER_ESTAR_CONTEXTS;
+    const example = pool[getRandomInt(pool.length)];
     const pronoun = PRONOUNS.find((item) => item.id === example.pronounId) ?? PRONOUNS[0];
     const correctAnswer = IRREGULAR_VERBS[example.verb].forms[example.pronounId];
     const displayAnswer = example.sentence.replace('___', correctAnswer);
@@ -230,7 +299,26 @@ export function createVerbDrillQuestion(drillType = 'regular') {
     };
   }
 
-  const pronoun = PRONOUNS[getRandomInt(PRONOUNS.length)];
+  if (drillType === 'fourKeyVerbs') {
+    const selectedKey = FOUR_KEY_VERB_KEYS[getRandomInt(FOUR_KEY_VERB_KEYS.length)];
+    const verb = IRREGULAR_VERBS[selectedKey];
+    const pronoun = activePronouns[getRandomInt(activePronouns.length)];
+
+    return {
+      id: `${drillType}-${verb.infinitive}-${pronoun.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      drillType,
+      subDrillType: selectedKey,
+      verb: verb.infinitive,
+      translation: verb.translation,
+      pronounId: pronoun.id,
+      pronoun: pronoun.label,
+      pronounAliases: pronoun.answerAliases,
+      ending: null,
+      correctAnswer: conjugateVerb(selectedKey, verb, pronoun.id),
+    };
+  }
+
+  const pronoun = activePronouns[getRandomInt(activePronouns.length)];
   const verb = drillType === 'regular'
     ? REGULAR_VERBS[getRandomInt(REGULAR_VERBS.length)]
     : IRREGULAR_VERBS[drillType];
@@ -253,6 +341,14 @@ export function getVerbDrillProgressTopic(question) {
     return question.ending === 'ar'
       ? 'Present tense regular -ar verbs'
       : 'Present tense regular -er/-ir verbs';
+  }
+
+  if (question?.drillType === 'fourKeyVerbs') {
+    return question.subDrillType === 'tener'
+      ? 'Tener (to have) and tener expressions'
+      : question.subDrillType === 'ir'
+      ? 'Present tense irregular verbs (ir/hacer/decir)'
+      : 'Ser vs Estar (basic)';
   }
 
   return DRILL_TYPES[question?.drillType]?.topic ?? 'Ser vs Estar (basic)';

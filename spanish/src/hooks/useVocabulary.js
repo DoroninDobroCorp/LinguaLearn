@@ -36,6 +36,7 @@ const INITIAL_STATS = {
 export function useVocabulary() {
   const [entries, setEntries] = useState([]);
   const [reviewQueue, setReviewQueue] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [stats, setStats] = useState(INITIAL_STATS);
   const [queueStats, setQueueStats] = useState({ total_due: 0, returned: 0, limit: 40 });
   const [isLoading, setIsLoading] = useState(false);
@@ -67,30 +68,47 @@ export function useVocabulary() {
     return data;
   }, []);
 
+  const fetchGroups = useCallback(async () => {
+    try {
+      const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/groups`));
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to fetch groups');
+      }
+      const data = await response.json();
+      setGroups(data.groups || []);
+      return data.groups || [];
+    } catch (e) {
+      console.error('Error fetching groups in hook:', e);
+      return [];
+    }
+  }, []);
+
   const refreshVocabulary = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const [entryData, queueData] = await Promise.all([
+      const [entryData, queueData, groupsData] = await Promise.all([
         fetchEntries(),
         fetchReviewQueue(),
+        fetchGroups(),
       ]);
 
-      return { entryData, queueData };
+      return { entryData, queueData, groupsData };
     } catch (err) {
       setError(err.message);
       throw err;
     } finally {
       setIsLoading(false);
     }
-  }, [fetchEntries, fetchReviewQueue]);
+  }, [fetchEntries, fetchReviewQueue, fetchGroups]);
 
-  const addWord = useCallback(async (word, translation, example = '') => {
+  const addWord = useCallback(async (word, translation, example = '', groupIds = []) => {
     const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ word, translation, example }),
+      body: JSON.stringify({ word, translation, example, groupIds }),
     });
 
     if (!response.ok) {
@@ -148,6 +166,62 @@ export function useVocabulary() {
     await refreshVocabulary();
   }, [refreshVocabulary]);
 
+  const createGroup = useCallback(async (name) => {
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/groups`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to create group');
+    }
+    const data = await response.json();
+    if (data.groups) setGroups(data.groups);
+    return data.group;
+  }, []);
+
+  const updateGroup = useCallback(async (id, name) => {
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/groups/${id}`), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to update group');
+    }
+    const data = await response.json();
+    if (data.groups) setGroups(data.groups);
+    return data.group;
+  }, []);
+
+  const deleteGroup = useCallback(async (id) => {
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/groups/${id}`), {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to delete group');
+    }
+    const data = await response.json();
+    if (data.groups) setGroups(data.groups);
+    await refreshVocabulary();
+  }, [refreshVocabulary]);
+
+  const setWordGroups = useCallback(async (wordId, groupIds) => {
+    const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/${wordId}/groups`), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupIds }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to update word groups');
+    }
+    await refreshVocabulary();
+  }, [refreshVocabulary]);
+
   const exportVocabulary = useCallback(async () => {
     const response = await profileFetch(profileApiUrl(`${API_BASE}/vocabulary/export`));
     if (!response.ok) {
@@ -184,17 +258,23 @@ export function useVocabulary() {
   return {
     entries,
     reviewQueue,
+    groups,
     stats,
     queueStats,
     isLoading,
     error,
     fetchEntries,
     fetchReviewQueue,
+    fetchGroups,
     refreshVocabulary,
     addWord,
     reviewCard,
     markCardLearned,
     deleteEntry,
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    setWordGroups,
     exportVocabulary,
     importVocabulary,
     words: entries,

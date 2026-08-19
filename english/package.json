@@ -27,6 +27,7 @@
     "react-dom": "^18.2.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^7.18.2",
+    "socks-proxy-agent": "^10.1.0",
     "ws": "^8.21.1"
   },
   "devDependencies": {

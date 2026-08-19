@@ -23,6 +23,13 @@ import {
   Undo2,
   ChevronDown,
   ChevronUp,
+  Folder,
+  FolderPlus,
+  Tag,
+  Edit2,
+  GraduationCap,
+  CheckCircle2,
+  ArrowUpDown,
 } from 'lucide-react';
 import { useSpeechPractice } from '../hooks/useSpeechPractice';
 import { profileApiUrl, profileFetch } from '../utils/api';
@@ -38,6 +45,11 @@ import {
   readOfflineVocabularyCache,
   writeOfflineVocabularyCache,
 } from '../utils/offlineVocabularyCache';
+
+
+function isResumableStudyMode(mode) {
+  return mode === 'once_all' || mode === 'favorites_once' || (typeof mode === 'string' && (mode.startsWith('group_once:') || mode.startsWith('groups_once:')));
+}
 
 function isAutomaticSpanishTypingCard(card) {
   return card?.response_mode === 'typing';
@@ -379,10 +391,23 @@ function chooseRandomItem(values = []) {
 }
 
 function buildReviewSessionEntries(entries, mode = 'due') {
-  const exactOnce = mode === 'once_all' || mode === 'favorites_once';
+  const isSingleGroup = typeof mode === 'string' && mode.startsWith('group_once:');
+  const isMultiGroup = typeof mode === 'string' && mode.startsWith('groups_once:');
+  const isGroupMode = isSingleGroup || isMultiGroup;
+  const targetGroupIds = isSingleGroup
+    ? [Number(mode.split(':')[1])]
+    : isMultiGroup
+    ? mode.split(':')[1].split(',').map(Number).filter(Boolean)
+    : [];
+  const exactOnce = mode === 'once_all' || mode === 'favorites_once' || isGroupMode;
   const practiceOnly = mode === 'practice_all' || exactOnce;
   const eligibleEntries = entries.filter((entry) => {
     if (mode === 'favorites_once' && !entry.is_favorite) return false;
+    if (isGroupMode && targetGroupIds.length > 0) {
+      const entryGids = (entry.group_ids || []).concat((entry.groups || []).map((g) => g.id));
+      const match = targetGroupIds.some((id) => entryGids.includes(id));
+      if (!match) return false;
+    }
     return practiceOnly ? isEntryEligibleForPracticeAll(entry) : isEntryEligibleForRandomStudy(entry);
   });
 
@@ -399,6 +424,8 @@ function buildReviewSessionEntries(entries, mode = 'due') {
         translation: entry.translation,
         example: entry.example,
         isFavorite: Boolean(entry.is_favorite),
+        groups: entry.groups || [],
+        group_ids: entry.group_ids || [],
         dueCardCount: Number(entry?.card_summary?.due_cards) || 0,
         totalVariants: selectedVariants.length,
         remainingVariants: selectedVariants,
@@ -432,6 +459,8 @@ function pickNextSessionCard(sessionEntries, sessionMode = 'due', previousEntryI
       translation: selectedEntry.translation,
       example: selectedEntry.example,
       is_favorite: selectedEntry.isFavorite,
+      groups: selectedEntry.groups || [],
+      group_ids: selectedEntry.group_ids || [],
       due_card_count: selectedEntry.dueCardCount,
       total_forms_for_word: selectedEntry.totalVariants,
       forms_remaining_for_word: selectedEntry.remainingVariants.length,
@@ -452,6 +481,7 @@ function createReviewSession(entries, mode = 'due') {
       mode,
       entries: sessionEntries,
       totalEntries: sessionEntries.length,
+      lap: 1,
       lastEntryId: selection?.entryId || null,
       isComplete: sessionEntries.length === 0,
     },
@@ -504,23 +534,48 @@ function removeEntryFromReviewSession(session, entryId) {
 function restorePersistedReviewSession(saved, liveEntries) {
   const mode = saved?.mode;
   const state = saved?.state;
-  if (!['once_all', 'favorites_once'].includes(mode) || state?.session?.mode !== mode || !Array.isArray(state.session.entries)) {
+  const isGroupMode = typeof mode === 'string' && mode.startsWith('group_once:');
+  const targetGroupId = isGroupMode ? Number(mode.split(':')[1]) : null;
+
+  if (!isResumableStudyMode(mode) || state?.session?.mode !== mode || !Array.isArray(state.session.entries)) {
     return null;
   }
   const liveById = new Map(liveEntries.map((entry) => [Number(entry.id), entry]));
   const remainingEntries = state.session.entries
     .filter((item) => {
       const live = liveById.get(Number(item.entryId));
-      return live && !live.learned_permanently_at && (mode !== 'favorites_once' || live.is_favorite);
+      if (!live || live.learned_permanently_at) return false;
+      if (mode === 'favorites_once' && !live.is_favorite) return false;
+      if (isGroupMode) {
+        const match = (live.group_ids || []).includes(targetGroupId) || (live.groups || []).some((g) => g.id === targetGroupId);
+        if (!match) return false;
+      }
+      return true;
     })
     .map((item) => {
       const live = liveById.get(Number(item.entryId));
-      return { ...item, word: live.word, translation: live.translation, example: live.example, isFavorite: Boolean(live.is_favorite) };
+      return {
+        ...item,
+        word: live.word,
+        translation: live.translation,
+        example: live.example,
+        isFavorite: Boolean(live.is_favorite),
+        groups: live.groups || [],
+        group_ids: live.group_ids || [],
+      };
     });
   const currentEntry = remainingEntries.find((item) => Number(item.entryId) === Number(state.currentCard?.id));
   const fallback = currentEntry ? null : pickNextSessionCard(remainingEntries, mode);
   const currentCard = currentEntry
-    ? { ...state.currentCard, word: currentEntry.word, translation: currentEntry.translation, example: currentEntry.example, is_favorite: currentEntry.isFavorite }
+    ? {
+        ...state.currentCard,
+        word: currentEntry.word,
+        translation: currentEntry.translation,
+        example: currentEntry.example,
+        is_favorite: currentEntry.isFavorite,
+        groups: currentEntry.groups,
+        group_ids: currentEntry.group_ids,
+      }
     : fallback?.card || null;
   return {
     session: {
@@ -565,7 +620,7 @@ function Vocabulary() {
   const [queueStats, setQueueStats] = useState({ total_due: 0, returned: 0, limit: 40 });
   const [showAnswer, setShowAnswer] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newWord, setNewWord] = useState({ word: '', translation: '', example: '' });
+  const [newWord, setNewWord] = useState({ word: '', translation: '', example: '', groupIds: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -579,6 +634,180 @@ function Vocabulary() {
   const [studySessionHydrated, setStudySessionHydrated] = useState(false);
   const [pendingFavoriteIds, setPendingFavoriteIds] = useState(() => new Set());
   const [pendingLearnedIds, setPendingLearnedIds] = useState(() => new Set());
+  const [groups, setGroups] = useState([]);
+  const [selectedGroupFilterIds, setSelectedGroupFilterIds] = useState([]);
+  const [sortBy, setSortBy] = useState('newest');
+  const [selectedStudyGroupIds, setSelectedStudyGroupIds] = useState([]);
+  const [showGroupManager, setShowGroupManager] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [editingGroupId, setEditingGroupId] = useState(null);
+  const [editingGroupName, setEditingGroupName] = useState('');
+  const [activeGroupMenuWordId, setActiveGroupMenuWordId] = useState(null);
+  const [pendingGroupWordIds, setPendingGroupWordIds] = useState(() => new Set());
+
+  
+  const fetchGroups = useCallback(async () => {
+    try {
+      const response = await profileFetch(profileApiUrl('/spanish/api/vocabulary/groups'));
+      if (response.ok) {
+        const data = await response.json();
+        setGroups(data.groups || []);
+        return data.groups || [];
+      }
+    } catch (e) {
+      console.error('Error fetching groups:', e);
+    }
+    return [];
+  }, []);
+
+  const createGroup = async () => {
+    const name = newGroupName.trim();
+    if (!name) return;
+    setIsSubmitting(true);
+    try {
+      const response = await profileFetch(profileApiUrl('/spanish/api/vocabulary/groups'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (response.ok) {
+        setNewGroupName('');
+        setNotice(`Created group "${name}".`);
+        await refreshVocabulary();
+      }
+    } catch (err) {
+      setError(`Failed to create group: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const updateGroup = async (groupId) => {
+    const name = editingGroupName.trim();
+    if (!name) return;
+    setIsSubmitting(true);
+    try {
+      const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/groups/${groupId}`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (response.ok) {
+        setEditingGroupId(null);
+        setEditingGroupName('');
+        setNotice('Group renamed.');
+        await refreshVocabulary();
+      }
+    } catch (err) {
+      setError(`Failed to rename group: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const deleteGroup = async (group) => {
+    if (!confirm(`Delete group "${group.name}"? Words in this group will not be deleted.`)) return;
+    setIsSubmitting(true);
+    try {
+      const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/groups/${group.id}`), {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setNotice(`Deleted group "${group.name}".`);
+        if (selectedGroupFilter === group.id) setSelectedGroupFilter('all');
+        if (reviewSession.mode === `group_once:${group.id}`) startReviewSession('due');
+        await refreshVocabulary();
+      }
+    } catch (err) {
+      setError(`Failed to delete group: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const toggleWordGroup = (entry, groupId) => {
+    const entryId = Number(entry.id);
+    const targetGroupId = Number(groupId);
+
+    // 1. Calculate next group IDs
+    const currentGroupIds = (entry.groups || []).map((g) => g.id);
+    const hasGroup = currentGroupIds.includes(targetGroupId);
+    const nextGroupIds = hasGroup
+      ? currentGroupIds.filter((id) => id !== targetGroupId)
+      : [...currentGroupIds, targetGroupId];
+
+    const targetGroup = groups.find((g) => g.id === targetGroupId);
+    const nextGroups = hasGroup
+      ? (entry.groups || []).filter((g) => g.id !== targetGroupId)
+      : targetGroup ? [...(entry.groups || []), targetGroup] : entry.groups || [];
+
+    // 2. OPTIMISTIC UPDATE (0ms): update entries state immediately
+    setEntries((items) => items.map((item) => {
+      if (item.id === entryId) {
+        return {
+          ...item,
+          groups: nextGroups,
+          group_ids: nextGroupIds,
+        };
+      }
+      return item;
+    }));
+
+    // 3. OPTIMISTIC UPDATE (0ms): update groups word_count & word_ids immediately
+    setGroups((prevGroups) => prevGroups.map((g) => {
+      if (g.id === targetGroupId) {
+        const wordIds = new Set(g.word_ids || []);
+        if (hasGroup) {
+          wordIds.delete(entryId);
+        } else {
+          wordIds.add(entryId);
+        }
+        return {
+          ...g,
+          word_count: wordIds.size,
+          word_ids: Array.from(wordIds),
+        };
+      }
+      return g;
+    }));
+
+    // 4. Update current study card if active
+    if (currentCard && currentCard.id === entryId) {
+      setReviewSession((prev) => ({
+        ...prev,
+        entries: prev.entries.map((e) => e.entryId === entryId ? { ...e, groups: nextGroups, group_ids: nextGroupIds } : e),
+      }));
+      setReviewQueue((prev) => prev.map((c) => c.id === entryId ? { ...c, groups: nextGroups, group_ids: nextGroupIds } : c));
+    }
+
+    // 5. Non-blocking background queue per entryId
+    const previousPromise = groupMutationQueueRef.current.get(entryId) || Promise.resolve();
+    const nextPromise = previousPromise
+      .catch(() => undefined)
+      .then(async () => {
+        const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/${entryId}/groups`), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ groupIds: nextGroupIds }),
+        });
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to update word group');
+        }
+      })
+      .catch((err) => {
+        console.error('Group update error:', err);
+        setError(`Failed to save group change: ${err.message}`);
+        refreshVocabulary().catch(() => undefined);
+      })
+      .finally(() => {
+        if (groupMutationQueueRef.current.get(entryId) === nextPromise) {
+          groupMutationQueueRef.current.delete(entryId);
+        }
+      });
+
+    groupMutationQueueRef.current.set(entryId, nextPromise);
+  };
 
   const toggleEntryExpanded = (entryId) => {
     setExpandedEntries((prev) => ({
@@ -593,6 +822,7 @@ function Vocabulary() {
   const studySessionSaveChainRef = useRef(Promise.resolve());
   const restartNextStudySessionSaveRef = useRef(false);
   const favoriteMutationIdsRef = useRef(new Set());
+  const groupMutationQueueRef = useRef(new Map());
   const learnedMutationIdsRef = useRef(new Set());
   const {
     capabilities: speechCapabilities,
@@ -652,9 +882,10 @@ function Vocabulary() {
 
   const refreshVocabulary = async () => {
     const refreshId = ++latestRefreshIdRef.current;
-    const [entriesResponse, queueResponse] = await Promise.all([
+    const [entriesResponse, queueResponse, groupsResponse] = await Promise.all([
       profileFetch(profileApiUrl('/spanish/api/vocabulary')),
       profileFetch(profileApiUrl('/spanish/api/vocabulary/review-queue?limit=40')),
+      profileFetch(profileApiUrl('/spanish/api/vocabulary/groups')),
     ]);
 
     if (refreshId !== latestRefreshIdRef.current) {
@@ -673,20 +904,24 @@ function Vocabulary() {
 
     const entriesData = await entriesResponse.json();
     const queueData = await queueResponse.json();
+    const groupsData = groupsResponse.ok ? await groupsResponse.json() : { groups: [] };
     const nextEntries = entriesData.entries || [];
     const nextStats = entriesData.stats || INITIAL_STATS;
     const nextQueueStats = queueData.stats || { total_due: 0, returned: 0, limit: 40 };
+    const nextGroups = groupsData.groups || [];
 
     setEntries(nextEntries);
     setStats(nextStats);
     setQueueStats(nextQueueStats);
+    setGroups(nextGroups);
     setOfflineSnapshot(null);
     writeOfflineVocabularyCache({
       entries: nextEntries,
       stats: nextStats,
       queueStats: nextQueueStats,
+      groups: nextGroups,
     });
-    return { entries: nextEntries, stats: nextStats, queueStats: nextQueueStats };
+    return { entries: nextEntries, stats: nextStats, queueStats: nextQueueStats, groups: nextGroups };
   };
 
   const loadOfflineVocabularySnapshot = useCallback(() => {
@@ -714,7 +949,7 @@ function Vocabulary() {
     }
 
     let savedSession = null;
-    if (!forceRestart && ['once_all', 'favorites_once'].includes(mode)) {
+    if (!forceRestart && isResumableStudyMode(mode)) {
       try {
         const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/study-session?mode=${encodeURIComponent(mode)}`));
         if (response.ok) {
@@ -759,9 +994,26 @@ function Vocabulary() {
       return;
     }
 
-    const nextState = removeEntry
+    let nextState = removeEntry
       ? removeEntryFromReviewSession(reviewSession, completedCard.id)
       : advanceReviewSession(reviewSession, completedCard);
+
+    // Infinite loop for group rounds: when the round finishes, automatically start next shuffled lap!
+    const isGroupRound = typeof reviewSession.mode === 'string' && (reviewSession.mode.startsWith('group_once:') || reviewSession.mode.startsWith('groups_once:'));
+    if (isGroupRound && (!nextState.currentCard || nextState.session.entries.length === 0)) {
+      const nextLap = (reviewSession.lap || 1) + 1;
+      const freshRound = createReviewSession(entries, reviewSession.mode);
+      if (freshRound.currentCard) {
+        nextState = {
+          session: {
+            ...freshRound.session,
+            lap: nextLap,
+          },
+          currentCard: freshRound.currentCard,
+        };
+        setNotice(`🎉 Круг ${nextLap - 1} завершен! Начинаем круг ${nextLap} (${freshRound.session.totalEntries} слов в случайном порядке).`);
+      }
+    }
 
     setReviewSession(nextState.session);
     setReviewQueue(nextState.currentCard ? [nextState.currentCard] : []);
@@ -769,7 +1021,7 @@ function Vocabulary() {
     setShowAnswer(false);
     setTypedAnswer('');
     setTypingFeedback(null);
-  }, [currentCard, resetPractice, reviewSession]);
+  }, [currentCard, entries, resetPractice, reviewSession]);
 
   useEffect(() => {
     let cancelled = false;
@@ -840,7 +1092,7 @@ function Vocabulary() {
   }, [entries, isLoading, reviewQueue.length, reviewSession.isComplete, reviewSession.totalEntries, studySessionHydrated]);
 
   useEffect(() => {
-    if (!studySessionHydrated || !['once_all', 'favorites_once'].includes(reviewSession.mode)) return undefined;
+    if (!studySessionHydrated || !isResumableStudyMode(reviewSession.mode)) return undefined;
     const payload = {
       mode: reviewSession.mode,
       state: { session: reviewSession, currentCard: reviewQueue[0] || null },
@@ -972,18 +1224,47 @@ function Vocabulary() {
     }, Object.fromEntries(filterKeys.map((filterKey) => [filterKey, 0])));
   }, [entries]);
 
-  const filteredEntries = useMemo(
-    () => entries.filter((entry) => matchesEntryFilter(entry, entryFilter)),
-    [entries, entryFilter],
-  );
+  const filteredEntries = useMemo(() => {
+    let result = entries.filter((entry) => matchesEntryFilter(entry, entryFilter));
+    if (selectedGroupFilterIds.length > 0) {
+      result = result.filter((entry) => (entry.groups || []).some((g) => selectedGroupFilterIds.includes(g.id)));
+    }
+
+    result = [...result].sort((a, b) => {
+      if (sortBy === 'newest') return Number(b.id) - Number(a.id);
+      if (sortBy === 'word_asc') return a.word.localeCompare(b.word, 'es');
+      if (sortBy === 'translation_asc') return (a.translation || '').localeCompare(b.translation || '', 'ru');
+      if (sortBy === 'due_desc') return (b.card_summary?.due_cards || 0) - (a.card_summary?.due_cards || 0);
+      return 0;
+    });
+
+    return result;
+  }, [entries, entryFilter, selectedGroupFilterIds, sortBy]);
 
   const filteredEntryLabel = ENTRY_FILTERS[entryFilter]?.label || ENTRY_FILTERS.all.label;
+
+  const isSingleGroupRound = typeof reviewSession.mode === 'string' && reviewSession.mode.startsWith('group_once:');
+  const isMultiGroupRound = typeof reviewSession.mode === 'string' && reviewSession.mode.startsWith('groups_once:');
+  const isCurrentGroupRound = isSingleGroupRound || isMultiGroupRound;
+  const currentGroupName = useMemo(() => {
+    if (isSingleGroupRound) {
+      const gid = Number(reviewSession.mode.split(':')[1]);
+      return groups.find((g) => g.id === gid)?.name || 'Group';
+    }
+    if (isMultiGroupRound) {
+      const gids = reviewSession.mode.split(':')[1].split(',').map(Number).filter(Boolean);
+      const names = groups.filter((g) => gids.includes(g.id)).map((g) => g.name);
+      return names.length > 0 ? names.join(' + ') : 'Selected Groups';
+    }
+    return 'Group';
+  }, [isSingleGroupRound, isMultiGroupRound, reviewSession.mode, groups]);
 
   const dueLabel = useMemo(() => {
     if (reviewSession.totalEntries > 0 && currentCard) {
       const wordLabel = `${remainingSessionEntries} ${remainingSessionEntries === 1 ? 'word' : 'words'} left`;
       if (reviewSession.mode === 'favorites_once') return `${wordLabel} in favorites round`;
       if (reviewSession.mode === 'once_all') return `${wordLabel} in exact-once round`;
+      if (isCurrentGroupRound) return `${wordLabel} in «${currentGroupName}» group round`;
       return reviewSession.mode === 'practice_all' ? `${wordLabel} in random practice` : `${wordLabel} in this round`;
     }
 
@@ -1059,7 +1340,7 @@ function Vocabulary() {
         throw new Error(data.error || 'Failed to add word');
       }
 
-      setNewWord({ word: '', translation: '', example: '' });
+      setNewWord({ word: '', translation: '', example: '', groupIds: [] });
       setShowAddForm(false);
       await refreshVocabulary();
     } catch (submitError) {
@@ -1224,27 +1505,58 @@ function Vocabulary() {
       });
   };
 
-  const restoreLearnedEntry = async (entry) => {
-    setIsSubmitting(true);
+  const toggleLearnedForever = async (entry) => {
+    const isLearned = Boolean(entry.learned_permanently_at);
+    const targetLearned = !isLearned;
+    const entryId = Number(entry.id);
+    if (learnedMutationIdsRef.current.has(entryId)) return;
+    learnedMutationIdsRef.current.add(entryId);
+    setPendingLearnedIds((ids) => new Set(ids).add(entryId));
     setError('');
+
+    setEntries((items) => items.map((item) => item.id === entryId
+      ? {
+          ...item,
+          learned_permanently_at: targetLearned ? new Date().toISOString() : null,
+          is_favorite: targetLearned ? false : item.is_favorite,
+          groups: targetLearned ? [] : item.groups,
+        }
+      : item));
+
+    if (targetLearned && (entry.groups || []).length > 0) {
+      const removedGroupIds = (entry.groups || []).map((g) => g.id);
+      setGroups((curr) => curr.map((g) => removedGroupIds.includes(g.id) ? { ...g, word_count: Math.max(0, (g.word_count || 1) - 1) } : g));
+    }
+
+    if (targetLearned && currentCard && currentCard.id === entryId) {
+      advanceCurrentSessionCard(currentCard, { removeEntry: true });
+    }
+
     try {
-      const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/${entry.id}/permanent-learned`), {
+      const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/${entryId}/permanent-learned`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ learned: false }),
+        body: JSON.stringify({ learned: targetLearned }),
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to restore word');
+        throw new Error(data.error || 'Failed to update learned state');
       }
-      await refreshVocabulary();
-      setNotice('Word restored to study queues.');
-    } catch (restoreError) {
-      setError(restoreError.message || 'Failed to restore word');
+      setNotice(targetLearned ? `Marked "${entry.word}" as learned forever.` : `Restored "${entry.word}" to study queues.`);
+    } catch (err) {
+      setError(err.message || 'Failed to update learned status');
+      await refreshVocabulary().catch(() => undefined);
     } finally {
-      setIsSubmitting(false);
+      learnedMutationIdsRef.current.delete(entryId);
+      setPendingLearnedIds((ids) => {
+        const next = new Set(ids);
+        next.delete(entryId);
+        return next;
+      });
     }
   };
+
+  const restoreLearnedEntry = (entry) => toggleLearnedForever(entry);
 
   const deleteWord = async (entryId) => {
     if (isOfflineRuntime()) {
@@ -1451,8 +1763,121 @@ function Vocabulary() {
               <Star className="mr-1 inline h-4 w-4" /> {continuingFavoritesRound ? `Continue favorites (${remainingSessionEntries} left)` : `Favorites only (${favoriteCandidateCount})`}
             </button>
           </div>
-          <p className="mt-2 text-xs text-indigo-700">The once-each modes use a saved snapshot. Adding or deleting other words does not reset completed progress.</p>
-          {(continuingOnceRound || continuingFavoritesRound) && (
+
+          {groups.length > 0 && (
+            <div className="pt-4 border-t border-indigo-200/80 mt-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-indigo-950 flex items-center gap-1.5">
+                  <Folder className="h-4 w-4 text-indigo-600" />
+                  Study by Group (Select one or multiple groups)
+                </p>
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudyGroupIds(groups.map((g) => g.id))}
+                    className="text-indigo-700 hover:text-indigo-900 font-semibold underline"
+                  >
+                    Select all
+                  </button>
+                  <span className="text-indigo-300">|</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudyGroupIds([])}
+                    className="text-indigo-700 hover:text-indigo-900 font-semibold underline"
+                  >
+                    Clear selection
+                  </button>
+                </div>
+              </div>
+
+              {/* Group selection chips */}
+              <div className="flex flex-wrap gap-2">
+                {groups.map((group) => {
+                  const isSelected = selectedStudyGroupIds.includes(group.id);
+                  const isCurrentMode = reviewSession.mode === `group_once:${group.id}` ||
+                    (typeof reviewSession.mode === 'string' && reviewSession.mode.startsWith('groups_once:') &&
+                      reviewSession.mode.split(':')[1].split(',').map(Number).includes(group.id));
+                  return (
+                    <button
+                      key={group.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedStudyGroupIds((prev) =>
+                          prev.includes(group.id) ? prev.filter((id) => id !== group.id) : [...prev, group.id]
+                        );
+                      }}
+                      className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border-2 transition-all shadow-sm ${
+                        isSelected
+                          ? 'border-indigo-600 bg-indigo-600 text-white ring-2 ring-indigo-300'
+                          : isCurrentMode
+                          ? 'border-purple-400 bg-purple-100 text-purple-950 ring-1 ring-purple-300'
+                          : 'border-indigo-200 bg-white text-indigo-900 hover:border-indigo-400 hover:bg-indigo-50/60'
+                      }`}
+                      title={isCurrentMode ? 'Currently active in-progress round' : isSelected ? 'Selected for next round' : 'Click to select'}
+                    >
+                      <span className={`w-4 h-4 rounded flex items-center justify-center text-[11px] font-bold border ${
+                        isSelected ? 'bg-white text-indigo-700 border-white' : isCurrentMode ? 'bg-purple-200 border-purple-400 text-purple-900' : 'border-indigo-300 text-transparent'
+                      }`}>
+                        {isSelected ? '✓' : isCurrentMode ? '⏳' : ''}
+                      </span>
+                      <span>{group.name}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        isSelected
+                          ? 'bg-indigo-800 text-white'
+                          : isCurrentMode
+                          ? 'bg-purple-200 text-purple-900'
+                          : 'bg-indigo-100 text-indigo-900'
+                      }`}>
+                        {isCurrentMode && !isSelected ? `${group.word_count || 0} (in round)` : (group.word_count || 0)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Action button to launch study */}
+              <div className="pt-1">
+                {selectedStudyGroupIds.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedStudyGroupIds.length === 1) {
+                        startReviewSession(`group_once:${selectedStudyGroupIds[0]}`);
+                      } else {
+                        startReviewSession(`groups_once:${selectedStudyGroupIds.join(',')}`);
+                      }
+                    }}
+                    className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-md hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Play className="h-4 w-4 fill-current" />
+                    <span>
+                      {selectedStudyGroupIds.length === 1
+                        ? `Study 1 Group (${groups.find((g) => g.id === selectedStudyGroupIds[0])?.name || ''}) — ${groups.find((g) => g.id === selectedStudyGroupIds[0])?.word_count || 0} words`
+                        : `Study ${selectedStudyGroupIds.length} Selected Groups Combined (${(() => {
+                            const wordIds = new Set();
+                            for (const gid of selectedStudyGroupIds) {
+                              const grp = groups.find((g) => g.id === gid);
+                              (grp?.word_ids || []).forEach((wid) => wordIds.add(wid));
+                              entries.forEach((e) => {
+                                const egids = (e.group_ids || []).concat((e.groups || []).map((g) => g.id));
+                                if (egids.includes(gid)) wordIds.add(e.id);
+                              });
+                            }
+                            return wordIds.size;
+                          })()} words)`}
+                    </span>
+                  </button>
+                ) : (
+                  <p className="text-xs text-indigo-700 italic">
+                    💡 Click one or more group tags above to select them, then start your study round.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <p className="mt-2 text-xs text-indigo-700">The once-each and group modes use a saved snapshot. Adding or deleting other words does not reset completed progress.</p>
+          {(continuingOnceRound || continuingFavoritesRound || (isCurrentGroupRound && remainingSessionEntries > 0)) && (
             <button type="button" onClick={() => restartReviewSession(reviewSession.mode)} className="mt-2 text-xs font-semibold text-red-600 hover:text-red-700">
               Restart this round from the beginning
             </button>
@@ -1545,6 +1970,112 @@ function Vocabulary() {
         </div>
       )}
 
+      
+      {showGroupManager && (
+        <div className="bg-white rounded-2xl shadow-xl p-6 border-2 border-indigo-100 space-y-4">
+          <div className="flex items-center justify-between border-b pb-3">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <Folder className="h-5 w-5 text-indigo-600" />
+              Manage Word Groups
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowGroupManager(false)}
+              className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="New group name (e.g. Цвета, Глаголы)"
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && createGroup()}
+              className="flex-1 px-4 py-2 border-2 border-slate-200 focus:border-indigo-500 rounded-xl text-sm outline-none"
+            />
+            <button
+              type="button"
+              onClick={createGroup}
+              disabled={isSubmitting || !newGroupName.trim()}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 inline-flex items-center gap-1"
+            >
+              <FolderPlus className="h-4 w-4" />
+              Create
+            </button>
+          </div>
+
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {groups.length === 0 ? (
+              <p className="text-sm text-slate-500 italic py-2">No groups created yet. Create one above!</p>
+            ) : (
+              groups.map((group) => (
+                <div key={group.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  {editingGroupId === group.id ? (
+                    <div className="flex-1 flex gap-2 mr-2">
+                      <input
+                        type="text"
+                        value={editingGroupName}
+                        onChange={(e) => setEditingGroupName(e.target.value)}
+                        className="flex-1 px-3 py-1 border rounded-lg text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateGroup(group.id)}
+                        className="px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-lg"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingGroupId(null)}
+                        className="px-2 py-1 text-slate-500 text-xs rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-4 w-4 text-indigo-500" />
+                      <span className="font-semibold text-slate-800 text-sm">{group.name}</span>
+                      <span className="text-xs bg-indigo-100 text-indigo-800 font-semibold px-2 py-0.5 rounded-full">
+                        {group.word_count || 0} words
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-1">
+                    {editingGroupId !== group.id && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingGroupId(group.id);
+                          setEditingGroupName(group.name);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-white"
+                        title="Rename group"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => deleteGroup(group)}
+                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-white"
+                      title="Delete group"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       {showAddForm && (
         <div className="bg-white rounded-2xl shadow-2xl p-6 space-y-4">
           <h3 className="text-xl font-bold text-gray-800">Add vocabulary entry</h3>
@@ -1603,7 +2134,7 @@ function Vocabulary() {
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
             <div>
               <p className="text-sm text-gray-500">
-                {currentCard.session_mode === 'favorites_once' ? 'Favorites — once each' : currentCard.session_mode === 'once_all' ? 'All words — once each' : currentCard.session_mode === 'practice_all' ? 'Random practice round' : 'Due round'}
+                {isCurrentGroupRound ? `${isMultiGroupRound ? 'Groups' : 'Group'}: ${currentGroupName} · Круг ${reviewSession.lap || 1} (бесконечный режим)` : currentCard.session_mode === 'favorites_once' ? 'Favorites — once each' : currentCard.session_mode === 'once_all' ? 'All words — once each' : currentCard.session_mode === 'practice_all' ? 'Random practice round' : 'Due round'}
               </p>
               <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <Brain className="h-6 w-6 text-indigo-600" />
@@ -1635,6 +2166,16 @@ function Vocabulary() {
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${STATUS_STYLES[currentCard.status] || STATUS_STYLES.review}`}>
                 {statusLabel(currentCard.status)}
               </span>
+              {isCurrentGroupRound && (
+                <button
+                  type="button"
+                  onClick={() => startReviewSession('due')}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-colors shadow-sm"
+                  title="Остановить тренировку группы"
+                >
+                  <span>🛑 Закончить тренировку</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1793,6 +2334,44 @@ function Vocabulary() {
                 </button>
               </div>
 
+
+                {/* Group selector dropdown on flashcard */}
+                {groups.length > 0 && (
+                  <div className="relative inline-block w-full">
+                    <button
+                      type="button"
+                      onClick={() => setActiveGroupMenuWordId(activeGroupMenuWordId === currentCard.id ? null : currentCard.id)}
+                      className="w-full py-2.5 px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 font-semibold text-xs inline-flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-1">
+                        <Tag className="h-3.5 w-3.5 text-indigo-600" />
+                        Manage word groups ({((currentCard.groups || []).length)})
+                      </span>
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                    {activeGroupMenuWordId === currentCard.id && (
+                      <div className="absolute bottom-full mb-1 left-0 w-full bg-white rounded-xl shadow-2xl border border-slate-200 p-2 z-20 space-y-1">
+                        {groups.map((group) => {
+                          const isAttached = (currentCard.groups || []).some((g) => g.id === group.id);
+                          return (
+                            <button
+                              key={group.id}
+                              type="button"
+                              onClick={() => toggleWordGroup(currentCard, group.id)}
+                              className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between ${
+                                isAttached ? 'bg-indigo-50 text-indigo-800' : 'hover:bg-slate-50 text-slate-700'
+                              }`}
+                            >
+                              <span>{group.name}</span>
+                              {isAttached ? <Check className="h-3.5 w-3.5 text-indigo-600" /> : <Plus className="h-3.5 w-3.5 text-slate-400" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
               <button
                 type="button"
                 onClick={handleLearned}
@@ -1925,28 +2504,112 @@ function Vocabulary() {
       )}
 
       <div className="bg-white rounded-2xl shadow-2xl p-6">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
-          <div>
-            <h3 className="text-2xl font-bold text-gray-800">Vocabulary entries ({filteredEntries.length})</h3>
+        <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="text-2xl font-bold text-gray-800">Vocabulary entries ({filteredEntries.length})</h3>
+
+              {/* Sort by dropdown */}
+              <div className="flex items-center gap-1.5 bg-slate-50 border-2 border-indigo-200 rounded-xl px-2.5 py-1 shadow-sm">
+                <ArrowUpDown className="h-3.5 w-3.5 text-indigo-600" />
+                <span className="text-xs font-bold text-slate-600">Сортировка:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-indigo-950 focus:outline-none cursor-pointer"
+                >
+                  <option value="newest">✨ Сначала новые</option>
+                  <option value="word_asc">🔤 Испанский (A–Z)</option>
+                  <option value="translation_asc">🇷🇺 Перевод (А–Я)</option>
+                  <option value="due_desc">⏳ Сначала к повторению</option>
+                </select>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowGroupManager((v) => !v)}
+              className="px-3.5 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+            >
+              <Folder className="h-4 w-4 text-indigo-600" />
+              <span>Manage Groups ({groups.length})</span>
+            </button>
+          </div>
+          {/* Multi-group filter row for entries list */}
+          {groups.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 p-2 bg-indigo-50/60 border border-indigo-100 rounded-2xl">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 mr-1">
+                <Tag className="h-3.5 w-3.5 text-indigo-600" />
+                <span>Фильтр групп:</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedGroupFilterIds([])}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                  selectedGroupFilterIds.length === 0
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-white text-slate-700 hover:bg-indigo-50 border border-slate-200'
+                }`}
+              >
+                Все ({entries.length})
+              </button>
+              {groups.map((g) => {
+                const isSelected = selectedGroupFilterIds.includes(g.id);
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedGroupFilterIds((prev) =>
+                        prev.includes(g.id) ? prev.filter((id) => id !== g.id) : [...prev, g.id]
+                      );
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                      isSelected
+                        ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-300'
+                        : 'bg-white text-indigo-950 hover:bg-indigo-50 border border-indigo-200/70'
+                    }`}
+                  >
+                    <span>{g.name}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                      isSelected ? 'bg-indigo-800 text-indigo-100' : 'bg-indigo-100 text-indigo-900'
+                    }`}>
+                      {g.word_count || 0}
+                    </span>
+                  </button>
+                );
+              })}
+              {selectedGroupFilterIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGroupFilterIds([])}
+                  className="text-xs text-indigo-700 hover:text-indigo-900 font-semibold underline ml-auto"
+                >
+                  Сбросить ({selectedGroupFilterIds.length} выбр.)
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-gray-500">
               Showing {filteredEntryLabel.toLowerCase()} entries. Filter by review state or by the last answer grade across both directions.
             </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(ENTRY_FILTERS).map(([key, config]) => {
-              const isSelected = entryFilter === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setEntryFilter(key)}
-                  title={config.description}
-                  className={`px-3 py-2 rounded-full text-sm font-semibold transition-colors border ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
-                >
-                  {config.label} ({entryCounts[key] ?? 0})
-                </button>
-              );
-            })}
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(ENTRY_FILTERS).map(([key, config]) => {
+                const isSelected = entryFilter === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setEntryFilter(key)}
+                    title={config.description}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors border ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
+                  >
+                    {config.label} ({entryCounts[key] ?? 0})
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -2004,6 +2667,12 @@ function Vocabulary() {
                             Needs translation
                           </span>
                         )}
+                        {(entry.groups || []).map((g) => (
+                          <span key={g.id} className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200/60 px-2.5 py-0.5 text-xs font-semibold text-indigo-800">
+                            <Tag className="h-3 w-3" />
+                            {g.name}
+                          </span>
+                        ))}
                       </div>
 
                       {entry.example && (
@@ -2081,43 +2750,141 @@ function Vocabulary() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2 self-end lg:self-start">
+                    <div className="flex items-center gap-1.5 self-end lg:self-start relative">
+                      {/* Groups popup menu button */}
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setActiveGroupMenuWordId(activeGroupMenuWordId === entry.id ? null : entry.id)}
+                          title="Assign groups / status for this word"
+                          className={`p-2 rounded-xl transition-all flex items-center gap-1 text-xs font-semibold ${
+                            (entry.groups || []).length > 0
+                              ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                              : 'bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600'
+                          }`}
+                        >
+                          <Tag className="h-4 w-4" />
+                          <span className="hidden sm:inline">Groups ({(entry.groups || []).length})</span>
+                        </button>
+                        {activeGroupMenuWordId === entry.id && (
+                          <div className="absolute right-0 top-full mt-1.5 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2.5 z-30 space-y-1.5 animate-fadeIn">
+                            <div className="flex items-center justify-between px-2 py-1 border-b border-slate-100">
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Add to Groups</p>
+                              <button
+                                type="button"
+                                onClick={() => setActiveGroupMenuWordId(null)}
+                                className="text-slate-400 hover:text-slate-600"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+
+                            {groups.length === 0 ? (
+                              <p className="text-xs text-slate-500 italic px-2 py-1.5">No custom groups created yet.</p>
+                            ) : (
+                              <div className="max-h-48 overflow-y-auto space-y-1">
+                                {groups.map((group) => {
+                                  const isAttached = (entry.groups || []).some((g) => g.id === group.id);
+                                  return (
+                                    <button
+                                      key={group.id}
+                                      type="button"
+                                      onClick={() => toggleWordGroup(entry, group.id)}
+                                      className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
+                                        isAttached ? 'bg-indigo-50 text-indigo-900 border border-indigo-200' : 'hover:bg-slate-50 text-slate-700'
+                                      }`}
+                                    >
+                                      <span className="truncate">{group.name}</span>
+                                      {isAttached ? (
+                                        <span className="px-1.5 py-0.5 rounded bg-indigo-600 text-white text-[10px] font-bold">✓ In group</span>
+                                      ) : (
+                                        <Plus className="h-3.5 w-3.5 text-slate-400" />
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            <div className="pt-1.5 border-t border-slate-100 space-y-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveGroupMenuWordId(null);
+                                  setShowGroupManager(true);
+                                }}
+                                className="w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold text-indigo-700 hover:bg-indigo-50 flex items-center gap-1.5"
+                              >
+                                <FolderPlus className="h-3.5 w-3.5" />
+                                <span>Manage all groups…</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  toggleLearnedForever(entry);
+                                }}
+                                className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
+                                  entry.learned_permanently_at ? 'bg-emerald-50 text-emerald-800' : 'hover:bg-slate-50 text-slate-700'
+                                }`}
+                              >
+                                <span className="flex items-center gap-1.5">
+                                  <GraduationCap className="h-3.5 w-3.5 text-emerald-600" />
+                                  <span>Learned forever</span>
+                                </span>
+                                {entry.learned_permanently_at ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Plus className="h-3.5 w-3.5 text-slate-400" />}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Direct Learned Forever toggle button */}
+                      <button
+                        type="button"
+                        onClick={() => toggleLearnedForever(entry)}
+                        disabled={pendingLearnedIds.has(Number(entry.id)) || isSubmitting}
+                        className={`p-2 rounded-xl transition-all flex items-center gap-1 text-xs font-semibold ${
+                          entry.learned_permanently_at
+                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                            : 'text-slate-400 hover:bg-emerald-50 hover:text-emerald-700'
+                        }`}
+                        title={entry.learned_permanently_at ? 'Learned forever (Click to return to study)' : 'Mark as fully learned / Изучено навсегда'}
+                      >
+                        <GraduationCap className="h-4 w-4" />
+                        <span className="hidden xl:inline">{entry.learned_permanently_at ? 'Learned' : 'Learn'}</span>
+                      </button>
+
+                      {/* Favorite star toggle button */}
                       <button
                         type="button"
                         onClick={() => updateFavorite(entry, !entry.is_favorite)}
                         disabled={pendingFavoriteIds.has(Number(entry.id))}
-                        className={`p-2 rounded-lg transition-colors disabled:opacity-60 ${entry.is_favorite ? 'bg-amber-100 text-amber-600' : 'text-slate-400 hover:bg-amber-50 hover:text-amber-600'}`}
+                        className={`p-2 rounded-xl transition-colors disabled:opacity-60 ${entry.is_favorite ? 'bg-amber-100 text-amber-600' : 'text-slate-400 hover:bg-amber-50 hover:text-amber-600'}`}
                         title={entry.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
                       >
-                        <Star className={`h-5 w-5 ${entry.is_favorite ? 'fill-current' : ''}`} />
+                        <Star className={`h-4 w-4 ${entry.is_favorite ? 'fill-current' : ''}`} />
                       </button>
-                      {entry.learned_permanently_at && (
-                        <button
-                          type="button"
-                          onClick={() => restoreLearnedEntry(entry)}
-                          disabled={isSubmitting}
-                          className="p-2 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors disabled:opacity-60"
-                          title="Restore to study queues"
-                        >
-                          <Undo2 className="h-5 w-5" />
-                        </button>
-                      )}
+
+                      {/* Expand details button */}
                       <button
                         type="button"
                         onClick={() => toggleEntryExpanded(entry.id)}
-                        className="p-2 text-slate-500 hover:bg-slate-200 rounded-lg transition-colors flex items-center justify-center"
+                        className="p-2 text-slate-500 hover:bg-slate-200 rounded-xl transition-colors flex items-center justify-center"
                         title={isExpanded ? 'Hide details' : 'Show details'}
                       >
-                        {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </button>
+
+                      {/* Delete button */}
                       <button
                         type="button"
                         onClick={() => deleteWord(entry.id)}
                         disabled={isSubmitting}
-                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-60"
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-xl transition-colors disabled:opacity-60"
                         title="Delete entry"
                       >
-                        <Trash2 className="h-5 w-5" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>

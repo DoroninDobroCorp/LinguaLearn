@@ -488,9 +488,26 @@ export function migrateMultiUserSchema(db) {
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_vocabulary_user_favorite ON vocabulary(user_id, is_favorite);
       CREATE INDEX IF NOT EXISTS idx_vocabulary_user_permanent ON vocabulary(user_id, learned_permanently_at);
+      CREATE TABLE IF NOT EXISTS vocabulary_groups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, name)
+      );
+      CREATE TABLE IF NOT EXISTS vocabulary_group_members (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        group_id INTEGER NOT NULL REFERENCES vocabulary_groups(id) ON DELETE CASCADE,
+        vocabulary_id INTEGER NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(group_id, vocabulary_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_group_members_group ON vocabulary_group_members(group_id);
+      CREATE INDEX IF NOT EXISTS idx_group_members_vocab ON vocabulary_group_members(vocabulary_id);
+
       CREATE TABLE IF NOT EXISTS vocabulary_study_sessions (
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        mode TEXT NOT NULL CHECK(mode IN ('once_all', 'favorites')),
+        mode TEXT NOT NULL,
         queue_json TEXT NOT NULL,
         round_total INTEGER NOT NULL DEFAULT 0,
         updated_at TEXT NOT NULL,
@@ -499,6 +516,29 @@ export function migrateMultiUserSchema(db) {
       CREATE INDEX IF NOT EXISTS idx_vocabulary_study_sessions_user_updated
         ON vocabulary_study_sessions(user_id, updated_at DESC);
     `);
+    try {
+      const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='vocabulary_study_sessions'").get();
+      if (tableInfo && tableInfo.sql && tableInfo.sql.includes("CHECK(mode IN ('once_all', 'favorites'))")) {
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS _vss_en_mig (
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            mode TEXT NOT NULL,
+            queue_json TEXT NOT NULL,
+            round_total INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY(user_id, mode)
+          );
+          INSERT OR REPLACE INTO _vss_en_mig (user_id, mode, queue_json, round_total, updated_at)
+          SELECT user_id, mode, queue_json, round_total, updated_at FROM vocabulary_study_sessions;
+          DROP TABLE vocabulary_study_sessions;
+          ALTER TABLE _vss_en_mig RENAME TO vocabulary_study_sessions;
+          CREATE INDEX IF NOT EXISTS idx_vocabulary_study_sessions_user_updated
+            ON vocabulary_study_sessions(user_id, updated_at DESC);
+        `);
+      }
+    } catch (e) {
+      console.error('Session migration notice (en):', e.message);
+    }
 
     // 11. achievements
     const achCols = db.prepare("PRAGMA table_info(achievements)").all().map(c => c.name);

@@ -273,14 +273,22 @@ function stripStudyHints(value = '') {
     return withoutBracketedHints;
   }
 
-  const fragments = withoutBracketedHints
-    .split(CYRILLIC_CHARACTER_RUN_PATTERN)
-    .map((fragment) => normalizeStudyHintFragment(fragment))
-    .filter(Boolean);
+  const latinCount = (withoutBracketedHints.match(/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g) || []).length;
+  const cyrillicCount = (withoutBracketedHints.match(/[\u0400-\u04FF]/g) || []).length;
 
-  const cleaned = Array.from(new Set(fragments)).join(' / ');
+  if (latinCount > 0 && latinCount >= cyrillicCount) {
+    const fragments = withoutBracketedHints
+      .split(CYRILLIC_CHARACTER_RUN_PATTERN)
+      .map((fragment) => normalizeStudyHintFragment(fragment))
+      .filter(Boolean);
 
-  return cleaned || original;
+    const cleaned = Array.from(new Set(fragments)).join(' / ');
+    if (cleaned) {
+      return cleaned;
+    }
+  }
+
+  return withoutBracketedHints || original;
 }
 
 function buildCardPresentation(row, now = new Date()) {
@@ -614,6 +622,21 @@ function scheduleLearned(card, now = new Date()) {
   };
 }
 
+
+function fetchEntryGroupRows(db, profileId) {
+  try {
+    return db.prepare(`
+      SELECT gm.vocabulary_id, g.id AS group_id, g.name AS group_name
+      FROM vocabulary_group_members gm
+      JOIN vocabulary_groups g ON g.id = gm.group_id
+      WHERE g.profile_id = ?
+      ORDER BY g.name COLLATE NOCASE ASC
+    `).all(profileId);
+  } catch {
+    return [];
+  }
+}
+
 function fetchEntryRows(db, profileId) {
   return db.prepare(`
     SELECT
@@ -703,19 +726,29 @@ function fetchEntryById(db, profileId, entryId, now = new Date()) {
     throw new VocabularyApiError(404, 'Vocabulary entry not found', 'VOCAB_NOT_FOUND');
   }
 
-  const entry = buildVocabularyEntries(rows, now)[0];
+  const groupRows = fetchEntryGroupRows(db, profileId);
+  const entry = buildVocabularyEntries(rows, now, groupRows)[0];
   if (!entry) {
     throw new VocabularyApiError(404, 'Vocabulary entry not found', 'VOCAB_NOT_FOUND');
   }
   return entry;
 }
 
-function buildVocabularyEntries(rows, now = new Date()) {
+function buildVocabularyEntries(rows, now = new Date(), groupRows = []) {
   const grouped = new Map();
+  const groupsByEntryId = new Map();
+
+  for (const grow of groupRows) {
+    if (!groupsByEntryId.has(grow.vocabulary_id)) {
+      groupsByEntryId.set(grow.vocabulary_id, []);
+    }
+    groupsByEntryId.get(grow.vocabulary_id).push({ id: grow.group_id, name: grow.group_name });
+  }
 
   for (const row of rows) {
     const key = row.entry_id;
     if (!grouped.has(key)) {
+      const entryGroups = groupsByEntryId.get(row.entry_id) || [];
       grouped.set(key, {
         id: row.entry_id,
         profile_id: row.entry_profile_id,
@@ -725,6 +758,8 @@ function buildVocabularyEntries(rows, now = new Date()) {
         is_favorite: Boolean(row.is_favorite),
         learned_permanently_at: row.learned_permanently_at ? toIso(row.learned_permanently_at) : null,
         created_at: toIso(row.entry_created_at),
+        groups: entryGroups,
+        group_ids: entryGroups.map((g) => g.id),
         cards: [],
       });
     }
@@ -828,9 +863,28 @@ export function ensureVocabularyReviewSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_review_cards_vocabulary
       ON vocabulary_review_cards(vocabulary_id);
 
+    CREATE TABLE IF NOT EXISTS vocabulary_groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(profile_id, name)
+    );
+
+    CREATE TABLE IF NOT EXISTS vocabulary_group_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id INTEGER NOT NULL REFERENCES vocabulary_groups(id) ON DELETE CASCADE,
+      vocabulary_id INTEGER NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(group_id, vocabulary_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_group_members_group ON vocabulary_group_members(group_id);
+    CREATE INDEX IF NOT EXISTS idx_group_members_vocab ON vocabulary_group_members(vocabulary_id);
+
     CREATE TABLE IF NOT EXISTS vocabulary_study_sessions (
       profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-      mode TEXT NOT NULL CHECK (mode IN ('once_all', 'favorites_once')),
+      mode TEXT NOT NULL,
       state_json TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       PRIMARY KEY (profile_id, mode)
@@ -841,6 +895,30 @@ export function ensureVocabularyReviewSchema(db) {
   `);
 
   ensureReviewCardColumns(db);
+
+  try {
+    const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='vocabulary_study_sessions'").get();
+    if (tableInfo && tableInfo.sql && tableInfo.sql.includes("CHECK (mode IN ('once_all', 'favorites_once'))")) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS _vss_mig (
+          profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+          mode TEXT NOT NULL,
+          state_json TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          PRIMARY KEY (profile_id, mode)
+        );
+        INSERT OR REPLACE INTO _vss_mig (profile_id, mode, state_json, updated_at)
+        SELECT profile_id, mode, state_json, updated_at FROM vocabulary_study_sessions;
+        DROP TABLE vocabulary_study_sessions;
+        ALTER TABLE _vss_mig RENAME TO vocabulary_study_sessions;
+        CREATE INDEX IF NOT EXISTS idx_vocabulary_study_sessions_updated
+          ON vocabulary_study_sessions(profile_id, updated_at DESC);
+      `);
+    }
+  } catch (e) {
+    console.error('Session migration notice:', e.message);
+  }
+
 
   const insertCard = db.prepare(`
     INSERT OR IGNORE INTO vocabulary_review_cards (
@@ -911,10 +989,14 @@ export function ensureVocabularyReviewSchema(db) {
 
 function normalizeStudySessionMode(mode) {
   const value = typeof mode === 'string' ? mode.trim() : '';
-  if (!RESUMABLE_VOCABULARY_MODES.includes(value)) {
-    throw new VocabularyApiError(400, 'mode must be once_all or favorites_once', 'INVALID_STUDY_MODE');
+  if (
+    RESUMABLE_VOCABULARY_MODES.includes(value)
+    || value.startsWith('group_once:')
+    || value.startsWith('groups_once:')
+  ) {
+    return value;
   }
-  return value;
+  throw new VocabularyApiError(400, 'mode must be once_all, favorites_once, group_once:<id>, or groups_once:<ids>', 'INVALID_STUDY_MODE');
 }
 
 function serializeStudySessionState(state, mode) {
@@ -962,7 +1044,8 @@ export function saveVocabularyStudySession(db, profileId, mode, state, now = new
       ? existing.state.session.entries.length
       : null;
     const nextRemaining = state.session.entries.length;
-    if (existing && !restart && previousRemaining !== null && nextRemaining > previousRemaining) {
+    const isGroupMode = normalizedMode.startsWith('group_once:') || normalizedMode.startsWith('groups_once:');
+    if (existing && !restart && !isGroupMode && previousRemaining !== null && nextRemaining > previousRemaining) {
       throw new VocabularyApiError(
         409,
         'A newer exact-once position is already saved. Explicit restart is required to increase the queue.',
@@ -999,7 +1082,13 @@ export function createVocabularyEntry(db, profileId, payload, now = new Date()) 
   }
 
   const createEntry = db.transaction(() => {
-    return insertVocabularyEntryRow(db, profileId, { word, translation, example }, now);
+    const newId = insertVocabularyEntryRow(db, profileId, { word, translation, example }, now);
+    if (Array.isArray(payload?.groupIds) && payload.groupIds.length > 0) {
+      setWordGroups(db, profileId, newId, payload.groupIds);
+    } else if (payload?.groupId) {
+      addWordToGroup(db, profileId, Number(payload.groupId), newId);
+    }
+    return newId;
   });
 
   const entryId = createEntry();
@@ -1007,7 +1096,8 @@ export function createVocabularyEntry(db, profileId, payload, now = new Date()) 
 }
 
 export function listVocabularyEntries(db, profileId, now = new Date()) {
-  const entries = buildVocabularyEntries(fetchEntryRows(db, profileId), now);
+  const groupRows = fetchEntryGroupRows(db, profileId);
+  const entries = buildVocabularyEntries(fetchEntryRows(db, profileId), now, groupRows);
 
   const stats = {
     total_entries: entries.length,
@@ -1244,12 +1334,21 @@ export function setVocabularyPermanentlyLearned(db, profileId, entryId, learned,
   if (typeof learned !== 'boolean') {
     throw new VocabularyApiError(400, 'learned must be a boolean', 'INVALID_LEARNED_STATE');
   }
-  const result = db.prepare('UPDATE vocabulary SET learned_permanently_at = ? WHERE id = ? AND profile_id = ?')
-    .run(learned ? toIso(now) : null, entryId, profileId);
-  if (result.changes === 0) {
-    throw new VocabularyApiError(404, 'Vocabulary entry not found', 'VOCAB_NOT_FOUND');
-  }
-  return fetchEntryById(db, profileId, entryId, now);
+  return db.transaction(() => {
+    const result = db.prepare(`
+      UPDATE vocabulary 
+      SET learned_permanently_at = ?,
+          is_favorite = CASE WHEN ? = 1 THEN 0 ELSE is_favorite END
+      WHERE id = ? AND profile_id = ?
+    `).run(learned ? toIso(now) : null, learned ? 1 : 0, entryId, profileId);
+    if (result.changes === 0) {
+      throw new VocabularyApiError(404, 'Vocabulary entry not found', 'VOCAB_NOT_FOUND');
+    }
+    if (learned) {
+      db.prepare('DELETE FROM vocabulary_group_members WHERE vocabulary_id = ?').run(entryId);
+    }
+    return fetchEntryById(db, profileId, entryId, now);
+  })();
 }
 
 function normalizeImportEntry(payload = {}, now = new Date()) {
@@ -1852,4 +1951,159 @@ export function getVocabularyStats(db, profileId, now = new Date()) {
 
 export function getVocabularyEntry(db, profileId, entryId, now = new Date()) {
   return fetchEntryById(db, profileId, entryId, now);
+}
+
+
+export function listVocabularyGroups(db, profileId) {
+  const groups = db.prepare(`
+    SELECT
+      g.id,
+      g.profile_id,
+      g.name,
+      g.created_at,
+      COUNT(gm.vocabulary_id) AS word_count
+    FROM vocabulary_groups g
+    LEFT JOIN vocabulary_group_members gm ON gm.group_id = g.id
+    WHERE g.profile_id = ?
+    GROUP BY g.id
+    ORDER BY g.name COLLATE NOCASE ASC
+  `).all(profileId);
+
+  const memberRows = db.prepare(`
+    SELECT gm.group_id, gm.vocabulary_id
+    FROM vocabulary_group_members gm
+    JOIN vocabulary_groups g ON g.id = gm.group_id
+    WHERE g.profile_id = ?
+  `).all(profileId);
+
+  const wordIdsByGroup = new Map();
+  for (const row of memberRows) {
+    if (!wordIdsByGroup.has(row.group_id)) {
+      wordIdsByGroup.set(row.group_id, []);
+    }
+    wordIdsByGroup.get(row.group_id).push(row.vocabulary_id);
+  }
+
+  return groups.map((g) => ({
+    id: g.id,
+    profile_id: g.profile_id,
+    name: g.name,
+    created_at: g.created_at,
+    word_count: Number(g.word_count) || 0,
+    word_ids: wordIdsByGroup.get(g.id) || [],
+  }));
+}
+
+export function createVocabularyGroup(db, profileId, name) {
+  const groupName = typeof name === 'string' ? name.trim() : '';
+  if (!groupName) {
+    throw new VocabularyApiError(400, 'Group name cannot be empty', 'INVALID_GROUP_NAME');
+  }
+
+  const existing = db.prepare('SELECT id FROM vocabulary_groups WHERE profile_id = ? AND name = ? COLLATE NOCASE').get(profileId, groupName);
+  if (existing) {
+    throw new VocabularyApiError(409, 'Group with this name already exists', 'GROUP_EXISTS');
+  }
+
+  const result = db.prepare('INSERT INTO vocabulary_groups (profile_id, name) VALUES (?, ?)').run(profileId, groupName);
+  return {
+    id: result.lastInsertRowid,
+    profile_id: profileId,
+    name: groupName,
+    word_count: 0,
+    word_ids: [],
+    created_at: new Date().toISOString(),
+  };
+}
+
+export function updateVocabularyGroup(db, profileId, groupId, name) {
+  const groupName = typeof name === 'string' ? name.trim() : '';
+  if (!groupName) {
+    throw new VocabularyApiError(400, 'Group name cannot be empty', 'INVALID_GROUP_NAME');
+  }
+  const group = db.prepare('SELECT id FROM vocabulary_groups WHERE id = ? AND profile_id = ?').get(groupId, profileId);
+  if (!group) {
+    throw new VocabularyApiError(404, 'Group not found', 'GROUP_NOT_FOUND');
+  }
+  const duplicate = db.prepare('SELECT id FROM vocabulary_groups WHERE profile_id = ? AND name = ? COLLATE NOCASE AND id != ?').get(profileId, groupName, groupId);
+  if (duplicate) {
+    throw new VocabularyApiError(409, 'Group with this name already exists', 'GROUP_EXISTS');
+  }
+  db.prepare('UPDATE vocabulary_groups SET name = ? WHERE id = ? AND profile_id = ?').run(groupName, groupId, profileId);
+  return listVocabularyGroups(db, profileId).find((g) => g.id === Number(groupId));
+}
+
+export function deleteVocabularyGroup(db, profileId, groupId) {
+  const result = db.prepare('DELETE FROM vocabulary_groups WHERE id = ? AND profile_id = ?').run(groupId, profileId);
+  if (result.changes === 0) {
+    throw new VocabularyApiError(404, 'Group not found', 'GROUP_NOT_FOUND');
+  }
+  return { success: true };
+}
+
+export function addWordToGroup(db, profileId, groupId, wordId) {
+  const group = db.prepare('SELECT id FROM vocabulary_groups WHERE id = ? AND profile_id = ?').get(groupId, profileId);
+  if (!group) {
+    throw new VocabularyApiError(404, 'Group not found', 'GROUP_NOT_FOUND');
+  }
+  const word = db.prepare('SELECT id FROM vocabulary WHERE id = ? AND profile_id = ?').get(wordId, profileId);
+  if (!word) {
+    throw new VocabularyApiError(404, 'Vocabulary entry not found', 'VOCAB_NOT_FOUND');
+  }
+  db.prepare('INSERT OR IGNORE INTO vocabulary_group_members (group_id, vocabulary_id) VALUES (?, ?)').run(groupId, wordId);
+  return { success: true };
+}
+
+export function removeWordFromGroup(db, profileId, groupId, wordId) {
+  const group = db.prepare('SELECT id FROM vocabulary_groups WHERE id = ? AND profile_id = ?').get(groupId, profileId);
+  if (!group) {
+    throw new VocabularyApiError(404, 'Group not found', 'GROUP_NOT_FOUND');
+  }
+  db.prepare('DELETE FROM vocabulary_group_members WHERE group_id = ? AND vocabulary_id = ?').run(groupId, wordId);
+  return { success: true };
+}
+
+export function setGroupWords(db, profileId, groupId, wordIds) {
+  const group = db.prepare('SELECT id FROM vocabulary_groups WHERE id = ? AND profile_id = ?').get(groupId, profileId);
+  if (!group) {
+    throw new VocabularyApiError(404, 'Group not found', 'GROUP_NOT_FOUND');
+  }
+  const validWordIds = Array.isArray(wordIds) ? wordIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0) : [];
+  const setTransaction = db.transaction(() => {
+    db.prepare('DELETE FROM vocabulary_group_members WHERE group_id = ?').run(groupId);
+    const insertMember = db.prepare('INSERT OR IGNORE INTO vocabulary_group_members (group_id, vocabulary_id) VALUES (?, ?)');
+    for (const wid of validWordIds) {
+      const exists = db.prepare('SELECT id FROM vocabulary WHERE id = ? AND profile_id = ?').get(wid, profileId);
+      if (exists) {
+        insertMember.run(groupId, wid);
+      }
+    }
+  });
+  setTransaction();
+  return { success: true };
+}
+
+export function setWordGroups(db, profileId, wordId, groupIds) {
+  const word = db.prepare('SELECT id FROM vocabulary WHERE id = ? AND profile_id = ?').get(wordId, profileId);
+  if (!word) {
+    throw new VocabularyApiError(404, 'Vocabulary entry not found', 'VOCAB_NOT_FOUND');
+  }
+  const validGroupIds = Array.isArray(groupIds) ? groupIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0) : [];
+  const setTransaction = db.transaction(() => {
+    db.prepare(`
+      DELETE FROM vocabulary_group_members
+      WHERE vocabulary_id = ?
+        AND group_id IN (SELECT id FROM vocabulary_groups WHERE profile_id = ?)
+    `).run(wordId, profileId);
+
+    const insertMember = db.prepare('INSERT OR IGNORE INTO vocabulary_group_members (group_id, vocabulary_id) VALUES (?, ?)');
+    for (const gid of validGroupIds) {
+      const exists = db.prepare('SELECT id FROM vocabulary_groups WHERE id = ? AND profile_id = ?').get(gid, profileId);
+      if (exists) {
+        insertMember.run(gid, wordId);
+      }
+    }
+  });
+  setTransaction();
+  return { success: true };
 }

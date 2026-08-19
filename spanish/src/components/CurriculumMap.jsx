@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ChevronDown, ChevronRight, CheckCircle2, Circle, 
-  TrendingUp, TrendingDown, Filter, Map, ArrowDownUp, Sparkles, Trash2
+  TrendingUp, TrendingDown, Filter, Map, ArrowDownUp, Sparkles, Trash2,
+  Lock, Unlock, ShieldCheck
 } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
@@ -21,7 +22,10 @@ const CATEGORY_ICONS = {
   'Speaking': '🗣️',
 };
 
-function StatusIcon({ status, score }) {
+function StatusIcon({ status, score, isLocked }) {
+  if (isLocked) {
+    return <ShieldCheck className="h-5 w-5 text-amber-500 flex-shrink-0" title="Выучено навсегда (Заморожено)" />;
+  }
   if (status === 'mastered') {
     return <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />;
   }
@@ -58,9 +62,9 @@ function CurriculumMap() {
   const cardHover = isDark ? 'hover:bg-slate-700' : 'hover:bg-gray-50';
   const subtext = isDark ? 'text-gray-400' : 'text-gray-500';
   const subtextStrong = isDark ? 'text-gray-300' : 'text-gray-600';
-  const inputBg = isDark ? 'bg-slate-700 border-slate-600 text-gray-200' : 'bg-pink-50 border-pink-200';
-  const progressBg = isDark ? 'bg-slate-600' : 'bg-gray-200';
-  const btnActive = isDark ? 'bg-fuchsia-600 text-white' : 'bg-fuchsia-400 text-gray-900';
+  const progressBg = isDark ? 'bg-slate-700' : 'bg-gray-200';
+  const inputBg = isDark ? 'bg-slate-700 text-gray-100 border-slate-600' : 'bg-white text-gray-800 border-gray-200';
+  const btnActive = isDark ? 'bg-fuchsia-600 text-white' : 'bg-fuchsia-600 text-white';
   const btnInactive = isDark ? 'bg-slate-700 text-gray-300 hover:bg-slate-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200';
 
   useEffect(() => {
@@ -71,12 +75,13 @@ function CurriculumMap() {
     try {
       const response = await profileFetch(profileApiUrl('/spanish/api/curriculum'));
       const data = await response.json();
-      setTopics(data.topics);
-      
+      setTopics(data.topics || []);
+
+      // Expand levels with active progress
+      const grouped = groupByLevel(data.topics || []);
       const levels = {};
-      const grouped = groupByLevel(data.topics);
-      for (const level of Object.keys(grouped)) {
-        const hasProgress = grouped[level].some(t => t.status !== 'not_started');
+      for (const [level, levelTopics] of Object.entries(grouped)) {
+        const hasProgress = levelTopics.some(t => t.status !== 'not_started');
         levels[level] = hasProgress;
       }
       if (Object.keys(grouped).length > 0) {
@@ -87,6 +92,35 @@ function CurriculumMap() {
       console.error('Error fetching curriculum:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const setTopicManualScore = async (topicId, score, isLocked) => {
+    // Optimistic update
+    setTopics(prev => prev.map(t => {
+      if (t.id === topicId) {
+        const newScore = typeof score === 'number' ? score : (isLocked ? 100 : t.score);
+        const newStatus = newScore >= 80 ? 'mastered' : (newScore > 0 ? 'in_progress' : 'not_started');
+        const newLocked = isLocked !== undefined ? (isLocked ? 1 : 0) : t.is_locked;
+        return {
+          ...t,
+          score: newScore,
+          status: newStatus,
+          is_locked: newLocked
+        };
+      }
+      return t;
+    }));
+
+    try {
+      await profileFetch(profileApiUrl(`/spanish/api/topics/${topicId}/set-score`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ score, isLocked })
+      });
+    } catch (error) {
+      console.error('Error setting topic score:', error);
+      fetchCurriculum();
     }
   };
 
@@ -139,8 +173,9 @@ function CurriculumMap() {
     const inProgress = topics.filter(t => t.status === 'in_progress').length;
     const notStarted = topics.filter(t => t.status === 'not_started').length;
     const aiDetected = topics.filter(t => t.source === 'ai_detected').length;
+    const lockedCount = topics.filter(t => t.is_locked).length;
     const percent = total > 0 ? Math.round((mastered / total) * 100) : 0;
-    return { total, mastered, inProgress, notStarted, aiDetected, percent };
+    return { total, mastered, inProgress, notStarted, aiDetected, lockedCount, percent };
   };
 
   const groupByCategory = (levelTopics) => {
@@ -155,7 +190,6 @@ function CurriculumMap() {
   const sortTopics = (topicsList) => {
     if (sortMode === 'default') return topicsList;
     return [...topicsList].sort((a, b) => {
-      // Active topics (in_progress/mastered) first, then not_started
       const aActive = a.status !== 'not_started' ? 1 : 0;
       const bActive = b.status !== 'not_started' ? 1 : 0;
       if (aActive !== bActive) return bActive - aActive;
@@ -180,43 +214,32 @@ function CurriculumMap() {
   const overall = getOverallStats();
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div className={`${card} rounded-2xl shadow-2xl p-6`}>
-        <div className="flex items-center justify-between mb-4">
+    <div className="space-y-6">
+      {/* Header card with overall stats */}
+      <div className={`${card} rounded-2xl shadow-xl p-6`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div className="flex items-center space-x-3">
-            <Map className="h-8 w-8 text-fuchsia-500" />
+            <Map className="h-8 w-8 text-fuchsia-400" />
             <div>
-              <h2 className="text-3xl font-bold">Curriculum Map</h2>
-              <p className={`${subtext} text-sm mt-1`}>
-                Your complete CEFR learning path — {topics.length} topics from A1 to C2
-                {overall.aiDetected > 0 && (
-                  <span className="ml-2">
-                    (including {overall.aiDetected} AI-detected)
-                  </span>
-                )}
-              </p>
+              <h2 className="text-2xl font-bold">Curriculum Map</h2>
+              <p className={`text-sm ${subtext}`}>Track and manage your progress across CEFR levels (A1–C2)</p>
             </div>
           </div>
-        </div>
-
-        {/* Overall stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <div className={`${isDark ? 'bg-fuchsia-900/30' : 'bg-gradient-to-r from-pink-100 to-violet-100'} rounded-xl p-3 text-center`}>
-            <p className={`text-2xl font-bold ${isDark ? 'text-pink-300' : 'text-fuchsia-800'}`}>{overall.total}</p>
-            <p className={`text-xs ${isDark ? 'text-fuchsia-400' : 'text-fuchsia-700'}`}>Total topics</p>
-          </div>
-          <div className={`${isDark ? 'bg-green-900/30' : 'bg-gradient-to-r from-green-100 to-emerald-100'} rounded-xl p-3 text-center`}>
-            <p className={`text-2xl font-bold ${isDark ? 'text-green-300' : 'text-green-700'}`}>{overall.mastered}</p>
-            <p className={`text-xs ${isDark ? 'text-green-400' : 'text-green-600'}`}>✅ Mastered</p>
-          </div>
-          <div className={`${isDark ? 'bg-amber-900/30' : 'bg-gradient-to-r from-amber-100 to-orange-100'} rounded-xl p-3 text-center`}>
-            <p className={`text-2xl font-bold ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>{overall.inProgress}</p>
-            <p className={`text-xs ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>🟡 In progress</p>
-          </div>
-          <div className={`${isDark ? 'bg-slate-700/50' : 'bg-gradient-to-r from-gray-100 to-slate-100'} rounded-xl p-3 text-center`}>
-            <p className={`text-2xl font-bold ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{overall.notStarted}</p>
-            <p className={`text-xs ${subtext}`}>⬜ Not started</p>
+          <div className="flex flex-wrap gap-2 text-sm">
+            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full font-medium">
+              ✅ {overall.mastered} mastered
+            </span>
+            {overall.lockedCount > 0 && (
+              <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full font-medium flex items-center gap-1">
+                🔒 {overall.lockedCount} frozen at 100%
+              </span>
+            )}
+            <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">
+              🟡 {overall.inProgress} in progress
+            </span>
+            <span className={`px-3 py-1 ${isDark ? 'bg-slate-700 text-gray-300' : 'bg-gray-100 text-gray-600'} rounded-full font-medium`}>
+              ⬜ {overall.notStarted} not started
+            </span>
           </div>
         </div>
 
@@ -293,7 +316,7 @@ function CurriculumMap() {
         const isExpanded = expandedLevels[level];
         const categorized = sortMode === 'default' 
           ? groupByCategory(filtered)
-          : { 'All': filtered }; // flat list when sorting
+          : { 'All': filtered };
 
         return (
           <div key={level} className={`${card} rounded-2xl shadow-2xl overflow-hidden`}>
@@ -371,7 +394,11 @@ function CurriculumMap() {
                       <div className="space-y-1">
                         {catTopics.map((topic) => {
                           let rowBg, rowBorder, nameColor;
-                          if (topic.status === 'mastered') {
+                          if (topic.is_locked) {
+                            rowBg = isDark ? 'bg-amber-950/30' : 'bg-amber-50/80';
+                            rowBorder = isDark ? 'border-amber-700/60' : 'border-amber-300';
+                            nameColor = isDark ? 'text-amber-200' : 'text-amber-900';
+                          } else if (topic.status === 'mastered') {
                             rowBg = isDark ? 'bg-green-900/20' : 'bg-green-50';
                             rowBorder = isDark ? 'border-green-800' : 'border-green-200';
                             nameColor = isDark ? 'text-green-300' : 'text-green-800';
@@ -390,11 +417,19 @@ function CurriculumMap() {
                               key={topic.id}
                               className={`flex items-center justify-between px-4 py-2.5 rounded-xl transition-all ${rowBg} border ${rowBorder}`}
                             >
-                              <div className="flex items-center space-x-3 min-w-0">
-                                <StatusIcon status={topic.status} score={topic.score} />
+                              <div className="flex items-center space-x-3 min-w-0 flex-1">
+                                <StatusIcon status={topic.status} score={topic.score} isLocked={topic.is_locked} />
                                 <span className={`font-medium truncate ${nameColor}`}>
                                   {topic.name}
                                 </span>
+                                {topic.is_locked === 1 && (
+                                  <span className={`flex items-center space-x-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                    isDark ? 'bg-amber-900/60 text-amber-300 border border-amber-600' : 'bg-amber-100 text-amber-800 border border-amber-300'
+                                  }`}>
+                                    <Lock className="h-3 w-3" />
+                                    <span>Выучено навсегда (100%)</span>
+                                  </span>
+                                )}
                                 {topic.source === 'ai_detected' && (
                                   <span className={`flex items-center space-x-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                                     isDark ? 'bg-purple-900/40 text-purple-300' : 'bg-purple-100 text-purple-700'
@@ -412,9 +447,9 @@ function CurriculumMap() {
                                 )}
                               </div>
                               
-                              <div className="flex items-center space-x-3 flex-shrink-0 ml-2">
+                              <div className="flex items-center space-x-2 flex-shrink-0 ml-3">
                                 {topic.status !== 'not_started' && (
-                                  <>
+                                  <div className="hidden sm:flex items-center space-x-2">
                                     <div className="flex items-center space-x-1 text-xs">
                                       <TrendingUp className="h-3.5 w-3.5 text-green-500" />
                                       <span className="text-green-600">{topic.success_count}</span>
@@ -423,10 +458,12 @@ function CurriculumMap() {
                                       <TrendingDown className="h-3.5 w-3.5 text-red-500" />
                                       <span className="text-red-600">{topic.failure_count}</span>
                                     </div>
-                                    <div className={`w-16 ${progressBg} rounded-full h-1.5 overflow-hidden`}>
+                                    <div className={`w-14 ${progressBg} rounded-full h-1.5 overflow-hidden`}>
                                       <div
                                         className={`h-full rounded-full transition-all duration-500 ${
-                                          topic.score >= 80 
+                                          topic.is_locked
+                                            ? 'bg-amber-400'
+                                            : topic.score >= 80 
                                             ? 'bg-green-400' 
                                             : topic.score >= 40 
                                             ? 'bg-amber-400' 
@@ -435,26 +472,69 @@ function CurriculumMap() {
                                         style={{ width: `${Math.max(3, topic.score)}%` }}
                                       />
                                     </div>
-                                    <span className={`text-xs font-bold w-8 text-right ${
-                                      topic.score >= 80 
+                                    <span className={`text-xs font-bold w-7 text-right ${
+                                      topic.is_locked
+                                        ? 'text-amber-500'
+                                        : topic.score >= 80 
                                         ? 'text-green-600' 
                                         : topic.score >= 40 
                                         ? 'text-amber-600' 
                                         : 'text-red-600'
                                     }`}>
-                                      {Math.round(topic.score)}
+                                      {Math.round(topic.score)}%
                                     </span>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); deleteTopic(topic.id, topic.source); }}
-                                      className={`p-1 rounded transition-colors ${
-                                        isDark ? 'hover:bg-red-900/30 text-red-400' : 'hover:bg-red-100 text-red-500'
-                                      }`}
-                                      title={topic.source === 'ai_detected' ? 'Delete topic' : 'Reset progress'}
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                  </>
+                                  </div>
                                 )}
+
+                                {/* Manual Action Buttons: 0%, 100%, and Lock toggle */}
+                                <div className="flex items-center space-x-1 border-l pl-2 border-gray-300/40">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setTopicManualScore(topic.id, 0, false); }}
+                                    className={`px-1.5 py-0.5 rounded text-xs font-medium transition-all ${
+                                      topic.score === 0 && topic.status === 'not_started'
+                                        ? (isDark ? 'bg-slate-600 text-gray-300' : 'bg-gray-300 text-gray-800')
+                                        : (isDark ? 'hover:bg-slate-700 text-gray-400' : 'hover:bg-gray-200 text-gray-500')
+                                    }`}
+                                    title="Сбросить на 0%"
+                                  >
+                                    0%
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setTopicManualScore(topic.id, 100, false); }}
+                                    className={`px-1.5 py-0.5 rounded text-xs font-medium transition-all ${
+                                      topic.score === 100 && !topic.is_locked
+                                        ? 'bg-green-500 text-white'
+                                        : (isDark ? 'hover:bg-green-900/40 text-green-400' : 'hover:bg-green-100 text-green-600')
+                                    }`}
+                                    title="Установить 100%"
+                                  >
+                                    100%
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setTopicManualScore(topic.id, 100, !topic.is_locked); }}
+                                    className={`px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 transition-all ${
+                                      topic.is_locked
+                                        ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm'
+                                        : (isDark ? 'hover:bg-amber-900/30 text-amber-400 border border-amber-700/50' : 'hover:bg-amber-100 text-amber-700 border border-amber-300')
+                                    }`}
+                                    title={topic.is_locked ? "Разблокировать тему" : "Зафиксировать на 100% (Выучено навсегда)"}
+                                  >
+                                    {topic.is_locked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3 opacity-60" />}
+                                    <span className="hidden md:inline">{topic.is_locked ? 'Заморожено' : 'Заморозить'}</span>
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); deleteTopic(topic.id, topic.source); }}
+                                    className={`p-1 rounded transition-colors ${
+                                      isDark ? 'hover:bg-red-900/30 text-red-400' : 'hover:bg-red-100 text-red-500'
+                                    }`}
+                                    title={topic.source === 'ai_detected' ? 'Delete topic' : 'Reset progress'}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           );

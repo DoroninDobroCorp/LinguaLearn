@@ -1,3 +1,4 @@
+import { generateEnglishExercise } from './grammarExerciseEngine.js';
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -977,6 +978,7 @@ app.get('/api/topics', (req, res) => {
       SELECT c.id, c.name, c.category, c.level, c.source, c.created_at,
              COALESCE(p.status, 'not_started') as status,
              COALESCE(p.score, 0) as score,
+             COALESCE(p.is_locked, 0) as is_locked,
              COALESCE(p.success_count, 0) as success_count,
              COALESCE(p.error_count, 0) as failure_count,
              COALESCE(p.unique_practice_days, 0) as unique_practice_days,
@@ -1352,14 +1354,197 @@ app.delete('/api/chat/clear', (req, res) => {
   res.json({ success: true });
 });
 
+
+// ==================== VOCABULARY GROUPS API ====================
+
+app.get('/api/vocabulary/groups', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    let groups = [];
+    let memberRows = [];
+    try {
+      groups = db.prepare(`
+        SELECT g.id, g.user_id, g.name, g.created_at, COUNT(gm.vocabulary_id) AS word_count
+        FROM vocabulary_groups g
+        LEFT JOIN vocabulary_group_members gm ON gm.group_id = g.id
+        WHERE g.user_id = ?
+        GROUP BY g.id
+        ORDER BY g.name COLLATE NOCASE ASC
+      `).all(userId);
+
+      memberRows = db.prepare(`
+        SELECT gm.group_id, gm.vocabulary_id
+        FROM vocabulary_group_members gm
+        JOIN vocabulary_groups g ON g.id = gm.group_id
+        WHERE g.user_id = ?
+      `).all(userId);
+    } catch (e) {
+      groups = [];
+      memberRows = [];
+    }
+
+    const wordIdsByGroup = new Map();
+    for (const row of memberRows) {
+      if (!wordIdsByGroup.has(row.group_id)) {
+        wordIdsByGroup.set(row.group_id, []);
+      }
+      wordIdsByGroup.get(row.group_id).push(row.vocabulary_id);
+    }
+
+    const result = groups.map((g) => ({
+      id: g.id,
+      user_id: g.user_id,
+      name: g.name,
+      created_at: g.created_at,
+      word_count: Number(g.word_count) || 0,
+      word_ids: wordIdsByGroup.get(g.id) || [],
+    }));
+
+    res.json({ groups: result });
+  } catch (error) {
+    console.error('Error fetching vocabulary groups:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/vocabulary/groups', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const name = String(req.body?.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'Group name cannot be empty' });
+
+    const existing = db.prepare('SELECT id FROM vocabulary_groups WHERE user_id = ? AND name = ? COLLATE NOCASE').get(userId, name);
+    if (existing) return res.status(409).json({ error: 'Group with this name already exists' });
+
+    const result = db.prepare('INSERT INTO vocabulary_groups (user_id, name) VALUES (?, ?)').run(userId, name);
+    const group = { id: result.lastInsertRowid, user_id: userId, name, word_count: 0, word_ids: [], created_at: new Date().toISOString() };
+    res.status(201).json({ group });
+  } catch (error) {
+    console.error('Error creating group:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/vocabulary/groups/:id', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const groupId = Number(req.params.id);
+    const name = String(req.body?.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'Group name cannot be empty' });
+
+    const group = db.prepare('SELECT id FROM vocabulary_groups WHERE id = ? AND user_id = ?').get(groupId, userId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    const duplicate = db.prepare('SELECT id FROM vocabulary_groups WHERE user_id = ? AND name = ? COLLATE NOCASE AND id != ?').get(userId, name, groupId);
+    if (duplicate) return res.status(409).json({ error: 'Group with this name already exists' });
+
+    db.prepare('UPDATE vocabulary_groups SET name = ? WHERE id = ? AND user_id = ?').run(name, groupId, userId);
+    res.json({ success: true, group: { id: groupId, name } });
+  } catch (error) {
+    console.error('Error updating group:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/vocabulary/groups/:id', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const groupId = Number(req.params.id);
+    const result = db.prepare('DELETE FROM vocabulary_groups WHERE id = ? AND user_id = ?').run(groupId, userId);
+    if (result.changes === 0) return res.status(404).json({ error: 'Group not found' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting group:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/vocabulary/groups/:id/words', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const groupId = Number(req.params.id);
+    const group = db.prepare('SELECT id FROM vocabulary_groups WHERE id = ? AND user_id = ?').get(groupId, userId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    const { wordId, wordIds } = req.body || {};
+    if (Array.isArray(wordIds)) {
+      const validWordIds = wordIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0);
+      const setTx = db.transaction(() => {
+        db.prepare('DELETE FROM vocabulary_group_members WHERE group_id = ?').run(groupId);
+        const insertMember = db.prepare('INSERT OR IGNORE INTO vocabulary_group_members (group_id, vocabulary_id) VALUES (?, ?)');
+        for (const wid of validWordIds) {
+          const exists = db.prepare('SELECT id FROM vocabulary WHERE id = ? AND user_id = ?').get(wid, userId);
+          if (exists) insertMember.run(groupId, wid);
+        }
+      });
+      setTx();
+    } else if (wordId) {
+      const exists = db.prepare('SELECT id FROM vocabulary WHERE id = ? AND user_id = ?').get(Number(wordId), userId);
+      if (!exists) return res.status(404).json({ error: 'Word not found' });
+      db.prepare('INSERT OR IGNORE INTO vocabulary_group_members (group_id, vocabulary_id) VALUES (?, ?)').run(groupId, Number(wordId));
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating group words:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/vocabulary/groups/:id/words/:wordId', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const groupId = Number(req.params.id);
+    const wordId = Number(req.params.wordId);
+    const group = db.prepare('SELECT id FROM vocabulary_groups WHERE id = ? AND user_id = ?').get(groupId, userId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    db.prepare('DELETE FROM vocabulary_group_members WHERE group_id = ? AND vocabulary_id = ?').run(groupId, wordId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error removing word from group:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/vocabulary/:id/groups', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const wordId = Number(req.params.id);
+    const word = db.prepare('SELECT id FROM vocabulary WHERE id = ? AND user_id = ?').get(wordId, userId);
+    if (!word) return res.status(404).json({ error: 'Word not found' });
+
+    const groupIds = Array.isArray(req.body?.groupIds) ? req.body.groupIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0) : [];
+    const setTx = db.transaction(() => {
+      db.prepare(`
+        DELETE FROM vocabulary_group_members
+        WHERE vocabulary_id = ?
+          AND group_id IN (SELECT id FROM vocabulary_groups WHERE user_id = ?)
+      `).run(wordId, userId);
+
+      const insertMember = db.prepare('INSERT OR IGNORE INTO vocabulary_group_members (group_id, vocabulary_id) VALUES (?, ?)');
+      for (const gid of groupIds) {
+        const exists = db.prepare('SELECT id FROM vocabulary_groups WHERE id = ? AND user_id = ?').get(gid, userId);
+        if (exists) insertMember.run(gid, wordId);
+      }
+    });
+    setTx();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error setting word groups:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== VOCABULARY API ====================
 
 const RESUMABLE_VOCABULARY_MODES = new Set(['once_all', 'favorites']);
 
 function validateVocabularyStudySession(userId, payload = {}) {
   const mode = typeof payload.mode === 'string' ? payload.mode.trim() : '';
-  if (!RESUMABLE_VOCABULARY_MODES.has(mode)) {
-    const error = new Error('mode must be once_all or favorites');
+  const isGroup = typeof mode === 'string' && (mode.startsWith('group:') || mode.startsWith('groups:'));
+  const targetGroupId = isGroup ? Number(mode.split(':')[1]) : null;
+  if (!RESUMABLE_VOCABULARY_MODES.has(mode) && !isGroup) {
+    const error = new Error('mode must be once_all, favorites, group:<id>, or groups:<ids>');
     error.status = 400;
     throw error;
   }
@@ -1384,7 +1569,19 @@ function validateVocabularyStudySession(userId, payload = {}) {
     const placeholders = queueIds.map(() => '?').join(',');
     const rows = db.prepare(`SELECT id, is_favorite, learned_permanently_at FROM vocabulary WHERE user_id = ? AND id IN (${placeholders})`)
       .all(userId, ...queueIds);
-    if (rows.length !== queueIds.length || rows.some((word) => word.learned_permanently_at || (mode === 'favorites' && !word.is_favorite))) {
+    let groupWordIdSet = null;
+    if (isGroup) {
+      const gRows = db.prepare('SELECT vocabulary_id FROM vocabulary_group_members WHERE group_id = ?').all(targetGroupId);
+      groupWordIdSet = new Set(gRows.map((r) => r.vocabulary_id));
+    }
+    if (
+      rows.length !== queueIds.length ||
+      rows.some((word) =>
+        word.learned_permanently_at ||
+        (mode === 'favorites' && !word.is_favorite) ||
+        (isGroup && !groupWordIdSet.has(word.id))
+      )
+    ) {
       const error = new Error('Study queue contains unavailable vocabulary entries');
       error.status = 409;
       throw error;
@@ -1393,12 +1590,385 @@ function validateVocabularyStudySession(userId, payload = {}) {
   return { mode, queueIds, roundTotal };
 }
 
+
+// ==========================================
+// API: GENERATE PERSONALIZED EXERCISES (Batch of 10 & Nuanced AI Grammar)
+// ==========================================
+app.post('/api/exercises/generate', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { topicId, type } = req.body || {};
+
+    const allWords = db.prepare('SELECT id, word, translation, example, learned_permanently_at FROM vocabulary WHERE user_id = ?').all(userId);
+    const learnedWords = allWords.filter((w) => w.learned_permanently_at !== null && w.learned_permanently_at !== undefined);
+    const activeWords = allWords.filter((w) => !w.learned_permanently_at);
+
+    let selectedPool = [];
+    let vocabularySource = 'combined';
+    let poolCount = allWords.length;
+    let poolLabel = 'All vocabulary';
+
+    if (learnedWords.length >= 100) {
+      selectedPool = learnedWords;
+      vocabularySource = 'learned_forever';
+      poolCount = learnedWords.length;
+      poolLabel = `Mastered words (${learnedWords.length})`;
+    } else if (activeWords.length >= 100) {
+      selectedPool = activeWords;
+      vocabularySource = 'active_studying';
+      poolCount = activeWords.length;
+      poolLabel = `Studying words (${activeWords.length})`;
+    } else {
+      selectedPool = allWords.length > 0 ? allWords : [{ word: 'house', translation: 'дом', example: 'My house is big.' }];
+      vocabularySource = 'combined';
+      poolCount = allWords.length;
+      poolLabel = `All words (${allWords.length})`;
+    }
+
+    const sampledWords = [...selectedPool].sort(() => 0.5 - Math.random()).slice(0, 20);
+    const vocabListStr = sampledWords.map((w) => `${w.word} (${w.translation})`).join(', ');
+
+    let topicObj = { name: 'General English Grammar Practice', category: 'Grammar', level: 'B1' };
+
+    if (topicId && topicId !== 'all' && topicId !== 'random' && topicId !== 'weak') {
+      const topicRow = db.prepare('SELECT id, name, category, level FROM curriculum_topics WHERE id = ?').get(topicId);
+      if (topicRow) {
+        topicObj = topicRow;
+      }
+    }
+
+    const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
+    const prompt = `You are an elite English language professor and curriculum examiner.
+Your mission is to generate a cohesive set of 10 interactive practice exercises for a student practicing the CEFR topic: "${topicObj.name}" (${topicObj.category}, Level: ${topicObj.level}).
+
+CRITICAL MANDATORY INSTRUCTIONS:
+1. GRAMMAR TOPIC & COMPREHENSIVE NUANCE COVERAGE:
+   - All 10 exercises MUST strictly test the specific grammar mechanism of "${topicObj.name}".
+   - ACROSS THE 10 EXERCISES, YOU MUST SYSTEMATICALLY COVER DIFFERENT NUANCES, ASPECTS, AND SUB-RULES OF THIS TOPIC:
+     * Different grammatical persons (I, you, he/she/it, we, they; 1st/2nd/3rd person singular/plural).
+     * Affirmative sentences, negative sentences (not...), and questions.
+     * Regular patterns vs irregular roots/forms/exceptions relevant to this topic.
+     * Distinct contextual situations.
+   - DO NOT repeat the same sentence structure or grammatical person repeatedly! Ensure variety and progressive pedagogical depth across the 10 tasks.
+   - DO NOT just ask for plain vocabulary translations of isolated words. Every exercise must be a meaningful sentence testing the grammar rule.
+
+2. STUDENT VOCABULARY INTEGRATION:
+   - Embed words from the student's vocabulary pool across the 10 exercises: ${vocabListStr}.
+   - Naturally integrate these vocabulary words into the subjects, objects, or context of the sentences.
+
+3. EXERCISE FORMAT:
+   - Generate an array of 10 items (mix of multiple-choice and fill-blank unless a specific type was requested).
+   - For multiple-choice: provide 4 distinct, plausible options in "options". One correct option, three realistic grammatical distractors.
+   - For fill-blank: use "___" in the sentence for the blank.
+   - For open: provide a clear instruction in Russian with the sentence.
+
+4. RUSSIAN EXPLANATIONS:
+   - Every exercise MUST include a clear, detailed "explanation" in Russian explaining the grammar rule, why this answer is correct, and common pitfalls.
+
+OUTPUT FORMAT:
+Respond ONLY with a valid JSON object matching this exact schema:
+{
+  "exercises": [
+    {
+      "type": "multiple-choice" | "fill-blank" | "open",
+      "question": "Question or sentence in English (with Russian instructions/context if needed)",
+      "options": ["Option A", "Option B", "Option C", "Option D"], // if multiple-choice
+      "correctAnswer": "exact correct answer string",
+      "explanation": "Clear grammatical explanation in Russian",
+      "topic": "${topicObj.name}",
+      "level": "${topicObj.level}",
+      "targetWord": "English word from student vocabulary used in this exercise",
+      "targetWordTranslation": "Russian translation"
+    }
+  ]
+}`;
+
+    let exercises = [];
+    const aiModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash-lite'];
+    for (const m of aiModels) {
+      try {
+        const aiRes = await Promise.race([
+          fetch(`http://127.0.0.1:58433/v1beta/models/${m}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: 'application/json', temperature: 0.7 }
+            })
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+        ]);
+
+        if (aiRes.ok) {
+          const aiData = await aiRes.json();
+          const rawJson = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+          const parsed = JSON.parse(rawJson);
+          if (Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
+            exercises = parsed.exercises;
+            break;
+          } else if (parsed.question && parsed.correctAnswer) {
+            exercises = [parsed];
+            break;
+          }
+        }
+      } catch (err) {
+        console.warn(`Model ${m} error in English batch generation:`, err.message);
+      }
+    }
+
+    if (!exercises || exercises.length === 0) {
+      const single = generateEnglishExercise({
+        topic: topicObj,
+        exerciseType: type || 'multiple-choice',
+        targetWordObj: selectedPool[0],
+        allUserWords: selectedPool
+      });
+      exercises = [single];
+    }
+
+    exercises.forEach((ex) => {
+      ex.vocabularySource = vocabularySource;
+      ex.wordPoolCount = poolCount;
+      ex.sourceLabel = poolLabel;
+    });
+
+    return res.json({
+      exercises,
+      exercise: exercises[0],
+      count: exercises.length,
+      vocabularySource,
+      wordPoolCount: poolCount,
+      sourceLabel: poolLabel
+    });
+  } catch (error) {
+    console.error('Error in /api/exercises/generate:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// API: GENERATE FULL-SENTENCE TRANSLATION EXERCISES (Multi-topic & Mastered Vocabulary)
+// ==========================================
+app.post('/api/exercises/generate-translation', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { topicIds } = req.body || {};
+
+    const allWords = db.prepare('SELECT id, word, translation, example, learned_permanently_at FROM vocabulary WHERE user_id = ?').all(userId);
+    const learnedWords = allWords.filter((w) => w.learned_permanently_at !== null && w.learned_permanently_at !== undefined);
+    const activeWords = allWords.filter((w) => !w.learned_permanently_at);
+
+    let selectedPool = [];
+    let vocabularySource = 'combined';
+    let poolCount = allWords.length;
+    let poolLabel = 'All vocabulary';
+
+    if (learnedWords.length >= 100) {
+      selectedPool = learnedWords;
+      vocabularySource = 'learned_forever';
+      poolCount = learnedWords.length;
+      poolLabel = `Mastered words (${learnedWords.length})`;
+    } else if (activeWords.length >= 100) {
+      selectedPool = activeWords;
+      vocabularySource = 'active_studying';
+      poolCount = activeWords.length;
+      poolLabel = `Studying words (${activeWords.length})`;
+    } else {
+      selectedPool = allWords.length > 0 ? allWords : [{ word: 'house', translation: 'дом' }, { word: 'big', translation: 'большой' }];
+      vocabularySource = 'combined';
+      poolCount = allWords.length;
+      poolLabel = `All words (${allWords.length})`;
+    }
+
+    const sampledWords = [...selectedPool].sort(() => 0.5 - Math.random()).slice(0, 30);
+    const vocabListStr = sampledWords.map((w) => `${w.word} (${w.translation})`).join(', ');
+
+    let selectedTopicRows = [];
+    if (Array.isArray(topicIds) && topicIds.length > 0) {
+      const placeholders = topicIds.map(() => '?').join(',');
+      selectedTopicRows = db.prepare(`SELECT id, name, category, level FROM curriculum_topics WHERE id IN (${placeholders})`).all(...topicIds);
+    } else if (topicIds && topicIds !== 'all') {
+      const single = db.prepare('SELECT id, name, category, level FROM curriculum_topics WHERE id = ?').get(topicIds);
+      if (single) selectedTopicRows = [single];
+    }
+
+    if (selectedTopicRows.length === 0) {
+      selectedTopicRows = db.prepare('SELECT id, name, category, level FROM curriculum_topics ORDER BY RANDOM() LIMIT 2').all();
+    }
+
+    const topicsStr = selectedTopicRows.map((t, idx) => `${idx + 1}. ${t.name} (${t.category}, ${t.level})`).join('\n');
+
+    const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
+    const prompt = `You are an elite English language professor.
+Your task is to generate 10 full-sentence translation exercises for a student.
+
+SELECTED GRAMMAR TOPIC(S):
+${topicsStr}
+
+STUDENT'S MASTERED VOCABULARY POOL (YOU MUST COMPOSE SENTENCES PRIMARILY USING THESE KNOWN WORDS):
+${vocabListStr}
+
+CRITICAL MANDATORY INSTRUCTIONS:
+1. For each of the 10 tasks:
+   - "sourceSentence": A natural Russian sentence for the student to translate into English.
+   - "targetSentence": The perfect, accurate English translation.
+   - "alternativeAnswers": Array of 1-3 valid alternative translations in English.
+   - "testedGrammar": Name of the specific grammar topic tested in this sentence.
+   - "usedVocabulary": Array of student vocabulary words embedded in this sentence.
+   - "explanation": Detailed Russian explanation of the grammar rule, word order, auxiliary verbs, and why this translation is constructed this way.
+2. The sentences MUST strictly practice the chosen grammar topics while weaving together words from the student's vocabulary list.
+3. Provide progressive variety across the 10 sentences covering different persons (I, you, he/she, we, they), affirmative/negative/questions, and nuances.
+
+Respond ONLY with valid JSON matching this exact schema:
+{
+  "exercises": [
+    {
+      "sourceSentence": "Русское предложение для перевода",
+      "targetSentence": "Correct English translation",
+      "alternativeAnswers": ["Alternative English translation 1"],
+      "testedGrammar": "Grammar topic name",
+      "usedVocabulary": ["word1", "word2"],
+      "explanation": "Подробное объяснение грамматики и перевода на русском языке"
+    }
+  ]
+}`;
+
+    let exercises = [];
+    const aiModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash-lite'];
+    for (const m of aiModels) {
+      try {
+        const aiRes = await Promise.race([
+          fetch(`http://127.0.0.1:58433/v1beta/models/${m}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: 'application/json', temperature: 0.7 }
+            })
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 12000))
+        ]);
+
+        if (aiRes.ok) {
+          const aiData = await aiRes.json();
+          const rawJson = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+          const parsed = JSON.parse(rawJson);
+          if (Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
+            exercises = parsed.exercises;
+            break;
+          }
+        }
+      } catch (err) {
+        console.warn(`Translation generation error on English model ${m}:`, err.message);
+      }
+    }
+
+    if (exercises.length === 0) {
+      exercises = [
+        {
+          sourceSentence: "Они строят большой новый дом в центре города.",
+          targetSentence: "They are building a big new house in the city center.",
+          alternativeAnswers: ["They build a big new house in the city center."],
+          testedGrammar: selectedTopicRows[0]?.name || "Present Continuous",
+          usedVocabulary: ["house", "big", "new"],
+          explanation: "Для действия, происходящего в данный период времени, используется Present Continuous (are building). Прилагательные 'big' и 'new' идут перед существительным."
+        }
+      ];
+    }
+
+    exercises.forEach((ex, idx) => {
+      ex.id = `trans_${Date.now()}_${idx}`;
+      ex.vocabularySource = vocabularySource;
+      ex.wordPoolCount = poolCount;
+      ex.sourceLabel = poolLabel;
+    });
+
+    return res.json({
+      exercises,
+      count: exercises.length,
+      vocabularySource,
+      wordPoolCount: poolCount,
+      sourceLabel: poolLabel,
+      selectedTopics: selectedTopicRows
+    });
+  } catch (error) {
+    console.error('Error in /api/exercises/generate-translation:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+
+// API: Ручная установка прогресса темы (0%, 100% и Заморозка)
+app.post('/api/topics/:id/set-score', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const topicId = Number(req.params.id);
+    const { score, isLocked } = req.body || {};
+
+    const topic = db.prepare('SELECT * FROM curriculum_topics WHERE id = ?').get(topicId);
+    if (!topic) return res.status(404).json({ error: 'Topic not found' });
+
+    let targetScore = typeof score === 'number' ? Math.max(0, Math.min(100, score)) : (isLocked ? 100 : 0);
+    let targetStatus = targetScore >= 80 ? 'mastered' : (targetScore > 0 ? 'improving' : 'not_started');
+    let targetLocked = isLocked !== undefined ? (isLocked ? 1 : 0) : (targetScore === 100 ? 1 : 0);
+    if (targetScore === 0) targetLocked = 0;
+
+    const existing = db.prepare('SELECT * FROM user_topic_progress WHERE curriculum_topic_id = ? AND user_id = ?').get(topicId, userId);
+    if (existing) {
+      db.prepare(`
+        UPDATE user_topic_progress
+        SET score = ?, status = ?, is_locked = ?, last_practiced = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE curriculum_topic_id = ? AND user_id = ?
+      `).run(targetScore, targetStatus, targetLocked, topicId, userId);
+    } else {
+      db.prepare(`
+        INSERT INTO user_topic_progress (curriculum_topic_id, user_id, score, status, is_locked, success_count, error_count, last_practiced)
+        VALUES (?, ?, ?, ?, ?, 0, 0, CURRENT_TIMESTAMP)
+      `).run(topicId, userId, targetScore, targetStatus, targetLocked);
+    }
+
+    res.json({ success: true, topicId, score: targetScore, status: targetStatus, isLocked: targetLocked === 1 });
+  } catch (error) {
+    console.error('Error in /api/topics/:id/set-score:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Получение всех слов
 app.get('/api/vocabulary', (req, res) => {
   try {
     const userId = getUserId(req);
     const words = db.prepare('SELECT * FROM vocabulary WHERE user_id = ? ORDER BY learned_permanently_at IS NOT NULL ASC, next_review ASC').all(userId);
-    res.json({ words });
+    
+    let groupRows = [];
+    try {
+      groupRows = db.prepare(`
+        SELECT gm.vocabulary_id, g.id AS group_id, g.name AS group_name
+        FROM vocabulary_group_members gm
+        JOIN vocabulary_groups g ON g.id = gm.group_id
+        WHERE g.user_id = ?
+        ORDER BY g.name COLLATE NOCASE ASC
+      `).all(userId);
+    } catch (e) {}
+
+    const groupsByWordId = new Map();
+    for (const grow of groupRows) {
+      if (!groupsByWordId.has(grow.vocabulary_id)) {
+        groupsByWordId.set(grow.vocabulary_id, []);
+      }
+      groupsByWordId.get(grow.vocabulary_id).push({ id: grow.group_id, name: grow.group_name });
+    }
+
+    const enhancedWords = words.map((w) => {
+      const wGroups = groupsByWordId.get(w.id) || [];
+      return {
+        ...w,
+        groups: wGroups,
+        group_ids: wGroups.map((g) => g.id),
+      };
+    });
+
+    res.json({ words: enhancedWords });
   } catch (error) {
     console.error('Error fetching vocabulary:', error);
     res.status(500).json({ error: error.message });
@@ -1421,8 +1991,9 @@ app.get('/api/vocabulary/due', (req, res) => {
 app.get('/api/vocabulary/study-session', (req, res) => {
   try {
     const requestedMode = typeof req.query?.mode === 'string' ? req.query.mode.trim() : '';
-    if (requestedMode && !RESUMABLE_VOCABULARY_MODES.has(requestedMode)) {
-      return res.status(400).json({ error: 'mode must be once_all or favorites' });
+    const isGroupMode = requestedMode.startsWith('group:') || requestedMode.startsWith('groups:');
+    if (requestedMode && !RESUMABLE_VOCABULARY_MODES.has(requestedMode) && !isGroupMode) {
+      return res.status(400).json({ error: 'mode must be once_all, favorites, group:<id>, or groups:<ids>' });
     }
     const row = db.prepare(`
       SELECT mode, queue_json, round_total, updated_at
@@ -1451,7 +2022,8 @@ app.put('/api/vocabulary/study-session', (req, res) => {
         FROM vocabulary_study_sessions
         WHERE user_id = ? AND mode = ?
       `).get(userId, session.mode);
-      if (existing && req.body?.restart !== true) {
+      const isGroupMode = session.mode.startsWith('group:') || session.mode.startsWith('groups:');
+      if (existing && req.body?.restart !== true && !isGroupMode) {
         const previousQueue = JSON.parse(existing.queue_json);
         if (Array.isArray(previousQueue) && session.queueIds.length > previousQueue.length) {
           const error = new Error('A newer exact-once position is already saved. Explicit restart is required to increase the queue.');
@@ -1494,7 +2066,17 @@ app.post('/api/vocabulary', (req, res) => {
       VALUES (?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
     `).run(userId, String(word).trim(), norm, translation, example || null);
     
-    const newWord = db.prepare('SELECT * FROM vocabulary WHERE id = ?').get(result.lastInsertRowid);
+    const newWordId = result.lastInsertRowid;
+    if (Array.isArray(req.body?.groupIds) && req.body.groupIds.length > 0) {
+      try {
+        const insertMember = db.prepare('INSERT OR IGNORE INTO vocabulary_group_members (group_id, vocabulary_id) VALUES (?, ?)');
+        for (const gid of req.body.groupIds) {
+          const exists = db.prepare('SELECT id FROM vocabulary_groups WHERE id = ? AND user_id = ?').get(Number(gid), userId);
+          if (exists) insertMember.run(Number(gid), newWordId);
+        }
+      } catch (e) {}
+    }
+    const newWord = db.prepare('SELECT * FROM vocabulary WHERE id = ?').get(newWordId);
     res.json(newWord);
   } catch (error) {
     console.error('Error adding word:', error);
@@ -1606,10 +2188,20 @@ app.put('/api/vocabulary/:id/permanent-learned', (req, res) => {
     if (typeof req.body?.learned !== 'boolean') {
       return res.status(400).json({ error: 'learned must be a boolean' });
     }
-    const timestamp = req.body.learned ? new Date().toISOString() : null;
-    const result = db.prepare('UPDATE vocabulary SET learned_permanently_at = ? WHERE id = ? AND user_id = ?')
-      .run(timestamp, req.params.id, userId);
-    if (result.changes === 0) return res.status(404).json({ error: 'Word not found' });
+    const learned = req.body.learned;
+    const timestamp = learned ? new Date().toISOString() : null;
+    db.transaction(() => {
+      const result = db.prepare(`
+        UPDATE vocabulary 
+        SET learned_permanently_at = ?,
+            is_favorite = CASE WHEN ? = 1 THEN 0 ELSE is_favorite END
+        WHERE id = ? AND user_id = ?
+      `).run(timestamp, learned ? 1 : 0, req.params.id, userId);
+      if (result.changes === 0) throw new Error('Word not found');
+      if (learned) {
+        db.prepare('DELETE FROM vocabulary_group_members WHERE vocabulary_id = ?').run(req.params.id);
+      }
+    })();
     res.json(db.prepare('SELECT * FROM vocabulary WHERE id = ? AND user_id = ?').get(req.params.id, userId));
   } catch (error) {
     console.error('Error updating permanent learned state:', error);
