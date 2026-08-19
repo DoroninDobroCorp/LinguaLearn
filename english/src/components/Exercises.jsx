@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Brain, RefreshCw, CheckCircle, XCircle, Award, 
-  Layers, Infinity as InfinityIcon, Globe, Check, BookOpen, Sparkles
+  Layers, Infinity as InfinityIcon, Globe, Check, Search
 } from 'lucide-react';
 
 function parseExerciseTag(tag) {
@@ -40,7 +40,490 @@ function checkTranslationMatch(userText, targetText, altAnswers = []) {
 }
 
 // ----------------------------------------------------
-// 1. FULL SENTENCE TRANSLATION MODE COMPONENT (ENGLISH)
+// 1. AI GRAMMAR & VOCABULARY EXERCISES (BATCH OF 10) (FIRST TAB IN ENGLISH)
+// ----------------------------------------------------
+function GrammarExercisesSection({ topics, maxLevel }) {
+  const [loading, setLoading] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
+  const [sessionMode, setSessionMode] = useState('ten');
+  
+  const [exerciseQueue, setExerciseQueue] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isRoundFinished, setIsRoundFinished] = useState(false);
+
+  const [userAnswer, setUserAnswer] = useState('');
+  const [selectedOption, setSelectedOption] = useState('');
+  const [showResult, setShowResult] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  
+  const [roundStats, setRoundStats] = useState({ total: 0, correct: 0, streak: 0 });
+  const [overallStats, setOverallStats] = useState({ total: 0, correct: 0, streak: 0 });
+
+  const prefetchingRef = useRef(false);
+
+  const fetchExerciseBatch = async () => {
+    const response = await fetch('/english/api/exercises/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topicId: selectedTopic !== 'all' ? selectedTopic : undefined,
+        type: selectedType !== 'all' ? selectedType : undefined
+      })
+    });
+    const data = await response.json();
+    return data.exercises || (data.exercise ? [data.exercise] : []);
+  };
+
+  const startNewBatch = async () => {
+    setLoading(true);
+    setShowResult(false);
+    setUserAnswer('');
+    setSelectedOption('');
+    setIsRoundFinished(false);
+    setRoundStats({ total: 0, correct: 0, streak: overallStats.streak });
+    setCurrentIndex(0);
+
+    try {
+      const newExercises = await fetchExerciseBatch();
+      if (newExercises.length > 0) {
+        setExerciseQueue(newExercises);
+      }
+    } catch (error) {
+      console.error('Error generating English exercise batch:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkAnswer = async () => {
+    const currentExercise = exerciseQueue[currentIndex];
+    if (!currentExercise || showResult) return;
+
+    let answerToCheck = '';
+    if (currentExercise.type === 'multiple-choice') {
+      answerToCheck = selectedOption;
+    } else {
+      answerToCheck = userAnswer.trim();
+    }
+
+    if (!answerToCheck) return;
+
+    const correct = answerToCheck.toLowerCase() === currentExercise.correctAnswer.toLowerCase();
+    setIsCorrect(correct);
+    setShowResult(true);
+
+    const newStreak = correct ? overallStats.streak + 1 : 0;
+    setRoundStats(prev => ({
+      total: prev.total + 1,
+      correct: prev.correct + (correct ? 1 : 0),
+      streak: newStreak
+    }));
+
+    setOverallStats(prev => ({
+      total: prev.total + 1,
+      correct: prev.correct + (correct ? 1 : 0),
+      streak: newStreak
+    }));
+
+    const { rawTopicName, topicLevel } = parseExerciseTag(currentExercise.topic);
+
+    try {
+      await fetch('/english/api/topics/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: rawTopicName,
+          category: 'Practice',
+          level: topicLevel || currentExercise.level,
+          success: correct
+        })
+      });
+    } catch (error) {
+      console.error('Error updating topic progress:', error);
+    }
+
+    if (sessionMode === 'endless' && currentIndex >= exerciseQueue.length - 3 && !prefetchingRef.current) {
+      prefetchingRef.current = true;
+      fetchExerciseBatch().then(extra => {
+        if (extra && extra.length > 0) {
+          setExerciseQueue(prev => [...prev, ...extra]);
+        }
+      }).catch(err => console.warn('Prefetch error:', err)).finally(() => {
+        prefetchingRef.current = false;
+      });
+    }
+  };
+
+  const nextExercise = () => {
+    setUserAnswer('');
+    setSelectedOption('');
+    setShowResult(false);
+    setIsCorrect(false);
+
+    if (sessionMode === 'ten' && currentIndex >= 9) {
+      setIsRoundFinished(true);
+      return;
+    }
+
+    if (currentIndex + 1 < exerciseQueue.length) {
+      setCurrentIndex(prev => prev + 1);
+    } else {
+      startNewBatch();
+    }
+  };
+
+  const currentExercise = exerciseQueue[currentIndex];
+  const roundAccuracy = roundStats.total === 0 ? 0 : Math.round((roundStats.correct / roundStats.total) * 100);
+  const currentStep = sessionMode === 'ten' ? Math.min(10, currentIndex + 1) : currentIndex + 1;
+  const progressPercent = sessionMode === 'ten' ? (currentStep / 10) * 100 : 100;
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center">
+              <Brain className="h-8 w-8 mr-3 text-indigo-600" />
+              AI Grammar & Vocabulary Exercises
+            </h2>
+            <p className="text-gray-600 mt-2 text-sm sm:text-base">
+              Practice 10-task nuanced English exercises based on your curriculum (up to {maxLevel})
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-3 md:flex md:space-x-4">
+            <div className="bg-indigo-100 rounded-xl p-3 md:p-4 text-center">
+              <p className="text-xs md:text-sm text-indigo-600 font-semibold">Completed</p>
+              <p className="text-xl md:text-2xl font-bold text-indigo-950">{overallStats.total}</p>
+            </div>
+            <div className="bg-green-100 rounded-xl p-3 md:p-4 text-center">
+              <p className="text-xs md:text-sm text-green-600 font-semibold">Correct</p>
+              <p className="text-xl md:text-2xl font-bold text-green-950">{overallStats.correct}</p>
+            </div>
+            <div className="bg-orange-100 rounded-xl p-3 md:p-4 text-center">
+              <p className="text-xs md:text-sm text-orange-600 font-semibold">Streak</p>
+              <p className="text-xl md:text-2xl font-bold text-orange-950">🔥 {overallStats.streak}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters with visible percentage */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Topic</label>
+            <select
+              value={selectedTopic}
+              onChange={(e) => setSelectedTopic(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl focus:border-indigo-500 focus:outline-none font-medium text-sm"
+            >
+              <option value="all">🎲 Random Topic</option>
+              {topics.map((topic) => (
+                <option key={topic.id} value={topic.id}>
+                  {Boolean(topic.is_locked) ? '🔒 ' : ''}{topic.name} ({topic.level}) — {Math.round(topic.score || 0)}%
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Type</label>
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl focus:border-indigo-500 focus:outline-none font-medium text-sm"
+            >
+              <option value="all">🎲 All Types (Mix)</option>
+              <option value="multiple-choice">📝 Multiple Choice</option>
+              <option value="fill-blank">✍️ Fill in the Blank</option>
+              <option value="open">💭 Open Answer</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Session Mode</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setSessionMode('ten')}
+                className={`px-3 py-3 rounded-xl border-2 font-bold transition-all text-xs flex items-center justify-center gap-1.5 ${
+                  sessionMode === 'ten'
+                    ? 'bg-indigo-600 border-indigo-700 text-white shadow-md'
+                    : 'bg-white border-indigo-200 text-gray-700 hover:border-indigo-400'
+                }`}
+              >
+                <Layers className="h-4 w-4" />
+                <span>10 Tasks</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSessionMode('endless')}
+                className={`px-3 py-3 rounded-xl border-2 font-bold transition-all text-xs flex items-center justify-center gap-1.5 ${
+                  sessionMode === 'endless'
+                    ? 'bg-purple-600 border-purple-700 text-white shadow-md'
+                    : 'bg-white border-purple-200 text-gray-700 hover:border-purple-400'
+                }`}
+              >
+                <InfinityIcon className="h-4 w-4" />
+                <span>Endless</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {(!currentExercise || isRoundFinished) && (
+          <button
+            onClick={startNewBatch}
+            disabled={loading}
+            className="w-full px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 font-bold text-lg flex items-center justify-center space-x-3 transition-all shadow-md hover:shadow-lg"
+          >
+            {loading ? (
+              <>
+                <RefreshCw className="h-6 w-6 animate-spin" />
+                <span>Generating 10 nuanced exercises...</span>
+              </>
+            ) : (
+              <>
+                <Brain className="h-6 w-6" />
+                <span>{isRoundFinished ? '🔄 Start New 10-Task Round' : '🚀 Start Workout (10 Tasks)'}</span>
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* Round Finished Screen */}
+      {isRoundFinished && (
+        <div className="bg-gradient-to-r from-indigo-100 to-purple-100 border-4 border-indigo-400 rounded-2xl p-6 md:p-10 shadow-2xl text-center space-y-6 animate-fade-in">
+          <div className="inline-flex p-4 bg-indigo-600 text-white rounded-full shadow-lg">
+            <Award className="h-12 w-12" />
+          </div>
+          <div>
+            <h3 className="text-3xl font-black text-gray-900">10-Task Round Complete! 🎉</h3>
+            <p className="text-gray-700 mt-2 text-lg">You have successfully practiced diverse nuances of this grammar rule.</p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-200">
+              <p className="text-xs text-gray-500 font-bold uppercase">Correct</p>
+              <p className="text-2xl font-black text-green-600">{roundStats.correct} / 10</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-200">
+              <p className="text-xs text-gray-500 font-bold uppercase">Accuracy</p>
+              <p className="text-2xl font-black text-indigo-700">{roundAccuracy}%</p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-200">
+              <p className="text-xs text-gray-500 font-bold uppercase">Streak</p>
+              <p className="text-2xl font-black text-orange-600">🔥 {overallStats.streak}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-2">
+            <button
+              onClick={startNewBatch}
+              disabled={loading}
+              className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2"
+            >
+              <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+              <span>More 10 Tasks on This Topic</span>
+            </button>
+            <button
+              onClick={() => { setSelectedTopic('all'); startNewBatch(); }}
+              disabled={loading}
+              className="px-6 py-3.5 bg-white border-2 border-indigo-300 text-indigo-900 font-bold rounded-xl shadow-sm hover:bg-indigo-50 transition-all flex items-center justify-center space-x-2"
+            >
+              <span>🎲 Try Another Topic</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Active Exercise Card */}
+      {currentExercise && !isRoundFinished && (
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-4 border-indigo-300 rounded-2xl p-5 md:p-8 shadow-2xl space-y-5">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm font-bold text-indigo-950">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 bg-indigo-600 text-white rounded-lg text-xs">
+                  {sessionMode === 'ten' ? `Task ${currentStep} of 10` : `Task #${currentStep}`}
+                </span>
+                {sessionMode === 'endless' && (
+                  <span className="text-xs text-purple-700 font-semibold flex items-center gap-1">
+                    <InfinityIcon className="h-3.5 w-3.5" /> Endless Mode
+                  </span>
+                )}
+              </div>
+              <span className="text-xs font-semibold text-indigo-700">
+                Round: {roundStats.correct} correct
+              </span>
+            </div>
+
+            {sessionMode === 'ten' && (
+              <div className="w-full bg-indigo-200 rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-600 to-purple-500 transition-all duration-500 rounded-full"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="px-3 py-1 bg-indigo-300 text-indigo-900 rounded-full text-xs font-bold">
+              {currentExercise.type === 'multiple-choice' ? '📝 Quiz' : 
+               currentExercise.type === 'fill-blank' ? '✍️ Fill-in' : '💭 Open'}
+            </span>
+            <span className="px-3 py-1 bg-pink-300 text-pink-900 rounded-full text-xs font-bold">
+              {currentExercise.level}
+            </span>
+            <span className="px-3 py-1 bg-purple-300 text-purple-900 rounded-full text-xs font-bold">
+              {currentExercise.topic}
+            </span>
+            {currentExercise.sourceLabel && (
+              <span className="px-3 py-1 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-full text-xs font-bold">
+                📚 {currentExercise.sourceLabel}
+              </span>
+            )}
+            {currentExercise.targetWord && (
+              <span className="px-3 py-1 bg-amber-100 border border-amber-300 text-amber-900 rounded-full text-xs font-bold">
+                🎯 Word: {currentExercise.targetWord}
+              </span>
+            )}
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 sm:p-6 border-2 border-indigo-200">
+            <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-relaxed">
+              {currentExercise.question}
+            </p>
+          </div>
+          
+          {currentExercise.type === 'multiple-choice' && !showResult && (
+            <div className="space-y-3">
+              {currentExercise.options.map((option, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedOption(option)}
+                  className={`w-full text-left px-4 py-3 sm:px-6 sm:py-4 rounded-xl transition-all text-base sm:text-lg font-medium border-2 sm:border-3 ${
+                    selectedOption === option
+                      ? 'bg-indigo-300 border-indigo-600 text-indigo-900 scale-[1.02] shadow-md'
+                      : 'bg-white border-indigo-300 hover:border-indigo-500 text-gray-800 hover:scale-[1.01]'
+                  }`}
+                >
+                  <span className="font-bold mr-2 sm:mr-3 text-lg sm:text-xl">{String.fromCharCode(65 + idx)}.</span>
+                  {option}
+                </button>
+              ))}
+            </div>
+          )}
+          
+          {currentExercise.type === 'multiple-choice' && showResult && (
+            <div className="space-y-3">
+              {currentExercise.options.map((option, idx) => (
+                <div
+                  key={idx}
+                  className={`w-full text-left px-4 py-3 sm:px-6 sm:py-4 rounded-xl text-base sm:text-lg font-medium border-2 sm:border-3 ${
+                    option.toLowerCase() === currentExercise.correctAnswer.toLowerCase()
+                      ? 'bg-green-200 border-green-600 text-green-900'
+                      : option === selectedOption
+                      ? 'bg-red-200 border-red-600 text-red-900'
+                      : 'bg-gray-100 border-gray-300 text-gray-600'
+                  }`}
+                >
+                  <span className="font-bold mr-2 sm:mr-3 text-lg sm:text-xl">{String.fromCharCode(65 + idx)}.</span>
+                  {option}
+                  {option.toLowerCase() === currentExercise.correctAnswer.toLowerCase() && (
+                    <CheckCircle className="inline ml-2 h-5 w-5 text-green-700 align-middle" />
+                  )}
+                  {option === selectedOption && option.toLowerCase() !== currentExercise.correctAnswer.toLowerCase() && (
+                    <XCircle className="inline ml-2 h-5 w-5 text-red-700 align-middle" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {(currentExercise.type === 'fill-blank' || currentExercise.type === 'open') && (
+            <div>
+              <input
+                type="text"
+                value={userAnswer}
+                onChange={(e) => setUserAnswer(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && !showResult && checkAnswer()}
+                disabled={showResult}
+                placeholder="Type your answer here..."
+                className={`w-full px-4 py-3 sm:px-6 sm:py-4 rounded-xl border-2 sm:border-3 text-base sm:text-lg font-medium ${
+                  showResult
+                    ? isCorrect
+                      ? 'bg-green-100 border-green-600 text-green-900'
+                      : 'bg-red-100 border-red-600 text-red-900'
+                    : 'border-indigo-400 focus:border-indigo-600 focus:outline-none bg-white'
+                }`}
+              />
+            </div>
+          )}
+          
+          {!showResult ? (
+            <button
+              onClick={checkAnswer}
+              disabled={
+                (currentExercise.type === 'multiple-choice' && !selectedOption) ||
+                ((currentExercise.type === 'fill-blank' || currentExercise.type === 'open') && !userAnswer.trim())
+              }
+              className="w-full px-6 py-3.5 sm:px-8 sm:py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 font-bold text-lg sm:text-xl transition-all shadow-md hover:shadow-lg"
+            >
+              ✓ Check Answer
+            </button>
+          ) : (
+            <div className="space-y-4">
+              <div className={`p-4 sm:p-6 rounded-xl border-2 sm:border-3 ${
+                isCorrect
+                  ? 'bg-green-100 border-green-500 text-green-900'
+                  : 'bg-orange-100 border-orange-500 text-orange-900'
+              }`}>
+                {isCorrect ? (
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="h-8 w-8 sm:h-10 sm:w-10 text-green-600" />
+                    <div>
+                      <p className="text-xl sm:text-2xl font-bold">Correct! 🎉</p>
+                      {currentExercise.explanation && (
+                        <p className="text-sm sm:text-base mt-1 font-medium">{currentExercise.explanation}</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-3">
+                    <XCircle className="h-8 w-8 sm:h-10 sm:w-10 text-orange-600" />
+                    <div>
+                      <p className="text-xl sm:text-2xl font-bold">Not quite right</p>
+                      <p className="text-sm sm:text-lg">
+                        The correct answer is: <span className="font-bold underline">{currentExercise.correctAnswer}</span>
+                      </p>
+                      {currentExercise.explanation && (
+                        <p className="text-sm sm:text-base mt-2 font-medium bg-white/70 p-3 rounded-lg border border-orange-200">{currentExercise.explanation}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <button
+                onClick={nextExercise}
+                className="w-full px-6 py-3.5 sm:px-8 sm:py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg font-bold text-lg sm:text-xl flex items-center justify-center space-x-2"
+              >
+                <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6" />
+                <span>{sessionMode === 'ten' && currentIndex >= 9 ? '🏆 Finish Round (10/10)' : 'Next Task →'}</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// 2. FULL SENTENCE TRANSLATION MODE COMPONENT (LAST TAB IN ENGLISH)
 // ----------------------------------------------------
 function SentenceTranslationExerciseSection({ topics }) {
   const [selectedTopicIds, setSelectedTopicIds] = useState([]);
@@ -56,6 +539,9 @@ function SentenceTranslationExerciseSection({ topics }) {
 
   const [roundStats, setRoundStats] = useState({ total: 0, correct: 0, streak: 0 });
   const [overallStats, setOverallStats] = useState({ total: 0, correct: 0, streak: 0 });
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterLevel, setFilterLevel] = useState('all');
 
   const prefetchingRef = useRef(false);
 
@@ -160,6 +646,12 @@ function SentenceTranslationExerciseSection({ topics }) {
   const currentStep = sessionMode === 'ten' ? Math.min(10, currentIndex + 1) : currentIndex + 1;
   const progressPercent = sessionMode === 'ten' ? (currentStep / 10) * 100 : 100;
 
+  const filteredTopics = topics.filter(t => {
+    const matchesSearch = !searchQuery || t.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesLevel = filterLevel === 'all' || t.level === filterLevel;
+    return matchesSearch && matchesLevel;
+  });
+
   return (
     <div className="space-y-6">
       {/* Translation Config Header */}
@@ -217,22 +709,71 @@ function SentenceTranslationExerciseSection({ topics }) {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 max-h-44 overflow-y-auto p-3 bg-gray-50 border-2 border-gray-200 rounded-xl">
-            {topics.slice(0, 40).map((topic) => {
+          {/* Search and Level Filters for Topics */}
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search topics..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div className="flex items-center gap-1 overflow-x-auto">
+              {['all', 'A1', 'A2', 'B1', 'B2'].map(lvl => (
+                <button
+                  key={lvl}
+                  type="button"
+                  onClick={() => setFilterLevel(lvl)}
+                  className={`px-2 py-1 rounded text-xs font-bold transition-all ${
+                    filterLevel === lvl
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {lvl.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-3 bg-gray-50 border-2 border-gray-200 rounded-xl">
+            {filteredTopics.map((topic) => {
               const isSelected = selectedTopicIds.includes(topic.id);
+              const score = Math.round(topic.score || 0);
+              const isLocked = Boolean(topic.is_locked);
               return (
                 <button
                   key={topic.id}
                   type="button"
                   onClick={() => toggleTopicSelection(topic.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${
                     isSelected
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'bg-white border border-gray-300 text-gray-700 hover:border-indigo-400'
+                      ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-400'
+                      : 'bg-white border border-gray-300 text-gray-800 hover:border-indigo-400 hover:bg-indigo-50/50'
                   }`}
                 >
-                  {isSelected && <Check className="h-3 w-3" />}
-                  <span>{topic.is_locked ? '🔒 ' : ''}{topic.name} ({topic.level})</span>
+                  {isSelected && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
+                  <span className="flex items-center gap-1">
+                    {isLocked ? <span>🔒</span> : null}
+                    <span>{topic.name}</span>
+                    <span className="text-[10px] opacity-75">({topic.level})</span>
+                  </span>
+
+                  {/* Direct Visible Percentage Badge */}
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
+                    isSelected
+                      ? 'bg-indigo-800 text-indigo-100'
+                      : score >= 80 
+                      ? 'bg-green-100 text-green-800' 
+                      : score > 0 
+                      ? 'bg-yellow-100 text-yellow-800' 
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {score}%
+                  </span>
                 </button>
               );
             })}
@@ -259,7 +800,7 @@ function SentenceTranslationExerciseSection({ topics }) {
                 onClick={() => setSessionMode('endless')}
                 className={`px-3 py-1.5 rounded-xl border-2 font-bold transition-all text-xs flex items-center gap-1.5 ${
                   sessionMode === 'endless'
-                    ? 'bg-purple-600 border-purple-700 text-white shadow-sm'
+                    ? 'bg-purple-600 border-purple-700 text-white shadow-md'
                     : 'bg-white border-gray-300 text-gray-700 hover:border-purple-400'
                 }`}
               >
@@ -489,30 +1030,13 @@ function SentenceTranslationExerciseSection({ topics }) {
 }
 
 // ----------------------------------------------------
-// 2. MAIN EXERCISES CONTAINER COMPONENT (ENGLISH)
+// 3. MAIN EXERCISES CONTAINER COMPONENT (ENGLISH)
+// Order of tabs: 1. Grammar Tests, 2. Sentence Translation
 // ----------------------------------------------------
 function Exercises() {
-  const [activeTab, setActiveTab] = useState('translation'); // 'translation' | 'grammar'
-  const [loading, setLoading] = useState(false);
-  const [selectedTopic, setSelectedTopic] = useState('all');
-  const [selectedType, setSelectedType] = useState('all');
-  const [sessionMode, setSessionMode] = useState('ten');
+  const [activeTab, setActiveTab] = useState('grammar');
   const [topics, setTopics] = useState([]);
-  
-  const [exerciseQueue, setExerciseQueue] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isRoundFinished, setIsRoundFinished] = useState(false);
-
-  const [userAnswer, setUserAnswer] = useState('');
-  const [selectedOption, setSelectedOption] = useState('');
-  const [showResult, setShowResult] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
-  
-  const [roundStats, setRoundStats] = useState({ total: 0, correct: 0, streak: 0 });
-  const [overallStats, setOverallStats] = useState({ total: 0, correct: 0, streak: 0 });
   const [maxLevel, setMaxLevel] = useState('B2');
-
-  const prefetchingRef = useRef(false);
 
   useEffect(() => {
     loadTopics();
@@ -529,138 +1053,10 @@ function Exercises() {
     }
   };
 
-  const fetchExerciseBatch = async () => {
-    const response = await fetch('/english/api/exercises/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topicId: selectedTopic !== 'all' ? selectedTopic : undefined,
-        type: selectedType !== 'all' ? selectedType : undefined
-      })
-    });
-    const data = await response.json();
-    return data.exercises || (data.exercise ? [data.exercise] : []);
-  };
-
-  const startNewBatch = async () => {
-    setLoading(true);
-    setShowResult(false);
-    setUserAnswer('');
-    setSelectedOption('');
-    setIsRoundFinished(false);
-    setRoundStats({ total: 0, correct: 0, streak: overallStats.streak });
-    setCurrentIndex(0);
-
-    try {
-      const newExercises = await fetchExerciseBatch();
-      if (newExercises.length > 0) {
-        setExerciseQueue(newExercises);
-      }
-    } catch (error) {
-      console.error('Error generating English exercise batch:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkAnswer = async () => {
-    const currentExercise = exerciseQueue[currentIndex];
-    if (!currentExercise || showResult) return;
-
-    let answerToCheck = '';
-    if (currentExercise.type === 'multiple-choice') {
-      answerToCheck = selectedOption;
-    } else {
-      answerToCheck = userAnswer.trim();
-    }
-
-    if (!answerToCheck) return;
-
-    const correct = answerToCheck.toLowerCase() === currentExercise.correctAnswer.toLowerCase();
-    setIsCorrect(correct);
-    setShowResult(true);
-
-    const newStreak = correct ? overallStats.streak + 1 : 0;
-    setRoundStats(prev => ({
-      total: prev.total + 1,
-      correct: prev.correct + (correct ? 1 : 0),
-      streak: newStreak
-    }));
-
-    setOverallStats(prev => ({
-      total: prev.total + 1,
-      correct: prev.correct + (correct ? 1 : 0),
-      streak: newStreak
-    }));
-
-    const { rawTopicName, topicLevel } = parseExerciseTag(currentExercise.topic);
-
-    try {
-      await fetch('/english/api/topics/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topic: rawTopicName,
-          category: 'Practice',
-          level: topicLevel || currentExercise.level,
-          success: correct
-        })
-      });
-    } catch (error) {
-      console.error('Error updating topic progress:', error);
-    }
-
-    if (sessionMode === 'endless' && currentIndex >= exerciseQueue.length - 3 && !prefetchingRef.current) {
-      prefetchingRef.current = true;
-      fetchExerciseBatch().then(extra => {
-        if (extra && extra.length > 0) {
-          setExerciseQueue(prev => [...prev, ...extra]);
-        }
-      }).catch(err => console.warn('Prefetch error:', err)).finally(() => {
-        prefetchingRef.current = false;
-      });
-    }
-  };
-
-  const nextExercise = () => {
-    setUserAnswer('');
-    setSelectedOption('');
-    setShowResult(false);
-    setIsCorrect(false);
-
-    if (sessionMode === 'ten' && currentIndex >= 9) {
-      setIsRoundFinished(true);
-      return;
-    }
-
-    if (currentIndex + 1 < exerciseQueue.length) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      startNewBatch();
-    }
-  };
-
-  const currentExercise = exerciseQueue[currentIndex];
-  const roundAccuracy = roundStats.total === 0 ? 0 : Math.round((roundStats.correct / roundStats.total) * 100);
-  const currentStep = sessionMode === 'ten' ? Math.min(10, currentIndex + 1) : currentIndex + 1;
-  const progressPercent = sessionMode === 'ten' ? (currentStep / 10) * 100 : 100;
-
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Mode Selector Tabs */}
+      {/* Mode Selector Tabs in requested order: 1. Grammar Tests, 2. Sentence Translation */}
       <div className="bg-white p-2 rounded-2xl shadow-md flex flex-wrap sm:flex-nowrap gap-2 border-2 border-gray-100">
-        <button
-          onClick={() => setActiveTab('translation')}
-          className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all ${
-            activeTab === 'translation'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          <Globe className="h-5 w-5" />
-          <span>🌐 Sentence Translation</span>
-        </button>
-
         <button
           onClick={() => setActiveTab('grammar')}
           className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all ${
@@ -672,353 +1068,26 @@ function Exercises() {
           <Brain className="h-5 w-5" />
           <span>🧠 Grammar Tests</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab('translation')}
+          className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all ${
+            activeTab === 'translation'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Globe className="h-5 w-5" />
+          <span>🌐 Sentence Translation</span>
+        </button>
       </div>
+
+      {activeTab === 'grammar' && (
+        <GrammarExercisesSection topics={topics} maxLevel={maxLevel} />
+      )}
 
       {activeTab === 'translation' && (
         <SentenceTranslationExerciseSection topics={topics} />
-      )}
-
-      {activeTab === 'grammar' && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center">
-                  <Brain className="h-8 w-8 mr-3 text-indigo-600" />
-                  AI Grammar & Vocabulary Exercises
-                </h2>
-                <p className="text-gray-600 mt-2 text-sm sm:text-base">
-                  Practice 10-task nuanced English exercises based on your curriculum (up to {maxLevel})
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-3 md:flex md:space-x-4">
-                <div className="bg-indigo-100 rounded-xl p-3 md:p-4 text-center">
-                  <p className="text-xs md:text-sm text-indigo-600 font-semibold">Completed</p>
-                  <p className="text-xl md:text-2xl font-bold text-indigo-900">{overallStats.total}</p>
-                </div>
-                <div className="bg-green-100 rounded-xl p-3 md:p-4 text-center">
-                  <p className="text-xs md:text-sm text-green-600 font-semibold">Correct</p>
-                  <p className="text-xl md:text-2xl font-bold text-green-900">{overallStats.correct}</p>
-                </div>
-                <div className="bg-orange-100 rounded-xl p-3 md:p-4 text-center">
-                  <p className="text-xs md:text-sm text-orange-600 font-semibold">Streak</p>
-                  <p className="text-xl md:text-2xl font-bold text-orange-900">🔥 {overallStats.streak}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Topic</label>
-                <select
-                  value={selectedTopic}
-                  onChange={(e) => setSelectedTopic(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl focus:border-indigo-500 focus:outline-none font-medium text-sm"
-                >
-                  <option value="all">🎲 Random Topic</option>
-                  {topics.map((topic) => (
-                    <option key={topic.id} value={topic.id}>
-                      {topic.is_locked ? '🔒 ' : ''}{topic.name} ({topic.level}) - {Math.round(topic.score)}%
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Type</label>
-                <select
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl focus:border-indigo-500 focus:outline-none font-medium text-sm"
-                >
-                  <option value="all">🎲 All Types (Mix)</option>
-                  <option value="multiple-choice">📝 Multiple Choice</option>
-                  <option value="fill-blank">✍️ Fill in the Blank</option>
-                  <option value="open">💭 Open Answer</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Session Mode</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSessionMode('ten')}
-                    className={`px-3 py-3 rounded-xl border-2 font-bold transition-all text-xs flex items-center justify-center gap-1.5 ${
-                      sessionMode === 'ten'
-                        ? 'bg-indigo-600 border-indigo-700 text-white shadow-md'
-                        : 'bg-white border-indigo-200 text-gray-700 hover:border-indigo-400'
-                    }`}
-                  >
-                    <Layers className="h-4 w-4" />
-                    <span>10 Tasks</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSessionMode('endless')}
-                    className={`px-3 py-3 rounded-xl border-2 font-bold transition-all text-xs flex items-center justify-center gap-1.5 ${
-                      sessionMode === 'endless'
-                        ? 'bg-purple-600 border-purple-700 text-white shadow-md'
-                        : 'bg-white border-purple-200 text-gray-700 hover:border-purple-400'
-                    }`}
-                  >
-                    <InfinityIcon className="h-4 w-4" />
-                    <span>Endless</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {(!currentExercise || isRoundFinished) && (
-              <button
-                onClick={startNewBatch}
-                disabled={loading}
-                className="w-full px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 font-bold text-lg flex items-center justify-center space-x-3 transition-all shadow-md hover:shadow-lg"
-              >
-                {loading ? (
-                  <>
-                    <RefreshCw className="h-6 w-6 animate-spin" />
-                    <span>Generating 10 nuanced exercises...</span>
-                  </>
-                ) : (
-                  <>
-                    <Brain className="h-6 w-6" />
-                    <span>{isRoundFinished ? '🔄 Start New 10-Task Round' : '🚀 Start Workout (10 Tasks)'}</span>
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-
-          {/* Round Finished Screen */}
-          {isRoundFinished && (
-            <div className="bg-gradient-to-r from-indigo-100 to-purple-100 border-4 border-indigo-400 rounded-2xl p-6 md:p-10 shadow-2xl text-center space-y-6 animate-fade-in">
-              <div className="inline-flex p-4 bg-indigo-600 text-white rounded-full shadow-lg">
-                <Award className="h-12 w-12" />
-              </div>
-              <div>
-                <h3 className="text-3xl font-black text-gray-900">10-Task Round Complete! 🎉</h3>
-                <p className="text-gray-700 mt-2 text-lg">You have successfully practiced diverse nuances of this grammar rule.</p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-200">
-                  <p className="text-xs text-gray-500 font-bold uppercase">Correct</p>
-                  <p className="text-2xl font-black text-green-600">{roundStats.correct} / 10</p>
-                </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-200">
-                  <p className="text-xs text-gray-500 font-bold uppercase">Accuracy</p>
-                  <p className="text-2xl font-black text-indigo-700">{roundAccuracy}%</p>
-                </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-200">
-                  <p className="text-xs text-gray-500 font-bold uppercase">Streak</p>
-                  <p className="text-2xl font-black text-orange-600">🔥 {overallStats.streak}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row justify-center gap-4 pt-2">
-                <button
-                  onClick={startNewBatch}
-                  disabled={loading}
-                  className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2"
-                >
-                  <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-                  <span>More 10 Tasks on This Topic</span>
-                </button>
-                <button
-                  onClick={() => { setSelectedTopic('all'); startNewBatch(); }}
-                  disabled={loading}
-                  className="px-6 py-3.5 bg-white border-2 border-indigo-300 text-indigo-900 font-bold rounded-xl shadow-sm hover:bg-indigo-50 transition-all flex items-center justify-center space-x-2"
-                >
-                  <span>🎲 Try Another Topic</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Active Exercise Card */}
-          {currentExercise && !isRoundFinished && (
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-4 border-indigo-300 rounded-2xl p-5 md:p-8 shadow-2xl space-y-5">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm font-bold text-indigo-950">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 bg-indigo-600 text-white rounded-lg text-xs">
-                      {sessionMode === 'ten' ? `Task ${currentStep} of 10` : `Task #${currentStep}`}
-                    </span>
-                    {sessionMode === 'endless' && (
-                  <span className="text-xs text-purple-700 font-semibold flex items-center gap-1">
-                    <InfinityIcon className="h-3.5 w-3.5" /> Endless Mode
-                  </span>
-                )}
-                  </div>
-                  <span className="text-xs font-semibold text-indigo-700">
-                    Round: {roundStats.correct} correct
-                  </span>
-                </div>
-
-                {sessionMode === 'ten' && (
-                  <div className="w-full bg-indigo-200 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-indigo-600 to-purple-500 transition-all duration-500 rounded-full"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 bg-indigo-300 text-indigo-900 rounded-full text-xs font-bold">
-                  {currentExercise.type === 'multiple-choice' ? '📝 Quiz' : 
-                   currentExercise.type === 'fill-blank' ? '✍️ Fill-in' : '💭 Open'}
-                </span>
-                <span className="px-3 py-1 bg-pink-300 text-pink-900 rounded-full text-xs font-bold">
-                  {currentExercise.level}
-                </span>
-                <span className="px-3 py-1 bg-purple-300 text-purple-900 rounded-full text-xs font-bold">
-                  {currentExercise.topic}
-                </span>
-                {currentExercise.sourceLabel && (
-                  <span className="px-3 py-1 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-full text-xs font-bold">
-                    📚 {currentExercise.sourceLabel}
-                  </span>
-                )}
-                {currentExercise.targetWord && (
-                  <span className="px-3 py-1 bg-amber-100 border border-amber-300 text-amber-900 rounded-full text-xs font-bold">
-                    🎯 Word: {currentExercise.targetWord}
-                  </span>
-                )}
-              </div>
-              
-              <div className="bg-white rounded-xl p-4 sm:p-6 border-2 border-indigo-200">
-                <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-relaxed">
-                  {currentExercise.question}
-                </p>
-              </div>
-              
-              {currentExercise.type === 'multiple-choice' && !showResult && (
-                <div className="space-y-3">
-                  {currentExercise.options.map((option, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedOption(option)}
-                      className={`w-full text-left px-4 py-3 sm:px-6 sm:py-4 rounded-xl transition-all text-base sm:text-lg font-medium border-2 sm:border-3 ${
-                        selectedOption === option
-                          ? 'bg-indigo-300 border-indigo-600 text-indigo-900 scale-[1.02] shadow-md'
-                          : 'bg-white border-indigo-300 hover:border-indigo-500 text-gray-800 hover:scale-[1.01]'
-                      }`}
-                    >
-                      <span className="font-bold mr-2 sm:mr-3 text-lg sm:text-xl">{String.fromCharCode(65 + idx)}.</span>
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              )}
-              
-              {currentExercise.type === 'multiple-choice' && showResult && (
-                <div className="space-y-3">
-                  {currentExercise.options.map((option, idx) => (
-                    <div
-                      key={idx}
-                      className={`w-full text-left px-4 py-3 sm:px-6 sm:py-4 rounded-xl text-base sm:text-lg font-medium border-2 sm:border-3 ${
-                        option.toLowerCase() === currentExercise.correctAnswer.toLowerCase()
-                          ? 'bg-green-200 border-green-600 text-green-900'
-                          : option === selectedOption
-                          ? 'bg-red-200 border-red-600 text-red-900'
-                          : 'bg-gray-100 border-gray-300 text-gray-600'
-                      }`}
-                    >
-                      <span className="font-bold mr-2 sm:mr-3 text-lg sm:text-xl">{String.fromCharCode(65 + idx)}.</span>
-                      {option}
-                      {option.toLowerCase() === currentExercise.correctAnswer.toLowerCase() && (
-                        <CheckCircle className="inline ml-2 h-5 w-5 text-green-700 align-middle" />
-                      )}
-                      {option === selectedOption && option.toLowerCase() !== currentExercise.correctAnswer.toLowerCase() && (
-                        <XCircle className="inline ml-2 h-5 w-5 text-red-700 align-middle" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {(currentExercise.type === 'fill-blank' || currentExercise.type === 'open') && (
-                <div>
-                  <input
-                    type="text"
-                    value={userAnswer}
-                    onChange={(e) => setUserAnswer(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && !showResult && checkAnswer()}
-                    disabled={showResult}
-                    placeholder="Type your answer here..."
-                    className={`w-full px-4 py-3 sm:px-6 sm:py-4 rounded-xl border-2 sm:border-3 text-base sm:text-lg font-medium ${
-                      showResult
-                        ? isCorrect
-                          ? 'bg-green-100 border-green-600 text-green-900'
-                          : 'bg-red-100 border-red-600 text-red-900'
-                        : 'border-indigo-400 focus:border-indigo-600 focus:outline-none bg-white'
-                    }`}
-                  />
-                </div>
-              )}
-              
-              {!showResult ? (
-                <button
-                  onClick={checkAnswer}
-                  disabled={
-                    (currentExercise.type === 'multiple-choice' && !selectedOption) ||
-                    ((currentExercise.type === 'fill-blank' || currentExercise.type === 'open') && !userAnswer.trim())
-                  }
-                  className="w-full px-6 py-3.5 sm:px-8 sm:py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 font-bold text-lg sm:text-xl transition-all shadow-md hover:shadow-lg"
-                >
-                  ✓ Check Answer
-                </button>
-              ) : (
-                <div className="space-y-4">
-                  <div className={`p-4 sm:p-6 rounded-xl border-2 sm:border-3 ${
-                    isCorrect
-                      ? 'bg-green-100 border-green-500 text-green-900'
-                      : 'bg-orange-100 border-orange-500 text-orange-900'
-                  }`}>
-                    {isCorrect ? (
-                      <div className="flex items-center space-x-3">
-                        <CheckCircle className="h-8 w-8 sm:h-10 sm:w-10 text-green-600" />
-                        <div>
-                          <p className="text-xl sm:text-2xl font-bold">Correct! 🎉</p>
-                          {currentExercise.explanation && (
-                            <p className="text-sm sm:text-base mt-1 font-medium">{currentExercise.explanation}</p>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-3">
-                        <XCircle className="h-8 w-8 sm:h-10 sm:w-10 text-orange-600" />
-                        <div>
-                          <p className="text-xl sm:text-2xl font-bold">Not quite right</p>
-                          <p className="text-sm sm:text-lg">
-                            The correct answer is: <span className="font-bold underline">{currentExercise.correctAnswer}</span>
-                          </p>
-                          {currentExercise.explanation && (
-                            <p className="text-sm sm:text-base mt-2 font-medium bg-white/70 p-3 rounded-lg border border-orange-200">{currentExercise.explanation}</p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <button
-                    onClick={nextExercise}
-                    className="w-full px-6 py-3.5 sm:px-8 sm:py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg font-bold text-lg sm:text-xl flex items-center justify-center space-x-2"
-                  >
-                    <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6" />
-                    <span>{sessionMode === 'ten' && currentIndex >= 9 ? '🏆 Finish Round (10/10)' : 'Next Task →'}</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       )}
     </div>
   );
