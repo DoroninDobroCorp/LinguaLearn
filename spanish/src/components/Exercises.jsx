@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Brain, Target, RefreshCw, CheckCircle, XCircle, Award, 
   TrendingUp, Play, RotateCcw, HelpCircle, Flame, Layers, 
-  Infinity as InfinityIcon, Globe, Check, Search, Filter
+  Infinity as InfinityIcon, Globe, Check, Search, Filter, ShieldCheck
 } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
 import { parseExerciseTag } from '../utils/exerciseParser';
@@ -388,6 +388,7 @@ function GrammarExercisesSection({ topics, maxLevel }) {
   
   const [roundStats, setRoundStats] = useState({ total: 0, correct: 0, streak: 0 });
   const [overallStats, setOverallStats] = useState({ total: 0, correct: 0, streak: 0 });
+  const [scoreFeedback, setScoreFeedback] = useState('');
 
   const prefetchingRef = useRef(false);
 
@@ -410,6 +411,7 @@ function GrammarExercisesSection({ topics, maxLevel }) {
     setUserAnswer('');
     setSelectedOption('');
     setIsRoundFinished(false);
+    setScoreFeedback('');
     setRoundStats({ total: 0, correct: 0, streak: overallStats.streak });
     setCurrentIndex(0);
 
@@ -481,6 +483,27 @@ function GrammarExercisesSection({ topics, maxLevel }) {
       }).catch(err => console.warn('Prefetch error:', err)).finally(() => {
         prefetchingRef.current = false;
       });
+    }
+  };
+
+  const handleSetTopicScore = async (score) => {
+    let targetId = selectedTopic !== 'all' ? selectedTopic : null;
+    if (!targetId && exerciseQueue.length > 0) {
+      const rawTag = parseExerciseTag(exerciseQueue[0].topic).rawTopicName;
+      const match = topics.find(t => t.name.toLowerCase() === rawTag.toLowerCase() || t.id == exerciseQueue[0].topicId);
+      if (match) targetId = match.id;
+    }
+    if (!targetId) return;
+
+    try {
+      await profileFetch(profileApiUrl(`/spanish/api/topics/${targetId}/set-score`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ score })
+      });
+      setScoreFeedback(score === 100 ? 'Тема успешно отмечена как 100% ✅' : 'Тема успешно сброшена на 0% ⭕');
+    } catch (err) {
+      console.error('Error updating score:', err);
     }
   };
 
@@ -646,6 +669,35 @@ function GrammarExercisesSection({ topics, maxLevel }) {
               <p className="text-xs text-gray-500 font-bold uppercase">Серия</p>
               <p className="text-2xl font-black text-orange-600">🔥 {overallStats.streak}</p>
             </div>
+          </div>
+
+          {/* Manual Topic Score Controls on Round Summary */}
+          <div className="pt-2 space-y-3">
+            <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Оценить тему:</p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => handleSetTopicScore(100)}
+                className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+              >
+                <CheckCircle className="h-4 w-4" />
+                <span>Отметить тему как 100%</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSetTopicScore(0)}
+                className="px-4 py-2.5 bg-white border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-bold rounded-xl text-sm transition-all shadow-sm flex items-center gap-2"
+              >
+                <span>⭕ Отметить тему как 0%</span>
+              </button>
+            </div>
+
+            {scoreFeedback && (
+              <p className="text-sm font-bold text-purple-900 bg-white/90 py-1.5 px-4 rounded-lg inline-block border border-purple-300 shadow-sm animate-fade-in">
+                {scoreFeedback}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row justify-center gap-4 pt-2">
@@ -868,6 +920,7 @@ function SentenceTranslationExerciseSection({ topics }) {
 
   const [roundStats, setRoundStats] = useState({ total: 0, correct: 0, streak: 0 });
   const [overallStats, setOverallStats] = useState({ total: 0, correct: 0, streak: 0 });
+  const [scoreFeedback, setScoreFeedback] = useState('');
   
   const [searchQuery, setSearchQuery] = useState('');
   const [filterLevel, setFilterLevel] = useState('all');
@@ -911,6 +964,7 @@ function SentenceTranslationExerciseSection({ topics }) {
     setShowResult(false);
     setUserTranslation('');
     setIsRoundFinished(false);
+    setScoreFeedback('');
     setRoundStats({ total: 0, correct: 0, streak: overallStats.streak });
     setCurrentIndex(0);
 
@@ -956,6 +1010,24 @@ function SentenceTranslationExerciseSection({ topics }) {
       }).catch(err => console.warn('Prefetch error:', err)).finally(() => {
         prefetchingRef.current = false;
       });
+    }
+  };
+
+  const handleSetTopicScore = async (score) => {
+    const targetIds = selectedTopicIds.length > 0 ? selectedTopicIds : [];
+    if (targetIds.length === 0) return;
+
+    try {
+      for (const id of targetIds) {
+        await profileFetch(profileApiUrl(`/spanish/api/topics/${id}/set-score`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ score })
+        });
+      }
+      setScoreFeedback(score === 100 ? 'Выбранные темы отмечены как 100% ✅' : 'Выбранные темы отмечены как 0% ⭕');
+    } catch (err) {
+      console.error('Error updating score:', err);
     }
   };
 
@@ -1196,6 +1268,37 @@ function SentenceTranslationExerciseSection({ topics }) {
             </div>
           </div>
 
+          {/* Manual Topic Score Controls on Translation Round Summary */}
+          {selectedTopicIds.length > 0 && (
+            <div className="pt-2 space-y-3">
+              <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Оценить выбранные темы:</p>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleSetTopicScore(100)}
+                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Отметить темы как 100%</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSetTopicScore(0)}
+                  className="px-4 py-2.5 bg-white border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-bold rounded-xl text-sm transition-all shadow-sm flex items-center gap-2"
+                >
+                  <span>⭕ Отметить темы как 0%</span>
+                </button>
+              </div>
+
+              {scoreFeedback && (
+                <p className="text-sm font-bold text-emerald-900 bg-white/90 py-1.5 px-4 rounded-lg inline-block border border-emerald-300 shadow-sm animate-fade-in">
+                  {scoreFeedback}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row justify-center gap-4 pt-2">
             <button
               onClick={startNewBatch}
@@ -1326,7 +1429,7 @@ function SentenceTranslationExerciseSection({ topics }) {
               <div className={`p-5 rounded-xl border-2 sm:border-3 space-y-3 ${
                 isCorrect
                   ? 'bg-green-100 border-green-500 text-green-950'
-                  : 'bg-orange-100 border-orange-500 text-orange-950'
+                  : 'bg-orange-100 border-orange-500 text-orange-900'
               }`}>
                 <div className="flex items-center space-x-3">
                   {isCorrect ? (
