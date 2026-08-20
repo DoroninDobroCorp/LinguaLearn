@@ -122,6 +122,10 @@ const CURRICULUM_DATA = [
   { name: 'Describing people (basic)', category: 'Speaking', level: 'A1' },
 
   // ===== A2 - Elementary =====
+  { name: 'American vs British English (vocabulary & basic spelling differences)', category: 'Speaking', level: 'A2' },
+
+  { name: 'Phrasal verbs: movement & daily actions (wake up, get on, turn off)', category: 'Grammar', level: 'A2' },
+
   // Grammar
   { name: 'Past Simple (regular verbs)', category: 'Grammar', level: 'A2' },
   { name: 'Past Simple (irregular verbs)', category: 'Grammar', level: 'A2' },
@@ -157,6 +161,12 @@ const CURRICULUM_DATA = [
   { name: 'Expressing likes and dislikes', category: 'Speaking', level: 'A2' },
 
   // ===== B1 - Intermediate =====
+  { name: 'American vs British syntax (have got vs have, past simple vs present perfect)', category: 'Speaking', level: 'B1' },
+
+  { name: 'Used to vs Would vs Be used to (past habits and familiarity)', category: 'Grammar', level: 'B1' },
+
+  { name: 'Phrasal verbs: communication & emotions (bring up, get along, break up)', category: 'Grammar', level: 'B1' },
+
   // Grammar
   { name: 'Present Perfect (experience)', category: 'Grammar', level: 'B1' },
   { name: 'Present Perfect vs Past Simple', category: 'Grammar', level: 'B1' },
@@ -224,6 +234,8 @@ const CURRICULUM_DATA = [
   { name: 'Expressing hypothetical situations', category: 'Speaking', level: 'B2' },
 
   // ===== C1 - Advanced =====
+  { name: 'Negative inversion (Seldom have I, Not only... but also, No sooner had)', category: 'Grammar', level: 'C1' },
+
   // Grammar
   { name: 'Advanced inversion', category: 'Grammar', level: 'C1' },
   { name: 'Subjunctive mood', category: 'Grammar', level: 'C1' },

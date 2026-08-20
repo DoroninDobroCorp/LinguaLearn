@@ -332,6 +332,10 @@ const CURRICULUM_DATA = [
   { name: 'Describing people (describir personas)', category: 'Speaking', level: 'A1' },
 
   // ===== A2 - Elementary =====
+  { name: 'Dialects: Spain vs Latin America (vosotros vs ustedes, vocabulary)', category: 'Speaking', level: 'A2' },
+
+  { name: 'Perífrasis de infinitivo (empezar a / terminar de / volver a / ir a)', category: 'Grammar', level: 'A2' },
+
   // Grammar
   { name: 'Preterite tense (regular verbs)', category: 'Grammar', level: 'A2' },
   { name: 'Preterite tense (irregular verbs)', category: 'Grammar', level: 'A2' },
@@ -367,6 +371,12 @@ const CURRICULUM_DATA = [
   { name: 'Expressing likes and dislikes (gustos y preferencias)', category: 'Speaking', level: 'A2' },
 
   // ===== B1 - Intermediate =====
+  { name: 'Regional variations: Voseo and Rioplatense / Central American Spanish', category: 'Speaking', level: 'B1' },
+
+  { name: 'Perífrasis modales (dejar de / ponerse a / haber que + infinitivo)', category: 'Grammar', level: 'B1' },
+
+  { name: 'Perífrasis de gerundio (seguir / continuar + gerundio, llevar + tiempo)', category: 'Grammar', level: 'B1' },
+
   // Grammar
   { name: 'Present subjunctive (regular verbs)', category: 'Grammar', level: 'B1' },
   { name: 'Subjunctive with wishes and emotions (quiero que/espero que)', category: 'Grammar', level: 'B1' },
