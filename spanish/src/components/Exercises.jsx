@@ -5,6 +5,8 @@ import {
   Infinity as InfinityIcon, Globe, Check, Search, Filter, ShieldCheck
 } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
+import TopicTheoryModal from './TopicTheoryModal';
+import { BookOpen } from 'lucide-react';
 import { parseExerciseTag } from '../utils/exerciseParser';
 import {
   createVerbDrillQuestion,
@@ -394,6 +396,7 @@ function GrammarExercisesSection({ topics, maxLevel, onTopicUpdated }) {
   const [scoreFeedback, setScoreFeedback] = useState('');
 
   const prefetchingRef = useRef(false);
+  const [activeTheoryModal, setActiveTheoryModal] = useState({ isOpen: false, topicId: null, topicName: '' });
 
   const SPANISH_SPECIAL_CHARS = ['á', 'é', 'í', 'ó', 'ú', 'ñ', '¿', '¡', 'Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ'];
 
@@ -588,7 +591,22 @@ function GrammarExercisesSection({ topics, maxLevel, onTopicUpdated }) {
         {/* Filters with visible percentage */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Topic</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-semibold text-gray-700">Topic</label>
+              {selectedTopic !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const tObj = topics.find(t => String(t.id) === String(selectedTopic));
+                    setActiveTheoryModal({ isOpen: true, topicId: selectedTopic, topicName: tObj?.name || 'Topic' });
+                  }}
+                  className="text-xs font-bold text-fuchsia-600 hover:text-fuchsia-700 flex items-center space-x-1"
+                >
+                  <BookOpen className="h-3.5 w-3.5" />
+                  <span>Правило и AI-репетитор</span>
+                </button>
+              )}
+            </div>
             <select
               value={selectedTopic}
               onChange={(e) => setSelectedTopic(e.target.value)}
@@ -974,6 +992,7 @@ function SentenceTranslationExerciseSection({ topics, onTopicUpdated }) {
   const [filterLevel, setFilterLevel] = useState('all');
 
   const prefetchingRef = useRef(false);
+  const [activeTheoryModal, setActiveTheoryModal] = useState({ isOpen: false, topicId: null, topicName: '' });
 
   const SPANISH_SPECIAL_CHARS = ['á', 'é', 'í', 'ó', 'ú', 'ñ', '¿', '¡', 'Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ'];
 

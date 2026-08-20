@@ -6,6 +6,9 @@ import {
 } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
+import TopicTheoryModal from './TopicTheoryModal';
+import ExamModal from './ExamModal';
+import { BookOpen, Trophy, Award, Sparkles as SparklesIcon, GraduationCap } from 'lucide-react';
 
 const LEVEL_CONFIG = {
   'A1': { label: 'Beginner', emoji: '📗', gradient: 'from-green-400 to-green-500' },
@@ -52,10 +55,14 @@ function CurriculumMap() {
   const { isDark } = useTheme();
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedLevels, setExpandedLevels] = useState({});
+  const [expandedLevels, setExpandedLevels] = useState({ 'A1': true });
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
   const [sortMode, setSortMode] = useState('default'); // default | weakest | strongest
+  const [examsStatus, setExamsStatus] = useState({});
+  const [activeTheoryModal, setActiveTheoryModal] = useState({ isOpen: false, topicId: null, topicName: '' });
+  const [activeExamModal, setActiveExamModal] = useState({ isOpen: false, level: 'A1', examType: 'milestone', topicIds: [] });
+
 
   // Theme-aware colors
   const card = isDark ? 'bg-slate-800 text-gray-100' : 'bg-white text-gray-800';
@@ -69,7 +76,20 @@ function CurriculumMap() {
 
   useEffect(() => {
     fetchCurriculum();
+    fetchExamsStatus();
   }, []);
+
+    const fetchExamsStatus = async () => {
+    try {
+      const res = await profileFetch(profileApiUrl('/spanish/api/exams/status'));
+      if (res.ok) {
+        const data = await res.json();
+        setExamsStatus(data.status || {});
+      }
+    } catch (err) {
+      console.error('Error fetching exams status:', err);
+    }
+  };
 
   const fetchCurriculum = async () => {
     try {
@@ -121,6 +141,7 @@ function CurriculumMap() {
     } catch (error) {
       console.error('Error setting topic score:', error);
       fetchCurriculum();
+    fetchExamsStatus();
     }
   };
 
@@ -130,6 +151,7 @@ function CurriculumMap() {
     try {
       await profileFetch(profileApiUrl(`/spanish/api/topics/${id}`), { method: 'DELETE' });
       fetchCurriculum();
+    fetchExamsStatus();
     } catch (error) {
       console.error('Error deleting topic:', error);
     }
@@ -337,6 +359,15 @@ function CurriculumMap() {
                     <span className="text-amber-600">🟡 {stats.inProgress}</span>
                     <span className={subtext}>⬜ {stats.notStarted}</span>
                     <span className={subtext}>• {stats.total} topics</span>
+                    {examsStatus[level]?.mastery?.available ? (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse">
+                        🏆 Аттестация доступна!
+                      </span>
+                    ) : examsStatus[level]?.milestone?.available ? (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/40 animate-pulse">
+                        🎓 Экзамен готов (20 вопр.)
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -377,6 +408,175 @@ function CurriculumMap() {
             {/* Expanded content */}
             {isExpanded && (
               <div className="px-5 pb-5 space-y-4 animate-fade-in">
+                {/* Milestone & Mastery Exam Banners (Always visible with live progress and locked states) */}
+                {(() => {
+                  const lvlStatus = examsStatus[level] || {};
+                  const milestone = lvlStatus?.milestone;
+                  const mastery = lvlStatus?.mastery;
+                  const eligibleCount = lvlStatus?.eligibleMilestoneCount || 0;
+                  const completedCount = lvlStatus?.completedCount || 0;
+                  const totalTopics = lvlStatus?.totalTopics || levelTopics.length;
+                  const milestoneCandidateTopics = milestone?.candidateTopics || [];
+
+                  return (
+                    <div className="pt-1 pb-2 space-y-3">
+                      {/* 1. Intermediate Milestone Exam Card */}
+                      {milestone?.available ? (
+                        <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md ${
+                          isDark ? 'bg-gradient-to-r from-fuchsia-950/40 via-purple-950/30 to-slate-900 border-fuchsia-500/40' : 'bg-gradient-to-r from-pink-50 via-purple-50 to-white border-pink-300'
+                        }`}>
+                          <div className="flex items-center space-x-3">
+                            <span className="p-2.5 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white shadow-md">
+                              <Award className="h-5 w-5" />
+                            </span>
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs font-black uppercase tracking-wider text-fuchsia-500 dark:text-fuchsia-400">
+                                  🎓 Промежуточный экзамен
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-fuchsia-500/20 text-fuchsia-600 dark:text-fuchsia-300">
+                                  20 вопросов · {milestoneCandidateTopics.length} тем
+                                </span>
+                              </div>
+                              <p className="text-xs sm:text-sm text-slate-700 dark:text-gray-300 mt-0.5">
+                                Закрепите изученные темы ({milestoneCandidateTopics.map(t => t.name).slice(0, 3).join(', ')}{milestoneCandidateTopics.length > 3 ? '...' : ''})
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveExamModal({
+                                isOpen: true,
+                                level,
+                                examType: 'milestone',
+                                topicIds: milestoneCandidateTopics.map(t => t.id)
+                              });
+                            }}
+                            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-bold text-xs sm:text-sm shadow-md hover:scale-105 transition-all flex items-center justify-center space-x-2 flex-shrink-0"
+                          >
+                            <GraduationCap className="h-4 w-4" />
+                            <span>Сдать экзамен (20 вопр.)</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          isDark ? 'bg-slate-800/40 border-slate-700/60 text-gray-400' : 'bg-slate-50 border-slate-200 text-slate-600'
+                        }`}>
+                          <div className="flex items-center space-x-3 min-w-0">
+                            <span className={`p-2 rounded-lg ${isDark ? 'bg-slate-800 text-gray-400' : 'bg-slate-200 text-slate-500'}`}>
+                              <Lock className="h-4 w-4" />
+                            </span>
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                  🎓 Промежуточный экзамен (20 вопросов)
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                  {eligibleCount} / 4 тем готово
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+                                Требуется освоить минимум 4 темы уровня на 50%+ (не замороженных). {eligibleCount < 4 ? `Изучите еще ${4 - eligibleCount} тем(ы) для допуска!` : ''}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <div className="w-24 bg-gray-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                              <div
+                                className="bg-fuchsia-500 h-full rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min(100, (eligibleCount / 4) * 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                              {eligibleCount}/4
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 2. Final Level Mastery Exam Card */}
+                      {mastery?.available ? (
+                        <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg ${
+                          isDark ? 'bg-gradient-to-r from-amber-950/50 via-slate-900 to-fuchsia-950/50 border-amber-500/50' : 'bg-gradient-to-r from-amber-50 via-white to-pink-50 border-amber-300'
+                        }`}>
+                          <div className="flex items-center space-x-3">
+                            <span className="p-2.5 rounded-xl bg-amber-500 text-slate-950 shadow-md">
+                              <Trophy className="h-6 w-6" />
+                            </span>
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs font-black uppercase tracking-wider text-amber-500">
+                                  🏆 Финальная аттестация
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400">
+                                  30 вопросов
+                                </span>
+                              </div>
+                              <h4 className="font-bold text-sm sm:text-base text-slate-900 dark:text-gray-100">
+                                Все темы уровня {level} изучены! Сдайте итоговый экзамен
+                              </h4>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveExamModal({
+                                isOpen: true,
+                                level,
+                                examType: 'level_mastery',
+                                topicIds: levelTopics.map(t => t.id)
+                              });
+                            }}
+                            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-fuchsia-600 text-slate-950 font-black text-xs sm:text-sm shadow-md hover:scale-105 transition-all flex items-center justify-center space-x-2 flex-shrink-0"
+                          >
+                            <GraduationCap className="h-4 w-4" />
+                            <span>Начать финальный экзамен</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          isDark ? 'bg-slate-800/40 border-slate-700/60 text-gray-400' : 'bg-slate-50 border-slate-200 text-slate-600'
+                        }`}>
+                          <div className="flex items-center space-x-3 min-w-0">
+                            <span className={`p-2 rounded-lg ${isDark ? 'bg-slate-800 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
+                              <Trophy className="h-4 w-4 opacity-70" />
+                            </span>
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                  🏆 Итоговая аттестация уровня {level} (30 вопросов)
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                  {completedCount} / {totalTopics} тем освоено
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+                                Финальный экзамен по всему уровню {level}. Откроется при освоении всех {totalTopics} тем (на 50%+ или замороженных).
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <div className="w-24 bg-gray-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                              <div
+                                className="bg-amber-500 h-full rounded-full transition-all duration-500"
+                                style={{ width: `${totalTopics > 0 ? (completedCount / totalTopics) * 100 : 0}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                              {completedCount}/{totalTopics}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {filtered.length === 0 ? (
                   <p className={`text-center ${subtext} py-4 text-sm`}>
                     No topics match your filter
@@ -486,6 +686,24 @@ function CurriculumMap() {
                                   </div>
                                 )}
 
+                                                                {/* Theory & AI Tutor Button */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveTheoryModal({ isOpen: true, topicId: topic.id, topicName: topic.name });
+                                  }}
+                                  className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                                    isDark 
+                                      ? 'bg-fuchsia-950/80 text-fuchsia-300 hover:bg-fuchsia-900 border border-fuchsia-700/60 hover:scale-105' 
+                                      : 'bg-fuchsia-100 text-fuchsia-800 hover:bg-fuchsia-200 border border-fuchsia-300 hover:scale-105'
+                                  }`}
+                                  title="Открыть интерактивную теорию, правила, таблицы и AI-репетитора"
+                                >
+                                  <BookOpen className="h-3.5 w-3.5 text-fuchsia-500" />
+                                  <span>Теория</span>
+                                </button>
+
                                 {/* Manual Action Buttons: 0%, 100%, and Lock toggle */}
                                 <div className="flex items-center space-x-1 border-l pl-2 border-gray-300/40">
                                   <button
@@ -548,6 +766,30 @@ function CurriculumMap() {
           </div>
         );
       })}
+      {/* Topic Theory & AI Tutor Modal */}
+      <TopicTheoryModal
+        isOpen={activeTheoryModal.isOpen}
+        topicId={activeTheoryModal.topicId}
+        topicName={activeTheoryModal.topicName}
+        onClose={() => setActiveTheoryModal({ isOpen: false, topicId: null, topicName: '' })}
+        onStartPractice={() => {
+          setActiveTheoryModal({ isOpen: false, topicId: null, topicName: '' });
+          window.location.href = '/exercises';
+        }}
+      />
+
+      {/* Milestone & Mastery Exam Modal */}
+      <ExamModal
+        isOpen={activeExamModal.isOpen}
+        level={activeExamModal.level}
+        examType={activeExamModal.examType}
+        topicIds={activeExamModal.topicIds}
+        onClose={() => setActiveExamModal({ isOpen: false, level: 'A1', examType: 'milestone', topicIds: [] })}
+        onExamFinished={() => {
+          fetchCurriculum();
+          fetchExamsStatus();
+        }}
+      />
     </div>
   );
 }

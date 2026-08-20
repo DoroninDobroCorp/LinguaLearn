@@ -1,3 +1,6 @@
+import { getExamsStatus, generateExamQuestions, submitExamResult, ensureCurriculumExamsSchema } from './examEngine.js';
+import { getGrammarTheoryGuide } from './grammarTheoryData.js';
+import { getFrequencyCatalogs, generateDecksForProfile } from './frequencyData.js';
 import { generateEnglishExercise } from './grammarExerciseEngine.js';
 import 'dotenv/config';
 import express from 'express';
@@ -2628,7 +2631,233 @@ app.use((error, req, res, next) => {
   res.status(statusCode).json({ error: message });
 });
 
-export function startServer() {
+// ==========================================
+// 🎓 EXAM & MILESTONE ENGINE ENDPOINTS
+// ==========================================
+app.get('/api/exams/status', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const status = getExamsStatus(db, userId);
+    res.json({ status });
+  } catch (err) {
+    console.error('Error fetching exams status:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/exams/generate', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { level = 'A1', examType = 'milestone', topicIds = [] } = req.body || {};
+    const examData = await generateExamQuestions({
+      db,
+      userId,
+      level,
+      examType,
+      topicIds,
+      apiKey: geminiApiKey
+    });
+    res.json(examData);
+  } catch (err) {
+    console.error('Error generating exam questions:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/exams/submit', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { level, examType, topicIds, answers, rawQuestions } = req.body || {};
+    if (!Array.isArray(rawQuestions) || rawQuestions.length === 0) {
+      return res.status(400).json({ error: 'Questions payload missing' });
+    }
+    const result = submitExamResult({
+      db,
+      userId,
+      level: level || 'A1',
+      examType: examType || 'milestone',
+      topicIds: topicIds || [],
+      answers: answers || {},
+      rawQuestions
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('Error submitting exam:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/exams/history', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    ensureCurriculumExamsSchema(db);
+    const history = db.prepare(`
+      SELECT id, level, exam_type, total_questions, correct_count, score_percent, passed, details_json, created_at
+      FROM curriculum_exams
+      WHERE user_id = ?
+      ORDER BY id DESC
+      LIMIT 20
+    `).all(userId);
+    res.json({ history });
+  } catch (err) {
+    console.error('Error fetching exam history:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// 📖 GRAMMAR THEORY & CONTEXTUAL AI TUTOR
+// ==========================================
+app.get('/api/curriculum/topics/:id/theory', (req, res) => {
+  try {
+    const topicId = Number(req.params.id);
+    const topic = db.prepare('SELECT id, name, category, level FROM curriculum_topics WHERE id = ?').get(topicId);
+    if (!topic) {
+      return res.status(404).json({ error: 'Topic not found' });
+    }
+
+    const curatedTheory = getGrammarTheoryGuide(topicId);
+    if (curatedTheory) {
+      return res.json({ topic, theory: curatedTheory, source: 'curated' });
+    }
+
+    // Default dynamic rule generator
+    const defaultTheory = {
+      topicId: topic.id,
+      topicName: topic.name,
+      level: topic.level,
+      category: topic.category,
+      russianTitle: topic.name,
+      summaryRu: `Интерактивное правило и грамматический справочник по теме "${topic.name}" (${topic.level}).`,
+      visualSvg: `<svg viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto rounded-xl shadow-lg font-sans">
+        <rect width="700" height="180" rx="14" fill="#0f172a" />
+        <text x="350" y="35" fill="#38bdf8" font-size="16" font-weight="bold" text-anchor="middle">ENGLISH GRAMMAR: ${topic.name.toUpperCase()}</text>
+        <rect x="50" y="60" width="600" height="90" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+        <text x="350" y="98" fill="#e2e8f0" font-size="14" font-weight="bold" text-anchor="middle">Level: ${topic.level} | Category: ${topic.category}</text>
+        <text x="350" y="125" fill="#94a3b8" font-size="12" text-anchor="middle">Практикуйте употребление правила в упражнениях и задавайте вопросы AI-репетитору</text>
+      </svg>`,
+      sections: [
+        {
+          title: '1. Основной принцип правила',
+          content: `Тема **"${topic.name}"** входит в уровень **${topic.level}**. Изучайте примеры и задавайте любые вопросы встроенному AI-репетитору в соседней вкладке.`
+        }
+      ],
+      tables: [],
+      examples: [
+        { en: `Example sentence for ${topic.name}.`, ru: `Пример предложения для темы "${topic.name}".`, note: 'Базовый пример' }
+      ],
+      dialectNotes: 'Стандартный английский язык (British / American English).',
+      commonMistakes: [
+        'Обращайте внимание на согласование подлежащего и сказуемого и порядок слов в предложении.'
+      ],
+      tutorQuickPrompts: [
+        `Объясни просто тему "${topic.name}"`,
+        `Приведи 3 понятных примера по теме "${topic.name}"`,
+        `Дай мне мини-тест по теме "${topic.name}"`
+      ]
+    };
+
+    return res.json({ topic, theory: defaultTheory, source: 'generated' });
+  } catch (err) {
+    console.error('Error fetching grammar theory:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/curriculum/topics/:id/tutor-chat', async (req, res) => {
+  try {
+    const topicId = Number(req.params.id);
+    const { message = '', history = [] } = req.body || {};
+    const topic = db.prepare('SELECT id, name, category, level FROM curriculum_topics WHERE id = ?').get(topicId);
+
+    if (!topic) {
+      return res.status(404).json({ error: 'Topic not found' });
+    }
+
+    const curated = getGrammarTheoryGuide(topicId);
+    const systemInstruction = `You are a certified, friendly, and pedagogical English language tutor.
+The student is viewing the theory card for the topic: "${topic.name}" (Level: ${topic.level}, Category: ${topic.category}).
+Your mission:
+1. Explain rules clearly and concisely in Russian (or bilingual English/Russian).
+2. Give memorable English examples with clear Russian translations.
+3. If the user asks for exercises or practice, provide 2-3 mini questions and give feedback on their answers.
+4. Keep explanations encouraging, concise, structured, and easy to read.`;
+
+    const contents = [];
+    if (Array.isArray(history)) {
+      for (const msg of history.slice(-6)) {
+        contents.push({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: String(msg.content || '') }]
+        });
+      }
+    }
+    contents.push({
+      role: 'user',
+      parts: [{ text: `${systemInstruction}\n\nStudent Question: ${message}` }]
+    });
+
+    let replyText = '';
+    const models = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+
+    for (const m of models) {
+      try {
+        const aiRes = await fetch(`http://127.0.0.1:58433/v1beta/models/${m}:generateContent?key=${geminiApiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents,
+            generationConfig: { temperature: 0.7, maxOutputTokens: 600 }
+          })
+        });
+
+        if (aiRes.ok) {
+          const aiData = await aiRes.json();
+          replyText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (replyText) break;
+        }
+      } catch (err) {
+        console.warn(`Model ${m} tutor chat error:`, err.message);
+      }
+    }
+
+    if (!replyText) {
+      replyText = `Отличный вопрос по теме "${topic.name}"! В английском языке это ключевое правило для уровня ${topic.level}. Рекомендую попрактиковать его в упражнениях и обратить внимание на примеры в соседней вкладке!`;
+    }
+
+    res.json({ reply: replyText });
+  } catch (err) {
+    console.error('Error in tutor chat:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// 📚 FREQUENCY VOCABULARY DECKS (CEFR)
+// ==========================================
+app.get('/api/vocabulary/frequency-catalogs', (req, res) => {
+  try {
+    const catalogs = getFrequencyCatalogs();
+    res.json({ catalogs });
+  } catch (err) {
+    console.error('Error fetching frequency catalogs:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/vocabulary/generate-decks', (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { presetKey = 'level_a1', deckSize = 25 } = req.body || {};
+    const result = generateDecksForProfile(db, userId, presetKey, deckSize);
+    res.json(result);
+  } catch (err) {
+    console.error('Error generating vocabulary decks:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+function startServer() {
   const httpServer = app.listen(PORT, HOST, () => {
     console.log(`🚀 Server running on http://${HOST}:${PORT}`);
 

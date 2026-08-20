@@ -1,0 +1,1 @@
+# Vocabulary generator helper\n

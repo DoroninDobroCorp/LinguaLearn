@@ -1,5 +1,7 @@
+import VocabularyDecksModal from './VocabularyDecksModal';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Sparkles,
   AlertCircle,
   BookMarked,
   Check,
@@ -52,6 +54,7 @@ function Vocabulary() {
   const [showTranslation, setShowTranslation] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showGroupManager, setShowGroupManager] = useState(false);
+  const [showFrequencyModal, setShowFrequencyModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [editingGroupId, setEditingGroupId] = useState(null);
   const [editingGroupName, setEditingGroupName] = useState('');
@@ -528,6 +531,15 @@ function Vocabulary() {
             Vocabulary Practice
           </h2>
           <div className="flex items-center gap-2">
+                        <button
+              type="button"
+              onClick={() => setShowFrequencyModal(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 bg-purple-50/50 dark:bg-purple-950/40 hover:bg-purple-100/70 transition-colors shadow-sm"
+              title="Сгенерировать колоды частотных слов CEFR по 25 слов"
+            >
+              <Sparkles className="h-4 w-4 text-purple-500" />
+              <span>Частотные колоды</span>
+            </button>
             <button
               type="button"
               onClick={() => setShowGroupManager((v) => !v)}
@@ -665,6 +677,15 @@ function Vocabulary() {
               <Folder className="h-5 w-5 text-indigo-600" />
               Manage Word Groups
             </h3>
+                        <button
+              type="button"
+              onClick={() => setShowFrequencyModal(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 bg-purple-50/50 dark:bg-purple-950/40 hover:bg-purple-100/70 transition-colors shadow-sm"
+              title="Сгенерировать колоды частотных слов CEFR по 25 слов"
+            >
+              <Sparkles className="h-4 w-4 text-purple-500" />
+              <span>Частотные колоды</span>
+            </button>
             <button
               type="button"
               onClick={() => setShowGroupManager(false)}
@@ -1227,7 +1248,16 @@ function Vocabulary() {
           )}
         </div>
       </div>
-    </div>
+          <VocabularyDecksModal
+        isOpen={showFrequencyModal}
+        onClose={() => setShowFrequencyModal(false)}
+        onDecksGenerated={() => {
+          if (typeof fetchVocabulary === 'function') fetchVocabulary();
+          if (typeof fetchGroups === 'function') fetchGroups();
+        }}
+      />
+
+</div>
   );
 }
 

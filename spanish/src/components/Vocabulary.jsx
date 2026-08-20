@@ -32,6 +32,8 @@ import {
   ArrowUpDown,
 } from 'lucide-react';
 import { useSpeechPractice } from '../hooks/useSpeechPractice';
+import VocabularyDecksModal from './VocabularyDecksModal';
+import { Layers } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
 import {
   getVoicePracticeSpanishContent,
@@ -639,6 +641,7 @@ function Vocabulary() {
   const [sortBy, setSortBy] = useState('newest');
   const [selectedStudyGroupIds, setSelectedStudyGroupIds] = useState([]);
   const [showGroupManager, setShowGroupManager] = useState(false);
+  const [showDecksModal, setShowDecksModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [editingGroupId, setEditingGroupId] = useState(null);
   const [editingGroupName, setEditingGroupName] = useState('');
@@ -2533,6 +2536,16 @@ function Vocabulary() {
               <Folder className="h-4 w-4 text-indigo-600" />
               <span>Manage Groups ({groups.length})</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setShowDecksModal(true)}
+              className="px-3.5 py-1.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white hover:from-fuchsia-600 hover:to-purple-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm hover:scale-105"
+              title="Создать автоматические колоды по 25 слов из частотных списков CEFR"
+            >
+              <Layers className="h-4 w-4" />
+              <span>Частотные колоды</span>
+            </button>
+
           </div>
           {/* Multi-group filter row for entries list */}
           {groups.length > 0 && (
@@ -2894,6 +2907,15 @@ function Vocabulary() {
           </div>
         )}
       </div>
+      {/* Vocabulary Decks Generator Modal */}
+      <VocabularyDecksModal
+        isOpen={showDecksModal}
+        onClose={() => setShowDecksModal(false)}
+        onDecksCreated={() => {
+          fetchGroups();
+          fetchVocabulary();
+        }}
+      />
     </div>
   );
 }

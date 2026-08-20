@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Trash2, AlertCircle, Award } from 'lucide-react';
+import { TrendingUp, TrendingDown, Trash2, AlertCircle, Award, BookOpen } from 'lucide-react';
+import TopicTheoryModal from './TopicTheoryModal';
 import { profileApiUrl, profileFetch } from '../utils/api';
 
 const LEVEL_COLORS = {
@@ -15,6 +16,7 @@ function Topics() {
   const [topics, setTopics] = useState([]);
   const [maxLevel, setMaxLevel] = useState('B2');
   const [sortBy, setSortBy] = useState('score');
+  const [activeTheoryModal, setActiveTheoryModal] = useState({ isOpen: false, topicId: null, topicName: '' });
   
   useEffect(() => {
     fetchTopics();
@@ -205,6 +207,13 @@ function Topics() {
           </div>
         </div>
       ))}
+      {/* Topic Theory Modal */}
+      <TopicTheoryModal
+        isOpen={activeTheoryModal.isOpen}
+        topicId={activeTheoryModal.topicId}
+        topicName={activeTheoryModal.topicName}
+        onClose={() => setActiveTheoryModal({ isOpen: false, topicId: null, topicName: '' })}
+      />
     </div>
   );
 }
