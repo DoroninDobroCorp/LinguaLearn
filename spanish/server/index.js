@@ -1075,7 +1075,7 @@ function getTopicsContext(profileId) {
     `SELECT ct.name, ct.level, ct.category FROM curriculum_topics ct
      WHERE ct.source = 'preset'
         OR ct.id IN (SELECT topic_id FROM curriculum_progress WHERE profile_id = ?)
-     ORDER BY ct.level, ct.category`
+     ORDER BY ct.level, ct.category, ct.pedagogical_order ASC, ct.id ASC`
   ).all(profileId);
   const curriculumByLevel = {};
   for (const ct of curriculumNames) {
@@ -2267,7 +2267,7 @@ app.get('/api/curriculum', (req, res) => {
       FROM curriculum_topics ct
       LEFT JOIN curriculum_progress cp ON cp.topic_id = ct.id AND cp.profile_id = ?
       WHERE ct.source = 'preset' OR cp.profile_id IS NOT NULL
-      ORDER BY ct.level, ct.category, ct.name
+      ORDER BY ct.level, ct.category, ct.pedagogical_order ASC, ct.id ASC
     `).all(profileId);
     res.json({ topics, maxLevel: settings.max_level });
   } catch (error) {

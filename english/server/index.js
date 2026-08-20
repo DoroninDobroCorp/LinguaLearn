@@ -542,7 +542,7 @@ function getTopicsContext(userIdInput) {
   
   // All curriculum topic names for AI reference
   const curriculumNames = db.prepare(
-    'SELECT name, level, category FROM curriculum_topics ORDER BY level, category'
+    'SELECT name, level, category FROM curriculum_topics ORDER BY level, category, pedagogical_order ASC, id ASC'
   ).all();
   const curriculumByLevel = {};
   for (const ct of curriculumNames) {
@@ -2255,7 +2255,7 @@ app.get('/api/curriculum', (req, res) => {
              p.last_success_at
       FROM curriculum_topics c
       LEFT JOIN user_topic_progress p ON c.id = p.curriculum_topic_id AND p.user_id = ?
-      ORDER BY c.level, c.category, c.name
+      ORDER BY c.level, c.category, c.pedagogical_order ASC, c.id ASC
     `).all(userId);
 
     for (const t of topics) {
@@ -2625,7 +2625,7 @@ export function startServer() {
             `)
             .all(userId)
             .filter((t) => LEVEL_PRIORITY[t.level] >= maxLevelPriority);
-          const curriculumNames = db.prepare('SELECT name, level, category FROM curriculum_topics ORDER BY level, category').all();
+          const curriculumNames = db.prepare('SELECT name, level, category FROM curriculum_topics ORDER BY level, category, pedagogical_order ASC, id ASC').all();
           const curriculumByLevel = {};
           for (const ct of curriculumNames) {
             if (!curriculumByLevel[ct.level]) curriculumByLevel[ct.level] = [];
