@@ -93,7 +93,7 @@ const CURRICULUM_DATA = [
   { name: 'Present Simple (negative & questions)', category: 'Grammar', level: 'A1' },
   { name: 'Articles (a/an/the)', category: 'Grammar', level: 'A1' },
   { name: 'Plural nouns (-s/-es)', category: 'Grammar', level: 'A1' },
-  { name: 'Subject pronouns (I/you/he/she)', category: 'Grammar', level: 'A1' },
+  { name: 'Subject pronouns (I/you/he/she/it/we/they)', category: 'Grammar', level: 'A1' },
   { name: 'Possessive adjectives (my/your/his)', category: 'Grammar', level: 'A1' },
   { name: 'Demonstratives (this/that/these/those)', category: 'Grammar', level: 'A1' },
   { name: 'There is / There are', category: 'Grammar', level: 'A1' },
@@ -1658,24 +1658,24 @@ CRITICAL MANDATORY INSTRUCTIONS:
    - All 10 exercises MUST strictly test the specific grammar mechanism of "${topicObj.name}".
    - ACROSS THE 10 EXERCISES, YOU MUST SYSTEMATICALLY COVER DIFFERENT NUANCES, ASPECTS, AND SUB-RULES OF THIS TOPIC:
      * Different grammatical persons (I, you, he/she/it, we, they; 1st/2nd/3rd person singular/plural).
-     * Affirmative sentences, negative sentences (not...), and questions.
-     * Regular patterns vs irregular roots/forms/exceptions relevant to this topic.
-     * Distinct contextual situations.
+     * Affirmative sentences, negative sentences (not...), and questions (Do/Does/Did, inverted order).
+     * Regular patterns vs irregular forms/exceptions relevant to this topic.
+     * Distinct contextual situations (formal vs informal, American vs British variants).
    - DO NOT repeat the same sentence structure or grammatical person repeatedly! Ensure variety and progressive pedagogical depth across the 10 tasks.
    - DO NOT just ask for plain vocabulary translations of isolated words. Every exercise must be a meaningful sentence testing the grammar rule.
 
-2. STUDENT VOCABULARY INTEGRATION:
+2. UNAMBIGUOUS PROMPTS & ALTERNATIVE ANSWERS:
+   - Ensure the Russian instructions and English context are completely unambiguous (e.g. if testing pronouns or specific tenses, include a clear Russian context cue in parentheses).
+   - ALWAYS provide "alternativeAnswers" listing all valid contracted/full forms (e.g. ["don't", "do not"], ["it's", "it is"], ["cannot", "can't"]), British/American spelling variations (e.g. ["colour", "color"]), and valid alternative synonyms.
+   - For fill-blank and open questions, "correctAnswer" should be the canonical answer, and "alternativeAnswers" must include all other acceptable forms.
+
+3. STUDENT VOCABULARY INTEGRATION:
    - Embed words from the student's vocabulary pool across the 10 exercises: ${vocabListStr}.
    - Naturally integrate these vocabulary words into the subjects, objects, or context of the sentences.
 
-3. EXERCISE FORMAT:
-   - Generate an array of 10 items (mix of multiple-choice and fill-blank unless a specific type was requested).
-   - For multiple-choice: provide 4 distinct, plausible options in "options". One correct option, three realistic grammatical distractors.
-   - For fill-blank: use "___" in the sentence for the blank.
-   - For open: provide a clear instruction in Russian with the sentence.
-
-4. RUSSIAN EXPLANATIONS:
-   - Every exercise MUST include a clear, detailed "explanation" in Russian explaining the grammar rule, why this answer is correct, and common pitfalls.
+4. ACCURATE RUSSIAN EXPLANATIONS:
+   - Every exercise MUST include a clear, detailed, linguistically precise "explanation" in Russian explaining the grammar rule, auxiliary verbs, agreement, and WHY this answer is correct.
+   - NEVER contradict the validation or write confusing statements.
 
 OUTPUT FORMAT:
 Respond ONLY with a valid JSON object matching this exact schema:
@@ -1686,7 +1686,8 @@ Respond ONLY with a valid JSON object matching this exact schema:
       "question": "Question or sentence in English (with Russian instructions/context if needed)",
       "options": ["Option A", "Option B", "Option C", "Option D"], // if multiple-choice
       "correctAnswer": "exact correct answer string",
-      "explanation": "Clear grammatical explanation in Russian",
+      "alternativeAnswers": ["alternative acceptable answer 1", "alternative acceptable answer 2"],
+      "explanation": "Clear grammatical explanation in Russian explaining why this answer fits",
       "topic": "${topicObj.name}",
       "level": "${topicObj.level}",
       "targetWord": "English word from student vocabulary used in this exercise",
