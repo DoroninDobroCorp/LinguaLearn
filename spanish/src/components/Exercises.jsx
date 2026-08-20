@@ -50,9 +50,9 @@ function checkGrammarAnswerMatch(userText, correctText, altAnswers = []) {
 }
 
 // ----------------------------------------------------
-// 1. VERB CONJUGATION DRILLS COMPONENT
+// 1. VERB CONJUGATION DRILLS COMPONENT (FIRST TAB)
 // ----------------------------------------------------
-function VerbConjugationDrills() {
+function VerbConjugationDrills({ onTopicUpdated }) {
   const [drillType, setDrillType] = useState('regular');
   const [pronounMode, setPronounMode] = useState('all');
   const [runMode, setRunMode] = useState('ten');
@@ -109,6 +109,9 @@ function VerbConjugationDrills() {
           success: correct,
         }),
       });
+      if (typeof onTopicUpdated === 'function') {
+        onTopicUpdated();
+      }
     } catch (error) {
       console.error('Error updating verb drill topic:', error);
     }
@@ -140,7 +143,7 @@ function VerbConjugationDrills() {
             Verb Conjugation Practice
           </h2>
           <p className="text-gray-600 mt-2 text-sm sm:text-base">
-            Practice present-tense conjugations. Supports standard <span className="font-semibold text-purple-700">tú</span> and Argentine <span className="font-semibold text-fuchsia-700">vos</span>.
+            Practice present-tense conjugations. Supports standard <span className="font-semibold text-purple-700">tú</span>, Argentine <span className="font-semibold text-fuchsia-700">vos</span>, and Spanish <span className="font-semibold text-indigo-700">vosotros</span>.
           </p>
         </div>
 
@@ -163,7 +166,7 @@ function VerbConjugationDrills() {
       {/* Selectors */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Verb Drill</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Глагольный тренажёр</label>
           <div className="grid grid-cols-2 gap-2">
             {Object.entries(DRILL_TYPES).map(([type, config]) => (
               <button
@@ -183,7 +186,7 @@ function VerbConjugationDrills() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Pronoun / Dialect</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Диалект / Местоимения</label>
           <div className="grid grid-cols-2 gap-2">
             {Object.entries(DRILL_PRONOUN_MODES).map(([mode, config]) => (
               <button
@@ -203,7 +206,7 @@ function VerbConjugationDrills() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Task Limit</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Режим сессии</label>
           <div className="grid grid-cols-2 gap-2">
             {Object.entries(DRILL_RUN_MODES).map(([mode, config]) => (
               <button
@@ -252,7 +255,7 @@ function VerbConjugationDrills() {
           className="w-full px-6 py-4 bg-gradient-to-r from-fuchsia-500 to-indigo-500 text-white rounded-xl hover:from-fuchsia-600 hover:to-indigo-600 transition-all shadow-md hover:shadow-lg font-bold text-lg flex items-center justify-center space-x-3"
         >
           <Play className="h-6 w-6" />
-          <span>Start Verb Drill</span>
+          <span>Начать тренировку спряжений</span>
         </button>
       )}
 
@@ -261,7 +264,7 @@ function VerbConjugationDrills() {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-5">
             <div>
               <p className="text-xs sm:text-sm font-semibold text-gray-600">
-                {currentQuestion.instruction || 'Write the correct form'}
+                {currentQuestion.instruction || 'Напишите правильную форму'}
               </p>
               <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">
                 {currentQuestion.prompt || `${currentQuestion.pronoun} + ${currentQuestion.verb}`}
@@ -273,7 +276,7 @@ function VerbConjugationDrills() {
                 {DRILL_TYPES[drillType].label}
               </span>
               <span className="px-3 py-1.5 bg-purple-100 border border-purple-200 rounded-full text-xs font-bold text-purple-800">
-                {DRILL_PRONOUN_MODES[pronounMode]?.label || 'All'}
+                {DRILL_PRONOUN_MODES[pronounMode]?.label || 'Все'}
               </span>
             </div>
           </div>
@@ -289,7 +292,7 @@ function VerbConjugationDrills() {
                 }
               }}
               disabled={showResult}
-              placeholder="Type Spanish form..."
+              placeholder="Введите испанскую форму..."
               className={`w-full px-4 py-3 sm:px-5 sm:py-4 rounded-xl border-2 text-base sm:text-lg font-semibold ${
                 showResult
                   ? isCorrect
@@ -306,7 +309,7 @@ function VerbConjugationDrills() {
                 disabled={!answer.trim()}
                 className="w-full px-4 py-3 sm:py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 font-bold transition-all shadow-md"
               >
-                Check
+                Проверить
               </button>
             ) : (
               <button
@@ -315,7 +318,7 @@ function VerbConjugationDrills() {
                 className="w-full px-4 py-3 sm:py-4 bg-gradient-to-r from-fuchsia-500 to-indigo-500 text-white rounded-xl hover:from-fuchsia-600 hover:to-indigo-600 font-bold transition-all shadow-md flex items-center justify-center space-x-2"
               >
                 <RefreshCw className="h-5 w-5" />
-                <span>{finished ? 'Finish' : 'Next'}</span>
+                <span>{finished ? 'Завершить' : 'Далее'}</span>
               </button>
             )}
           </div>
@@ -326,20 +329,20 @@ function VerbConjugationDrills() {
                 {isCorrect ? (
                   <>
                     <CheckCircle className="h-5 w-5 text-green-600" />
-                    <p className="font-bold text-green-900">Correct!</p>
+                    <p className="font-bold text-green-900">Правильно!</p>
                   </>
                 ) : (
                   <>
                     <XCircle className="h-5 w-5 text-orange-600" />
-                    <p className="font-bold text-orange-950">Incorrect</p>
+                    <p className="font-bold text-orange-950">Неточно</p>
                   </>
                 )}
               </div>
               <p className="text-sm text-gray-700">
-                Answer: <span className="font-bold text-gray-900">{getVerbDrillDisplayAnswer(currentQuestion)}</span>
+                Правильный ответ: <span className="font-bold text-gray-900">{getVerbDrillDisplayAnswer(currentQuestion)}</span>
               </p>
               {currentQuestion.reason && (
-                <p className="text-xs text-gray-500">Why: {currentQuestion.reason}</p>
+                <p className="text-xs text-gray-500">Почему: {currentQuestion.reason}</p>
               )}
             </div>
           )}
@@ -349,9 +352,9 @@ function VerbConjugationDrills() {
       {finished && (
         <div className="mt-4 bg-purple-50 border border-purple-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div>
-            <p className="font-bold text-purple-950">10-task drill finished!</p>
+            <p className="font-bold text-purple-950">Сессия из 10 заданий завершена!</p>
             <p className="text-sm text-purple-800">
-              Result: {stats.correct} / 10 ({accuracy}% accuracy)
+              Результат: {stats.correct} / 10 ({accuracy}% точность)
             </p>
           </div>
           <button
@@ -360,7 +363,7 @@ function VerbConjugationDrills() {
             className="px-4 py-2 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-all flex items-center space-x-2"
           >
             <RotateCcw className="h-4 w-4" />
-            <span>Try Again</span>
+            <span>Повторить</span>
           </button>
         </div>
       )}
@@ -371,7 +374,7 @@ function VerbConjugationDrills() {
 // ----------------------------------------------------
 // 2. AI GRAMMAR & VOCABULARY EXERCISES (GEMINI 3.7 FLASH)
 // ----------------------------------------------------
-function GrammarExercisesSection({ topics, maxLevel }) {
+function GrammarExercisesSection({ topics, maxLevel, onTopicUpdated }) {
   const [loading, setLoading] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
@@ -469,18 +472,23 @@ function GrammarExercisesSection({ topics, maxLevel }) {
     }));
 
     const { rawTopicName, topicLevel } = parseExerciseTag(currentExercise.topic);
+    const targetTopicId = currentExercise.topicId || (selectedTopic !== 'all' ? selectedTopic : undefined);
 
     try {
       await profileFetch(profileApiUrl('/spanish/api/topics/update'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          topicId: targetTopicId,
           topic: rawTopicName,
           category: 'Practice',
           level: topicLevel || currentExercise.level,
           success: correct
         })
       });
+      if (typeof onTopicUpdated === 'function') {
+        onTopicUpdated();
+      }
     } catch (error) {
       console.error('Error updating topic progress:', error);
     }
@@ -500,9 +508,12 @@ function GrammarExercisesSection({ topics, maxLevel }) {
   const handleSetTopicScore = async (score) => {
     let targetId = selectedTopic !== 'all' ? selectedTopic : null;
     if (!targetId && exerciseQueue.length > 0) {
-      const rawTag = parseExerciseTag(exerciseQueue[0].topic).rawTopicName;
-      const match = topics.find(t => t.name.toLowerCase() === rawTag.toLowerCase() || t.id == exerciseQueue[0].topicId);
-      if (match) targetId = match.id;
+      targetId = exerciseQueue[0].topicId;
+      if (!targetId) {
+        const rawTag = parseExerciseTag(exerciseQueue[0].topic).rawTopicName;
+        const match = topics.find(t => t.name.toLowerCase() === rawTag.toLowerCase());
+        if (match) targetId = match.id;
+      }
     }
     if (!targetId) return;
 
@@ -513,6 +524,9 @@ function GrammarExercisesSection({ topics, maxLevel }) {
         body: JSON.stringify({ score })
       });
       setScoreFeedback(score === 100 ? 'Тема успешно отмечена как 100% ✅' : 'Тема успешно сброшена на 0% ⭕');
+      if (typeof onTopicUpdated === 'function') {
+        onTopicUpdated();
+      }
     } catch (err) {
       console.error('Error updating score:', err);
     }
@@ -940,7 +954,7 @@ function GrammarExercisesSection({ topics, maxLevel }) {
 // ----------------------------------------------------
 // 3. FULL SENTENCE TRANSLATION MODE COMPONENT (LAST TAB)
 // ----------------------------------------------------
-function SentenceTranslationExerciseSection({ topics }) {
+function SentenceTranslationExerciseSection({ topics, onTopicUpdated }) {
   const [selectedTopicIds, setSelectedTopicIds] = useState([]);
   const [sessionMode, setSessionMode] = useState('ten'); // 'ten' | 'endless'
   const [loading, setLoading] = useState(false);
@@ -1035,6 +1049,37 @@ function SentenceTranslationExerciseSection({ topics }) {
       streak: newStreak
     }));
 
+    // Update progress for selected topics or detected grammar
+    const targetIds = selectedTopicIds.length > 0 ? selectedTopicIds : [];
+    try {
+      if (targetIds.length > 0) {
+        for (const tid of targetIds) {
+          await profileFetch(profileApiUrl('/spanish/api/topics/update'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              topicId: tid,
+              success: correct
+            })
+          });
+        }
+      } else if (current.testedGrammar) {
+        await profileFetch(profileApiUrl('/spanish/api/topics/update'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic: current.testedGrammar,
+            success: correct
+          })
+        });
+      }
+      if (typeof onTopicUpdated === 'function') {
+        onTopicUpdated();
+      }
+    } catch (err) {
+      console.error('Error updating translation topic score:', err);
+    }
+
     if (sessionMode === 'endless' && currentIndex >= exerciseQueue.length - 3 && !prefetchingRef.current) {
       prefetchingRef.current = true;
       fetchTranslationBatch().then(extra => {
@@ -1060,6 +1105,9 @@ function SentenceTranslationExerciseSection({ topics }) {
         });
       }
       setScoreFeedback(score === 100 ? 'Выбранные темы отмечены как 100% ✅' : 'Выбранные темы отмечены как 0% ⭕');
+      if (typeof onTopicUpdated === 'function') {
+        onTopicUpdated();
+      }
     } catch (err) {
       console.error('Error updating score:', err);
     }
@@ -1587,17 +1635,17 @@ function Exercises() {
 
       {/* 1. Verb Conjugation Drills (First Tab) */}
       {activeTab === 'verb_drills' && (
-        <VerbConjugationDrills />
+        <VerbConjugationDrills onTopicUpdated={loadTopics} />
       )}
 
       {/* 2. Grammar & Fill-in Exercises (Second Tab) */}
       {activeTab === 'grammar' && (
-        <GrammarExercisesSection topics={topics} maxLevel={maxLevel} />
+        <GrammarExercisesSection topics={topics} maxLevel={maxLevel} onTopicUpdated={loadTopics} />
       )}
 
       {/* 3. Sentence Translation Mode (Third / Last Tab) */}
       {activeTab === 'translation' && (
-        <SentenceTranslationExerciseSection topics={topics} />
+        <SentenceTranslationExerciseSection topics={topics} onTopicUpdated={loadTopics} />
       )}
     </div>
   );

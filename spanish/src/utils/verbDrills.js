@@ -2,11 +2,11 @@ import { normalizeAnswer } from './answerMatching.js';
 
 export const DRILL_RUN_MODES = {
   infinite: {
-    label: 'Infinity',
+    label: 'Бесконечный',
     taskLimit: null,
   },
   ten: {
-    label: '10 tasks',
+    label: '10 заданий',
     taskLimit: 10,
   },
 };
@@ -17,25 +17,26 @@ export const PRONOUNS = [
   { id: 'vos', label: 'vos', answerAliases: ['vos'] },
   { id: 'el', label: 'él / ella / usted', answerAliases: ['él', 'el', 'ella', 'usted'] },
   { id: 'nosotros', label: 'nosotros / nosotras', answerAliases: ['nosotros', 'nosotras'] },
+  { id: 'vosotros', label: 'vosotros / vosotras (Испания)', answerAliases: ['vosotros', 'vosotras'] },
   { id: 'ellos', label: 'ellos / ellas / ustedes', answerAliases: ['ellos', 'ellas', 'ustedes'] },
 ];
 
 export const DRILL_PRONOUN_MODES = {
   all: {
-    label: 'All (tú + vos)',
+    label: 'Все (tú, vos, vosotros)',
     filter: () => true,
   },
-  tu: {
-    label: 'Standard (tú)',
+  standard_latam: {
+    label: 'Лат. Америка (tú + vos)',
+    filter: (p) => p.id !== 'vosotros',
+  },
+  spain: {
+    label: 'Испания (tú + vosotros)',
     filter: (p) => p.id !== 'vos',
   },
   vos: {
-    label: 'Rioplatense (vos)',
-    filter: (p) => p.id !== 'tu',
-  },
-  second_person_only: {
-    label: 'Tú & Vos only',
-    filter: (p) => p.id === 'tu' || p.id === 'vos',
+    label: 'Только Rioplatense (vos)',
+    filter: (p) => p.id !== 'tu' && p.id !== 'vosotros',
   },
 };
 
@@ -48,17 +49,21 @@ export const REGULAR_VERBS = [
   { infinitive: 'comer', translation: 'есть', ending: 'er' },
   { infinitive: 'beber', translation: 'пить', ending: 'er' },
   { infinitive: 'aprender', translation: 'учить, изучать', ending: 'er' },
+  { infinitive: 'comprender', translation: 'понимать', ending: 'er' },
+  { infinitive: 'leer', translation: 'читать', ending: 'er' },
   { infinitive: 'vivir', translation: 'жить', ending: 'ir' },
   { infinitive: 'escribir', translation: 'писать', ending: 'ir' },
+  { infinitive: 'abrir', translation: 'открывать', ending: 'ir' },
 ];
 
-const REGULAR_ENDINGS = {
+export const REGULAR_ENDINGS = {
   ar: {
     yo: 'o',
     tu: 'as',
     vos: 'ás',
     el: 'a',
     nosotros: 'amos',
+    vosotros: 'áis',
     ellos: 'an',
   },
   er: {
@@ -67,6 +72,7 @@ const REGULAR_ENDINGS = {
     vos: 'és',
     el: 'e',
     nosotros: 'emos',
+    vosotros: 'éis',
     ellos: 'en',
   },
   ir: {
@@ -75,6 +81,7 @@ const REGULAR_ENDINGS = {
     vos: 'ís',
     el: 'e',
     nosotros: 'imos',
+    vosotros: 'ís',
     ellos: 'en',
   },
 };
@@ -84,13 +91,14 @@ export const FOUR_KEY_VERB_KEYS = ['ser', 'estar', 'tener', 'ir'];
 const IRREGULAR_VERBS = {
   ser: {
     infinitive: 'ser',
-    translation: 'быть',
+    translation: 'быть / являться',
     forms: {
       yo: 'soy',
       tu: 'eres',
       vos: 'sos',
       el: 'es',
       nosotros: 'somos',
+      vosotros: 'sois',
       ellos: 'son',
     },
   },
@@ -103,6 +111,7 @@ const IRREGULAR_VERBS = {
       vos: 'estás',
       el: 'está',
       nosotros: 'estamos',
+      vosotros: 'estáis',
       ellos: 'están',
     },
   },
@@ -115,6 +124,7 @@ const IRREGULAR_VERBS = {
       vos: 'tenés',
       el: 'tiene',
       nosotros: 'tenemos',
+      vosotros: 'tenéis',
       ellos: 'tienen',
     },
   },
@@ -127,60 +137,26 @@ const IRREGULAR_VERBS = {
       vos: 'vas',
       el: 'va',
       nosotros: 'vamos',
+      vosotros: 'vais',
       ellos: 'van',
     },
   },
 };
 
-export const SER_ESTAR_CONTEXTS = [
-  { pronounId: 'yo', sentence: 'Yo ___ estudiante.', translation: 'Я студент.', verb: 'ser', reason: 'identity/profession -> ser' },
-  { pronounId: 'yo', sentence: 'Yo ___ en casa.', translation: 'Я дома.', verb: 'estar', reason: 'location -> estar' },
-  { pronounId: 'yo', sentence: 'Yo ___ cansado hoy.', translation: 'Я сегодня устал.', verb: 'estar', reason: 'temporary state -> estar' },
-  { pronounId: 'yo', sentence: 'Yo ___ de Rusia.', translation: 'Я из России.', verb: 'ser', reason: 'origin -> ser' },
-  { pronounId: 'tu', sentence: 'Tú ___ estudiante.', translation: 'Ты студент.', verb: 'ser', reason: 'identity/profession -> ser' },
-  { pronounId: 'tu', sentence: 'Tú ___ en casa.', translation: 'Ты дома.', verb: 'estar', reason: 'location -> estar' },
-  { pronounId: 'tu', sentence: 'Tú ___ cansado hoy.', translation: 'Ты сегодня устал.', verb: 'estar', reason: 'temporary state -> estar' },
-  { pronounId: 'tu', sentence: 'Tú ___ de España.', translation: 'Ты из Испании.', verb: 'ser', reason: 'origin -> ser' },
-  { pronounId: 'tu', sentence: 'Tú ___ médico.', translation: 'Ты врач.', verb: 'ser', reason: 'profession -> ser' },
-  { pronounId: 'tu', sentence: 'Tú ___ listo para salir.', translation: 'Ты готов выйти.', verb: 'estar', reason: 'temporary readiness -> estar' },
-  { pronounId: 'tu', sentence: 'Tú ___ muy amable.', translation: 'Ты очень добрый.', verb: 'ser', reason: 'character trait -> ser' },
-  { pronounId: 'tu', sentence: 'Tú ___ en la oficina.', translation: 'Ты в офисе.', verb: 'estar', reason: 'location -> estar' },
-  { pronounId: 'vos', sentence: 'Vos ___ médico.', translation: 'Ты врач.', verb: 'ser', reason: 'profession -> ser' },
-  { pronounId: 'vos', sentence: 'Vos ___ listo para salir.', translation: 'Ты готов выйти.', verb: 'estar', reason: 'temporary readiness -> estar' },
-  { pronounId: 'vos', sentence: 'Vos ___ muy amable.', translation: 'Ты очень добрый.', verb: 'ser', reason: 'character trait -> ser' },
-  { pronounId: 'vos', sentence: 'Vos ___ en la oficina.', translation: 'Ты в офисе.', verb: 'estar', reason: 'location -> estar' },
-  { pronounId: 'el', sentence: 'Ella ___ profesora.', translation: 'Она преподаватель.', verb: 'ser', reason: 'profession -> ser' },
-  { pronounId: 'el', sentence: 'Ella ___ enferma.', translation: 'Она больна.', verb: 'estar', reason: 'temporary state -> estar' },
-  { pronounId: 'el', sentence: 'Él ___ argentino.', translation: 'Он аргентинец.', verb: 'ser', reason: 'nationality -> ser' },
-  { pronounId: 'el', sentence: 'Él ___ en el aeropuerto.', translation: 'Он в аэропорту.', verb: 'estar', reason: 'location -> estar' },
-  { pronounId: 'el', sentence: 'Usted ___ muy puntual.', translation: 'Вы очень пунктуальны.', verb: 'ser', reason: 'character trait -> ser' },
-  { pronounId: 'el', sentence: 'Usted ___ ocupado ahora.', translation: 'Вы сейчас заняты.', verb: 'estar', reason: 'current state -> estar' },
-  { pronounId: 'nosotros', sentence: 'Nosotros ___ amigos.', translation: 'Мы друзья.', verb: 'ser', reason: 'relationship/identity -> ser' },
-  { pronounId: 'nosotros', sentence: 'Nosotros ___ en Buenos Aires.', translation: 'Мы в Буэнос-Айресе.', verb: 'estar', reason: 'location -> estar' },
-  { pronounId: 'nosotros', sentence: 'Nosotras ___ contentas hoy.', translation: 'Мы сегодня довольны.', verb: 'estar', reason: 'temporary emotion -> estar' },
-  { pronounId: 'nosotros', sentence: 'Nosotros ___ de Buenos Aires.', translation: 'Мы из Буэнос-Айреса.', verb: 'ser', reason: 'origin -> ser' },
-  { pronounId: 'ellos', sentence: 'Ustedes ___ argentinos.', translation: 'Вы аргентинцы.', verb: 'ser', reason: 'nationality -> ser' },
-  { pronounId: 'ellos', sentence: 'Ustedes ___ preparados.', translation: 'Вы подготовлены.', verb: 'estar', reason: 'temporary state -> estar' },
-  { pronounId: 'ellos', sentence: 'Ustedes ___ muy simpáticos.', translation: 'Вы очень приятные.', verb: 'ser', reason: 'character trait -> ser' },
-  { pronounId: 'ellos', sentence: 'Ustedes ___ cerca del teatro.', translation: 'Вы рядом с театром.', verb: 'estar', reason: 'location -> estar' },
-  { pronounId: 'ellos', sentence: 'Ellos ___ estudiantes.', translation: 'Они студенты.', verb: 'ser', reason: 'identity -> ser' },
-  { pronounId: 'ellos', sentence: 'Ellos ___ en la plaza.', translation: 'Они на площади.', verb: 'estar', reason: 'location -> estar' },
-  { pronounId: 'ellos', sentence: 'Ellas ___ cansadas.', translation: 'Они устали.', verb: 'estar', reason: 'temporary state -> estar' },
-  { pronounId: 'el', sentence: 'La puerta ___ abierta.', translation: 'Дверь открыта.', verb: 'estar', reason: 'condition/state -> estar' },
-  { pronounId: 'el', sentence: 'La puerta ___ de madera.', translation: 'Дверь из дерева.', verb: 'ser', reason: 'material -> ser' },
-  { pronounId: 'el', sentence: 'El café ___ caliente.', translation: 'Кофе горячий.', verb: 'estar', reason: 'current condition -> estar' },
-  { pronounId: 'el', sentence: 'El café ___ colombiano.', translation: 'Кофе колумбийский.', verb: 'ser', reason: 'origin/type -> ser' },
-  { pronounId: 'el', sentence: 'El libro ___ sobre la mesa.', translation: 'Книга на столе.', verb: 'estar', reason: 'location -> estar' },
-  { pronounId: 'el', sentence: 'El libro ___ interesante.', translation: 'Книга интересная.', verb: 'ser', reason: 'description -> ser' },
-  { pronounId: 'el', sentence: 'La clase ___ a las ocho.', translation: 'Урок в восемь.', verb: 'ser', reason: 'event time -> ser' },
-  { pronounId: 'el', sentence: 'La clase ___ en el aula dos.', translation: 'Урок в аудитории два.', verb: 'ser', reason: 'event location -> ser' },
-  { pronounId: 'el', sentence: 'La sopa ___ fría.', translation: 'Суп холодный.', verb: 'estar', reason: 'current condition -> estar' },
-  { pronounId: 'el', sentence: 'La sopa ___ de verduras.', translation: 'Суп овощной.', verb: 'ser', reason: 'composition/type -> ser' },
-  { pronounId: 'el', sentence: 'El banco ___ cerca del mercado.', translation: 'Банк рядом с рынком.', verb: 'estar', reason: 'location -> estar' },
-  { pronounId: 'el', sentence: 'El banco ___ grande.', translation: 'Банк большой.', verb: 'ser', reason: 'description -> ser' },
-  { pronounId: 'el', sentence: 'La película ___ aburrida.', translation: 'Фильм скучный.', verb: 'ser', reason: 'description/opinion -> ser' },
-  { pronounId: 'el', sentence: 'El niño ___ aburrido сейчас.', translation: 'Мальчику сейчас скучно.', verb: 'estar', reason: 'temporary state -> estar' },
-  { pronounId: 'ellos', sentence: 'Mis padres ___ en casa.', translation: 'Мои родители дома.', verb: 'estar', reason: 'location -> estar' },
+const SER_ESTAR_CONTEXTS = [
+  { pronounId: 'yo', sentence: 'Yo ___ de Madrid.', translation: 'Я из Мадрида.', verb: 'ser', reason: 'origin -> ser' },
+  { pronounId: 'yo', sentence: 'Yo ___ en la oficina ahora.', translation: 'Я в офисе сейчас.', verb: 'estar', reason: 'location -> estar' },
+  { pronounId: 'tu', sentence: 'Tú ___ muy inteligente.', translation: 'Ты очень умный.', verb: 'ser', reason: 'permanent characteristic -> ser' },
+  { pronounId: 'tu', sentence: 'Tú ___ cansado hoy.', translation: 'Ты уставший сегодня.', verb: 'estar', reason: 'temporary state -> estar' },
+  { pronounId: 'vos', sentence: 'Vos ___ de Buenos Aires.', translation: 'Ты из Буэнос-Айреса.', verb: 'ser', reason: 'origin -> ser' },
+  { pronounId: 'vos', sentence: 'Vos ___ ocupado ahora.', translation: 'Ты занят сейчас.', verb: 'estar', reason: 'temporary state -> estar' },
+  { pronounId: 'el', sentence: 'Él ___ médico.', translation: 'Он врач.', verb: 'ser', reason: 'profession -> ser' },
+  { pronounId: 'el', sentence: 'Él ___ enfermo esta semana.', translation: 'Он болен на этой неделе.', verb: 'estar', reason: 'health/condition -> estar' },
+  { pronounId: 'nosotros', sentence: 'Nosotros ___ amigos desde niños.', translation: 'Мы друзья с детства.', verb: 'ser', reason: 'relationship -> ser' },
+  { pronounId: 'nosotros', sentence: 'Nosotros ___ listos para salir.', translation: 'Мы готовы выходить.', verb: 'estar', reason: 'readiness -> estar' },
+  { pronounId: 'vosotros', sentence: 'Vosotros ___ de España.', translation: 'Вы из Испании.', verb: 'ser', reason: 'origin -> ser' },
+  { pronounId: 'vosotros', sentence: 'Vosotros ___ en casa.', translation: 'Вы дома.', verb: 'estar', reason: 'location -> estar' },
+  { pronounId: 'ellos', sentence: 'Ellos ___ en la playa.', translation: 'Они на пляже.', verb: 'estar', reason: 'location -> estar' },
   { pronounId: 'ellos', sentence: 'Mis padres ___ muy pacientes.', translation: 'Мои родители очень терпеливые.', verb: 'ser', reason: 'character trait -> ser' },
   { pronounId: 'el', sentence: 'La reunión ___ mañana.', translation: 'Встреча завтра.', verb: 'ser', reason: 'event time -> ser' },
   { pronounId: 'el', sentence: 'La reunión ___ confirmada.', translation: 'Встреча подтверждена.', verb: 'estar', reason: 'state/result -> estar' },
@@ -188,55 +164,55 @@ export const SER_ESTAR_CONTEXTS = [
 
 export const DRILL_TYPES = {
   regular: {
-    label: 'Normal verbs',
+    label: 'Правильные глаголы',
     level: 'A1',
     rules: [
-      '-ar: yo -o, tú -as, vos -ás, él/ella/usted -a, nosotros -amos, ellos/ustedes -an.',
-      '-er: yo -o, tú -es, vos -és, él/ella/usted -e, nosotros -emos, ellos/ustedes -en.',
-      '-ir: yo -o, tú -es, vos -ís, él/ella/usted -e, nosotros -imos, ellos/ustedes -en.',
+      '-ar: yo -o, tú -as, vos -ás, él -a, nosotros -amos, vosotros -áis (Испания), ellos/ustedes -an.',
+      '-er: yo -o, tú -es, vos -és, él -e, nosotros -emos, vosotros -éis (Испания), ellos/ustedes -en.',
+      '-ir: yo -o, tú -es, vos -ís, él -e, nosotros -imos, vosotros -ís (Испания), ellos/ustedes -en.',
     ],
   },
   fourKeyVerbs: {
-    label: '4 Key Verbs (All)',
+    label: '4 главных глагола (Все)',
     topic: 'Present tense irregular verbs (ir/hacer/decir)',
     level: 'A1',
     rules: [
-      'ser (быть): yo soy, tú eres, vos sos, él/ella/usted es, nosotros somos, ellos/ustedes son.',
-      'estar (быть, находиться): yo estoy, tú estás, vos estás, él/ella/usted está, nosotros estamos, ellos/ustedes están.',
-      'tener (иметь): yo tengo, tú tienes, vos tenés, él/ella/usted tiene, nosotros tenemos, ellos/ustedes tienen.',
-      'ir (идти, ехать): yo voy, tú vas, vos vas, él/ella/usted va, nosotros vamos, ellos/ustedes van.',
+      'ser (быть): yo soy, tú eres, vos sos, él es, nosotros somos, vosotros sois (Испания), ellos/ustedes son.',
+      'estar (находиться): yo estoy, tú estás, vos estás, él está, nosotros estamos, vosotros estáis (Испания), ellos/ustedes están.',
+      'tener (иметь): yo tengo, tú tienes, vos tenés, él tiene, nosotros tenemos, vosotros tenéis (Испания), ellos/ustedes tienen.',
+      'ir (идти, ехать): yo voy, tú vas, vos vas, él va, nosotros vamos, vosotros vais (Испания), ellos/ustedes van.',
     ],
   },
   ser: {
-    label: 'Ser',
+    label: 'Ser (быть)',
     topic: 'Ser vs Estar (basic)',
     level: 'A1',
     rules: [
-      'ser is irregular: yo soy, tú eres, vos sos, él/ella/usted es, nosotros somos, ellos/ustedes son.',
+      'ser (неправильный): yo soy, tú eres, vos sos, él/ella/usted es, nosotros somos, vosotros sois (Испания), ellos/ustedes son.',
     ],
   },
   estar: {
-    label: 'Estar',
+    label: 'Estar (находиться)',
     topic: 'Ser vs Estar (basic)',
     level: 'A1',
     rules: [
-      'estar is irregular: yo estoy, tú estás, vos estás, él/ella/usted está, nosotros estamos, ellos/ustedes están.',
+      'estar (неправильный): yo estoy, tú estás, vos estás, él/ella/usted está, nosotros estamos, vosotros estáis (Испания), ellos/ustedes están.',
     ],
   },
   tener: {
-    label: 'Tener',
+    label: 'Tener (иметь)',
     topic: 'Tener (to have) and tener expressions',
     level: 'A1',
     rules: [
-      'tener is irregular: yo tengo, tú tienes, vos tenés, él/ella/usted tiene, nosotros tenemos, ellos/ustedes tienen.',
+      'tener (неправильный): yo tengo, tú tienes, vos tenés, él/ella/usted tiene, nosotros tenemos, vosotros tenéis (Испания), ellos/ustedes tienen.',
     ],
   },
   ir: {
-    label: 'Ir',
+    label: 'Ir (идти)',
     topic: 'Present tense irregular verbs (ir/hacer/decir)',
     level: 'A1',
     rules: [
-      'ir is irregular: yo voy, tú vas, vos vas, él/ella/usted va, nosotros vamos, ellos/ustedes van.',
+      'ir (неправильный): yo voy, tú vas, vos vas, él/ella/usted va, nosotros vamos, vosotros vais (Испания), ellos/ustedes van.',
     ],
   },
   serEstar: {
@@ -244,9 +220,10 @@ export const DRILL_TYPES = {
     topic: 'Ser vs Estar (basic)',
     level: 'A1',
     rules: [
-      'Write the correct present-tense form: soy/eres/sos/es/somos/son or estoy/estás/está/estamos/están.',
-      'Use ser for identity, origin, profession, material, inherent descriptions, and event time/place.',
-      'Use estar for location, temporary states, emotions, readiness, and current conditions.',
+      'Формы Ser: soy / eres / sos / es / somos / sois (Испания) / son.',
+      'Формы Estar: estoy / estás / está / estamos / estáis (Испания) / están.',
+      'Ser — для постоянных качеств, профессии, происхождения, времени событий.',
+      'Estar — для местоположения, временных состояний, настроения, самочувствия.',
     ],
   },
 };
@@ -287,7 +264,7 @@ export function createVerbDrillQuestion(drillType = 'regular', pronounMode = 'al
       drillType,
       verb: 'ser / estar',
       prompt: example.sentence,
-      instruction: 'Choose ser or estar and write the correct form',
+      instruction: 'Выберите ser или estar и напишите правильную форму',
       translation: example.translation,
       reason: example.reason,
       pronounId: example.pronounId,

@@ -948,9 +948,15 @@ function findCurriculumTopic(name) {
   return existing || null;
 }
 
-function updateTopic(name, category, level, success, userIdInput = 1) {
+function updateTopic(name, category, level, success, userIdInput = 1, topicId = null) {
   const userId = userIdInput || 1;
-  let existing = findCurriculumTopic(name);
+  let existing = null;
+  if (topicId) {
+    existing = db.prepare('SELECT * FROM curriculum_topics WHERE id = ?').get(topicId);
+  }
+  if (!existing && name) {
+    existing = findCurriculumTopic(name);
+  }
 
   if (!existing) {
     // AI detected a new topic — add to curriculum_topics
@@ -1326,13 +1332,35 @@ app.delete('/api/user/account', handleDeleteAccount);
 
 // API: Ручное обновление темы
 app.post('/api/topics/update', (req, res) => {
-  const userId = getUserId(req);
-  const { topic, category, level, success } = req.body;
-  const result = updateTopic(topic, category, level, success, userId);
-  res.json({ success: true, result });
+  try {
+    const userId = getUserId(req) || 1;
+    const { topic, category, level, success, topicId } = req.body || {};
+
+    if (typeof success !== 'boolean') {
+      return res.status(400).json({ error: 'success must be a boolean' });
+    }
+
+    let targetTopic = null;
+    if (topicId) {
+      targetTopic = db.prepare('SELECT * FROM curriculum_topics WHERE id = ?').get(topicId);
+    }
+
+    if (!targetTopic && (!topic || typeof topic !== 'string' || !topic.trim())) {
+      return res.status(400).json({ error: 'Either valid topicId or non-empty topic name is required' });
+    }
+
+    const tName = targetTopic ? targetTopic.name : topic.trim();
+    const tCat = targetTopic ? targetTopic.category : (category ? category.trim() : 'Practice');
+    const tLvl = targetTopic ? targetTopic.level : (level ? level.trim() : 'A1');
+
+    const result = updateTopic(tName, tCat, tLvl, success, userId, targetTopic ? targetTopic.id : null);
+    res.json({ success: true, result });
+  } catch (error) {
+    console.error('Error updating topic in English:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// API: Удаление/сброс темы
 app.delete('/api/topics/:id', (req, res) => {
   const userId = getUserId(req);
   const topic = db.prepare('SELECT * FROM curriculum_topics WHERE id = ?').get(req.params.id);
@@ -1717,7 +1745,12 @@ Respond ONLY with a valid JSON object matching this exact schema:
           const rawJson = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
           const parsed = JSON.parse(rawJson);
           if (Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
-            exercises = parsed.exercises;
+            exercises = parsed.exercises.map(ex => ({
+              ...ex,
+              topicId: topicObj.id,
+              topic: topicObj.name,
+              level: topicObj.level
+            }));
             break;
           } else if (parsed.question && parsed.correctAnswer) {
             exercises = [parsed];

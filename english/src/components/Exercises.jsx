@@ -42,7 +42,7 @@ function checkGrammarAnswerMatch(userText, correctText, altAnswers = []) {
 // ----------------------------------------------------
 // 1. AI GRAMMAR & VOCABULARY EXERCISES (GEMINI 3.7 FLASH)
 // ----------------------------------------------------
-function GrammarExercisesSection({ topics, maxLevel }) {
+function GrammarExercisesSection({ topics, maxLevel, onTopicUpdated }) {
   const [loading, setLoading] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
@@ -134,18 +134,23 @@ function GrammarExercisesSection({ topics, maxLevel }) {
     }));
 
     const { rawTopicName, topicLevel } = parseExerciseTag(currentExercise.topic);
+    const targetTopicId = currentExercise.topicId || (selectedTopic !== 'all' ? selectedTopic : undefined);
 
     try {
       await fetch('/english/api/topics/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          topicId: targetTopicId,
           topic: rawTopicName,
           category: 'Practice',
           level: topicLevel || currentExercise.level,
           success: correct
         })
       });
+      if (typeof onTopicUpdated === 'function') {
+        onTopicUpdated();
+      }
     } catch (error) {
       console.error('Error updating topic progress:', error);
     }
@@ -165,9 +170,12 @@ function GrammarExercisesSection({ topics, maxLevel }) {
   const handleSetTopicScore = async (score) => {
     let targetId = selectedTopic !== 'all' ? selectedTopic : null;
     if (!targetId && exerciseQueue.length > 0) {
-      const rawTag = parseExerciseTag(exerciseQueue[0].topic).rawTopicName;
-      const match = topics.find(t => t.name.toLowerCase() === rawTag.toLowerCase() || t.id == exerciseQueue[0].topicId);
-      if (match) targetId = match.id;
+      targetId = exerciseQueue[0].topicId;
+      if (!targetId) {
+        const rawTag = parseExerciseTag(exerciseQueue[0].topic).rawTopicName;
+        const match = topics.find(t => t.name.toLowerCase() === rawTag.toLowerCase());
+        if (match) targetId = match.id;
+      }
     }
     if (!targetId) return;
 
@@ -178,6 +186,9 @@ function GrammarExercisesSection({ topics, maxLevel }) {
         body: JSON.stringify({ score })
       });
       setScoreFeedback(score === 100 ? 'Topic marked as 100% ✅' : 'Topic marked as 0% ⭕');
+      if (typeof onTopicUpdated === 'function') {
+        onTopicUpdated();
+      }
     } catch (err) {
       console.error('Error updating score:', err);
     }
@@ -589,7 +600,7 @@ function GrammarExercisesSection({ topics, maxLevel }) {
 // ----------------------------------------------------
 // 2. FULL SENTENCE TRANSLATION MODE COMPONENT (LAST TAB IN ENGLISH)
 // ----------------------------------------------------
-function SentenceTranslationExerciseSection({ topics }) {
+function SentenceTranslationExerciseSection({ topics, onTopicUpdated }) {
   const [selectedTopicIds, setSelectedTopicIds] = useState([]);
   const [sessionMode, setSessionMode] = useState('ten'); // 'ten' | 'endless'
   const [loading, setLoading] = useState(false);
@@ -678,6 +689,37 @@ function SentenceTranslationExerciseSection({ topics }) {
       streak: newStreak
     }));
 
+    // Record progress for selected topics
+    const targetIds = selectedTopicIds.length > 0 ? selectedTopicIds : [];
+    try {
+      if (targetIds.length > 0) {
+        for (const tid of targetIds) {
+          await fetch('/english/api/topics/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              topicId: tid,
+              success: correct
+            })
+          });
+        }
+      } else if (current.testedGrammar) {
+        await fetch('/english/api/topics/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic: current.testedGrammar,
+            success: correct
+          })
+        });
+      }
+      if (typeof onTopicUpdated === 'function') {
+        onTopicUpdated();
+      }
+    } catch (err) {
+      console.error('Error updating translation topic score:', err);
+    }
+
     if (sessionMode === 'endless' && currentIndex >= exerciseQueue.length - 3 && !prefetchingRef.current) {
       prefetchingRef.current = true;
       fetchTranslationBatch().then(extra => {
@@ -703,6 +745,9 @@ function SentenceTranslationExerciseSection({ topics }) {
         });
       }
       setScoreFeedback(score === 100 ? 'Selected topics marked as 100% ✅' : 'Selected topics marked as 0% ⭕');
+      if (typeof onTopicUpdated === 'function') {
+        onTopicUpdated();
+      }
     } catch (err) {
       console.error('Error updating score:', err);
     }
@@ -1198,11 +1243,11 @@ function Exercises() {
       </div>
 
       {activeTab === 'grammar' && (
-        <GrammarExercisesSection topics={topics} maxLevel={maxLevel} />
+        <GrammarExercisesSection topics={topics} maxLevel={maxLevel} onTopicUpdated={loadTopics} />
       )}
 
       {activeTab === 'translation' && (
-        <SentenceTranslationExerciseSection topics={topics} />
+        <SentenceTranslationExerciseSection topics={topics} onTopicUpdated={loadTopics} />
       )}
     </div>
   );

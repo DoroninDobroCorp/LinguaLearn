@@ -1373,11 +1373,14 @@ IMPORTANT RULES:
 });
 
 // Функция обновления темы — writes progress to curriculum_progress
-function updateTopic(name, category, level, success, profileId) {
-  // Try exact match in curriculum_topics first
-  let existing = db.prepare(
-    'SELECT * FROM curriculum_topics WHERE LOWER(name) = LOWER(?)'
-  ).get(name);
+function updateTopic(name, category, level, success, profileId, topicId = null) {
+  let existing = null;
+  if (topicId) {
+    existing = db.prepare('SELECT * FROM curriculum_topics WHERE id = ?').get(topicId);
+  }
+  if (!existing && name) {
+    existing = db.prepare('SELECT * FROM curriculum_topics WHERE LOWER(name) = LOWER(?)').get(name);
+  }
 
   // Fuzzy match if no exact match — but only when unambiguous
   if (!existing) {
@@ -1662,7 +1665,12 @@ Respond ONLY with a valid JSON object matching this exact schema:
           const rawJson = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
           const parsed = JSON.parse(rawJson);
           if (Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
-            exercises = parsed.exercises;
+            exercises = parsed.exercises.map(ex => ({
+              ...ex,
+              topicId: topicObj.id,
+              topic: topicObj.name,
+              level: topicObj.level
+            }));
             break;
           } else if (parsed.question && parsed.correctAnswer) {
             exercises = [parsed];
@@ -1898,28 +1906,27 @@ app.post('/api/topics/:id/set-score', (req, res) => {
 app.post('/api/topics/update', (req, res) => {
   try {
     const profileId = getProfileId(req);
-    const { topic, category, level, success } = req.body;
+    const { topic, category, level, success, topicId } = req.body || {};
 
-    // Validate required fields to prevent raw DB errors from leaking
-    const errors = [];
-    if (typeof topic !== 'string' || !topic.trim()) {
-      errors.push('topic must be a non-empty string');
-    }
-    if (typeof category !== 'string' || !category.trim()) {
-      errors.push('category must be a non-empty string');
-    }
-    if (typeof level !== 'string' || !level.trim()) {
-      errors.push('level must be a non-empty string');
-    }
     if (typeof success !== 'boolean') {
-      errors.push('success must be a boolean');
-    }
-    if (errors.length > 0) {
-      return res.status(400).json({ error: 'Invalid request payload', details: errors });
+      return res.status(400).json({ error: 'success must be a boolean' });
     }
 
-    updateTopic(topic.trim(), category.trim(), level.trim(), success, profileId);
-    res.json({ success: true });
+    let targetTopic = null;
+    if (topicId) {
+      targetTopic = db.prepare('SELECT * FROM curriculum_topics WHERE id = ?').get(topicId);
+    }
+
+    if (!targetTopic && (!topic || typeof topic !== 'string' || !topic.trim())) {
+      return res.status(400).json({ error: 'Either valid topicId or non-empty topic name is required' });
+    }
+
+    const tName = targetTopic ? targetTopic.name : topic.trim();
+    const tCat = targetTopic ? targetTopic.category : (category ? category.trim() : 'Practice');
+    const tLvl = targetTopic ? targetTopic.level : (level ? level.trim() : 'A1');
+
+    const result = updateTopic(tName, tCat, tLvl, success, profileId, targetTopic ? targetTopic.id : null);
+    res.json({ success: true, result });
   } catch (error) {
     console.error('Error updating topic:', error);
     res.status(500).json({ error: error.message });
