@@ -25,10 +25,10 @@ function normalizeSentence(text) {
     .trim();
 }
 
-function checkTranslationMatch(userText, targetText, altAnswers = []) {
+function checkGrammarAnswerMatch(userText, correctText, altAnswers = []) {
   const normUser = normalizeSentence(userText);
-  const normTarget = normalizeSentence(targetText);
-  if (normUser === normTarget) return true;
+  const normCorrect = normalizeSentence(correctText);
+  if (normUser === normCorrect) return true;
   
   if (Array.isArray(altAnswers)) {
     for (const alt of altAnswers) {
@@ -40,7 +40,7 @@ function checkTranslationMatch(userText, targetText, altAnswers = []) {
 }
 
 // ----------------------------------------------------
-// 1. AI GRAMMAR & VOCABULARY EXERCISES (BATCH OF 10) (FIRST TAB IN ENGLISH)
+// 1. AI GRAMMAR & VOCABULARY EXERCISES (GEMINI 3.7 FLASH)
 // ----------------------------------------------------
 function GrammarExercisesSection({ topics, maxLevel }) {
   const [loading, setLoading] = useState(false);
@@ -111,7 +111,12 @@ function GrammarExercisesSection({ topics, maxLevel }) {
 
     if (!answerToCheck) return;
 
-    const correct = answerToCheck.toLowerCase() === currentExercise.correctAnswer.toLowerCase();
+    const correct = checkGrammarAnswerMatch(
+      answerToCheck,
+      currentExercise.correctAnswer,
+      currentExercise.alternativeAnswers
+    );
+
     setIsCorrect(correct);
     setShowResult(true);
 
@@ -304,7 +309,7 @@ function GrammarExercisesSection({ topics, maxLevel }) {
             {loading ? (
               <>
                 <RefreshCw className="h-6 w-6 animate-spin" />
-                <span>Generating 10 nuanced exercises...</span>
+                <span>Generating 10 nuanced exercises with Gemini 3.7 Flash...</span>
               </>
             ) : (
               <>
@@ -533,30 +538,37 @@ function GrammarExercisesSection({ topics, maxLevel }) {
                   ? 'bg-green-100 border-green-500 text-green-900'
                   : 'bg-orange-100 border-orange-500 text-orange-900'
               }`}>
-                {isCorrect ? (
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-8 w-8 sm:h-10 sm:w-10 text-green-600" />
-                    <div>
-                      <p className="text-xl sm:text-2xl font-bold">Correct! 🎉</p>
-                      {currentExercise.explanation && (
-                        <p className="text-sm sm:text-base mt-1 font-medium">{currentExercise.explanation}</p>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-3">
-                    <XCircle className="h-8 w-8 sm:h-10 sm:w-10 text-orange-600" />
-                    <div>
-                      <p className="text-xl sm:text-2xl font-bold">Not quite right</p>
-                      <p className="text-sm sm:text-lg">
-                        The correct answer is: <span className="font-bold underline">{currentExercise.correctAnswer}</span>
-                      </p>
-                      {currentExercise.explanation && (
-                        <p className="text-sm sm:text-base mt-2 font-medium bg-white/70 p-3 rounded-lg border border-orange-200">{currentExercise.explanation}</p>
-                      )}
-                    </div>
-                  </div>
-                )}
+                <div className="flex items-center space-x-3">
+                  {isCorrect ? (
+                    <>
+                      <CheckCircle className="h-8 w-8 sm:h-10 sm:w-10 text-green-600" />
+                      <div>
+                        <p className="text-xl sm:text-2xl font-bold">Correct! 🎉</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-8 w-8 sm:h-10 sm:w-10 text-orange-600" />
+                      <div>
+                        <p className="text-xl sm:text-2xl font-bold">Not quite right</p>
+                        <p className="text-sm sm:text-lg">
+                          The correct answer is: <span className="font-bold underline">{currentExercise.correctAnswer}</span>
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="bg-white/80 p-3 rounded-lg border border-indigo-200 mt-2 space-y-1">
+                  {Array.isArray(currentExercise.alternativeAnswers) && currentExercise.alternativeAnswers.length > 0 && (
+                    <p className="text-xs text-gray-700 font-semibold">
+                      Also acceptable: <span className="font-bold text-indigo-950">{currentExercise.alternativeAnswers.join(' / ')}</span>
+                    </p>
+                  )}
+                  {currentExercise.explanation && (
+                    <p className="text-sm sm:text-base font-medium text-gray-800">{currentExercise.explanation}</p>
+                  )}
+                </div>
               </div>
               
               <button
@@ -649,7 +661,7 @@ function SentenceTranslationExerciseSection({ topics }) {
     const current = exerciseQueue[currentIndex];
     if (!current || showResult || !userTranslation.trim()) return;
 
-    const correct = checkTranslationMatch(userTranslation, current.targetSentence, current.alternativeAnswers);
+    const correct = checkGrammarAnswerMatch(userTranslation, current.targetSentence, current.alternativeAnswers);
     setIsCorrect(correct);
     setShowResult(true);
 
@@ -892,7 +904,7 @@ function SentenceTranslationExerciseSection({ topics }) {
             {loading ? (
               <>
                 <RefreshCw className="h-6 w-6 animate-spin" />
-                <span>Generating 10 sentences from studied words...</span>
+                <span>Generating 10 sentences with Gemini 3.7 Flash...</span>
               </>
             ) : (
               <>

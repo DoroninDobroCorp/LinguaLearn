@@ -1696,7 +1696,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
 }`;
 
     let exercises = [];
-    const aiModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash-lite'];
+    const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
     for (const m of aiModels) {
       try {
         const aiRes = await Promise.race([
@@ -1708,7 +1708,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
               generationConfig: { responseMimeType: 'application/json', temperature: 0.7 }
             })
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 35000))
         ]);
 
         if (aiRes.ok) {
@@ -1846,7 +1846,7 @@ Respond ONLY with valid JSON matching this exact schema:
 }`;
 
     let exercises = [];
-    const aiModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash-lite'];
+    const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
     for (const m of aiModels) {
       try {
         const aiRes = await Promise.race([
@@ -1858,7 +1858,7 @@ Respond ONLY with valid JSON matching this exact schema:
               generationConfig: { responseMimeType: 'application/json', temperature: 0.7 }
             })
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 12000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 35000))
         ]);
 
         if (aiRes.ok) {

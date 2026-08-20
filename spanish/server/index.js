@@ -304,7 +304,7 @@ const CURRICULUM_DATA = [
   { name: 'Gender and articles (el/la/los/las)', category: 'Grammar', level: 'A1' },
   { name: 'Indefinite articles (un/una/unos/unas)', category: 'Grammar', level: 'A1' },
   { name: 'Plural nouns (-s/-es)', category: 'Grammar', level: 'A1' },
-  { name: 'Subject pronouns (yo/vos/él/ella)', category: 'Grammar', level: 'A1' },
+  { name: 'Subject pronouns (yo/tú/vos/él/ella)', category: 'Grammar', level: 'A1' },
   { name: 'Possessive adjectives (mi/tu/su)', category: 'Grammar', level: 'A1' },
   { name: 'Demonstratives (este/ese/aquel)', category: 'Grammar', level: 'A1' },
   { name: 'Hay (there is / there are)', category: 'Grammar', level: 'A1' },
@@ -1600,25 +1600,27 @@ CRITICAL MANDATORY INSTRUCTIONS:
 1. GRAMMAR TOPIC & COMPREHENSIVE NUANCE COVERAGE:
    - All 10 exercises MUST strictly test the specific grammar mechanism of "${topicObj.name}".
    - ACROSS THE 10 EXERCISES, YOU MUST SYSTEMATICALLY COVER DIFFERENT NUANCES, ASPECTS, AND SUB-RULES OF THIS TOPIC:
-     * Different grammatical persons (yo, tú, él/ella/usted, nosotros, ellos/ellas/ustedes; 1st/2nd/3rd singular/plural).
+     * Different grammatical persons (yo, tú, vos, él/ella/usted, nosotros, ellos/ellas/ustedes; 1st/2nd/3rd singular/plural).
      * Affirmative sentences, negative sentences (no...), and interrogative/question sentences (¿...?).
      * Regular forms vs irregular roots/stem changes/exceptions relevant to this topic.
      * Different contextual situations (formal vs informal, different trigger verbs or prepositions).
    - DO NOT repeat the same sentence structure or grammatical person repeatedly! Ensure variety and progressive pedagogical depth across the 10 tasks.
    - DO NOT just ask for plain vocabulary translations of isolated words. Every exercise must be a meaningful sentence testing the grammar rule.
 
-2. STUDENT VOCABULARY INTEGRATION:
+2. UNAMBIGUOUS PROMPTS & ALTERNATIVE ANSWERS:
+   - When testing pronouns, regional forms (e.g. tú vs vos, vosotros vs ustedes), or any rule with multiple possibilities:
+     * The question in Russian must be clear (e.g. specify "(ты / tú)" or "(ты / vos / Аргентина)" if dialect matters).
+     * Always provide "alternativeAnswers" listing all valid synonyms, acceptable regional variations, and common accent-less spellings (e.g. ["tú", "tu", "vos"]).
+   - For fill-blank and open questions, "correctAnswer" should be the canonical answer, and "alternativeAnswers" must include all other acceptable forms.
+
+3. STUDENT VOCABULARY INTEGRATION:
    - Embed words from the student's vocabulary pool across the 10 exercises: ${vocabListStr}.
    - Naturally integrate these vocabulary words into the subjects, objects, or context of the sentences.
 
-3. EXERCISE FORMAT:
-   - Generate an array of 10 items (mix of multiple-choice and fill-blank unless a specific type was requested).
-   - For multiple-choice: provide 4 distinct, plausible options in "options". One correct option, three realistic grammatical distractors.
-   - For fill-blank: use "___" in the sentence for the blank.
-   - For open: provide a clear instruction in Russian with the sentence.
-
-4. RUSSIAN EXPLANATIONS:
-   - Every exercise MUST include a clear, detailed "explanation" in Russian explaining the grammar rule, the conjugation/ending/form, and why this specific answer is correct.
+4. ACCURATE RUSSIAN EXPLANATIONS:
+   - Every exercise MUST include a clear, detailed, linguistically precise "explanation" in Russian.
+   - If a specific form is required by the verb conjugation (e.g. "estudias" is conjugated for "tú", whereas "estudiás" is for "vos"), explicitly explain this conjugation and stress rule!
+   - NEVER contradict the validation or write confusing statements.
 
 OUTPUT FORMAT:
 Respond ONLY with a valid JSON object matching this exact schema:
@@ -1629,7 +1631,8 @@ Respond ONLY with a valid JSON object matching this exact schema:
       "question": "Question or sentence in Spanish (with Russian instructions/context if needed)",
       "options": ["Option A", "Option B", "Option C", "Option D"], // if multiple-choice
       "correctAnswer": "exact correct answer string",
-      "explanation": "Clear grammatical explanation in Russian",
+      "alternativeAnswers": ["alternative acceptable answer 1", "alternative acceptable answer 2"],
+      "explanation": "Clear grammatical explanation in Russian explaining why this answer fits",
       "topic": "${topicObj.name}",
       "level": "${topicObj.level}",
       "targetWord": "Spanish word from student vocabulary used in this exercise",
@@ -1639,7 +1642,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
 }`;
 
     let exercises = [];
-    const aiModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash-lite'];
+    const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
     for (const m of aiModels) {
       try {
         const aiRes = await Promise.race([
@@ -1651,7 +1654,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
               generationConfig: { responseMimeType: 'application/json', temperature: 0.7 }
             })
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 35000))
         ]);
 
         if (aiRes.ok) {
@@ -1791,7 +1794,7 @@ Respond ONLY with valid JSON matching this exact schema:
 }`;
 
     let exercises = [];
-    const aiModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash-lite'];
+    const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
     for (const m of aiModels) {
       try {
         const aiRes = await Promise.race([
@@ -1803,7 +1806,7 @@ Respond ONLY with valid JSON matching this exact schema:
               generationConfig: { responseMimeType: 'application/json', temperature: 0.7 }
             })
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 12000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 35000))
         ]);
 
         if (aiRes.ok) {
