@@ -238,7 +238,7 @@ export default function Login() {
                   <Sparkles className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Instant Gemini 2.5 AI Analysis & Russian Explanations</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Instant Gemini 3.5 AI Analysis & Russian Explanations</h3>
                   <p className="text-xs text-gray-600 dark:text-gray-300">
                     Analyzes grammar, syntax, and word choice in real time. Highlights errors with visual diffs and clear explanations in Russian.
                   </p>
