@@ -35,7 +35,7 @@ export async function createOnlineBackup(options = {}) {
 
   // 2. Generate timestamp and destination path
   const now = new Date();
-  const timestamp = now.toISOString().replace(/[-:]/g, '').replace('T', '_').split('.')[0];
+  const timestamp = now.toISOString().replace(/[-:]/g, '').replace('T', '_').replace('.', '_').replace('Z', '');
   const filename = `english_learning_${timestamp}.db`;
   const backupPath = path.join(targetDir, filename);
 

@@ -85,7 +85,7 @@ class ApiClient(val baseUrl: String = DEFAULT_BASE_URL) {
     companion object {
         const val DEFAULT_BASE_URL = "https://145.239.82.124.sslip.io/english"
         private const val CONNECT_TIMEOUT_MS = 10000
-        private const val READ_TIMEOUT_MS = 15000
+        private const val READ_TIMEOUT_MS = 60000
 
         fun isHttpsEnforced(url: String): Boolean {
             if (url.startsWith("http://")) {

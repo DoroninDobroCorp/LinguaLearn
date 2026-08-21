@@ -1,3 +1,21 @@
+import { MATEO_A1_STORY } from "./sandwichStoriesData.js";
+import { getTodayRecommendations } from './recommendations.js';
+import {
+  ensureA1CourseSchema,
+  getA1CourseSnapshot,
+  getA1TodayPlan,
+  recordA1Attempt,
+  recordA1SkillEvidence,
+} from './a1CourseEngine.js';
+import { PRESET_STORIES } from './storiesData.js';
+import { PRESET_SCENARIOS } from './scenariosData.js';
+import { PRESET_WORD_TILES, PRESET_ERROR_DETECTIVES, SPEED_MATCH_PAIRS } from './gameExercises.js';
+import {
+  ensureGamificationSchema,
+  getGamificationStatus,
+  addProfileXp,
+  updateDailyQuestProgress
+} from './gamification.js';
 import { getGrammarTheoryGuide } from './grammarTheoryData.js';
 import { getFrequencyCatalogs, generateDecksForProfile } from './frequencyData.js';
 import { ensureCurriculumExamsSchema, getExamsStatus, generateExamQuestions, submitExamResult } from './examEngine.js';
@@ -102,6 +120,7 @@ const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 ensureCurriculumExamsSchema(db);
+ensureGamificationSchema(db);
 
 // Создание таблиц
 db.exec(`
@@ -501,6 +520,7 @@ const seedCurriculum = db.transaction(() => {
   }
 });
 seedCurriculum();
+ensureA1CourseSchema(db);
 
 const DEFAULT_DEV_TRUSTED_APP_ORIGINS = NODE_ENV === 'production'
   ? []
@@ -911,7 +931,7 @@ app.use((req, res, next) => {
     return next();
   }
 
-  const raw = req.query.profileId;
+  const raw = req.query.profileId || req.headers['x-profile-id'] || req.body?.profileId;
   if (raw === undefined || raw === null || raw === '') {
     req.profileId = 1;
     return next();
@@ -1071,7 +1091,7 @@ function getTopicsContext(profileId) {
     ORDER BY cp.score ASC, ct.level DESC
   `).all(profileId);
   const relevantTopics = activeTopics.filter(t => LEVEL_PRIORITY[t.level] >= maxLevelPriority);
-  
+
   // All curriculum topic names for AI reference
   // Only include preset topics and AI-detected topics this profile has interacted with,
   // so that novel AI-detected topics from other profiles do not leak into the prompt.
@@ -1086,23 +1106,23 @@ function getTopicsContext(profileId) {
     if (!curriculumByLevel[ct.level]) curriculumByLevel[ct.level] = [];
     curriculumByLevel[ct.level].push(ct.name);
   }
-  
+
   const curriculumRef = Object.entries(curriculumByLevel)
     .map(([level, names]) => `${level}: ${names.join(', ')}`)
     .join('\n');
 
   let context = `User is learning Spanish (max level: ${settings.max_level}).\n\n`;
-  
+
   if (relevantTopics.length > 0) {
     context += `Topics being tracked (score shows progress - lower means needs more practice):\n`;
-    context += relevantTopics.map(t => 
+    context += relevantTopics.map(t =>
       `- ${t.name} (${t.category}, level ${t.level}): score=${t.score.toFixed(1)}, successes=${t.success_count}, mistakes=${t.failure_count}`
     ).join('\n');
     context += '\n\n';
   }
-  
+
   context += `CURRICULUM TOPIC NAMES (use these exact names in TOPICS_UPDATE when possible):\n${curriculumRef}\n\n`;
-  
+
   context += `TEACHING STRATEGY:
 1. Suggest tasks based on topics with LOW scores (those need more practice)
 2. After user's answer to a TASK, evaluate correctness and update topics
@@ -1112,7 +1132,7 @@ function getTopicsContext(profileId) {
 6. Maintain natural dialogue IN SPANISH
 
 IMPORTANT: Track BOTH mistakes AND successes in ALL interactions. Be gentle when correcting in casual chat. When tracking, prefer using the exact curriculum topic names listed above.`;
-  
+
   return context;
 }
 
@@ -1135,10 +1155,10 @@ app.post('/api/chat', async (req, res) => {
 
     // Сохранение сообщения пользователя
     db.prepare('INSERT INTO chat_history (role, content, profile_id) VALUES (?, ?, ?)').run('user', message, profileId);
-    
+
     // Получение истории чата (последние 10 сообщений)
     const history = db.prepare('SELECT role, content FROM chat_history WHERE profile_id = ? ORDER BY id DESC LIMIT 10').all(profileId).reverse();
-    
+
     const systemPrompt = `You are a friendly and professional Spanish language tutor specializing in Argentine Spanish (Rioplatense dialect). Your tasks:
 1. Help the user learn Argentine Spanish through natural dialogue IN SPANISH ONLY
 2. Give varied learning activities: casual chat, exercises, recommendations
@@ -1262,7 +1282,7 @@ IMPORTANT RULES:
 - Use [TOPICS_UPDATE: ...] ONLY for grammar, use [VOCAB_ADD: ...] for words/spelling
 - When tracking topics, try to use exact names from the CEFR curriculum when possible`;
 
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       systemInstruction: systemPrompt
     });
@@ -1273,17 +1293,17 @@ IMPORTANT RULES:
         parts: [{ text: msg.content }]
       }))
     });
-    
+
     // Таймаут и retry логика
     const timeout = 30000; // 30 секунд
     const maxRetries = 2;
     let responseText = null;
-    
+
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         const result = await Promise.race([
           chat.sendMessage(message),
-          new Promise((_, reject) => 
+          new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Request timeout')), timeout)
           )
         ]);
@@ -1297,7 +1317,7 @@ IMPORTANT RULES:
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
-    
+
     if (!responseText) {
       throw new Error('Failed to get response from AI');
     }
@@ -1323,7 +1343,7 @@ IMPORTANT RULES:
 
     // Парсинг обновлений тем — handle ALL TOPICS_UPDATE tags
     const topicChanges = [];
-    
+
     for (const updates of extractAllTags(responseText, '[TOPICS_UPDATE: ')) {
       if (updates.updates) {
         for (const update of updates.updates) {
@@ -1338,7 +1358,7 @@ IMPORTANT RULES:
         }
       }
     }
-    
+
     // Парсинг добавления слов в словарь — handle ALL VOCAB_ADD tags
     for (const vocab of extractAllTags(responseText, '[VOCAB_ADD: ')) {
       try {
@@ -1350,7 +1370,7 @@ IMPORTANT RULES:
         console.error('Error processing vocab add:', e);
       }
     }
-    
+
     // Extract EXERCISE data before stripping all tags
     const exerciseData = extractFirstTag(responseText, '[EXERCISE: ');
 
@@ -1361,11 +1381,11 @@ IMPORTANT RULES:
       ),
       '[EXERCISE: '
     ).trim();
-    
+
     // Сохранение ответа ассистента
     db.prepare('INSERT INTO chat_history (role, content, profile_id) VALUES (?, ?, ?)').run('assistant', cleanResponse, profileId);
-    
-    res.json({ 
+
+    res.json({
       response: cleanResponse,
       exercise: exerciseData || undefined,
       topicChanges: topicChanges.length > 0 ? topicChanges : undefined
@@ -1377,7 +1397,7 @@ IMPORTANT RULES:
 });
 
 // Функция обновления темы — writes progress to curriculum_progress
-function updateTopic(name, category, level, success, profileId, topicId = null) {
+function updateTopic(name, category, level, success, profileId, topicId = null, attempt = {}) {
   let existing = null;
   if (topicId) {
     existing = db.prepare('SELECT * FROM curriculum_topics WHERE id = ?').get(topicId);
@@ -1389,8 +1409,8 @@ function updateTopic(name, category, level, success, profileId, topicId = null) 
   // Fuzzy match if no exact match — but only when unambiguous
   if (!existing) {
     const fuzzyMatches = db.prepare(
-      `SELECT * FROM curriculum_topics 
-       WHERE LOWER(?) LIKE '%' || LOWER(name) || '%' 
+      `SELECT * FROM curriculum_topics
+       WHERE LOWER(?) LIKE '%' || LOWER(name) || '%'
        OR LOWER(name) LIKE '%' || LOWER(?) || '%'`
     ).all(name, name);
 
@@ -1404,6 +1424,37 @@ function updateTopic(name, category, level, success, profileId, topicId = null) 
         `Skipping — creating new topic instead.`
       );
     }
+  }
+
+  // A1 progress is evidence-based: one click or a same-day answer streak
+  // cannot mark a topic as mastered. A2+ keeps its legacy behavior.
+  if (existing?.level === 'A1' && existing.source !== 'ai_detected') {
+    const before = db.prepare(
+      'SELECT score FROM curriculum_progress WHERE topic_id = ? AND profile_id = ?'
+    ).get(existing.id, profileId);
+    const eventId = String(
+      attempt.eventId
+      || `legacy-${profileId}-${existing.id}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    );
+    const adaptive = recordA1Attempt(db, profileId, {
+      topicId: existing.id,
+      eventId,
+      correct: success,
+      quality: attempt.quality,
+      hintsUsed: attempt.hintsUsed,
+      responseMs: attempt.responseMs,
+      activityType: attempt.activityType || 'legacy_exercise',
+    });
+    return {
+      isNew: false,
+      name: existing.name,
+      success,
+      adaptive: true,
+      scoreChange: adaptive.state.masteryScore - Math.round(Number(before?.score || 0)),
+      newScore: adaptive.state.masteryScore,
+      mastery: adaptive.state,
+      replayed: adaptive.replayed,
+    };
   }
 
   if (existing) {
@@ -1422,7 +1473,7 @@ function updateTopic(name, category, level, success, profileId, topicId = null) 
     if (progress.is_locked) {
       // Locked at 100% — score NEVER decreases, status stays mastered
       db.prepare(`
-        UPDATE curriculum_progress 
+        UPDATE curriculum_progress
         SET score = 100, status = 'mastered',
             success_count = success_count + ?,
             failure_count = failure_count + ?,
@@ -1437,7 +1488,7 @@ function updateTopic(name, category, level, success, profileId, topicId = null) 
     const newStatus = newScore >= 80 ? 'mastered' : 'in_progress';
 
     db.prepare(`
-      UPDATE curriculum_progress 
+      UPDATE curriculum_progress
       SET score = ?, status = ?,
           success_count = success_count + ?,
           failure_count = failure_count + ?,
@@ -1445,12 +1496,12 @@ function updateTopic(name, category, level, success, profileId, topicId = null) 
       WHERE topic_id = ? AND profile_id = ?
     `).run(newScore, newStatus, success ? 1 : 0, success ? 0 : 1, existing.id, profileId);
 
-    return { 
-      isNew: false, 
-      name: existing.name, 
-      scoreChange, 
+    return {
+      isNew: false,
+      name: existing.name,
+      scoreChange,
       newScore: Math.round(newScore),
-      success 
+      success
     };
   } else {
     // AI detected a new topic — add definition to curriculum_topics
@@ -1478,12 +1529,12 @@ function updateTopic(name, category, level, success, profileId, topicId = null) 
 
     createTopicWithProgress(name, category, safeLevel, profileId, success);
 
-    return { 
-      isNew: true, 
-      name, 
+    return {
+      isNew: true,
+      name,
       category,
       level: safeLevel,
-      success 
+      success
     };
   }
 }
@@ -1494,7 +1545,7 @@ app.get('/api/topics', (req, res) => {
     const profileId = getProfileId(req);
     const settings = getProfileSettings(profileId);
     const maxLevelPriority = LEVEL_PRIORITY[settings.max_level] || 1;
-    
+
     const topics = db.prepare(`
       SELECT ct.id, ct.name, ct.category, ct.level, ct.source, ct.created_at,
              cp.status, cp.score, COALESCE(cp.is_locked, 0) as is_locked, cp.success_count, cp.failure_count, cp.last_practiced
@@ -1504,7 +1555,7 @@ app.get('/api/topics', (req, res) => {
       ORDER BY cp.score ASC, ct.level DESC
     `).all(profileId);
     const relevantTopics = topics.filter(t => LEVEL_PRIORITY[t.level] >= maxLevelPriority);
-    
+
     res.json({ topics: relevantTopics, maxLevel: settings.max_level });
   } catch (error) {
     console.error('Error fetching topics:', error);
@@ -1518,7 +1569,7 @@ app.post('/api/settings', (req, res) => {
     const profileId = getProfileId(req);
     const { maxLevel, darkMode, notificationsEnabled } = req.body;
     const settings = getProfileSettings(profileId);
-    
+
     if (maxLevel) {
       if (!VALID_CEFR_LEVELS.includes(maxLevel)) {
         return res.status(400).json({ error: `Invalid CEFR level: ${maxLevel}. Valid levels: ${VALID_CEFR_LEVELS.join(', ')}` });
@@ -1531,7 +1582,7 @@ app.post('/api/settings', (req, res) => {
     if (notificationsEnabled !== undefined) {
       db.prepare('UPDATE user_settings SET notifications_enabled = ? WHERE profile_id = ?').run(notificationsEnabled ? 1 : 0, profileId);
     }
-    
+
     const updated = db.prepare('SELECT * FROM user_settings WHERE profile_id = ?').get(profileId);
     res.json(updated);
   } catch (error) {
@@ -1879,6 +1930,13 @@ app.post('/api/topics/:id/set-score', (req, res) => {
 
     const topic = db.prepare('SELECT * FROM curriculum_topics WHERE id = ?').get(topicId);
     if (!topic) return res.status(404).json({ error: 'Topic not found' });
+    if (topic.level === 'A1') {
+      return res.status(409).json({
+        error: 'A1 mastery is evidence-based and cannot be set manually',
+        code: 'A1_MANUAL_MASTERY_DISABLED',
+        courseEndpoint: '/api/a1/course',
+      });
+    }
 
     let targetScore = typeof score === 'number' ? Math.max(0, Math.min(100, score)) : (isLocked ? 100 : 0);
     let targetStatus = targetScore >= 80 ? 'mastered' : (targetScore > 0 ? 'in_progress' : 'not_started');
@@ -1910,7 +1968,7 @@ app.post('/api/topics/:id/set-score', (req, res) => {
 app.post('/api/topics/update', (req, res) => {
   try {
     const profileId = getProfileId(req);
-    const { topic, category, level, success, topicId } = req.body || {};
+    const { topic, category, level, success, topicId, eventId, quality, hintsUsed, responseMs, activityType } = req.body || {};
 
     if (typeof success !== 'boolean') {
       return res.status(400).json({ error: 'success must be a boolean' });
@@ -1929,7 +1987,13 @@ app.post('/api/topics/update', (req, res) => {
     const tCat = targetTopic ? targetTopic.category : (category ? category.trim() : 'Practice');
     const tLvl = targetTopic ? targetTopic.level : (level ? level.trim() : 'A1');
 
-    const result = updateTopic(tName, tCat, tLvl, success, profileId, targetTopic ? targetTopic.id : null);
+    const result = updateTopic(tName, tCat, tLvl, success, profileId, targetTopic ? targetTopic.id : null, {
+      eventId,
+      quality,
+      hintsUsed,
+      responseMs,
+      activityType,
+    });
     res.json({ success: true, result });
   } catch (error) {
     console.error('Error updating topic:', error);
@@ -2169,6 +2233,12 @@ app.post('/api/vocabulary/review-cards/:id/review', (req, res) => {
 
     const grade = typeof req.body?.grade === 'string' ? req.body.grade : '';
     const updatedCard = reviewVocabularyCard(db, profileId, cardId, grade);
+    try {
+      updateDailyQuestProgress(db, profileId, 'vocab_review', 1);
+      addProfileXp(db, profileId, 3, 'vocab_card_reviewed');
+    } catch (e) {
+      console.error('Error updating quest progress on vocab review:', e);
+    }
     res.json({ card: updatedCard });
   } catch (error) {
     handleVocabularyError(res, error, 'Error reviewing card:');
@@ -2184,6 +2254,12 @@ function handleLegacyVocabularyReview(req, res) {
     }
 
     const reviewedWord = reviewLegacyVocabularyEntry(db, profileId, entryId, req.body ?? {}, new Date());
+    try {
+      updateDailyQuestProgress(db, profileId, 'vocab_review', 1);
+      addProfileXp(db, profileId, 3, 'vocab_card_reviewed');
+    } catch (e) {
+      console.error('Error updating quest progress on legacy vocab review:', e);
+    }
     res.json(reviewedWord);
   } catch (error) {
     handleVocabularyError(res, error, 'Error reviewing legacy vocabulary entry:');
@@ -2266,23 +2342,27 @@ app.delete('/api/vocabulary/:id', (req, res) => {
 // ==================== CURRICULUM API ====================
 
 // Get all curriculum topics with per-profile progress
-app.get('/api/curriculum', (req, res) => {
+app.get(['/api/curriculum', '/api/curriculum/topics'], (req, res) => {
   try {
     const profileId = getProfileId(req);
     const settings = getProfileSettings(profileId);
     const topics = db.prepare(`
       SELECT ct.id, ct.name, ct.category, ct.level, ct.source, ct.created_at,
-             COALESCE(cp.status, 'not_started') as status,
-             COALESCE(cp.score, 0) as score,
-             COALESCE(cp.is_locked, 0) as is_locked,
+             CASE WHEN ct.level = 'A1' THEN COALESCE(am.phase, 'new') ELSE COALESCE(cp.status, 'not_started') END as status,
+             CASE WHEN ct.level = 'A1' THEN COALESCE(am.mastery_score, 0) ELSE COALESCE(cp.score, 0) END as score,
+             CASE WHEN ct.level = 'A1' THEN 0 ELSE COALESCE(cp.is_locked, 0) END as is_locked,
              COALESCE(cp.success_count, 0) as success_count,
              COALESCE(cp.failure_count, 0) as failure_count,
-             cp.last_practiced
+             cp.last_practiced,
+             am.stability_days as a1_stability_days,
+             am.successful_days as a1_successful_days,
+             am.next_review_at as a1_next_review_at
       FROM curriculum_topics ct
       LEFT JOIN curriculum_progress cp ON cp.topic_id = ct.id AND cp.profile_id = ?
+      LEFT JOIN a1_topic_mastery am ON am.topic_id = ct.id AND am.profile_id = ?
       WHERE ct.source = 'preset' OR cp.profile_id IS NOT NULL
       ORDER BY ct.level, ct.category, ct.pedagogical_order ASC, ct.id ASC
-    `).all(profileId);
+    `).all(profileId, profileId);
     res.json({ topics, maxLevel: settings.max_level });
   } catch (error) {
     console.error('Error fetching curriculum:', error);
@@ -2303,14 +2383,14 @@ app.get('/api/stats', (req, res) => {
     const topicsHighScore = db.prepare(
       "SELECT COUNT(*) as count FROM curriculum_progress WHERE profile_id = ? AND score >= 70"
     ).get(profileId).count;
-    
+
     const vocabularyStats = getVocabularyStats(db, profileId);
     const vocabTotal = vocabularyStats.total_entries;
     const vocabDue = vocabularyStats.due_cards;
     const vocabMastered = vocabularyStats.mastered_entries;
-    
+
     const chatMessages = db.prepare('SELECT COUNT(*) as count FROM chat_history WHERE profile_id = ?').get(profileId).count;
-    
+
     res.json({
       topics: {
         total: topicsCount,
@@ -2327,6 +2407,53 @@ app.get('/api/stats', (req, res) => {
   } catch (error) {
     console.error('Error fetching stats:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+
+// ==================== A1 ADAPTIVE COURSE API ====================
+
+app.get('/api/a1/course', (req, res) => {
+  try {
+    res.json(getA1CourseSnapshot(db, getProfileId(req)));
+  } catch (error) {
+    console.error('Error fetching A1 course:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/a1/today', (req, res) => {
+  try {
+    res.json(getA1TodayPlan(db, getProfileId(req)));
+  } catch (error) {
+    console.error('Error building A1 today plan:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/a1/attempts', (req, res) => {
+  try {
+    const result = recordA1Attempt(db, getProfileId(req), req.body || {});
+    res.status(result.replayed ? 200 : 201).json(result);
+  } catch (error) {
+    console.error('Error recording A1 attempt:', error);
+    res.status(Number(error.status) || 500).json({
+      error: error.message,
+      code: error.code || 'A1_ATTEMPT_ERROR',
+    });
+  }
+});
+
+app.post('/api/a1/skill-evidence', (req, res) => {
+  try {
+    const result = recordA1SkillEvidence(db, getProfileId(req), req.body || {});
+    res.status(result.replayed ? 200 : 201).json(result);
+  } catch (error) {
+    console.error('Error recording A1 skill evidence:', error);
+    res.status(Number(error.status) || 500).json({
+      error: error.message,
+      code: error.code || 'A1_SKILL_EVIDENCE_ERROR',
+    });
   }
 });
 
@@ -2570,6 +2697,524 @@ app.post('/api/vocabulary/generate-decks', (req, res) => {
   }
 });
 
+
+// ==========================================
+// API: GAMIFICATION (XP, STREAKS, QUESTS)
+// ==========================================
+app.get('/api/gamification', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const status = getGamificationStatus(db, profileId);
+    res.json(status);
+  } catch (error) {
+    console.error('Error fetching gamification status:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/gamification/add-xp', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const { amount = 10, reason = 'action' } = req.body || {};
+    const status = addProfileXp(db, profileId, Number(amount) || 10, reason);
+    res.json(status);
+  } catch (error) {
+    console.error('Error adding XP:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/gamification/quest-progress', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const { questType, increment = 1 } = req.body || {};
+    const status = updateDailyQuestProgress(db, profileId, questType, Number(increment) || 1);
+    res.json(status);
+  } catch (error) {
+    console.error('Error updating quest progress:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// API: INTERACTIVE BRANCHING STORIES
+// ==========================================
+app.get('/api/stories', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    ensureGamificationSchema(db);
+    const progressRows = db.prepare('SELECT * FROM story_progress WHERE profile_id = ?').all(profileId);
+    const progressMap = new Map(progressRows.map(r => [r.story_id, r]));
+
+    const stories = PRESET_STORIES.map(s => {
+      const prog = progressMap.get(s.id);
+      return {
+        ...s,
+        progress: {
+          currentChapterId: prog?.current_chapter_id || s.chapters[0]?.id,
+          completedChapters: JSON.parse(prog?.completed_chapters_json || '[]'),
+          isFinished: Boolean(prog?.is_finished)
+        }
+      };
+    });
+
+    res.json({ stories });
+  } catch (error) {
+    console.error('Error fetching stories:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/stories/:id', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const story = PRESET_STORIES.find(s => s.id === req.params.id);
+    if (!story) {
+      return res.status(404).json({ error: 'Story not found' });
+    }
+
+    const prog = db.prepare('SELECT * FROM story_progress WHERE profile_id = ? AND story_id = ?').get(profileId, story.id);
+    res.json({
+      story,
+      progress: {
+        currentChapterId: prog?.current_chapter_id || story.chapters[0]?.id,
+        completedChapters: JSON.parse(prog?.completed_chapters_json || '[]'),
+        isFinished: Boolean(prog?.is_finished)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching story by id:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/stories/:id/progress', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const { chapterId, isFinished = false, xp = 35 } = req.body || {};
+    const story = PRESET_STORIES.find(s => s.id === req.params.id);
+    if (!story) {
+      return res.status(404).json({ error: 'Story not found' });
+    }
+
+    ensureGamificationSchema(db);
+    let prog = db.prepare('SELECT * FROM story_progress WHERE profile_id = ? AND story_id = ?').get(profileId, story.id);
+    let completed = prog ? JSON.parse(prog.completed_chapters_json || '[]') : [];
+    if (chapterId && !completed.includes(chapterId)) {
+      completed.push(chapterId);
+    }
+
+    db.prepare(`
+      INSERT INTO story_progress (profile_id, story_id, current_chapter_id, completed_chapters_json, is_finished, updated_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(profile_id, story_id) DO UPDATE SET
+        current_chapter_id = excluded.current_chapter_id,
+        completed_chapters_json = excluded.completed_chapters_json,
+        is_finished = MAX(is_finished, excluded.is_finished),
+        updated_at = CURRENT_TIMESTAMP
+    `).run(profileId, story.id, chapterId || story.chapters[0]?.id, JSON.stringify(completed), isFinished ? 1 : 0);
+
+    const xpGained = isFinished ? (story.xpReward || 100) : Number(xp) || 35;
+    addProfileXp(db, profileId, xpGained, isFinished ? 'story_completed' : 'story_chapter');
+    updateDailyQuestProgress(db, profileId, 'story', 1);
+
+    const gamification = getGamificationStatus(db, profileId);
+    res.json({ success: true, completedChapters: completed, isFinished, xpGained, gamification });
+  } catch (error) {
+    console.error('Error saving story progress:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// API: SITUATIONAL ROLEPLAY QUESTS
+// ==========================================
+app.get('/api/scenarios', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    ensureGamificationSchema(db);
+    const rows = db.prepare('SELECT * FROM scenario_progress WHERE profile_id = ?').all(profileId);
+    const map = new Map(rows.map(r => [r.scenario_id, r]));
+
+    const scenarios = PRESET_SCENARIOS.map(s => {
+      const prog = map.get(s.id);
+      return {
+        ...s,
+        progress: {
+          completedGoals: JSON.parse(prog?.completed_goals_json || '[]'),
+          messagesCount: prog?.messages_count || 0,
+          isCompleted: Boolean(prog?.is_completed)
+        }
+      };
+    });
+
+    res.json({ scenarios });
+  } catch (error) {
+    console.error('Error fetching scenarios:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/scenarios/:id/chat', async (req, res) => {
+  const profileId = getProfileId(req);
+  const { message, history = [], completedGoalIds = [] } = req.body || {};
+  const scenario = PRESET_SCENARIOS.find(s => s.id === req.params.id);
+
+  if (!scenario) {
+    return res.status(404).json({ error: 'Scenario not found' });
+  }
+
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'message is required' });
+  }
+
+  ensureGamificationSchema(db);
+
+  const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
+  const geminiAvailable = apiKey.length > 0;
+
+  let replyText = '';
+  let newlyCompletedGoals = [];
+  let feedback = null;
+  let hints = scenario.suggestedHints.slice(0, 2);
+
+  if (geminiAvailable) {
+    try {
+      const remainingGoals = scenario.objectives.filter(g => !completedGoalIds.includes(g.id));
+      const promptInstruction = `
+${scenario.systemPrompt}
+
+SCENARIO CONTEXT: ${scenario.context}
+CURRENT REMAINING GOALS FOR USER:
+${remainingGoals.map(g => `- [${g.id}] ${g.label}: ${g.description}`).join('\n')}
+
+USER MESSAGE: "${message}"
+
+Respond strictly as JSON in the following schema:
+{
+  "characterReply": "Your response in natural Spanish in character with personality",
+  "goalsCompletedInThisTurn": ["array of goal IDs from remaining goals that the user achieved in their message"],
+  "correction": "Optional gentle linguistic correction in Russian or Spanish if user made an obvious grammatical/vocabulary error, otherwise null",
+  "culturalTip": "Optional 1-sentence cultural or slang tip relevant to this dialogue in Russian, otherwise null",
+  "nextSuggestedPhrases": ["1 or 2 natural Spanish phrases the user could say next"]
+}
+`;
+
+      const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+      let rawAiResponse = null;
+
+      for (const m of aiModels) {
+        try {
+          const resp = await fetch(`http://127.0.0.1:58433/v1beta/models/${m}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                ...history.slice(-6).map(h => ({
+                  role: h.role === 'user' ? 'user' : 'model',
+                  parts: [{ text: h.content }]
+                })),
+                { role: 'user', parts: [{ text: promptInstruction }] }
+              ],
+              generationConfig: {
+                temperature: 0.7,
+                responseMimeType: 'application/json'
+              }
+            })
+          });
+
+          if (resp.ok) {
+            const data = await resp.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+              rawAiResponse = JSON.parse(text);
+              break;
+            }
+          }
+        } catch (e) {
+          console.warn(`Scenario AI attempt failed with model ${m}:`, e.message);
+        }
+      }
+
+      if (rawAiResponse) {
+        replyText = rawAiResponse.characterReply || '';
+        newlyCompletedGoals = Array.isArray(rawAiResponse.goalsCompletedInThisTurn) ? rawAiResponse.goalsCompletedInThisTurn : [];
+        if (rawAiResponse.correction || rawAiResponse.culturalTip) {
+          feedback = {
+            correction: rawAiResponse.correction || null,
+            culturalTip: rawAiResponse.culturalTip || null
+          };
+        }
+        if (Array.isArray(rawAiResponse.nextSuggestedPhrases) && rawAiResponse.nextSuggestedPhrases.length > 0) {
+          hints = rawAiResponse.nextSuggestedPhrases;
+        }
+      }
+    } catch (err) {
+      console.error('Error calling AI in scenario chat:', err);
+    }
+  }
+
+  if (!replyText) {
+    replyText = `¡Muy bien, pibe! Te entiendo perfecto. Continuemos con la conversación sobre ${scenario.title}. ¿Qué más te gustaría pedir o preguntar?`;
+  }
+
+  // Update progress
+  const allCompleted = Array.from(new Set([...completedGoalIds, ...newlyCompletedGoals]));
+  const isScenarioCompleted = scenario.objectives.every(g => allCompleted.includes(g.id));
+
+  let prog = db.prepare('SELECT * FROM scenario_progress WHERE profile_id = ? AND scenario_id = ?').get(profileId, scenario.id);
+  const msgCount = (prog?.messages_count || 0) + 1;
+
+  db.prepare(`
+    INSERT INTO scenario_progress (profile_id, scenario_id, completed_goals_json, messages_count, is_completed, updated_at)
+    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(profile_id, scenario_id) DO UPDATE SET
+      completed_goals_json = excluded.completed_goals_json,
+      messages_count = excluded.messages_count,
+      is_completed = MAX(is_completed, excluded.is_completed),
+      updated_at = CURRENT_TIMESTAMP
+  `).run(profileId, scenario.id, JSON.stringify(allCompleted), msgCount, isScenarioCompleted ? 1 : 0);
+
+  let xpEarned = 10;
+  if (newlyCompletedGoals.length > 0) {
+    xpEarned += newlyCompletedGoals.length * 25;
+    updateDailyQuestProgress(db, profileId, 'scenario', newlyCompletedGoals.length);
+  }
+  if (isScenarioCompleted && !prog?.is_completed) {
+    xpEarned += 100;
+  }
+  addProfileXp(db, profileId, xpEarned, 'scenario_interaction');
+
+  const gamification = getGamificationStatus(db, profileId);
+
+  res.json({
+    reply: replyText,
+    completedGoalIds: allCompleted,
+    newlyCompletedGoals,
+    isCompleted: isScenarioCompleted,
+    feedback,
+    hints,
+    xpEarned,
+    gamification
+  });
+});
+
+// ==========================================
+// API: TACTILE MINI-GAMES & DRILLS
+// ==========================================
+app.get('/api/exercises/word-tiles', (req, res) => {
+  try {
+    const { level } = req.query;
+    let items = PRESET_WORD_TILES;
+    if (level) {
+      items = items.filter(i => i.level.toLowerCase() === String(level).toLowerCase());
+    }
+    res.json({ items });
+  } catch (error) {
+    console.error('Error fetching word tiles:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/exercises/word-tiles/verify', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const { itemId, userSentence } = req.body || {};
+    const item = PRESET_WORD_TILES.find(i => i.id === itemId);
+    if (!item) {
+      return res.status(404).json({ error: 'Exercise item not found' });
+    }
+
+    const clean = str => (str || '').toLowerCase().replace(/[¿?¡!.,;:«»"']/g, '').replace(/\s+/g, ' ').trim();
+    const isCorrect = clean(userSentence) === clean(item.correctSentence);
+
+    let xpGained = 0;
+    if (isCorrect) {
+      xpGained = 20;
+      addProfileXp(db, profileId, xpGained, 'word_tiles_success');
+    }
+
+    const gamification = getGamificationStatus(db, profileId);
+    res.json({ isCorrect, correctSentence: item.correctSentence, xpGained, gamification });
+  } catch (error) {
+    console.error('Error verifying word tiles:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+function cleanSpeedMatchText(txt) {
+  if (!txt) return '';
+  return txt
+    .replace(/\(.*?\)/g, '')
+    .replace(/\[.*?\]/g, '')
+    .split(';')[0]
+    .split(',')[0]
+    .split('/')[0]
+    .trim();
+}
+
+function getSpeedMatchPairs(db, profileId, count = 6) {
+  const chosenMap = new Map();
+
+  try {
+    // 1. Pick 2 Favorite words
+    const favRows = db.prepare(`
+      SELECT word, translation
+      FROM vocabulary
+      WHERE profile_id = ? AND is_favorite = 1 AND translation IS NOT NULL AND length(trim(translation)) > 0
+      ORDER BY random() LIMIT 10
+    `).all(profileId);
+
+    for (const r of favRows) {
+      const es = cleanSpeedMatchText(r.word);
+      const ru = cleanSpeedMatchText(r.translation);
+      if (es && ru && es.length <= 25 && ru.length <= 25 && !chosenMap.has(es)) {
+        chosenMap.set(es, { es, ru, tag: '⭐' });
+      }
+      if (chosenMap.size >= 2) break;
+    }
+
+    // 2. Pick 2 Learned / Mastered words
+    const learnedRows = db.prepare(`
+      SELECT DISTINCT v.word, v.translation
+      FROM vocabulary v
+      LEFT JOIN vocabulary_review_cards c ON c.vocabulary_id = v.id
+      WHERE v.profile_id = ? AND (v.learned_permanently_at IS NOT NULL OR c.learned_until IS NOT NULL OR c.review_count >= 3) AND v.translation IS NOT NULL AND length(trim(v.translation)) > 0
+      ORDER BY random() LIMIT 10
+    `).all(profileId);
+
+    for (const r of learnedRows) {
+      const es = cleanSpeedMatchText(r.word);
+      const ru = cleanSpeedMatchText(r.translation);
+      if (es && ru && es.length <= 25 && ru.length <= 25 && !chosenMap.has(es)) {
+        chosenMap.set(es, { es, ru, tag: '✓' });
+      }
+      if (chosenMap.size >= 4) break;
+    }
+
+    // 3. Pick 2 Currently In-Progress / Due words
+    const dueRows = db.prepare(`
+      SELECT DISTINCT v.word, v.translation
+      FROM vocabulary v
+      LEFT JOIN vocabulary_review_cards c ON c.vocabulary_id = v.id
+      WHERE v.profile_id = ? AND (v.learned_permanently_at IS NULL) AND v.translation IS NOT NULL AND length(trim(v.translation)) > 0
+      ORDER BY random() LIMIT 15
+    `).all(profileId);
+
+    for (const r of dueRows) {
+      const es = cleanSpeedMatchText(r.word);
+      const ru = cleanSpeedMatchText(r.translation);
+      if (es && ru && es.length <= 25 && ru.length <= 25 && !chosenMap.has(es)) {
+        chosenMap.set(es, { es, ru, tag: '📖' });
+      }
+      if (chosenMap.size >= count) break;
+    }
+  } catch (e) {
+    console.error('Error selecting user words for speed match:', e);
+  }
+
+  // 4. Fallback from preset curated list if user doesn't have enough words
+  if (chosenMap.size < count) {
+    const shuffledPreset = [...SPEED_MATCH_PAIRS].sort(() => 0.5 - Math.random());
+    for (const p of shuffledPreset) {
+      if (!chosenMap.has(p.es)) {
+        chosenMap.set(p.es, { es: p.es, ru: p.ru, tag: '⚡' });
+      }
+      if (chosenMap.size >= count) break;
+    }
+  }
+
+  return Array.from(chosenMap.values()).sort(() => 0.5 - Math.random());
+}
+
+app.get('/api/exercises/speed-match', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const pairs = getSpeedMatchPairs(db, profileId, 6);
+    res.json({ pairs });
+  } catch (error) {
+    console.error('Error fetching speed match:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/exercises/speed-match/finish', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const { matchedCount = 6, secondsSpent = 25, combo = 1 } = req.body || {};
+
+    const xpBase = Math.min(100, Math.max(10, Math.round(matchedCount * 6 + combo * 4)));
+    addProfileXp(db, profileId, xpBase, 'speed_match_blitz');
+    updateDailyQuestProgress(db, profileId, 'speed_match', 1);
+
+    const gamification = getGamificationStatus(db, profileId);
+    res.json({ success: true, xpGained: xpBase, gamification });
+  } catch (error) {
+    console.error('Error finishing speed match:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/exercises/error-detective', (req, res) => {
+  try {
+    const { level } = req.query;
+    let items = PRESET_ERROR_DETECTIVES;
+    if (level) {
+      items = items.filter(i => i.level.toLowerCase() === String(level).toLowerCase());
+    }
+    res.json({ items });
+  } catch (error) {
+    console.error('Error fetching error detective:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/exercises/error-detective/verify', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const { itemId, selectedWord, selectedFix } = req.body || {};
+    const item = PRESET_ERROR_DETECTIVES.find(i => i.id === itemId);
+    if (!item) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    const isCorrect = (selectedFix === item.correctWord) || (selectedWord && item.errorWord.includes(selectedWord) && selectedFix === item.correctWord);
+    let xpGained = 0;
+    if (isCorrect) {
+      xpGained = 25;
+      addProfileXp(db, profileId, xpGained, 'error_detective_success');
+    }
+
+    const gamification = getGamificationStatus(db, profileId);
+    res.json({
+      isCorrect,
+      correctWord: item.correctWord,
+      ruleExplanation: item.ruleExplanation,
+      xpGained,
+      gamification
+    });
+  } catch (error) {
+    console.error('Error verifying error detective:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// ==========================================
+// API: TODAY'S RECOMMENDATIONS (SMART COACH)
+// ==========================================
+app.get('/api/recommendations/today', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const lang = req.query.lang || req.headers['x-ui-lang'] || 'ru';
+    const result = getTodayRecommendations(db, profileId, lang);
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching today recommendations:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 function startServer(port = PORT) {
   return app.listen(port, () => {
     console.log(`🇪🇸 Spanish Learning Server running on http://localhost:${port}`);
@@ -2583,3 +3228,87 @@ if (isMainModule) {
 }
 
 export { app, db, startServer };
+
+
+// ==========================================
+// API: SANDWICH IMMERSION OVERARCHING STORY
+// ==========================================
+app.get('/api/sandwich-story', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    let completedChapterIds = [];
+    try {
+      const row = db.prepare('SELECT completed_chapters_json FROM story_progress WHERE profile_id = ? AND story_id = ?').get(profileId, MATEO_A1_STORY.id);
+      if (row) {
+        completedChapterIds = JSON.parse(row.completed_chapters_json || '[]');
+      }
+    } catch (e) {
+      console.error('Error fetching sandwich story progress:', e);
+    }
+
+    res.json({
+      story: MATEO_A1_STORY,
+      completedChapterIds
+    });
+  } catch (error) {
+    console.error('Error fetching sandwich story:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/sandwich-story/progress', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const { chapterId } = req.body || {};
+    if (!chapterId) {
+      return res.status(400).json({ error: 'Chapter ID required' });
+    }
+
+    let completedChapterIds = [];
+    const row = db.prepare('SELECT completed_chapters_json FROM story_progress WHERE profile_id = ? AND story_id = ?').get(profileId, MATEO_A1_STORY.id);
+    if (row) {
+      completedChapterIds = JSON.parse(row.completed_chapters_json || '[]');
+    }
+
+    if (!completedChapterIds.includes(chapterId)) {
+      completedChapterIds.push(chapterId);
+      db.prepare(`
+        INSERT INTO story_progress (profile_id, story_id, current_chapter_id, completed_chapters_json, is_finished, updated_at)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(profile_id, story_id) DO UPDATE SET
+          completed_chapters_json = excluded.completed_chapters_json,
+          is_finished = CASE WHEN ? >= ? THEN 1 ELSE 0 END,
+          updated_at = CURRENT_TIMESTAMP
+      `).run(
+        profileId,
+        MATEO_A1_STORY.id,
+        chapterId,
+        JSON.stringify(completedChapterIds),
+        completedChapterIds.length,
+        MATEO_A1_STORY.chapters.length
+      );
+
+      // Award XP
+      addProfileXp(db, profileId, 50, "sandwich_story_chapter");
+    }
+
+    res.json({ success: true, completedChapterIds });
+  } catch (error) {
+    console.error('Error saving sandwich story progress:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+app.post('/api/gamification/record-practice', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const { type = 'vocab_review', count = 1 } = req.body || {};
+    const status = updateDailyQuestProgress(db, profileId, type, count);
+    addProfileXp(db, profileId, 3 * count, type);
+    res.json(status);
+  } catch (error) {
+    console.error('Error recording practice gamification:', error);
+    res.status(500).json({ error: error.message });
+  }
+});

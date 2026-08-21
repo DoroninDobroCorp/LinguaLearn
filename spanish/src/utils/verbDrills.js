@@ -30,30 +30,47 @@ export const DRILL_PRONOUN_MODES = {
     label: 'Лат. Америка (tú + vos)',
     filter: (p) => p.id !== 'vosotros',
   },
-  spain: {
-    label: 'Испания (tú + vosotros)',
-    filter: (p) => p.id !== 'vos',
+  rioplatense: {
+    label: 'Только vos (Аргентина)',
+    filter: (p) => p.id !== 'tu' && p.id !== 'vosotros',
+  },
+  tu_standard: {
+    label: 'Только tú (без voseo)',
+    filter: (p) => p.id !== 'vos' && p.id !== 'vosotros',
+  },
+  tu: {
+    label: 'Tú',
+    filter: (p) => p.id === 'tu',
   },
   vos: {
-    label: 'Только Rioplatense (vos)',
-    filter: (p) => p.id !== 'tu' && p.id !== 'vosotros',
+    label: 'Vos',
+    filter: (p) => p.id === 'vos',
+  },
+  second_person_only: {
+    label: 'Только 2-е лицо (tú / vos)',
+    filter: (p) => p.id === 'tu' || p.id === 'vos',
   },
 };
 
 export const REGULAR_VERBS = [
-  { infinitive: 'hablar', translation: 'говорить', ending: 'ar' },
-  { infinitive: 'trabajar', translation: 'работать', ending: 'ar' },
-  { infinitive: 'estudiar', translation: 'учиться', ending: 'ar' },
-  { infinitive: 'comprar', translation: 'покупать', ending: 'ar' },
-  { infinitive: 'llamar', translation: 'звонить, называть', ending: 'ar' },
-  { infinitive: 'comer', translation: 'есть', ending: 'er' },
-  { infinitive: 'beber', translation: 'пить', ending: 'er' },
-  { infinitive: 'aprender', translation: 'учить, изучать', ending: 'er' },
-  { infinitive: 'comprender', translation: 'понимать', ending: 'er' },
-  { infinitive: 'leer', translation: 'читать', ending: 'er' },
-  { infinitive: 'vivir', translation: 'жить', ending: 'ir' },
-  { infinitive: 'escribir', translation: 'писать', ending: 'ir' },
-  { infinitive: 'abrir', translation: 'открывать', ending: 'ir' },
+  { infinitive: 'hablar', ending: 'ar', translation: 'говорить' },
+  { infinitive: 'trabajar', ending: 'ar', translation: 'работать' },
+  { infinitive: 'estudiar', ending: 'ar', translation: 'учиться' },
+  { infinitive: 'comprar', ending: 'ar', translation: 'покупать' },
+  { infinitive: 'viajar', ending: 'ar', translation: 'путешествовать' },
+  { infinitive: 'necesitar', ending: 'ar', translation: 'нуждаться' },
+  { infinitive: 'buscar', ending: 'ar', translation: 'искать' },
+  { infinitive: 'escuchar', ending: 'ar', translation: 'слушать' },
+  { infinitive: 'esperar', ending: 'ar', translation: 'ждать' },
+  { infinitive: 'llamar', ending: 'ar', translation: 'звать' },
+  { infinitive: 'comer', ending: 'er', translation: 'есть' },
+  { infinitive: 'beber', ending: 'er', translation: 'пить' },
+  { infinitive: 'aprender', ending: 'er', translation: 'учить' },
+  { infinitive: 'comprender', ending: 'er', translation: 'понимать' },
+  { infinitive: 'vender', ending: 'er', translation: 'продавать' },
+  { infinitive: 'vivir', ending: 'ir', translation: 'жить' },
+  { infinitive: 'escribir', ending: 'ir', translation: 'писать' },
+  { infinitive: 'abrir', ending: 'ir', translation: 'открывать' },
 ];
 
 export const REGULAR_ENDINGS = {
@@ -91,7 +108,7 @@ export const FOUR_KEY_VERB_KEYS = ['ser', 'estar', 'tener', 'ir'];
 const IRREGULAR_VERBS = {
   ser: {
     infinitive: 'ser',
-    translation: 'быть / являться',
+    translation: 'быть (по сути)',
     forms: {
       yo: 'soy',
       tu: 'eres',
@@ -104,7 +121,7 @@ const IRREGULAR_VERBS = {
   },
   estar: {
     infinitive: 'estar',
-    translation: 'быть, находиться',
+    translation: 'быть (находиться, состояние)',
     forms: {
       yo: 'estoy',
       tu: 'estás',
@@ -143,23 +160,49 @@ const IRREGULAR_VERBS = {
   },
 };
 
-const SER_ESTAR_CONTEXTS = [
+export const SER_ESTAR_CONTEXTS = [
+  { pronounId: 'yo', sentence: 'Yo ___ estudiante.', translation: 'Я студент.', verb: 'ser', reason: 'occupation -> ser' },
   { pronounId: 'yo', sentence: 'Yo ___ de Madrid.', translation: 'Я из Мадрида.', verb: 'ser', reason: 'origin -> ser' },
   { pronounId: 'yo', sentence: 'Yo ___ en la oficina ahora.', translation: 'Я в офисе сейчас.', verb: 'estar', reason: 'location -> estar' },
+  { pronounId: 'yo', sentence: 'Yo ___ cansado.', translation: 'Я устал.', verb: 'estar', reason: 'temporary condition -> estar' },
+  { pronounId: 'yo', sentence: 'Yo ___ muy feliz hoy.', translation: 'Я очень счастлив сегодня.', verb: 'estar', reason: 'emotion -> estar' },
   { pronounId: 'tu', sentence: 'Tú ___ muy inteligente.', translation: 'Ты очень умный.', verb: 'ser', reason: 'permanent characteristic -> ser' },
   { pronounId: 'tu', sentence: 'Tú ___ cansado hoy.', translation: 'Ты уставший сегодня.', verb: 'estar', reason: 'temporary state -> estar' },
+  { pronounId: 'tu', sentence: 'Tú ___ de Colombia.', translation: 'Ты из Колумбии.', verb: 'ser', reason: 'origin -> ser' },
+  { pronounId: 'tu', sentence: 'Tú ___ en el supermercado.', translation: 'Ты в супермаркете.', verb: 'estar', reason: 'location -> estar' },
   { pronounId: 'vos', sentence: 'Vos ___ de Buenos Aires.', translation: 'Ты из Буэнос-Айреса.', verb: 'ser', reason: 'origin -> ser' },
   { pronounId: 'vos', sentence: 'Vos ___ ocupado ahora.', translation: 'Ты занят сейчас.', verb: 'estar', reason: 'temporary state -> estar' },
+  { pronounId: 'vos', sentence: 'Vos ___ un buen amigo.', translation: 'Ты хороший друг.', verb: 'ser', reason: 'identity -> ser' },
+  { pronounId: 'vos', sentence: 'Vos ___ listo para salir.', translation: 'Ты готов выходить.', verb: 'estar', reason: 'readiness -> estar' },
   { pronounId: 'el', sentence: 'Él ___ médico.', translation: 'Он врач.', verb: 'ser', reason: 'profession -> ser' },
   { pronounId: 'el', sentence: 'Él ___ enfermo esta semana.', translation: 'Он болен на этой неделе.', verb: 'estar', reason: 'health/condition -> estar' },
+  { pronounId: 'el', sentence: 'Ella ___ de España.', translation: 'Она из Испании.', verb: 'ser', reason: 'origin -> ser' },
+  { pronounId: 'el', sentence: 'El café ___ caliente.', translation: 'Кофе горячий.', verb: 'estar', reason: 'temperature -> estar' },
+  { pronounId: 'el', sentence: 'La sopa ___ fría.', translation: 'Суп холодный.', verb: 'estar', reason: 'condition -> estar' },
+  { pronounId: 'el', sentence: 'El hotel ___ en el centro.', translation: 'Отель в центре.', verb: 'estar', reason: 'location -> estar' },
+  { pronounId: 'el', sentence: 'El auto ___ rojo.', translation: 'Машина красная.', verb: 'ser', reason: 'color/description -> ser' },
+  { pronounId: 'el', sentence: 'La mesa ___ de madera.', translation: 'Стол из дерева.', verb: 'ser', reason: 'material -> ser' },
+  { pronounId: 'el', sentence: 'La puerta ___ abierta.', translation: 'Дверь открыта.', verb: 'estar', reason: 'state -> estar' },
+  { pronounId: 'el', sentence: 'La puerta ___ cerrada.', translation: 'Дверь закрыта.', verb: 'estar', reason: 'state -> estar' },
+  { pronounId: 'el', sentence: 'La reunión ___ a las tres.', translation: 'Встреча в три часа.', verb: 'ser', reason: 'event time -> ser' },
   { pronounId: 'nosotros', sentence: 'Nosotros ___ amigos desde niños.', translation: 'Мы друзья с детства.', verb: 'ser', reason: 'relationship -> ser' },
   { pronounId: 'nosotros', sentence: 'Nosotros ___ listos para salir.', translation: 'Мы готовы выходить.', verb: 'estar', reason: 'readiness -> estar' },
+  { pronounId: 'nosotros', sentence: 'Nosotros ___ en Barcelona.', translation: 'Мы в Барселоне.', verb: 'estar', reason: 'location -> estar' },
+  { pronounId: 'nosotros', sentence: 'Nosotros ___ profesores.', translation: 'Мы преподаватели.', verb: 'ser', reason: 'profession -> ser' },
   { pronounId: 'vosotros', sentence: 'Vosotros ___ de España.', translation: 'Вы из Испании.', verb: 'ser', reason: 'origin -> ser' },
   { pronounId: 'vosotros', sentence: 'Vosotros ___ en casa.', translation: 'Вы дома.', verb: 'estar', reason: 'location -> estar' },
+  { pronounId: 'vosotros', sentence: 'Vosotros ___ simpáticos.', translation: 'Вы приятные.', verb: 'ser', reason: 'trait -> ser' },
+  { pronounId: 'vosotros', sentence: 'Vosotros ___ cansados.', translation: 'Вы устали.', verb: 'estar', reason: 'state -> estar' },
   { pronounId: 'ellos', sentence: 'Ellos ___ en la playa.', translation: 'Они на пляже.', verb: 'estar', reason: 'location -> estar' },
   { pronounId: 'ellos', sentence: 'Mis padres ___ muy pacientes.', translation: 'Мои родители очень терпеливые.', verb: 'ser', reason: 'character trait -> ser' },
-  { pronounId: 'el', sentence: 'La reunión ___ mañana.', translation: 'Встреча завтра.', verb: 'ser', reason: 'event time -> ser' },
-  { pronounId: 'el', sentence: 'La reunión ___ confirmada.', translation: 'Встреча подтверждена.', verb: 'estar', reason: 'state/result -> estar' },
+  { pronounId: 'ellos', sentence: 'Ellos ___ argentinos.', translation: 'Они аргентинцы.', verb: 'ser', reason: 'nationality -> ser' },
+  { pronounId: 'ellos', sentence: 'Las ventanas ___ limpias.', translation: 'Окна чистые.', verb: 'estar', reason: 'condition -> estar' },
+  { pronounId: 'ellos', sentence: 'Ellos ___ ocupados.', translation: 'Они заняты.', verb: 'estar', reason: 'state -> estar' },
+  { pronounId: 'el', sentence: 'La película ___ aburrida.', translation: 'Фильм скучный.', verb: 'ser', reason: 'inherent quality -> ser' },
+  { pronounId: 'el', sentence: 'El niño ___ aburrido ahora.', translation: 'Мальчику сейчас скучно.', verb: 'estar', reason: 'temporary feeling -> estar' },
+  { pronounId: 'el', sentence: 'El concierto ___ en el teatro.', translation: 'Концерт в театре.', verb: 'ser', reason: 'event venue -> ser' },
+  { pronounId: 'el', sentence: 'El teatro ___ cerca del parque.', translation: 'Театр рядом с парком.', verb: 'estar', reason: 'building location -> estar' },
+  { pronounId: 'yo', sentence: 'Yo ___ de Argentina.', translation: 'Я из Аргентины.', verb: 'ser', reason: 'origin -> ser' }
 ];
 
 export const DRILL_TYPES = {
@@ -216,7 +259,7 @@ export const DRILL_TYPES = {
     ],
   },
   serEstar: {
-    label: 'Ser vs Estar',
+    label: 'Ser vs Estar в контексте',
     topic: 'Ser vs Estar (basic)',
     level: 'A1',
     rules: [
@@ -233,8 +276,9 @@ function getRandomInt(max) {
 }
 
 function conjugateRegularVerb(verb, pronounId) {
-  const stem = verb.infinitive.slice(0, -2);
-  return `${stem}${REGULAR_ENDINGS[verb.ending][pronounId]}`;
+  const root = verb.infinitive.slice(0, -2);
+  const ending = REGULAR_ENDINGS[verb.ending][pronounId];
+  return `${root}${ending}`;
 }
 
 export function conjugateVerb(drillType, verb, pronounId) {
@@ -260,7 +304,7 @@ export function createVerbDrillQuestion(drillType = 'regular', pronounMode = 'al
     const displayAnswer = example.sentence.replace('___', correctAnswer);
 
     return {
-      id: `${drillType}-${example.verb}-${example.pronounId}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      id: `serEstar-${example.pronounId}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       drillType,
       verb: 'ser / estar',
       prompt: example.sentence,
@@ -270,9 +314,9 @@ export function createVerbDrillQuestion(drillType = 'regular', pronounMode = 'al
       pronounId: example.pronounId,
       pronoun: pronoun.label,
       pronounAliases: pronoun.answerAliases,
+      ending: null,
       correctAnswer,
       displayAnswer,
-      acceptedAnswers: [correctAnswer, displayAnswer],
     };
   }
 
@@ -331,43 +375,62 @@ export function getVerbDrillProgressTopic(question) {
   return DRILL_TYPES[question?.drillType]?.topic ?? 'Ser vs Estar (basic)';
 }
 
+export function getVerbDrillAcceptedAnswers(question) {
+  if (!question) return [];
+
+  const rawCorrect = question.correctAnswer ?? '';
+  const normalizedCorrect = normalizeAnswer(rawCorrect);
+  const results = new Set([normalizedCorrect]);
+
+  const rawAliases = question.pronounAliases ?? [];
+  const normalizedAliases = rawAliases.map(normalizeAnswer).filter(Boolean);
+
+  for (const alias of normalizedAliases) {
+    results.add(`${alias} ${normalizedCorrect}`.trim());
+  }
+
+  if (question.prompt && question.prompt.includes('___')) {
+    const fullSentence = question.prompt.replace('___', rawCorrect);
+    results.add(normalizeAnswer(fullSentence));
+  }
+
+  return Array.from(results).filter(Boolean);
+}
+
+export function isVerbDrillAnswerCorrect(userAnswer, question) {
+  if (!userAnswer) return false;
+
+  const normalizedUser = normalizeAnswer(userAnswer);
+  if (!normalizedUser) return false;
+
+  if (typeof question === 'string') {
+    return normalizedUser === normalizeAnswer(question);
+  }
+
+  const accepted = getVerbDrillAcceptedAnswers(question);
+  return accepted.includes(normalizedUser);
+}
+
 export function getVerbDrillDisplayAnswer(question) {
-  if (question?.displayAnswer) {
-    return question.displayAnswer;
-  }
-
-  if (!question?.correctAnswer) {
-    return '';
-  }
-
-  const primaryPronoun = question.pronounAliases?.[0] || question.pronoun || '';
-  return primaryPronoun ? `${primaryPronoun} ${question.correctAnswer}` : question.correctAnswer;
+  if (!question) return '';
+  if (question.displayAnswer) return question.displayAnswer;
+  const primaryPronoun = question.pronounAliases?.[0] ?? question.pronoun ?? '';
+  return `${primaryPronoun} ${question.correctAnswer}`.trim();
 }
 
-export function getVerbDrillAcceptedAnswers(questionOrAnswer, maybeCorrectAnswer) {
-  const question = typeof questionOrAnswer === 'object'
-    ? questionOrAnswer
-    : { correctAnswer: maybeCorrectAnswer ?? questionOrAnswer };
-  const correctAnswer = question?.correctAnswer ?? maybeCorrectAnswer;
-  const answers = new Set([
-    normalizeAnswer(correctAnswer),
-    ...(question?.acceptedAnswers ?? []).map((acceptedAnswer) => normalizeAnswer(acceptedAnswer)),
-  ]);
+export function isVerbDrillFinished(runModeOrStats, statsOrIndex) {
+  let mode = 'infinite';
+  let completed = 0;
 
-  for (const alias of question?.pronounAliases ?? []) {
-    answers.add(normalizeAnswer(`${alias} ${correctAnswer}`));
+  if (typeof runModeOrStats === 'string') {
+    mode = runModeOrStats;
+    completed = typeof statsOrIndex === 'number' ? statsOrIndex : statsOrIndex?.completed ?? 0;
+  } else if (typeof runModeOrStats === 'object') {
+    completed = runModeOrStats.completed ?? 0;
+    mode = typeof statsOrIndex === 'string' ? statsOrIndex : 'infinite';
   }
 
-  return Array.from(answers).filter(Boolean);
-}
-
-export function isVerbDrillAnswerCorrect(answer, questionOrCorrectAnswer) {
-  const normalizedAnswer = normalizeAnswer(answer);
-  const acceptedAnswers = getVerbDrillAcceptedAnswers(questionOrCorrectAnswer);
-  return acceptedAnswers.includes(normalizedAnswer);
-}
-
-export function isVerbDrillFinished(runMode, completedCount) {
-  const limit = DRILL_RUN_MODES[runMode]?.taskLimit ?? null;
-  return Number.isFinite(limit) && completedCount >= limit;
+  const limit = DRILL_RUN_MODES[mode]?.taskLimit;
+  if (!limit) return false;
+  return completed >= limit;
 }

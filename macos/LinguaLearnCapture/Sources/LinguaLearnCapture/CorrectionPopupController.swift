@@ -17,6 +17,7 @@ final class CorrectionPopupController: NSObject {
     private weak var countdownLabel: NSTextField?
     private var remainingAutoDismissSeconds = 0
     private var analyzingEventID: String?
+    private var currentDisplayMode: PopupDisplayMode?
     private var targetTextToApply = ""
     private var currentAppURL: URL?
     private var replaceDraftHandler: ((String) -> Bool)?
@@ -45,6 +46,18 @@ final class CorrectionPopupController: NSObject {
             appURL: appURL,
             replaceDraft: replaceDraft
         )
+        if viewModel.displayMode == .compactChip {
+            // Success confirmations are ephemeral status, not an inbox. Keep
+            // at most the newest one and replace a currently visible chip.
+            presentations.removeAll { $0.viewModel.displayMode == .compactChip }
+            if panel.isVisible && currentDisplayMode == .compactChip && analyzingEventID == nil {
+                rebuildContent(for: presentation)
+                positionPanel()
+                panel.orderFrontRegardless()
+                scheduleAutoDismiss(seconds: presentation.viewModel.autoDismissSeconds)
+                return
+            }
+        }
         if analyzingEventID == event.eventID {
             analyzingEventID = nil
             rebuildContent(for: presentation)
@@ -64,6 +77,7 @@ final class CorrectionPopupController: NSObject {
         guard !panel.isVisible else { return }
         cancelAutoDismiss()
         analyzingEventID = event.eventID
+        currentDisplayMode = nil
         for view in contentStack.arrangedSubviews {
             contentStack.removeArrangedSubview(view)
             view.removeFromSuperview()
@@ -136,6 +150,7 @@ final class CorrectionPopupController: NSObject {
         }
 
         let vm = presentation.viewModel
+        currentDisplayMode = vm.displayMode
 
         if vm.displayMode == .compactChip {
             let chipLabel = makeLabel("Grammar OK ✓", font: .systemFont(ofSize: 13, weight: .semibold))
@@ -330,6 +345,7 @@ final class CorrectionPopupController: NSObject {
     private func advanceQueue() {
         cancelAutoDismiss()
         analyzingEventID = nil
+        currentDisplayMode = nil
         panel.orderOut(nil)
         showNext()
     }

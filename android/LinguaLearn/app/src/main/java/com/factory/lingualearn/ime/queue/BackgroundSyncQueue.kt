@@ -174,7 +174,7 @@ class BackgroundSyncQueue(
 
         for (item in items) {
             if (item.retryCount >= MAX_RETRIES) {
-                dequeue(item.eventId)
+                // Keep exhausted items for diagnostics/manual retry; never silently lose raw text.
                 continue
             }
 
@@ -206,7 +206,11 @@ class BackgroundSyncQueue(
                                 (status in 500..599) || reason.contains("HTTP 5") ||
                                 status == 0
 
-                        if (is409Replay) {
+                        if (status in 200..299) {
+                            // A semantic rejection (for example, not prose) was processed successfully.
+                            dequeue(item.eventId)
+                            syncedCount++
+                        } else if (is409Replay) {
                             // 409 Conflict / replay: event already processed or in progress on server -> dequeue item
                             dequeue(item.eventId)
                             syncedCount++
@@ -224,9 +228,8 @@ class BackgroundSyncQueue(
                     incrementRetry(item.eventId)
                 }
             } else {
-                // Default sync / mock behavior for offline testing
-                dequeue(item.eventId)
-                syncedCount++
+                // Missing runtime dependencies are not delivery. Preserve the durable item.
+                continue
             }
         }
         return syncedCount

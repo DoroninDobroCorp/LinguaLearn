@@ -1,6 +1,17 @@
 import Foundation
 import LinguaLearnCaptureCore
 
+enum ConfigurationStoreError: LocalizedError {
+    case keychainWriteFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .keychainWriteFailed:
+            return "Could not save the device token in macOS Keychain. Configuration was not changed."
+        }
+    }
+}
+
 enum ConfigurationStore {
     static var configurationURL: URL {
         if let override = ProcessInfo.processInfo.environment["LINGUALEARN_CAPTURE_CONFIG"], !override.isEmpty {
@@ -23,11 +34,17 @@ enum ConfigurationStore {
         }
         let data = try Data(contentsOf: url)
         var config = try PayloadCoding.makeDecoder().decode(CaptureConfiguration.self, from: data)
+        let legacyToken = config.bearerToken.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if let keychainToken = KeychainTokenStorage.getToken(), !keychainToken.isEmpty {
-            if config.bearerToken.isEmpty || config.bearerToken == "CHANGE_ME" {
-                config.bearerToken = keychainToken
+            config.bearerToken = keychainToken
+        } else if !legacyToken.isEmpty && legacyToken != "CHANGE_ME" {
+            // One-time migration from older builds that stored the token in config.json.
+            guard KeychainTokenStorage.saveToken(legacyToken) else {
+                throw ConfigurationStoreError.keychainWriteFailed
             }
+            config.bearerToken = legacyToken
+            try write(config, to: url)
         }
         return config
     }
@@ -39,12 +56,20 @@ enum ConfigurationStore {
             withIntermediateDirectories: true,
             attributes: [.posixPermissions: 0o700]
         )
-        let data = try PayloadCoding.makeEncoder().encode(configuration)
+
+        let token = configuration.bearerToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !token.isEmpty && token != "CHANGE_ME" {
+            guard KeychainTokenStorage.saveToken(token) else {
+                throw ConfigurationStoreError.keychainWriteFailed
+            }
+        }
+
+        // bearerToken remains a runtime compatibility field, but secrets are
+        // never serialized to config.json. The real value lives only in Keychain.
+        var redacted = configuration
+        redacted.bearerToken = "CHANGE_ME"
+        let data = try PayloadCoding.makeEncoder().encode(redacted)
         try data.write(to: url, options: [.atomic])
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
-
-        if !configuration.bearerToken.isEmpty && configuration.bearerToken != "CHANGE_ME" {
-            KeychainTokenStorage.saveToken(configuration.bearerToken)
-        }
     }
 }

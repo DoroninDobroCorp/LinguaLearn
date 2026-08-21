@@ -400,17 +400,6 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
                 val resultState = previewController.handleAnalysisResult(response)
                 updateCandidateBarPreview(resultState)
 
-                if (!previewOnly && !response.accepted) {
-                    withContext(Dispatchers.IO) {
-                        syncQueue.enqueue(
-                            sourceApp = packageName,
-                            originalText = text,
-                            previewOnly = previewOnly,
-                            eventId = eventId,
-                            sentAt = sentAt
-                        )
-                    }
-                }
             } catch (e: Exception) {
                 val errState = previewController.handleError(e.message ?: "Network error")
                 updateCandidateBarPreview(errState)

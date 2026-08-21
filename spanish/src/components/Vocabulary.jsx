@@ -619,6 +619,29 @@ function Vocabulary() {
   const [reviewQueue, setReviewQueue] = useState([]);
   const [reviewSession, setReviewSession] = useState(INITIAL_REVIEW_SESSION);
   const [stats, setStats] = useState(INITIAL_STATS);
+  const [todayVocabProgress, setTodayVocabProgress] = useState(0);
+
+  const fetchDailyVocabProgress = useCallback(async () => {
+    try {
+      const res = await profileFetch(profileApiUrl('/spanish/api/gamification'));
+      if (res.ok) {
+        const data = await res.json();
+        const quest = (data.dailyQuests || []).find(q => q.id === 'quest_vocab');
+        if (quest) {
+          setTodayVocabProgress(quest.current || 0);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching vocab quest progress:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDailyVocabProgress();
+    const handleUpdate = () => fetchDailyVocabProgress();
+    window.addEventListener('gamification_updated', handleUpdate);
+    return () => window.removeEventListener('gamification_updated', handleUpdate);
+  }, [fetchDailyVocabProgress]);
   const [queueStats, setQueueStats] = useState({ total_due: 0, returned: 0, limit: 40 });
   const [showAnswer, setShowAnswer] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -648,7 +671,7 @@ function Vocabulary() {
   const [activeGroupMenuWordId, setActiveGroupMenuWordId] = useState(null);
   const [pendingGroupWordIds, setPendingGroupWordIds] = useState(() => new Set());
 
-  
+
   const fetchGroups = useCallback(async () => {
     try {
       const response = await profileFetch(profileApiUrl('/spanish/api/vocabulary/groups'));
@@ -995,6 +1018,22 @@ function Vocabulary() {
   const advanceCurrentSessionCard = useCallback((completedCard = currentCard, { removeEntry = false } = {}) => {
     if (!completedCard) {
       return;
+    }
+
+    // Instantly update local quest progress
+    setTodayVocabProgress(prev => Math.min(10, prev + 1));
+
+    // Report vocabulary practice towards daily missions & XP on server
+    try {
+      profileFetch(profileApiUrl('/spanish/api/gamification/record-practice'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'vocab_review', count: 1 })
+      }).then(() => {
+        window.dispatchEvent(new CustomEvent('gamification_updated'));
+      }).catch((e) => console.error('Error reporting practice:', e));
+    } catch (e) {
+      console.error('Error dispatching practice:', e);
     }
 
     let nextState = removeEntry
@@ -1973,7 +2012,7 @@ function Vocabulary() {
         </div>
       )}
 
-      
+
       {showGroupManager && (
         <div className="bg-white rounded-2xl shadow-xl p-6 border-2 border-indigo-100 space-y-4">
           <div className="flex items-center justify-between border-b pb-3">
@@ -2182,11 +2221,37 @@ function Vocabulary() {
             </div>
           </div>
 
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
             <div
               className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all"
               style={{ width: `${reviewProgressPercent}%` }}
             />
+          </div>
+
+          {/* Daily Quest Progress Live Banner */}
+          <div className="mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 border border-purple-200 flex items-center justify-between shadow-sm">
+            <div className="flex items-center space-x-2.5">
+              <span className="text-xl">📇</span>
+              <div>
+                <div className="text-xs font-black text-gray-900 flex items-center gap-2">
+                  <span>Миссия на сегодня: Повторение слов</span>
+                  {todayVocabProgress >= 10 && (
+                    <span className="text-[10px] bg-green-500 text-white font-bold px-2 py-0.5 rounded-full">
+                      ✓ Выполнено (+30 XP)
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-gray-600 font-medium">
+                  Повторено сегодня: <strong>{todayVocabProgress}</strong> из 10 карточек
+                </div>
+              </div>
+            </div>
+            <div className="w-24 sm:w-32 bg-gray-200 h-2 rounded-full overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-amber-400 to-purple-600 h-full rounded-full transition-all duration-300"
+                style={{ width: `${Math.min(100, Math.round((todayVocabProgress / 10) * 100))}%` }}
+              />
+            </div>
           </div>
 
           {currentCard.practice_only && (

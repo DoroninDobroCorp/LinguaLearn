@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  X, BookOpen, Bot, Sparkles, Send, Volume2, CheckCircle2, 
+import {
+  X, BookOpen, Bot, Sparkles, Send, Volume2, CheckCircle2,
   AlertTriangle, Lightbulb, ChevronRight, Loader2, ArrowRight,
-  RotateCcw, Copy, Check
+  RotateCcw, Copy, Check, HelpCircle, XCircle
 } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import { soundEngine, speakSpanish } from '../utils/soundEffects';
+import MateoCharacter from './MateoCharacter';
 
 // Simple markdown formatter helper for AI chat messages
 function FormattedMessage({ content }) {
@@ -19,11 +22,8 @@ function FormattedMessage({ content }) {
           return <div key={lIdx} className="h-1.5" />;
         }
 
-        // Bullet line
         const isBullet = line.trim().startsWith('* ') || line.trim().startsWith('- ') || line.trim().startsWith('• ');
         const cleanLine = isBullet ? line.trim().replace(/^[*•\-]\s*/, '') : line;
-
-        // Split line by bold tokens (**bold**)
         const parts = cleanLine.split(/(\*\*.*?\*\*)/g);
 
         return (
@@ -57,9 +57,13 @@ function FormattedMessage({ content }) {
 
 export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, onStartPractice }) {
   const { isDark } = useTheme();
+  const { t, language } = useLanguage();
   const [activeTab, setActiveTab] = useState('theory'); // theory | tutor
   const [theoryData, setTheoryData] = useState(null);
   const [loadingTheory, setLoadingTheory] = useState(true);
+
+  // Quiz state inside theory modal
+  const [quizAnswers, setQuizAnswers] = useState({});
 
   // AI Tutor State
   const [messages, setMessages] = useState([]);
@@ -70,6 +74,7 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
   useEffect(() => {
     if (isOpen && topicId) {
       fetchTheory();
+      setQuizAnswers({});
     }
   }, [isOpen, topicId]);
 
@@ -80,47 +85,27 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
   }, [messages, activeTab]);
 
   const fetchTheory = async () => {
-    setLoadingTheory(true);
     try {
+      setLoadingTheory(true);
       const res = await profileFetch(profileApiUrl(`/spanish/api/curriculum/topics/${topicId}/theory`));
       if (res.ok) {
         const data = await res.json();
-        setTheoryData(data.theory);
-        // Initial tutor welcome message
-        setMessages([
-          {
-            role: 'model',
-            content: `¡Hola! Я твой личный AI-репетитор по теме **«${data.topic?.name || topicName}»** (${data.topic?.level || 'A1'}).\n\nЗадай любой вопрос по правилу, попроси разобрать примеры или дать персональные упражнения!`
-          }
-        ]);
+        setTheoryData(data.theory || null);
       }
-    } catch (err) {
-      console.error('Error fetching theory:', err);
+    } catch (error) {
+      console.error('Error fetching topic theory:', error);
     } finally {
       setLoadingTheory(false);
     }
   };
 
-  const handleSpeak = (text) => {
-    if (!('speechSynthesis' in window)) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'es-ES';
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    } catch (e) {
-      console.warn('Speech synthesis error:', e);
-    }
-  };
+  const handleSendTutorMessage = async (e) => {
+    e?.preventDefault();
+    if (!inputText.trim() || sendingMessage) return;
 
-  const sendMessage = async (textToSend) => {
-    const msg = (textToSend || inputText).trim();
-    if (!msg || sendingMessage) return;
-
+    const userText = inputText.trim();
     setInputText('');
-    const newMessages = [...messages, { role: 'user', content: msg }];
-    setMessages(newMessages);
+    setMessages(prev => [...prev, { role: 'user', content: userText }]);
     setSendingMessage(true);
 
     try {
@@ -128,287 +113,319 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: msg,
-          chatHistory: newMessages
+          message: userText,
+          history: messages
         })
       });
 
       if (res.ok) {
         const data = await res.json();
-        setMessages([...newMessages, { role: 'model', content: data.reply }]);
-      } else {
-        setMessages([...newMessages, { role: 'model', content: 'Не удалось получить ответ от AI-репетитора. Попробуйте еще раз.' }]);
+        setMessages(prev => [...prev, { role: 'model', content: data.reply }]);
       }
-    } catch (err) {
-      console.error('Error sending tutor message:', err);
-      setMessages([...newMessages, { role: 'model', content: 'Ошибка связи с сервером. Попробуйте снова через несколько секунд.' }]);
+    } catch (error) {
+      console.error('Error in tutor chat:', error);
     } finally {
       setSendingMessage(false);
     }
   };
 
-  const clearChat = () => {
-    setMessages([
-      {
-        role: 'model',
-        content: `Диалог очищен! Чем еще могу помочь по теме **«${theoryData?.russianTitle || topicName}»**?`
-      }
-    ]);
+  const handleQuizAnswer = async (qIdx, optIdx, correctIdx) => {
+    if (quizAnswers[qIdx] !== undefined) return;
+    const isCorrect = optIdx === correctIdx;
+    if (isCorrect) soundEngine.playCorrect();
+    else soundEngine.playWrong();
+    setQuizAnswers(prev => ({ ...prev, [qIdx]: optIdx }));
+
+    try {
+      await profileFetch(profileApiUrl('/spanish/api/topics/update'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topicId,
+          success: isCorrect,
+          quality: isCorrect ? 4 : 1,
+          activityType: 'theory_quiz',
+          eventId: globalThis.crypto?.randomUUID?.() || 'theory-' + topicId + '-' + qIdx + '-' + Date.now(),
+        }),
+      });
+      window.dispatchEvent(new CustomEvent('gamification_updated'));
+    } catch (error) {
+      console.error('Error recording theory quiz evidence:', error);
+    }
   };
 
   if (!isOpen) return null;
 
-  const bgModal = isDark ? 'bg-slate-900 text-gray-100' : 'bg-white text-gray-800';
-  const cardBg = isDark ? 'bg-slate-800/90 border-slate-700' : 'bg-slate-50 border-slate-200';
-  const subText = isDark ? 'text-gray-400' : 'text-gray-600';
-  const borderCol = isDark ? 'border-slate-700' : 'border-gray-200';
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-md animate-fade-in overflow-hidden">
-      <div className={`relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl shadow-2xl border ${borderCol} ${bgModal}`}>
-        
-        {/* Modal Header */}
-        <div className={`flex items-center justify-between p-4 sm:p-5 border-b ${borderCol} flex-shrink-0`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
+      <div className="bg-white dark:bg-gray-850 rounded-3xl max-w-4xl w-full h-[90vh] shadow-2xl border border-purple-100 dark:border-gray-700 flex flex-col overflow-hidden relative">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-purple-100 dark:border-gray-700 flex items-center justify-between bg-white/80 dark:bg-gray-800/80 backdrop-blur-md">
           <div className="flex items-center space-x-3">
-            <span className="text-2xl">{theoryData?.icon || '📖'}</span>
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center text-white text-xl shadow-md">
+              {theoryData?.icon || '📖'}
+            </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30">
-                  {theoryData?.level || 'A1'}
-                </span>
-                <span className="text-xs font-semibold text-purple-400">
-                  {theoryData?.category || 'Grammar'}
-                </span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-bold tracking-tight mt-0.5">
+              <h2 className="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white">
                 {theoryData?.russianTitle || topicName}
               </h2>
+              <div className="flex items-center space-x-2 text-xs text-purple-600 dark:text-purple-400 font-semibold">
+                <span>{topicName}</span>
+                {theoryData?.level && (
+                  <span className="bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 rounded-full">
+                    {theoryData.level}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-slate-700/60 transition-all"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className={`flex items-center justify-between border-b ${borderCol} px-4 sm:px-6 bg-slate-800/30 flex-shrink-0`}>
-          <div className="flex">
-            <button
-              onClick={() => setActiveTab('theory')}
-              className={`flex items-center space-x-2 py-3 px-4 text-sm font-semibold border-b-2 transition-all ${
-                activeTab === 'theory'
-                  ? 'border-fuchsia-500 text-fuchsia-400'
-                  : 'border-transparent text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <BookOpen className="h-4 w-4" />
-              <span>Теория и Правила</span>
-            </button>
+        {/* Tab Switcher: Theory vs AI Tutor */}
+        <div className="flex border-b border-purple-100 dark:border-gray-700 px-6 bg-gray-50/80 dark:bg-gray-800/50">
+          <button
+            onClick={() => setActiveTab('theory')}
+            className={`py-3 px-5 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
+              activeTab === 'theory'
+                ? 'border-purple-600 text-purple-600 dark:text-purple-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Интерактивная теория</span>
+          </button>
 
-            <button
-              onClick={() => setActiveTab('tutor')}
-              className={`flex items-center space-x-2 py-3 px-4 text-sm font-semibold border-b-2 transition-all ${
-                activeTab === 'tutor'
-                  ? 'border-purple-500 text-purple-400'
-                  : 'border-transparent text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <Bot className="h-4 w-4" />
-              <span>AI-Репетитор (Чат)</span>
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
-              </span>
-            </button>
-          </div>
-
-          {activeTab === 'tutor' && messages.length > 2 && (
-            <button
-              onClick={clearChat}
-              className="text-xs text-gray-400 hover:text-gray-200 flex items-center space-x-1 py-1 px-2 rounded-lg hover:bg-slate-700/40 transition-all"
-              title="Очистить переписку"
-            >
-              <RotateCcw className="h-3 w-3" />
-              <span className="hidden sm:inline">Очистить</span>
-            </button>
-          )}
+          <button
+            onClick={() => setActiveTab('tutor')}
+            className={`py-3 px-5 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
+              activeTab === 'tutor'
+                ? 'border-purple-600 text-purple-600 dark:text-purple-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Bot className="w-4 h-4" />
+            <span>Чат с репетитором по теме</span>
+          </button>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
           {loadingTheory ? (
-            <div className="flex flex-col items-center justify-center py-16 space-y-3">
-              <Loader2 className="h-8 w-8 text-fuchsia-500 animate-spin" />
-              <p className="text-sm text-gray-400 font-medium">Загрузка правил и материалов...</p>
+            <div className="flex items-center justify-center h-64 text-purple-600">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <span className="ml-3 font-semibold text-sm">Загрузка теории...</span>
             </div>
           ) : activeTab === 'theory' ? (
-            <div className="space-y-6 animate-fade-in">
-              
-              {/* Summary Banner */}
-              {theoryData?.summary && (
-                <div className="p-4 rounded-xl bg-gradient-to-r from-fuchsia-500/10 via-purple-500/10 to-transparent border border-fuchsia-500/30">
-                  <div className="flex items-start space-x-3">
-                    <Lightbulb className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm sm:text-base leading-relaxed font-medium">
-                      {theoryData.summary}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Visual SVG Diagram */}
-              {theoryData?.visualSvg && (
-                <div className="rounded-xl overflow-hidden border border-slate-700/60 shadow-lg bg-slate-950 p-2 sm:p-4">
-                  <div 
-                    className="w-full flex justify-center" 
-                    dangerouslySetInnerHTML={{ __html: theoryData.visualSvg }} 
+            theoryData ? (
+              <div className="space-y-6">
+                {/* Mateo Guide Intro for this Topic */}
+                <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800">
+                  <MateoCharacter
+                    mood="thinking"
+                    speechText={
+                      language === 'ru'
+                        ? `Привет! Давай разберем «${theoryData.russianTitle || topicName}». Я подготовил для тебя схему и проверочный квиз внизу!`
+                        : language === 'es'
+                        ? `¡Hola! Veamos juntos «${theoryData.topicName}». ¡Tengo un esquema y un mini-quiz para ti!`
+                        : `Hello! Let's master "${theoryData.topicName}". I prepared a visual guide and mini-quiz below!`
+                    }
+                    size="sm"
                   />
                 </div>
-              )}
 
-              {/* Detailed Sections */}
-              {theoryData?.sections?.map((sec, idx) => (
-                <div key={idx} className={`p-4 sm:p-5 rounded-xl border ${cardBg} space-y-4`}>
-                  <h3 className="text-base sm:text-lg font-bold text-fuchsia-400 flex items-center space-x-2">
-                    <span>{sec.title}</span>
-                  </h3>
-                  
-                  <div className={`text-sm sm:text-base leading-relaxed whitespace-pre-line ${subText}`}>
-                    {sec.content}
+                {/* Summary Box */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200 dark:border-purple-800/50 text-gray-800 dark:text-gray-200 text-sm sm:text-base leading-relaxed">
+                  💡 <span className="font-semibold">{theoryData.summary}</span>
+                </div>
+
+                {/* Mnemonic Banner */}
+                {theoryData.mnemonicRule && (
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-extrabold text-sm sm:text-base shadow-md flex items-center gap-3">
+                    <span className="text-2xl">🧠</span>
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wider text-amber-200">Золотое правило:</div>
+                      <div>{theoryData.mnemonicRule}</div>
+                    </div>
                   </div>
+                )}
 
-                  {/* Tables if any */}
-                  {sec.tables?.map((table, tIdx) => (
-                    <div key={tIdx} className="overflow-x-auto rounded-lg border border-slate-700/60 mt-3">
-                      <table className="w-full text-left text-xs sm:text-sm">
-                        <thead className="bg-slate-800 text-gray-200 uppercase font-semibold">
-                          <tr>
-                            {table.headers.map((h, hIdx) => (
-                              <th key={hIdx} className="px-3 sm:px-4 py-2.5">{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-700/60 bg-slate-900/50">
-                          {table.rows.map((row, rIdx) => (
-                            <tr key={rIdx} className="hover:bg-slate-800/40">
-                              {row.map((cell, cIdx) => (
-                                <td key={cIdx} className={`px-3 sm:px-4 py-2.5 font-medium ${cIdx === 1 ? 'text-fuchsia-400 font-bold' : ''}`}>
-                                  {cell}
-                                </td>
+                {/* Visual SVG Diagram */}
+                {theoryData.visualSvg && (
+                  <div
+                    className="rounded-2xl overflow-hidden shadow-lg border border-purple-200 dark:border-gray-700 my-4"
+                    dangerouslySetInnerHTML={{ __html: theoryData.visualSvg }}
+                  />
+                )}
+
+                {/* Sections and Tables */}
+                {(theoryData.sections || []).map((sec, sIdx) => (
+                  <div key={sIdx} className="space-y-3 pt-2">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-fuchsia-500" />
+                      {sec.title}
+                    </h3>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {sec.content}
+                    </p>
+
+                    {/* Tables */}
+                    {(sec.tables || []).map((tbl, tIdx) => (
+                      <div key={tIdx} className="overflow-x-auto rounded-2xl border border-purple-100 dark:border-gray-700 shadow-sm my-3">
+                        <table className="w-full text-left text-sm">
+                          <thead className="bg-purple-100 dark:bg-gray-800 text-purple-900 dark:text-purple-200 font-bold">
+                            <tr>
+                              {tbl.headers.map((h, hIdx) => (
+                                <th key={hIdx} className="p-3 whitespace-nowrap">{h}</th>
                               ))}
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ))}
+                          </thead>
+                          <tbody className="divide-y divide-purple-50 dark:divide-gray-700 bg-white dark:bg-gray-850">
+                            {tbl.rows.map((row, rIdx) => (
+                              <tr key={rIdx} className="hover:bg-purple-50/50 dark:hover:bg-gray-800/50 transition-colors">
+                                {row.map((cell, cIdx) => (
+                                  <td key={cIdx} className="p-3 text-gray-800 dark:text-gray-200">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span>{cell}</span>
+                                      {cIdx === 1 && typeof cell === 'string' && cell.length > 1 && (
+                                        <button
+                                          onClick={() => speakSpanish(cell.split('(')[0])}
+                                          className="text-gray-400 hover:text-purple-600 p-1 transition-colors"
+                                          title="Прослушать"
+                                        >
+                                          <Volume2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+                  </div>
+                ))}
 
-                  {/* Key Takeaway */}
-                  {sec.keyTakeaway && (
-                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-start space-x-2.5 text-xs sm:text-sm text-amber-300">
-                      <CheckCircle2 className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                      <span>{sec.keyTakeaway}</span>
+                {/* Trap Alert */}
+                {theoryData.trapAlert && (
+                  <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-sm flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold">⚠️ Осторожно, частая ловушка:</div>
+                      <div className="mt-0.5">{theoryData.trapAlert}</div>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Dialect Notes */}
-                  {sec.dialectNotes && (
-                    <div className="p-3 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-start space-x-2.5 text-xs sm:text-sm text-sky-300">
-                      <Sparkles className="h-4 w-4 text-sky-400 mt-0.5 flex-shrink-0" />
-                      <span>{sec.dialectNotes}</span>
+                {/* Dialect Note */}
+                {theoryData.dialectNote && (
+                  <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-200 text-sm flex items-start gap-3">
+                    <span className="text-xl">🧉</span>
+                    <div>
+                      <div className="font-bold">Колорит и диалекты (Рио-де-ла-Плата / Испания):</div>
+                      <div className="mt-0.5">{theoryData.dialectNote}</div>
                     </div>
-                  )}
-                </div>
-              ))}
+                  </div>
+                )}
 
-              {/* Examples with TTS Audio */}
-              {theoryData?.examples?.length > 0 && (
-                <div className={`p-4 sm:p-5 rounded-xl border ${cardBg} space-y-3`}>
-                  <h3 className="text-base sm:text-lg font-bold text-emerald-400 flex items-center space-x-2">
-                    <span>Примеры предложений с озвучкой</span>
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {theoryData.examples.map((ex, idx) => (
-                      <div key={idx} className="p-3 rounded-lg bg-slate-900/60 border border-slate-700/60 flex items-start justify-between space-x-2">
-                        <div className="space-y-1">
-                          <p className="font-bold text-sm text-gray-100">{ex.es}</p>
-                          <p className="text-xs text-gray-400">{ex.ru}</p>
-                          {ex.note && <p className="text-[11px] text-fuchsia-400 italic">💡 {ex.note}</p>}
+                {/* Quick Check Quiz inside Theory */}
+                {theoryData.quickCheckQuiz && theoryData.quickCheckQuiz.length > 0 && (
+                  <div className="pt-6 border-t border-purple-100 dark:border-gray-700 space-y-4">
+                    <h3 className="text-base font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                      <HelpCircle className="w-5 h-5 text-purple-600" />
+                      Проверь себя прямо сейчас:
+                    </h3>
+
+                    {theoryData.quickCheckQuiz.map((q, qIdx) => {
+                      const answered = quizAnswers[qIdx] !== undefined;
+                      const selectedOpt = quizAnswers[qIdx];
+
+                      return (
+                        <div key={qIdx} className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                          <p className="font-bold text-sm text-gray-900 dark:text-white mb-3">
+                            {qIdx + 1}. {q.question}
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {q.options.map((opt, optIdx) => {
+                              let btnClass = 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:border-purple-400';
+                              if (answered) {
+                                if (optIdx === q.correctIndex) {
+                                  btnClass = 'bg-green-100 dark:bg-green-900/60 border-green-500 text-green-900 dark:text-green-200 font-bold';
+                                } else if (optIdx === selectedOpt) {
+                                  btnClass = 'bg-red-100 dark:bg-red-900/60 border-red-500 text-red-900 dark:text-red-200';
+                                } else {
+                                  btnClass = 'opacity-40';
+                                }
+                              }
+
+                              return (
+                                <button
+                                  key={optIdx}
+                                  onClick={() => handleQuizAnswer(qIdx, optIdx, q.correctIndex)}
+                                  disabled={answered}
+                                  className={`p-3 text-left rounded-xl border text-xs font-semibold transition-all ${btnClass}`}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {answered && (
+                            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 italic">
+                              💡 {q.explanation}
+                            </div>
+                          )}
                         </div>
-                        <button
-                          onClick={() => handleSpeak(ex.es)}
-                          className="p-1.5 rounded-lg bg-slate-800 text-gray-300 hover:text-white hover:bg-fuchsia-600 transition-all flex-shrink-0"
-                          title="Озвучить"
-                        >
-                          <Volume2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
-                </div>
-              )}
-
-              {/* Common Mistakes */}
-              {theoryData?.commonMistakes?.length > 0 && (
-                <div className={`p-4 sm:p-5 rounded-xl border border-red-500/30 bg-red-950/20 space-y-3`}>
-                  <h3 className="text-base sm:text-lg font-bold text-rose-400 flex items-center space-x-2">
-                    <AlertTriangle className="h-5 w-5 text-rose-500" />
-                    <span>Типичные ошибки студентов</span>
-                  </h3>
-                  <div className="space-y-2.5">
-                    {theoryData.commonMistakes.map((m, idx) => (
-                      <div key={idx} className="p-3 rounded-lg bg-slate-900/70 border border-red-500/20 text-xs sm:text-sm space-y-1">
-                        <p className="text-rose-400 line-through font-medium">❌ {m.wrong}</p>
-                        <p className="text-emerald-400 font-bold">✅ {m.right}</p>
-                        <p className="text-gray-300 text-xs">{m.explanation}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-            </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-16 text-gray-500">
+                <BookOpen className="w-12 h-12 text-purple-400 mx-auto mb-3" />
+                <h4 className="font-bold text-gray-800 dark:text-gray-200 text-lg mb-1">
+                  Теория по теме «{topicName}»
+                </h4>
+                <p className="text-sm max-w-md mx-auto mb-4">
+                  Вы можете задать любой вопрос нашему AI-репетитору во вкладке «Чат с репетитором»!
+                </p>
+                <button
+                  onClick={() => setActiveTab('tutor')}
+                  className="px-6 py-2.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-bold rounded-xl shadow"
+                >
+                  Спросить у AI-репетитора 🤖
+                </button>
+              </div>
+            )
           ) : (
-            /* AI TUTOR CHAT TAB */
-            <div className="flex flex-col h-full space-y-4 animate-fade-in">
-              {/* Tutor Suggestions */}
-              {theoryData?.tutorSuggestions?.length > 0 && messages.length <= 2 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase text-purple-400 tracking-wider">
-                    Быстрые вопросы репетитору:
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {theoryData.tutorSuggestions.map((sug, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => sendMessage(sug)}
-                        className="text-xs px-3 py-1.5 rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 transition-all text-left active:scale-95"
-                      >
-                        ✨ {sug}
-                      </button>
-                    ))}
+            /* AI Tutor Chat Tab */
+            <div className="flex flex-col h-full space-y-4">
+              <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                <div className="flex justify-start">
+                  <div className="max-w-[85%] rounded-2xl p-4 bg-purple-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-purple-200 dark:border-gray-700">
+                    ¡Hola! Я твой личный репетитор по теме «{topicName}». Готов разобрать любые вопросы, привести примеры или дать тренировочные упражнения. Чем могу помочь?
                   </div>
                 </div>
-              )}
 
-              {/* Messages Container */}
-              <div className="flex-1 space-y-3 min-h-[300px]">
-                {messages.map((m, idx) => (
+                {messages.map((m, i) => (
                   <div
-                    key={idx}
+                    key={i}
                     className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[88%] sm:max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                      className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${
                         m.role === 'user'
-                          ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white rounded-br-none shadow-md'
-                          : 'bg-slate-800 text-gray-100 rounded-bl-none border border-slate-700/80 shadow-md'
+                          ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white'
+                          : 'bg-purple-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-purple-200 dark:border-gray-700'
                       }`}
                     >
                       <FormattedMessage content={m.content} />
@@ -418,69 +435,58 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
 
                 {sendingMessage && (
                   <div className="flex justify-start">
-                    <div className="bg-slate-800 text-gray-300 rounded-2xl rounded-bl-none px-4 py-3 border border-slate-700 flex items-center space-x-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
-                      <span className="text-xs">Репетитор формулирует ответ...</span>
+                    <div className="bg-purple-50 dark:bg-gray-800 rounded-2xl p-4 flex items-center space-x-2">
+                      <Loader2 className="w-5 h-5 animate-spin text-purple-600" />
+                      <span className="text-xs text-gray-500">Репетитор думает...</span>
                     </div>
                   </div>
                 )}
                 <div ref={chatBottomRef} />
               </div>
-            </div>
-          )}
-        </div>
 
-        {/* Modal Footer */}
-        <div className={`p-4 border-t ${borderCol} bg-slate-900/60 flex-shrink-0 flex items-center justify-between gap-3`}>
-          {activeTab === 'tutor' ? (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                sendMessage();
-              }}
-              className="flex-1 flex items-center space-x-2"
-            >
-              <input
-                type="text"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder="Спроси у репетитора что угодно по этой теме..."
-                className="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-sm text-gray-100 placeholder-gray-400 focus:outline-none focus:border-purple-500 transition-all"
-              />
-              <button
-                type="submit"
-                disabled={!inputText.trim() || sendingMessage}
-                className="p-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white hover:from-purple-600 hover:to-fuchsia-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                <Send className="h-4 w-4" />
-              </button>
-            </form>
-          ) : (
-            <div className="w-full flex justify-between items-center">
-              <button
-                onClick={() => setActiveTab('tutor')}
-                className="flex items-center space-x-2 text-xs sm:text-sm font-semibold text-purple-400 hover:text-purple-300 transition-all"
-              >
-                <Bot className="h-4 w-4" />
-                <span>Задать вопрос AI-репетитору</span>
-              </button>
-
-              {onStartPractice && (
+              <form onSubmit={handleSendTutorMessage} className="flex gap-2 pt-2 border-t border-purple-100 dark:border-gray-700">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder={`Спроси что угодно по теме ${topicName}...`}
+                  disabled={sendingMessage}
+                  className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-purple-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:outline-none text-sm text-gray-900 dark:text-white"
+                />
                 <button
-                  onClick={() => {
-                    onClose();
-                    onStartPractice(topicId);
-                  }}
-                  className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-bold text-sm shadow-lg hover:from-fuchsia-600 hover:to-purple-700 transition-all"
+                  type="submit"
+                  disabled={!inputText.trim() || sendingMessage}
+                  className="p-3 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white rounded-xl shadow disabled:opacity-50"
                 >
-                  <span>Тренировать тему</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <Send className="w-5 h-5" />
                 </button>
-              )}
+              </form>
             </div>
           )}
         </div>
 
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-purple-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/80 dark:bg-gray-800/80">
+          <button
+            onClick={onClose}
+            className="px-5 py-2 text-gray-600 dark:text-gray-300 font-bold text-sm hover:underline"
+          >
+            Закрыть
+          </button>
+
+          {onStartPractice && (
+            <button
+              onClick={() => {
+                onClose();
+                onStartPractice();
+              }}
+              className="px-6 py-2.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition-transform active:scale-95 text-sm flex items-center gap-2"
+            >
+              <span>Перейти к практике</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

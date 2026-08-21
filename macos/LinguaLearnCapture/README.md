@@ -119,8 +119,8 @@ Installer ничего не запускает автоматически. Сн�
 После установки:
 
 1. Откройте `~/Library/Application Support/LinguaLearnCapture/config.json`.
-2. Заполните `apiURL`, `appURL` и `bearerToken`; не меняйте сгенерированный `ingressToken` без необходимости.
-3. Запустите `~/Applications/LinguaLearnCapture.app`.
+2. Заполните `apiURL` и `appURL`; не меняйте сгенерированный `ingressToken` без необходимости. Поле `bearerToken` в файле намеренно остаётся `CHANGE_ME`.
+3. Запустите `~/Applications/LinguaLearnCapture.app` и выберите в меню `Pair This Mac…`: device token хранится только в macOS Keychain. Старый plaintext token автоматически переносится в Keychain и удаляется из config при первом запуске.
 4. Разрешите Accessibility и Input Monitoring в System Settings → Privacy & Security. Первое нужно только для focused composer/Send control, второе — для Return/click/preview-hotkey events; агент не ведёт keylog и не восстанавливает текст из отдельных клавиш. Агент появляется только в menu bar (`LSUIElement`), в Dock его нет.
 5. В Codex откройте `/hooks`, проверьте точную команду и trust hook.
 
@@ -128,7 +128,9 @@ Installer ничего не запускает автоматически. Сн�
 
 ## Popup и управление
 
-После подтверждённой отправки сразу появляется `Checking your English…`, поэтому долгая работа Gemini не выглядит как потерянное событие. Готовый popup не активирует приложение-источник и показывает original, better/correct version, до трёх объяснений, grammar topic chips и кнопки Copy corrected / Open LinguaLearn / Keep open / Dismiss. Результат закрывается через 6 секунд; `Keep open` останавливает таймер до ручного Dismiss. Pending backlog ограничен 20 свежими результатами. По умолчанию карточка появляется и для правильного предложения (`showOnlyWhenChanged: false`).
+Автоматический capture работает в фоне и не показывает большой `Checking…` и не забирает focus. При объективной grammar/usage ошибке появляется подробная карточка original/corrected/reasons; при `correct`, `acceptable` и `mechanical_only` — только маленький `Grammar OK ✓` на 1,8 секунды. Success-chip не копится в очередь: свежий заменяет устаревший. Подробная карточка закрывается через 6 секунд; `Keep open` останавливает таймер.
+
+По умолчанию success-chip включён (`showOnlyWhenChanged: false`). Чтобы полностью скрыть подтверждения для правильных/механических случаев, установите `showOnlyWhenChanged: true`; подробные объективные ошибки всё равно показываются.
 
 ### Проверка черновика до отправки
 

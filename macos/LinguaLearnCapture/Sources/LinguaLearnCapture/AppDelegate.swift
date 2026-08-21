@@ -264,6 +264,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         setStatus("Capturing • queue \(coordinator?.queueDepth ?? 0)")
 
+        if response.isClearError == false && configuration?.showOnlyWhenChanged == true {
+            popupController.finishAnalyzingWithoutPopup(eventID: event.eventID)
+            return
+        }
+
         let appURL = try? configuration?.validatedAppURL()
         popupController.enqueue(event: event, response: response, appURL: appURL ?? nil, isPreviewHotkey: false)
     }
@@ -421,8 +426,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if response == .alertFirstButtonReturn {
             let newToken = inputTextField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !newToken.isEmpty else { return }
-
-            _ = KeychainTokenStorage.saveToken(newToken)
 
             if var config = configuration {
                 config.bearerToken = newToken

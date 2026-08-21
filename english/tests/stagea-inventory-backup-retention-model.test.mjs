@@ -53,7 +53,10 @@ describe('Stage A: Inventory, Backup, Retention, Model & OpenAPI Specification',
     assert.match(output, /backup created/i, 'Backup output must confirm creation');
 
     // Verify latest backup file in backupDir
-    const files = fs.readdirSync(backupDir).filter((f) => f.endsWith('.db') || f.endsWith('.sqlite') || f.includes('backup'));
+    const files = fs.readdirSync(backupDir).filter((f) => {
+      const candidate = path.join(backupDir, f);
+      return fs.statSync(candidate).isFile() && f.startsWith('english_learning_') && f.endsWith('.db');
+    });
     assert.ok(files.length > 0, `At least one backup file must exist in ${backupDir}`);
 
     const latestBackup = path.join(backupDir, files.sort().pop());

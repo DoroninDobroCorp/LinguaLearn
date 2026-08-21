@@ -1336,11 +1336,10 @@ export function setVocabularyPermanentlyLearned(db, profileId, entryId, learned,
   }
   return db.transaction(() => {
     const result = db.prepare(`
-      UPDATE vocabulary 
-      SET learned_permanently_at = ?,
-          is_favorite = CASE WHEN ? = 1 THEN 0 ELSE is_favorite END
+      UPDATE vocabulary
+      SET learned_permanently_at = ?
       WHERE id = ? AND profile_id = ?
-    `).run(learned ? toIso(now) : null, learned ? 1 : 0, entryId, profileId);
+    `).run(learned ? toIso(now) : null, entryId, profileId);
     if (result.changes === 0) {
       throw new VocabularyApiError(404, 'Vocabulary entry not found', 'VOCAB_NOT_FOUND');
     }
