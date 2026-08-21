@@ -5,7 +5,7 @@
 - **Date**: 2026-08-21
 - **Platform Architecture**: .NET 8.0 (`net8.0-windows`) / WPF / Windows Forms / UIAutomation
 - **Target OS**: Windows 11 / Windows 10 (x64 / ARM64)
-- **Git Commit SHA**: `ad7915c4aee3c877b7f16e0036af1691b209fb8f`
+- **Git Commit SHA**: `076d201350daa332026e01d74388ca0eac2ae7af` (branch `main`)
 - **Solution File**: `windows/LinguaLearnAgent.sln`
 - **Primary Projects**:
   - `windows/LinguaLearnAgent/LinguaLearnAgent.csproj` (Desktop Agent App)

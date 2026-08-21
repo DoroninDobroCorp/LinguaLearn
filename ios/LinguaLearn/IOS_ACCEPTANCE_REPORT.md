@@ -10,7 +10,7 @@
 - **Bundle Identifier Prefix**: `ai.factory.lingualearn`
 - **App Group Identifier**: `group.ai.factory.lingualearn`
 - **Keychain Access Group**: `$(AppIdentifierPrefix)group.ai.factory.lingualearn`
-- **Git Commit**: `ad7915c4aee3c877b7f16e0036af1691b209fb8f`
+- **Git Commit**: `076d201350daa332026e01d74388ca0eac2ae7af` (branch `main`)
 
 ---
 

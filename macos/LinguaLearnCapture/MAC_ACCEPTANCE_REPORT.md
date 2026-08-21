@@ -6,7 +6,7 @@
 - **Host Operating System**: macOS 26.0 (Darwin 25.0.0 arm64, Target: arm64-apple-macosx26.0)
 - **Xcode Version**: Xcode 17C529 / Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2)
 - **Target Architecture**: `arm64` (Apple Silicon)
-- **Git Commit SHA**: `ad7915c4aee3c877b7f16e0036af1691b209fb8f`
+- **Git Commit SHA**: `076d201350daa332026e01d74388ca0eac2ae7af` (branch `main`)
 - **Output App Bundle**: `macos/LinguaLearnCapture/.build/app/LinguaLearnCapture.app`
 - **Codesigning Identity**: Stable Apple Development signature (`13E22B47BC43869B3C1DD847CA1F212972E64DEB`) preserving Accessibility & Input Monitoring trust across rebuilds
 - **Doctor Diagnostic Output**: PASS on all automated checks (`Scripts/doctor.sh`)
