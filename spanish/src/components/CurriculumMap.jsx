@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   ChevronDown, ChevronRight, CheckCircle2, Circle,
   TrendingUp, Filter, Map, Sparkles, Trophy, Award, GraduationCap, Compass,
@@ -52,7 +53,11 @@ function StatusIcon({ status, score, isLocked }) {
 export default function CurriculumMap() {
   const { isDark } = useTheme();
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState('all_topics'); // 'all_topics' | 'a1_map' | 'checkpoints' | 'skills' | 'vocab_domains'
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const topicParam = searchParams.get('topic');
+
+  const [activeTab, setActiveTab] = useState(tabParam && ['all_topics', 'a1_map', 'checkpoints', 'skills', 'vocab_domains'].includes(tabParam) ? tabParam : 'all_topics');
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedLevels, setExpandedLevels] = useState({ 'A1': true, 'A2': true, 'B1': false, 'B2': false, 'C1': false, 'C2': false });
@@ -81,6 +86,22 @@ export default function CurriculumMap() {
   useEffect(() => {
     fetchTopics();
   }, []);
+
+  useEffect(() => {
+    if (tabParam && ['all_topics', 'a1_map', 'checkpoints', 'skills', 'vocab_domains'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  useEffect(() => {
+    if (topicParam && topics.length > 0) {
+      const target = topics.find(t => String(t.id) === String(topicParam));
+      if (target) {
+        setSelectedTopicId(target.id);
+        setSelectedTopicName(target.name);
+      }
+    }
+  }, [topicParam, topics]);
 
   const toggleLevel = (level) => {
     setExpandedLevels(prev => ({ ...prev, [level]: !prev[level] }));
