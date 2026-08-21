@@ -71,10 +71,16 @@ describe('A1 adaptive mastery engine', () => {
     const id = topicId(db);
     const day = new Date('2026-01-01T10:00:00Z');
     const first = recordA1Attempt(db, 1, { topicId: id, eventId: 'evt-1', correct: true, quality: 5 }, day);
+    const scheduledReview = first.state.nextReviewAt;
+    const extraPractice = recordA1Attempt(db, 1, { topicId: id, eventId: 'evt-extra', correct: true, quality: 5 }, day);
+    assert.equal(first.retentionCredit, true);
+    assert.equal(extraPractice.retentionCredit, false);
+    assert.equal(extraPractice.state.nextReviewAt, scheduledReview);
+    assert.match(extraPractice.feedbackRu, /не переносится/);
     const replay = recordA1Attempt(db, 1, { topicId: id, eventId: 'evt-1', correct: true, quality: 5 }, day);
     assert.equal(first.replayed, false);
     assert.equal(replay.replayed, true);
-    for (let index = 2; index <= 12; index += 1) {
+    for (let index = 2; index <= 11; index += 1) {
       recordA1Attempt(db, 1, { topicId: id, eventId: `evt-${index}`, correct: true, quality: 5 }, day);
     }
     const state = getA1CourseSnapshot(db, 1, day).units[0].topics[0];
@@ -133,17 +139,48 @@ describe('A1 adaptive mastery engine', () => {
     assert.equal(snapshot.vocabulary.target, 650);
   });
 
-  it('puts due work first and suppresses new material when the backlog is high', () => {
+  it('keeps overdue reviews first without blocking optional new material or a deeper study pace', () => {
     const db = createDb();
-    const ids = db.prepare("SELECT id FROM curriculum_topics WHERE level = 'A1' ORDER BY id LIMIT 9").all();
-    ids.forEach((row, index) => {
-      recordA1Attempt(db, 1, { topicId: row.id, eventId: `due-${index}`, correct: true }, new Date('2026-05-01T00:00:00Z'));
-    });
+    getA1CourseSnapshot(db, 1, new Date('2026-05-01T00:00:00Z'));
+    const rows = db.prepare("SELECT id, name FROM curriculum_topics WHERE level = 'A1' ORDER BY id").all();
+    const firstUnitNames = new Set(A1_UNITS[0].topics);
+    for (const row of rows.filter((topic) => firstUnitNames.has(topic.name))) {
+      db.prepare(`UPDATE a1_topic_mastery SET phase = 'learning', mastery_score = 45, next_review_at = ? WHERE profile_id = 1 AND topic_id = ?`)
+        .run('2026-04-30T00:00:00Z', row.id);
+    }
+    for (const row of rows.filter((topic) => !A1_UNITS[1].topics.includes(topic.name)).slice(0, 9)) {
+      db.prepare(`UPDATE a1_topic_mastery SET phase = 'learning', mastery_score = 45, next_review_at = ? WHERE profile_id = 1 AND topic_id = ?`)
+        .run('2026-04-30T00:00:00Z', row.id);
+    }
+
     const now = new Date('2026-05-03T00:00:00Z');
-    const plan = getA1TodayPlan(db, 1, now);
-    assert.equal(plan.actions[0].kind, 'grammar_review');
-    assert.equal(plan.course.reviewBacklogHigh, true);
-    assert.equal(plan.course.nextNewTopic, null);
-    assert.notEqual(plan.actions[1].kind, 'new_topic');
+    const quick = getA1TodayPlan(db, 1, now, { targetMinutes: 15 });
+    const deep = getA1TodayPlan(db, 1, now, { targetMinutes: 60 });
+    assert.equal(quick.actions[0].kind, 'grammar_review');
+    assert.equal(quick.course.reviewBacklogHigh, true);
+    assert.ok(quick.course.nextNewTopic, 'new material remains available to an intensive learner');
+    assert.ok(quick.continueOptions.some((action) => action.kind === 'new_topic'));
+    assert.equal(deep.targetMinutes, 60);
+    assert.ok(deep.actions.length > quick.actions.length);
+    assert.equal(deep.pace.unlimited, true);
   });
+
+  it('cannot certify mastery before fourteen calendar days even when every review is forced due', () => {
+    const db = createDb();
+    const id = topicId(db);
+    const days = [0, 2, 5, 9, 13];
+    days.forEach((offset, index) => {
+      if (index > 0) db.prepare('UPDATE a1_topic_mastery SET next_review_at = ? WHERE profile_id = 1 AND topic_id = ?').run('2000-01-01T00:00:00Z', id);
+      recordA1Attempt(db, 1, { topicId: id, eventId: `forced-${index}`, correct: true, quality: 5 }, new Date(Date.UTC(2026, 5, 1 + offset, 10)));
+    });
+    let state = getA1CourseSnapshot(db, 1, new Date('2026-06-14T10:00:00Z')).units[0].topics[0];
+    assert.notEqual(state.phase, 'mastered');
+    assert.equal(state.learningSpanDays, 13);
+    db.prepare('UPDATE a1_topic_mastery SET next_review_at = ? WHERE profile_id = 1 AND topic_id = ?').run('2000-01-01T00:00:00Z', id);
+    recordA1Attempt(db, 1, { topicId: id, eventId: 'day-15', correct: true, quality: 5 }, new Date('2026-06-15T10:00:00Z'));
+    state = getA1CourseSnapshot(db, 1, new Date('2026-06-15T10:00:00Z')).units[0].topics[0];
+    assert.equal(state.phase, 'mastered');
+    assert.equal(state.learningSpanDays, 14);
+  });
+
 });

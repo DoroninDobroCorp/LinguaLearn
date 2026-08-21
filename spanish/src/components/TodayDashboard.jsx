@@ -16,11 +16,15 @@ export default function TodayDashboard() {
   const [recommendations, setRecommendations] = useState(null);
   const [a1Stats, setA1Stats] = useState({ mastered: 0, total: 30, percent: 0 });
   const [loading, setLoading] = useState(true);
+  const [targetMinutes, setTargetMinutes] = useState(() => {
+    const saved = Number(globalThis.localStorage?.getItem('spanish_daily_pace_minutes'));
+    return [15, 30, 60].includes(saved) ? saved : 30;
+  });
 
   const fetchRecommendations = async () => {
     try {
       setLoading(true);
-      const res = await profileFetch(profileApiUrl(`/spanish/api/recommendations/today?lang=${language}`));
+      const res = await profileFetch(profileApiUrl(`/spanish/api/recommendations/today?lang=${language}&minutes=${targetMinutes}`));
       if (res.ok) {
         const data = await res.json();
         setRecommendations(data);
@@ -44,18 +48,21 @@ export default function TodayDashboard() {
     const handleUpdate = () => fetchRecommendations();
     window.addEventListener('gamification_updated', handleUpdate);
     return () => window.removeEventListener('gamification_updated', handleUpdate);
-  }, [language]);
+  }, [language, targetMinutes]);
 
   const gamification = recommendations?.gamification || {};
   const steps = recommendations?.steps || [];
   const dailyQuests = gamification?.dailyQuests || [];
+  const primaryAction = recommendations?.primaryAction;
+  const continueOptions = recommendations?.continueOptions || [];
+  const plannedMinutes = recommendations?.plannedMinutes || targetMinutes;
   const remainingPercent = 100 - a1Stats.percent;
 
   const mateoSpeech = language === 'ru'
-    ? `Привет! Я Матео. До полного освоения A1 осталось ${remainingPercent}%. Давай выполним 3 шага на сегодня!`
+    ? `Я покажу лучший следующий шаг. План примерно на ${plannedMinutes} минут, но заниматься можно сколько угодно.`
     : language === 'es'
-    ? `¡Hola! Soy Mateo. Queda un ${remainingPercent}% para completar A1. ¡Hagamos los 3 pasos de hoy!`
-    : `Hello! I'm Mateo. You have ${remainingPercent}% left to master A1. Let's do today's 3 steps!`;
+    ? `Te mostraré el siguiente mejor paso. El plan dura unos ${plannedMinutes} minutos, pero puedes seguir todo lo que quieras.`
+    : `I’ll show your best next step. The plan is about ${plannedMinutes} minutes, with no daily limit.`;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn space-y-8">
@@ -109,7 +116,7 @@ export default function TodayDashboard() {
               <span>{t('today_a1_progress_title', 'Прогресс уровня A1')}</span>
             </div>
             <h3 className="text-xl font-black text-gray-900 dark:text-white mt-0.5">
-              {a1Stats.percent}% {t('status_mastered', 'Освоено')}
+              {a1Stats.percent}% {t('today_readiness', 'готовности к завершению')}
               <span className="text-sm font-normal text-gray-500 ml-2">
                 ({a1Stats.mastered} из {a1Stats.total} тем) • {language === 'ru' ? `Осталось ${remainingPercent}%` : `${remainingPercent}% remaining`}
               </span>
@@ -134,7 +141,39 @@ export default function TodayDashboard() {
         </div>
       </div>
 
-      {/* 3. Today's Recommended 3-Step Flow */}
+      {/* 3. Flexible pace and the single best next action */}
+      <div className="glass-card rounded-3xl p-5 border border-purple-100 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 shadow-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-black uppercase tracking-wider text-purple-600">Темп на сегодня</div>
+            <div className="text-sm text-gray-600 dark:text-gray-300">Это ориентир, не лимит. Можно остановиться раньше или продолжать часами.</div>
+          </div>
+          <div className="flex gap-2" role="group" aria-label="Желаемая длительность занятия">
+            {[15, 30, 60].map((minutes) => (
+              <button key={minutes} onClick={() => { setTargetMinutes(minutes); globalThis.localStorage?.setItem('spanish_daily_pace_minutes', String(minutes)); }} className={`px-4 py-2 rounded-xl text-xs font-bold ${targetMinutes === minutes ? 'bg-purple-600 text-white' : 'bg-purple-50 dark:bg-gray-700 text-purple-700 dark:text-purple-200'}`}>
+                {minutes} мин
+              </button>
+            ))}
+          </div>
+        </div>
+        {primaryAction && (
+          <div className="rounded-2xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="text-[11px] uppercase font-black tracking-wider text-purple-100">Следующий лучший шаг</div>
+              <div className="text-lg font-black mt-1">{primaryAction.titleRu}</div>
+              <div className="text-xs text-purple-100 mt-1">{primaryAction.rationaleRu}</div>
+            </div>
+            <button onClick={() => navigate(primaryAction.actionUrl)} className="px-5 py-3 rounded-xl bg-white text-purple-700 font-black text-sm shadow whitespace-nowrap flex items-center gap-2 justify-center">
+              Начать • ~{primaryAction.minutes} мин <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          Статус «освоено» нельзя получить за один день: ранняя практика полезна, но зачёт удержания требует повторений в разные дни и минимум 14 дней.
+        </div>
+      </div>
+
+      {/* Recommended route */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2.5">
@@ -142,11 +181,11 @@ export default function TodayDashboard() {
             {t('today_recommended_title', 'Твой маршрут на сегодня')}
           </h2>
           <span className="text-xs text-purple-600 dark:text-purple-400 font-bold bg-purple-100 dark:bg-purple-900/60 px-3 py-1 rounded-full">
-            {t('today_recommended_time', '~15 минут на всё')}
+            ~{plannedMinutes} минут • без лимита
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {steps.map((step, idx) => {
             const isDone = Boolean(step.isCompleted);
             return (
@@ -217,6 +256,19 @@ export default function TodayDashboard() {
             );
           })}
         </div>
+
+        {continueOptions.length > 0 && (
+          <div className="mt-5 rounded-2xl border border-dashed border-purple-300 dark:border-purple-700 p-4">
+            <div className="font-black text-sm text-gray-900 dark:text-white mb-2">Хочешь заниматься дальше?</div>
+            <div className="flex flex-wrap gap-2">
+              {continueOptions.map((action) => (
+                <button key={`${action.kind}-${action.actionUrl}`} onClick={() => navigate(action.actionUrl)} className="px-3 py-2 rounded-xl bg-purple-50 dark:bg-gray-700 text-purple-700 dark:text-purple-200 text-xs font-bold hover:bg-purple-100">
+                  {action.titleRu} • ~{action.minutes} мин
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 4. Daily Quests Progress Card */}

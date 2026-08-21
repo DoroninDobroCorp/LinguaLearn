@@ -132,8 +132,11 @@ export default function CurriculumMap() {
     return acc;
   }, {});
 
+  const isTopicMastered = (topic) => topic.level === 'A1'
+    ? topic.status === 'mastered'
+    : Boolean(topic.is_locked || topic.status === 'mastered' || topic.score >= 80);
   const totalTopicsCount = topics.length || 158;
-  const masteredTotal = topics.filter(t => t.is_locked || t.status === 'mastered' || t.score >= 80).length;
+  const masteredTotal = topics.filter(isTopicMastered).length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn space-y-6">
@@ -298,7 +301,7 @@ export default function CurriculumMap() {
           {Object.keys(LEVEL_CONFIG).map((level) => {
             const levelTopics = (groupedByLevel[level] || []).filter(t => {
               if (filterCategory !== 'all' && t.category !== filterCategory) return false;
-              if (filterStatus === 'mastered' && !(t.is_locked || t.status === 'mastered' || t.score >= 80)) return false;
+              if (filterStatus === 'mastered' && !isTopicMastered(t)) return false;
               if (filterStatus === 'in_progress' && (t.status !== 'in_progress' && t.score < 10)) return false;
               if (filterStatus === 'not_started' && (t.status === 'mastered' || t.score > 0)) return false;
               return true;
@@ -306,7 +309,7 @@ export default function CurriculumMap() {
 
             const isExpanded = expandedLevels[level];
             const cfg = LEVEL_CONFIG[level];
-            const masteredInLevel = (groupedByLevel[level] || []).filter(t => t.is_locked || t.status === 'mastered' || t.score >= 80).length;
+            const masteredInLevel = (groupedByLevel[level] || []).filter(isTopicMastered).length;
             const totalInLevel = (groupedByLevel[level] || []).length;
 
             return (

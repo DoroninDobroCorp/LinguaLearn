@@ -4,7 +4,7 @@ import { getA1TodayPlan } from './a1CourseEngine.js';
 import { PRESET_STORIES } from './storiesData.js';
 import { PRESET_SCENARIOS } from './scenariosData.js';
 
-export function getTodayRecommendations(db, profileId, lang = 'ru') {
+export function getTodayRecommendations(db, profileId, lang = 'ru', options = {}) {
   const gamification = getGamificationStatus(db, profileId, lang);
   const isRu = lang === 'ru';
   const isEs = lang === 'es';
@@ -212,7 +212,7 @@ export function getTodayRecommendations(db, profileId, lang = 'ru') {
   // The adaptive A1 scheduler owns the recommended order. The legacy coach
   // still supplies stories/scenarios and gamification metadata, but it cannot
   // move a new lesson ahead of overdue spaced reviews.
-  const adaptive = getA1TodayPlan(db, profileId);
+  const adaptive = getA1TodayPlan(db, profileId, new Date(), options);
   const adaptiveSteps = adaptive.actions.map((action, index) => ({
     stepNumber: index + 1,
     tag: action.kind === 'grammar_review'
@@ -236,6 +236,11 @@ export function getTodayRecommendations(db, profileId, lang = 'ru') {
     gamification,
     steps: adaptiveSteps,
     course: adaptive.course,
+    primaryAction: adaptive.primaryAction,
+    continueOptions: adaptive.continueOptions,
+    pace: adaptive.pace,
+    targetMinutes: adaptive.targetMinutes,
+    plannedMinutes: adaptive.plannedMinutes,
     summary: {
       dueCardsCount,
       activeStory,

@@ -5,7 +5,6 @@ import {
   getA1CourseSnapshot,
   getA1TodayPlan,
   recordA1Attempt,
-  recordA1SkillEvidence,
   recordA1CheckpointSubmission,
   getA1CheckpointByUnit,
   getAllA1Checkpoints,
@@ -15,6 +14,7 @@ import {
   getA1VocabularyByUnit,
   seedCoreA1Vocabulary,
 } from './a1CourseEngine.js';
+import { evaluateA1SkillSubmission, publicA1SkillTask } from './a1SkillEvaluator.js';
 import { PRESET_STORIES } from './storiesData.js';
 import { PRESET_SCENARIOS } from './scenariosData.js';
 import { PRESET_WORD_TILES, PRESET_ERROR_DETECTIVES, SPEED_MATCH_PAIRS } from './gameExercises.js';
@@ -626,6 +626,7 @@ const vocabularyImportJsonParser = express.json({
   },
 });
 const vocabularyStudySessionJsonParser = express.json({ limit: '2mb' });
+const a1SkillEvaluationJsonParser = express.json({ limit: '6mb' });
 
 app.use((req, res, next) => {
   if (req.path === '/api/vocabulary/import') {
@@ -633,6 +634,9 @@ app.use((req, res, next) => {
   }
   if (req.path === '/api/vocabulary/study-session' && req.method === 'PUT') {
     return vocabularyStudySessionJsonParser(req, res, next);
+  }
+  if (/^\/api\/a1\/skills\/[^/]+\/[^/]+\/evaluate$/.test(req.path) && req.method === 'POST') {
+    return a1SkillEvaluationJsonParser(req, res, next);
   }
 
   return defaultJsonParser(req, res, next);
@@ -647,6 +651,9 @@ app.use((error, req, res, next) => {
   }
   if (req.path === '/api/vocabulary/study-session' && error?.type === 'entity.too.large') {
     return res.status(413).json({ error: 'Vocabulary study session is too large.', code: 'STUDY_STATE_TOO_LARGE' });
+  }
+  if (req.path.includes('/api/a1/skills/') && error?.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Аудиозапись слишком большая.', code: 'A1_SKILL_SUBMISSION_TOO_LARGE' });
   }
 
   return next(error);
@@ -2432,7 +2439,7 @@ app.get('/api/a1/course', (req, res) => {
 
 app.get('/api/a1/today', (req, res) => {
   try {
-    res.json(getA1TodayPlan(db, getProfileId(req)));
+    res.json(getA1TodayPlan(db, getProfileId(req), new Date(), { targetMinutes: req.query.minutes }));
   } catch (error) {
     console.error('Error building A1 today plan:', error);
     res.status(500).json({ error: error.message });
@@ -2453,14 +2460,23 @@ app.post('/api/a1/attempts', (req, res) => {
 });
 
 app.post('/api/a1/skill-evidence', (req, res) => {
+  res.status(403).json({
+    error: 'Прямое выставление баллов отключено. Используйте проверяемое задание.',
+    code: 'DIRECT_SKILL_EVIDENCE_DISABLED',
+  });
+});
+
+app.post('/api/a1/skills/:skill/:taskId/evaluate', async (req, res) => {
   try {
-    const result = recordA1SkillEvidence(db, getProfileId(req), req.body || {});
-    res.status(result.replayed ? 200 : 201).json(result);
+    const result = await evaluateA1SkillSubmission(
+      db, getProfileId(req), req.params.skill, req.params.taskId, req.body || {}
+    );
+    res.status(result.evidence?.replayed ? 200 : 201).json(result);
   } catch (error) {
-    console.error('Error recording A1 skill evidence:', error);
+    console.error('Error evaluating A1 skill submission:', error);
     res.status(Number(error.status) || 500).json({
       error: error.message,
-      code: error.code || 'A1_SKILL_EVIDENCE_ERROR',
+      code: error.code || 'A1_SKILL_EVALUATION_ERROR',
     });
   }
 });
@@ -2546,7 +2562,7 @@ app.get('/api/a1/skills/:skill', (req, res) => {
   try {
     const skill = req.params.skill;
     const tasks = getA1SkillTasks(skill);
-    res.json({ skill, tasks });
+    res.json({ skill, tasks: tasks.map(publicA1SkillTask) });
   } catch (error) {
     console.error('Error fetching skill tasks:', error);
     res.status(500).json({ error: error.message });
@@ -2557,7 +2573,7 @@ app.get('/api/a1/skills/:skill/tasks', (req, res) => {
   try {
     const skill = req.params.skill;
     const tasks = getA1SkillTasks(skill);
-    res.json({ skill, tasks });
+    res.json({ skill, tasks: tasks.map(publicA1SkillTask) });
   } catch (error) {
     console.error('Error fetching skill tasks:', error);
     res.status(500).json({ error: error.message });
@@ -3392,7 +3408,7 @@ app.get('/api/recommendations/today', (req, res) => {
   try {
     const profileId = getProfileId(req);
     const lang = req.query.lang || req.headers['x-ui-lang'] || 'ru';
-    const result = getTodayRecommendations(db, profileId, lang);
+    const result = getTodayRecommendations(db, profileId, lang, { targetMinutes: req.query.minutes });
     res.json(result);
   } catch (error) {
     console.error('Error fetching today recommendations:', error);

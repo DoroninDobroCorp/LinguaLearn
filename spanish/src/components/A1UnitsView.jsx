@@ -185,7 +185,7 @@ export default function A1UnitsView({ onOpenTheory, onOpenExercises, onOpenCheck
             const coverUrl = getAssetUrl(`/a1/media/${coverFilename}`);
             const unitPercent = unit.percent || 0;
             const unitTopics = unit.topics || [];
-            const masteredCount = unitTopics.filter(t => t.phase === 'mastered' || t.masteryScore >= 80).length;
+            const masteredCount = unitTopics.filter(t => t.phase === 'mastered').length;
 
             return (
               <div
@@ -259,7 +259,7 @@ export default function A1UnitsView({ onOpenTheory, onOpenExercises, onOpenCheck
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                     {unitTopics.map((topic) => {
                       const topicMeta = TOPIC_RUSSIAN_TITLES[topic.topicId] || {};
-                      const isMastered = topic.phase === 'mastered' || topic.masteryScore >= 80;
+                      const isMastered = topic.phase === 'mastered';
                       const isLearning = topic.phase === 'learning' || (topic.masteryScore > 0 && !isMastered);
 
                       let statusBadge = (

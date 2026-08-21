@@ -6,6 +6,7 @@ import {
 import { profileApiUrl, profileFetch, getAssetUrl } from '../utils/api';
 import { soundEngine, speakSpanish } from '../utils/soundEffects';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSpeechPractice } from '../hooks/useSpeechPractice';
 
 export default function A1SkillsView() {
   const { t, language } = useLanguage();
@@ -18,11 +19,14 @@ export default function A1SkillsView() {
   // Task answer states
   const [answers, setAnswers] = useState({});
   const [writingText, setWritingText] = useState('');
-  const [recordingActive, setRecordingActive] = useState(false);
-  const [recordingCompleted, setRecordingCompleted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [resultScore, setResultScore] = useState(null);
+  const [evaluation, setEvaluation] = useState(null);
+  const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const recordingStartedAtRef = useRef(null);
+  const [recordingDurationMs, setRecordingDurationMs] = useState(0);
+  const speechPractice = useSpeechPractice();
 
   const audioRef = useRef(null);
 
@@ -54,74 +58,80 @@ export default function A1SkillsView() {
     setActiveTask(null);
     setAnswers({});
     setWritingText('');
-    setRecordingCompleted(false);
+    speechPractice.resetPractice();
     setSubmitted(false);
     setResultScore(null);
+    setEvaluation(null);
+    setSubmitError('');
   }, [selectedSkill]);
 
   const handleStartTask = (task) => {
     setActiveTask(task);
     setAnswers({});
     setWritingText('');
-    setRecordingActive(false);
-    setRecordingCompleted(false);
+    speechPractice.resetPractice();
+    setRecordingDurationMs(0);
     setSubmitted(false);
     setResultScore(null);
+    setEvaluation(null);
+    setSubmitError('');
   };
 
-  const handleOptionSelect = (qIdx, optIdx, correctIdx) => {
+  const handleOptionSelect = (qIdx, optIdx) => {
     if (submitted) return;
-    const isCorrect = optIdx === correctIdx;
-    if (isCorrect) soundEngine.playCorrect();
-    else soundEngine.playWrong();
     setAnswers(prev => ({ ...prev, [qIdx]: optIdx }));
+  };
+
+  const blobToBase64 = async (blob) => {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let binary = '';
+    for (let index = 0; index < bytes.length; index += 0x8000) {
+      binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+    }
+    return btoa(binary);
   };
 
   const handleSubmitTask = async () => {
     if (!activeTask || submitting) return;
     try {
       setSubmitting(true);
-      let calculatedScore = 75;
-
+      setSubmitError('');
+      const eventId = globalThis.crypto?.randomUUID?.() || `skill-ev-${activeTask.id}-${Date.now()}`;
+      let payload = { eventId };
       if (selectedSkill === 'listening' || selectedSkill === 'reading') {
-        const questions = activeTask.questions || [];
-        let correctCount = 0;
-        questions.forEach((q, idx) => {
-          if (answers[idx] === q.correctIndex) correctCount++;
-        });
-        calculatedScore = Math.round((correctCount / Math.max(1, questions.length)) * 100);
+        payload.answers = (activeTask.questions || []).map((_, index) => answers[index]);
       } else if (selectedSkill === 'writing') {
-        const words = writingText.trim().split(/\s+/).filter(Boolean).length;
-        calculatedScore = Math.min(100, Math.max(50, words >= 15 ? 85 : words * 5));
+        payload.text = writingText;
       } else if (selectedSkill === 'speaking') {
-        calculatedScore = 88;
+        const audioResponse = await fetch(speechPractice.recordingUrl);
+        const blob = await audioResponse.blob();
+        payload = {
+          ...payload,
+          audioBase64: await blobToBase64(blob),
+          mimeType: blob.type || 'audio/webm',
+          durationMs: recordingDurationMs,
+        };
       }
 
-      const res = await profileFetch(profileApiUrl('/spanish/api/a1/skill-evidence'), {
+      const res = await profileFetch(profileApiUrl(`/spanish/api/a1/skills/${selectedSkill}/${activeTask.id}/evaluate`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          skill: selectedSkill,
-          taskId: activeTask.id,
-          score: calculatedScore,
-          passed: calculatedScore >= 70,
-          eventId: globalThis.crypto?.randomUUID?.() || `skill-ev-${activeTask.id}-${Date.now()}`
-        })
+        body: JSON.stringify(payload),
       });
-
-      if (res.ok) {
-        setResultScore(calculatedScore);
-        setSubmitted(true);
-        window.dispatchEvent(new CustomEvent('gamification_updated'));
-        fetchSkillTasks(selectedSkill);
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Не удалось проверить ответ.');
+      setResultScore(data.score);
+      setEvaluation(data);
+      setSubmitted(true);
+      data.passed ? soundEngine.playCorrect() : soundEngine.playWrong();
+      window.dispatchEvent(new CustomEvent('gamification_updated'));
+      fetchSkillTasks(selectedSkill);
     } catch (err) {
-      console.error('Error submitting skill task:', err);
+      setSubmitError(err.message || 'Не удалось проверить ответ. Попытка не засчитана.');
     } finally {
       setSubmitting(false);
     }
   };
-
   const currentCoverage = skillCoverage.find(s => s.skill === selectedSkill);
 
   return (
@@ -272,42 +282,32 @@ export default function A1SkillsView() {
               )}
 
               <div className="p-6 rounded-2xl bg-gray-50 dark:bg-gray-750 border border-gray-200 dark:border-gray-700 text-center space-y-3">
-                {!recordingCompleted ? (
+                {!speechPractice.hasRecording ? (
                   <button
-                    onClick={() => {
-                      if (!recordingActive) {
-                        setRecordingActive(true);
-                        setTimeout(() => {
-                          setRecordingActive(false);
-                          setRecordingCompleted(true);
-                        }, 5000);
+                    onClick={async () => {
+                      if (speechPractice.isRecording) {
+                        speechPractice.stopRecording();
+                        setRecordingDurationMs(Date.now() - (recordingStartedAtRef.current || Date.now()));
+                      } else {
+                        const started = await speechPractice.startRecording();
+                        if (started) recordingStartedAtRef.current = Date.now();
                       }
                     }}
-                    className={`px-6 py-3 rounded-2xl font-bold text-sm shadow-md transition-all flex items-center gap-2 mx-auto ${
-                      recordingActive
-                        ? 'bg-red-500 text-white animate-pulse'
-                        : 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white'
-                    }`}
+                    disabled={speechPractice.isRecordingStarting}
+                    className={`px-6 py-3 rounded-2xl font-bold text-sm shadow-md transition-all flex items-center gap-2 mx-auto ${speechPractice.isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white'}`}
                   >
-                    <Mic className="w-4 h-4" />
-                    <span>{recordingActive ? 'Идет запись... (говорите на испанском)' : 'Начать запись ответа (5 сек.)'}</span>
+                    {speechPractice.isRecordingStarting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
+                    <span>{speechPractice.isRecording ? 'Остановить запись' : 'Начать настоящую запись ответа'}</span>
                   </button>
                 ) : (
-                  <div className="space-y-2">
-                    <div className="text-sm font-bold text-green-600 flex items-center justify-center gap-2">
-                      <CheckCircle2 className="w-5 h-5" />
-                      <span>Запись ответа сохранена</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setRecordingCompleted(false);
-                        setRecordingActive(false);
-                      }}
-                      className="text-xs text-purple-600 hover:underline font-semibold"
-                    >
-                      Перезаписать
-                    </button>
+                  <div className="space-y-3">
+                    <audio controls src={speechPractice.recordingUrl} className="w-full" />
+                    <div className="text-sm font-bold text-green-600">Запись готова • {Math.max(1, Math.round(recordingDurationMs / 1000))} сек.</div>
+                    <button onClick={() => { speechPractice.clearRecording(); setRecordingDurationMs(0); }} className="text-xs text-purple-600 hover:underline font-semibold">Перезаписать</button>
                   </div>
+                )}
+                {(speechPractice.recordingError || !speechPractice.capabilities.recordingSupported) && (
+                  <div className="text-xs text-red-600">{speechPractice.recordingError || 'Этот браузер не поддерживает запись с микрофона.'}</div>
                 )}
               </div>
             </div>
@@ -362,6 +362,7 @@ export default function A1SkillsView() {
               {(activeTask.questions || []).map((q, qIdx) => {
                 const answered = answers[qIdx] !== undefined;
                 const sel = answers[qIdx];
+                const checked = evaluation?.breakdown?.find((row) => row.index === qIdx);
                 return (
                   <div key={qIdx} className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-750 border border-gray-200 dark:border-gray-700 space-y-2">
                     <div className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white">
@@ -371,16 +372,17 @@ export default function A1SkillsView() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {q.options.map((opt, optIdx) => {
                         let btnCls = 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:border-purple-400';
-                        if (answered) {
-                          if (optIdx === q.correctIndex) btnCls = 'bg-green-100 dark:bg-green-900/60 border-green-500 text-green-900 dark:text-green-200 font-bold';
+                        if (submitted && checked) {
+                          if (optIdx === checked.correctIndex) btnCls = 'bg-green-100 dark:bg-green-900/60 border-green-500 text-green-900 dark:text-green-200 font-bold';
                           else if (optIdx === sel) btnCls = 'bg-red-100 dark:bg-red-900/60 border-red-500 text-red-900 dark:text-red-200';
-                          else btnCls = 'opacity-40';
+                        } else if (optIdx === sel) {
+                          btnCls = 'bg-purple-100 dark:bg-purple-900/60 border-purple-500 text-purple-900 dark:text-purple-100 font-bold';
                         }
                         return (
                           <button
                             key={optIdx}
-                            onClick={() => handleOptionSelect(qIdx, optIdx, q.correctIndex)}
-                            disabled={answered}
+                            onClick={() => handleOptionSelect(qIdx, optIdx)}
+                            disabled={submitted}
                             className={`p-3 text-left rounded-xl border text-xs font-semibold transition-all ${btnCls}`}
                           >
                             {opt}
@@ -389,9 +391,9 @@ export default function A1SkillsView() {
                       })}
                     </div>
 
-                    {answered && (
+                    {submitted && checked && (
                       <div className="text-xs text-gray-500 dark:text-gray-400 italic mt-1 p-2 bg-white/60 dark:bg-gray-800 rounded-lg">
-                        💡 {q.explanation}
+                        💡 {checked.explanation}
                       </div>
                     )}
                   </div>
@@ -412,7 +414,7 @@ export default function A1SkillsView() {
             {!submitted ? (
               <button
                 onClick={handleSubmitTask}
-                disabled={submitting || (selectedSkill === 'speaking' && !recordingCompleted) || (selectedSkill === 'writing' && writingText.trim().length < 5)}
+                disabled={submitting || (selectedSkill === 'speaking' && (!speechPractice.hasRecording || recordingDurationMs < 3000)) || (selectedSkill === 'writing' && writingText.trim().length < 10) || ((selectedSkill === 'listening' || selectedSkill === 'reading') && Object.keys(answers).length !== (activeTask.questions || []).length)}
                 className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow flex items-center gap-1.5 disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
@@ -424,6 +426,8 @@ export default function A1SkillsView() {
                 <span>Оценка: {resultScore}/100 {resultScore >= 70 ? '(Зачёт сдан! 🎉)' : '(Попробуйте еще раз)'}</span>
               </div>
             )}
+            {submitError && <div className="text-xs text-red-600 bg-red-50 dark:bg-red-950/30 rounded-xl p-3">{submitError}</div>}
+            {evaluation?.feedbackRu && <div className="text-xs text-gray-700 dark:text-gray-300 bg-purple-50 dark:bg-purple-950/30 rounded-xl p-3">{evaluation.feedbackRu}</div>}
           </div>
         </div>
       ) : (

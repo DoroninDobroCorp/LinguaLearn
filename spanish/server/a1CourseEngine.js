@@ -3,6 +3,8 @@ import { A1_CHECKPOINTS, getA1CheckpointByUnit, getAllA1Checkpoints } from './a1
 import { A1_SKILL_TASKS, getA1SkillTasks, getA1SkillTaskById } from './a1SkillTasksData.js';
 
 const DAY_MS = 86_400_000;
+const EARLY_REVIEW_GRACE_MS = 24 * 60 * 60 * 1000;
+const MINIMUM_MASTERY_SPAN_DAYS = 14;
 
 export const A1_COURSE_VERSION = 1;
 export const A1_CORE_VOCABULARY_TARGET = 650;
@@ -123,6 +125,7 @@ export function ensureA1CourseSchema(db) {
       hints_used INTEGER NOT NULL DEFAULT 0,
       response_ms INTEGER,
       occurred_at TEXT NOT NULL,
+      retention_credit INTEGER NOT NULL DEFAULT 1 CHECK (retention_credit IN (0,1)),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(profile_id, event_id)
     );
@@ -151,6 +154,28 @@ export function ensureA1CourseSchema(db) {
       unit_id TEXT NOT NULL,
       course_version INTEGER NOT NULL DEFAULT 1
     );
+  `);
+
+  const masteryColumns = columns(db, 'a1_topic_mastery');
+  if (!masteryColumns.has('first_learning_at')) db.exec('ALTER TABLE a1_topic_mastery ADD COLUMN first_learning_at TEXT');
+  if (!masteryColumns.has('retention_reviews')) db.exec('ALTER TABLE a1_topic_mastery ADD COLUMN retention_reviews INTEGER NOT NULL DEFAULT 0');
+  const attemptColumns = columns(db, 'a1_learning_attempts');
+  if (!attemptColumns.has('retention_credit')) db.exec('ALTER TABLE a1_learning_attempts ADD COLUMN retention_credit INTEGER NOT NULL DEFAULT 1');
+  db.exec(`
+    UPDATE a1_topic_mastery
+    SET first_learning_at = COALESCE(first_learning_at, (
+      SELECT MIN(a.occurred_at) FROM a1_learning_attempts a
+      WHERE a.profile_id = a1_topic_mastery.profile_id AND a.topic_id = a1_topic_mastery.topic_id
+    ), last_review_at)
+    WHERE first_learning_at IS NULL;
+    UPDATE a1_topic_mastery
+    SET retention_reviews = (
+      SELECT COUNT(*) FROM a1_learning_attempts a
+      WHERE a.profile_id = a1_topic_mastery.profile_id
+        AND a.topic_id = a1_topic_mastery.topic_id
+        AND a.correct = 1 AND a.quality >= 3 AND COALESCE(a.retention_credit, 1) = 1
+    )
+    WHERE retention_reviews = 0;
   `);
 
   const cardColumns = columns(db, 'vocabulary_review_cards');
@@ -290,6 +315,9 @@ function ensureState(db, profileId, topic) {
 }
 
 function publicState(row, topic, now = new Date()) {
+  const learningSpanDays = row.first_learning_at
+    ? Math.max(0, Math.floor((now.getTime() - new Date(row.first_learning_at).getTime()) / DAY_MS))
+    : 0;
   return {
     topicId: topic.id,
     name: topic.name,
@@ -301,6 +329,10 @@ function publicState(row, topic, now = new Date()) {
     repetitions: Number(row.repetitions || 0),
     lapses: Number(row.lapses || 0),
     successfulDays: Number(row.successful_days || 0),
+    retentionReviews: Number(row.retention_reviews || 0),
+    practiceOnlyAttempts: Math.max(0, Number(row.repetitions || 0) - Number(row.retention_reviews || 0)),
+    firstLearningAt: row.first_learning_at,
+    learningSpanDays,
     lastQuality: row.last_quality === null ? null : Number(row.last_quality),
     lastReviewAt: row.last_review_at,
     nextReviewAt: row.next_review_at,
@@ -339,11 +371,18 @@ export function recordA1Attempt(db, profileId, input, now = new Date()) {
       return { replayed: true, state: publicState(ensureState(db, profileId, replayTopic), replayTopic, now) };
     }
     const previous = ensureState(db, profileId, topic);
+    const scheduledAt = previous.next_review_at ? new Date(previous.next_review_at).getTime() : null;
+    const correctForRetention = input.correct && quality >= 3;
+    const retentionCredit = correctForRetention && (
+      !previous.last_review_at
+      || scheduledAt === null
+      || now.getTime() >= scheduledAt - EARLY_REVIEW_GRACE_MS
+    );
     db.prepare(`
       INSERT INTO a1_learning_attempts
-        (profile_id, topic_id, event_id, correct, quality, activity_type, hints_used, response_ms, occurred_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(profileId, topicId, eventId, input.correct ? 1 : 0, quality, activityType, hintsUsed, responseMs, occurredAt);
+        (profile_id, topic_id, event_id, correct, quality, activity_type, hints_used, response_ms, occurred_at, retention_credit)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(profileId, topicId, eventId, input.correct ? 1 : 0, quality, activityType, hintsUsed, responseMs, occurredAt, retentionCredit ? 1 : 0);
 
     const recent = db.prepare(`
       SELECT correct FROM a1_learning_attempts
@@ -351,47 +390,58 @@ export function recordA1Attempt(db, profileId, input, now = new Date()) {
     `).all(profileId, topicId);
     const successfulDays = Number(db.prepare(`
       SELECT COUNT(DISTINCT date(occurred_at)) AS count FROM a1_learning_attempts
-      WHERE profile_id = ? AND topic_id = ? AND correct = 1 AND quality >= 3
+      WHERE profile_id = ? AND topic_id = ? AND correct = 1 AND quality >= 3 AND retention_credit = 1
     `).get(profileId, topicId).count);
     const repetitions = Number(previous.repetitions || 0) + 1;
+    const retentionReviews = Number(previous.retention_reviews || 0) + (retentionCredit ? 1 : 0);
     const lapses = Number(previous.lapses || 0) + (input.correct ? 0 : 1);
-    const difficulty = clamp(Number(previous.difficulty || 5) + ((3 - quality) * 0.45), 1, 10);
-    let stability;
-    let phase;
+    const difficulty = retentionCredit || !input.correct
+      ? clamp(Number(previous.difficulty || 5) + ((3 - quality) * 0.45), 1, 10)
+      : Number(previous.difficulty || 5);
+    let stability = Number(previous.stability_days || 0);
+    let phase = previous.phase;
     if (!input.correct || quality < 3) {
       stability = Math.max(0.25, Number(previous.stability_days || 0) * 0.35);
       phase = 'relearning';
+    } else if (!retentionCredit) {
+      phase = previous.phase === 'new' ? 'learning' : previous.phase;
     } else if (Number(previous.stability_days || 0) < 1) {
       stability = quality >= 5 ? 1.5 : 1;
       phase = 'learning';
     } else {
       const growth = clamp(1.65 + ((6 - difficulty) * 0.08) + ((quality - 3) * 0.18), 1.25, 2.25);
       stability = clamp(Number(previous.stability_days) * growth, 1, 60);
-      phase = repetitions >= 3 ? 'review' : 'learning';
+      phase = retentionReviews >= 3 ? 'review' : 'learning';
     }
 
     const accuracy = recent.reduce((sum, row) => sum + Number(row.correct), 0) / Math.max(1, recent.length);
+    const firstLearningAt = previous.first_learning_at || occurredAt;
+    const learningSpanDays = Math.max(0, Math.floor((now.getTime() - new Date(firstLearningAt).getTime()) / DAY_MS));
     const masteryScore = clamp(Math.round(
-      Math.min(25, repetitions * 4.2)
-      + Math.min(30, successfulDays * 7.5)
-      + Math.min(25, (stability / 14) * 25)
-      + (accuracy * 20)
+      Math.min(15, repetitions * 2.5)
+      + Math.min(30, retentionReviews * 6)
+      + Math.min(20, successfulDays * 5)
+      + Math.min(20, (stability / 14) * 20)
+      + (accuracy * 15)
       - Math.min(20, lapses * 2)
     ), 0, 100);
-    if (input.correct && quality >= 3 && repetitions >= 6 && successfulDays >= 4 && stability >= 14 && masteryScore >= 85) {
+    if (retentionCredit && repetitions >= 6 && retentionReviews >= 4 && successfulDays >= 4
+      && learningSpanDays >= MINIMUM_MASTERY_SPAN_DAYS && stability >= 14 && masteryScore >= 85) {
       phase = 'mastered';
     }
     const interval = (!input.correct || quality < 3) ? 0.25 : clamp(stability * (quality >= 5 ? 1.15 : 1), 1, 60);
-    const nextReviewAt = addDays(now, phase === 'mastered' ? Math.max(30, interval) : interval);
+    const nextReviewAt = retentionCredit || !input.correct
+      ? addDays(now, phase === 'mastered' ? Math.max(30, interval) : interval)
+      : previous.next_review_at;
     const masteredAt = phase === 'mastered' ? (previous.mastered_at || occurredAt) : null;
 
     db.prepare(`
       UPDATE a1_topic_mastery SET
         phase = ?, mastery_score = ?, stability_days = ?, difficulty = ?, repetitions = ?, lapses = ?,
-        successful_days = ?, last_quality = ?, last_review_at = ?, next_review_at = ?, mastered_at = ?,
+        successful_days = ?, retention_reviews = ?, first_learning_at = ?, last_quality = ?, last_review_at = ?, next_review_at = ?, mastered_at = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE profile_id = ? AND topic_id = ?
-    `).run(phase, masteryScore, stability, difficulty, repetitions, lapses, successfulDays, quality, occurredAt, nextReviewAt, masteredAt, profileId, topicId);
+    `).run(phase, masteryScore, stability, difficulty, repetitions, lapses, successfulDays, retentionReviews, firstLearningAt, quality, occurredAt, nextReviewAt, masteredAt, profileId, topicId);
 
     db.prepare(`
       INSERT INTO curriculum_progress
@@ -405,11 +455,19 @@ export function recordA1Attempt(db, profileId, input, now = new Date()) {
     `).run(topicId, profileId, phase === 'mastered' ? 'mastered' : 'in_progress', masteryScore, input.correct ? 1 : 0, input.correct ? 0 : 1, occurredAt);
 
     const row = db.prepare('SELECT * FROM a1_topic_mastery WHERE profile_id = ? AND topic_id = ?').get(profileId, topicId);
-    return { replayed: false, quality, state: publicState(row, topic, now) };
+    return {
+      replayed: false,
+      quality,
+      retentionCredit,
+      feedbackRu: retentionCredit
+        ? 'Попытка засчитана как интервальное повторение.'
+        : 'Дополнительная практика засчитана, но обязательная дата повторения не переносится.',
+      state: publicState(row, topic, now),
+    };
   })();
 }
 
-function vocabularyCoverage(db, profileId) {
+function vocabularyCoverage(db, profileId, now = new Date()) {
   // Check if profile needs A1 vocabulary seeding
   const countRow = db.prepare('SELECT COUNT(*) AS c FROM vocabulary WHERE profile_id = ? AND is_core_a1 = 1').get(profileId);
   if (!countRow || countRow.c < A1_CORE_VOCABULARY_TARGET) {
@@ -422,10 +480,15 @@ function vocabularyCoverage(db, profileId) {
 
   const domains = db.prepare(`
     SELECT b.domain_id, b.title_ru, b.target_count, b.unit_id,
-      COUNT(DISTINCT CASE WHEN v.is_core_a1 = 1 THEN v.id END) AS introduced,
+      COUNT(DISTINCT CASE WHEN introduced.vocabulary_id IS NOT NULL THEN v.id END) AS introduced,
       COUNT(DISTINCT CASE WHEN mature.vocabulary_id IS NOT NULL THEN v.id END) AS mature
     FROM a1_vocabulary_blueprint b
     LEFT JOIN vocabulary v ON v.profile_id = ? AND v.course_domain = b.domain_id
+    LEFT JOIN (
+      SELECT vocabulary_id FROM vocabulary_review_cards
+      WHERE profile_id = ? AND review_count > 0
+      GROUP BY vocabulary_id
+    ) introduced ON introduced.vocabulary_id = v.id
     LEFT JOIN (
       SELECT vocabulary_id FROM vocabulary_review_cards
       WHERE profile_id = ? AND state = 'review' AND interval_days >= 14 AND review_count >= 4
@@ -433,14 +496,18 @@ function vocabularyCoverage(db, profileId) {
     ) mature ON mature.vocabulary_id = v.id
     GROUP BY b.domain_id, b.title_ru, b.target_count, b.unit_id
     ORDER BY b.rowid
-  `).all(profileId, profileId).map((row) => ({
+  `).all(profileId, profileId, profileId).map((row) => ({
     id: row.domain_id, titleRu: row.title_ru, target: Number(row.target_count),
     introduced: Number(row.introduced), mature: Number(row.mature), unitId: row.unit_id,
     percent: Math.min(100, Math.round((Number(row.mature) / Number(row.target_count)) * 100)),
   }));
   const introduced = domains.reduce((sum, row) => sum + row.introduced, 0);
   const mature = domains.reduce((sum, row) => sum + row.mature, 0);
-  return { target: A1_CORE_VOCABULARY_TARGET, introduced, mature, percent: Math.min(100, Math.round((mature / A1_CORE_VOCABULARY_TARGET) * 100)), domains };
+  const due = Number(db.prepare(`
+    SELECT COUNT(DISTINCT vocabulary_id) AS count FROM vocabulary_review_cards
+    WHERE profile_id = ? AND state <> 'new' AND review_count > 0 AND next_review_at IS NOT NULL AND next_review_at <= ?
+  `).get(profileId, iso(now)).count || 0);
+  return { target: A1_CORE_VOCABULARY_TARGET, introduced, newAvailable: Math.max(0, A1_CORE_VOCABULARY_TARGET - introduced), mature, due, percent: Math.min(100, Math.round((mature / A1_CORE_VOCABULARY_TARGET) * 100)), domains };
 }
 
 function skillCoverage(db, profileId) {
@@ -486,41 +553,41 @@ export function recordA1CheckpointSubmission(db, profileId, unitId, input, now =
   }
 
   const answers = Array.isArray(input?.answers) ? input.answers : [];
-  const productiveResult = input?.productiveResult || null;
+  const objectiveTasks = checkpoint.tasks.filter((task) => Array.isArray(task.options) && task.topicId);
+  const answerByTask = new Map(answers.map((answer) => [String(answer.taskId || answer.id), answer]));
+  if (objectiveTasks.some((task) => !answerByTask.has(String(task.id)))) {
+    throw Object.assign(new Error('Ответьте на все проверяемые задания контрольной точки.'), { status: 400, code: 'INCOMPLETE_CHECKPOINT' });
+  }
 
   return db.transaction(() => {
     const attemptResults = [];
-    for (const ans of answers) {
-      if (!ans.topicId) continue;
+    let correctCount = 0;
+    for (const task of objectiveTasks) {
+      const answer = answerByTask.get(String(task.id));
+      const correct = String(answer.selected) === String(task.correctAnswer);
+      if (correct) correctCount += 1;
       const attemptRes = recordA1Attempt(db, profileId, {
-        topicId: Number(ans.topicId),
-        eventId: String(ans.eventId || `chk-${unitId}-${ans.taskId || ans.id}-${Date.now()}`),
-        correct: Boolean(ans.correct),
-        quality: ans.quality !== undefined ? Number(ans.quality) : (ans.correct ? 4 : 1),
+        topicId: Number(task.topicId),
+        eventId: String(answer.eventId || `chk-${unitId}-${task.id}-${Date.now()}`),
+        correct,
+        quality: correct ? 4 : 1,
         activityType: `checkpoint_${unitId}`,
-        hintsUsed: Number(ans.hintsUsed || 0),
-        responseMs: Number(ans.responseMs || 0),
+        hintsUsed: 0,
+        responseMs: Number(answer.responseMs || 0),
       }, now);
       attemptResults.push(attemptRes);
     }
-
-    let skillEvidenceRes = null;
-    if (productiveResult && productiveResult.skill && productiveResult.taskId && Number.isFinite(productiveResult.score)) {
-      skillEvidenceRes = recordA1SkillEvidence(db, profileId, {
-        eventId: String(productiveResult.eventId || `chk-skill-${unitId}-${Date.now()}`),
-        skill: productiveResult.skill,
-        taskId: productiveResult.taskId,
-        score: Number(productiveResult.score),
-        passed: typeof productiveResult.passed === 'boolean' ? productiveResult.passed : Number(productiveResult.score) >= 70,
-      }, now);
-    }
+    const objectiveScore = Math.round((correctCount / Math.max(1, objectiveTasks.length)) * 100);
 
     const courseSnapshot = getA1CourseSnapshot(db, profileId, now);
     return {
       success: true,
       unitId,
       recordedAttempts: attemptResults.length,
-      skillEvidence: skillEvidenceRes,
+      objectiveScore,
+      passed: objectiveScore >= 70,
+      skillEvidence: null,
+      productiveEvaluationRequired: checkpoint.tasks.some((task) => task.type === 'productive_writing'),
       course: courseSnapshot,
     };
   })();
@@ -542,33 +609,46 @@ export function getA1CourseSnapshot(db, profileId, now = new Date()) {
       ...unit,
       topics: unitTopics,
       unlocked: index === 0 || previous.every((state) => state.phase !== 'new' && state.masteryScore >= 35),
-      percent: Math.round(unitTopics.reduce((sum, state) => sum + state.masteryScore, 0) / Math.max(1, unitTopics.length)),
+      percent: Math.round(unitTopics.reduce((sum, state) => sum + (state.phase === 'mastered' ? 100 : Math.min(95, state.masteryScore * 0.75)), 0) / Math.max(1, unitTopics.length)),
+      familiarityPercent: Math.round(unitTopics.reduce((sum, state) => sum + state.masteryScore, 0) / Math.max(1, unitTopics.length)),
       masteredTopics: unitTopics.filter((state) => state.phase === 'mastered').length,
     };
   });
   const dueTopics = topicStates.filter((state) => state.due).sort((a, b) => a.lastQuality - b.lastQuality || a.masteryScore - b.masteryScore);
   const unlocked = new Set(units.filter((unit) => unit.unlocked).map((unit) => unit.id));
   const nextNewTopic = topicStates.find((state) => state.phase === 'new' && unlocked.has(unitFor(state.name)?.id)) || null;
-  const vocabulary = vocabularyCoverage(db, profileId);
+  const vocabulary = vocabularyCoverage(db, profileId, now);
   const skills = skillCoverage(db, profileId);
-  const topicPercent = Math.round(topicStates.reduce((sum, state) => sum + state.masteryScore, 0) / Math.max(1, topicStates.length));
+  const familiarityPercent = Math.round(topicStates.reduce((sum, state) => sum + state.masteryScore, 0) / Math.max(1, topicStates.length));
+  const topicPercent = Math.round(topicStates.reduce((sum, state) => sum + (state.phase === 'mastered' ? 100 : Math.min(95, state.masteryScore * 0.75)), 0) / Math.max(1, topicStates.length));
+  const courseStartedAt = topicStates.map((state) => state.firstLearningAt).filter(Boolean).sort()[0] || null;
+  const learningSpanDays = courseStartedAt ? Math.max(0, Math.floor((now.getTime() - new Date(courseStartedAt).getTime()) / DAY_MS)) : 0;
+  const earliestPossibleCompletionAt = courseStartedAt ? addDays(courseStartedAt, MINIMUM_MASTERY_SPAN_DAYS) : null;
   const skillPercent = Math.round(skills.reduce((sum, skill) => sum + skill.percent, 0) / skills.length);
   const completionGates = {
     topics: topicStates.length > 0 && topicStates.every((state) => state.phase === 'mastered'),
     vocabulary: vocabulary.mature >= A1_CORE_VOCABULARY_TARGET,
     skills: skills.every((skill) => skill.complete),
+    minimumSpan: learningSpanDays >= MINIMUM_MASTERY_SPAN_DAYS,
   };
   return {
     courseVersion: A1_COURSE_VERSION,
     level: 'A1',
     overallPercent: Math.round((topicPercent * 0.55) + (vocabulary.percent * 0.25) + (skillPercent * 0.20)),
     topicPercent,
+    familiarityPercent,
     skillPercent,
+    courseStartedAt,
+    learningSpanDays,
+    minimumCourseDays: MINIMUM_MASTERY_SPAN_DAYS,
+    earliestPossibleCompletionAt,
+    canGraduateByTime: completionGates.minimumSpan,
     masteredTopics: topicStates.filter((state) => state.phase === 'mastered').length,
     totalTopics: topicStates.length,
     dueCount: dueTopics.length,
     dueTopics,
-    nextNewTopic: dueTopics.length <= 8 ? nextNewTopic : null,
+    nextNewTopic,
+    recommendedNewTopic: dueTopics.length <= 8 ? nextNewTopic : null,
     reviewBacklogHigh: dueTopics.length > 8,
     units,
     vocabulary,
@@ -578,38 +658,107 @@ export function getA1CourseSnapshot(db, profileId, now = new Date()) {
     masteryRule: {
       minimumAttempts: 6,
       minimumSuccessfulDays: 4,
+      minimumRetentionReviews: 4,
+      minimumLearningSpanDays: MINIMUM_MASTERY_SPAN_DAYS,
       minimumStabilityDays: 14,
       minimumScore: 85,
-      noteRu: 'Тема считается освоенной только после успешных повторений минимум в 4 разные даты и прогнозируемого удержания не менее 14 дней.',
+      noteRu: 'Тема считается освоенной только после минимум 4 зачётных повторений в разные даты, не раньше чем через 14 дней после знакомства. Ранняя практика разрешена без ограничений, но не переносит обязательное повторение.',
     },
   };
 }
 
-export function getA1TodayPlan(db, profileId, now = new Date()) {
+export function getA1TodayPlan(db, profileId, now = new Date(), options = {}) {
   const course = getA1CourseSnapshot(db, profileId, now);
-  const weakestSkill = [...course.skills].sort((a, b) => a.percent - b.percent)[0];
-  const actions = [];
+  const targetMinutes = clamp(Math.round(Number(options.targetMinutes) || 30), 10, 120);
+  const weakestSkill = [...course.skills].sort((left, right) => left.percent - right.percent)[0];
+  const candidates = [];
+
   if (course.dueCount) {
-    actions.push({
-      kind: 'grammar_review', titleRu: `Повторить ${Math.min(3, course.dueCount)} темы по расписанию`,
+    candidates.push({
+      kind: 'grammar_review', priority: 'required', titleRu: `Повторить ${Math.min(3, course.dueCount)} темы по расписанию`,
       descriptionRu: course.dueTopics.slice(0, 3).map((row) => row.name).join(' • '),
+      rationaleRu: 'Срок повторения наступил: этот шаг лучше всего защищает материал от забывания.',
       topicIds: course.dueTopics.slice(0, 3).map((row) => row.topicId), actionUrl: '/exercises', minutes: 8,
     });
-  } else {
-    actions.push({ kind: 'vocabulary_review', titleRu: 'Разминка: повторение слов', descriptionRu: 'Закрепи слова, срок которых наступил сегодня.', actionUrl: '/vocabulary', minutes: 5 });
+  }
+  if (course.vocabulary.due > 0) {
+    candidates.push({
+      kind: 'vocabulary_review', priority: course.dueCount ? 'recommended' : 'required',
+      titleRu: `Повторить слова по расписанию (${course.vocabulary.due})`,
+      descriptionRu: 'Карточки, срок которых уже наступил.',
+      rationaleRu: 'Короткое своевременное повторение полезнее длинной зубрёжки.', actionUrl: '/vocabulary', minutes: 6,
+    });
   }
   if (course.nextNewTopic) {
-    actions.push({ kind: 'new_topic', titleRu: `Новая тема: ${course.nextNewTopic.name}`, descriptionRu: 'Сначала теория и короткая контролируемая практика.', topicIds: [course.nextNewTopic.topicId], actionUrl: '/curriculum', minutes: 10 });
-  } else {
-    const weakest = [...course.units].filter((unit) => unit.unlocked).sort((a, b) => a.percent - b.percent)[0];
-    actions.push({ kind: 'reinforcement', titleRu: 'Закрепить слабое место', descriptionRu: weakest ? `${weakest.titleRu}: ${weakest.outcomeRu}` : 'Смешанная практика A1', actionUrl: '/exercises', minutes: 8 });
+    candidates.push({
+      kind: 'new_topic', priority: course.reviewBacklogHigh ? 'optional' : 'recommended',
+      titleRu: `Новая тема: ${course.nextNewTopic.name}`,
+      descriptionRu: course.reviewBacklogHigh
+        ? 'Можно идти вперёд, но сначала желательно сократить накопившиеся повторения.'
+        : 'Следующий логичный шаг учебного плана: теория и контролируемая практика.',
+      rationaleRu: course.reviewBacklogHigh ? 'Новый материал доступен без блокировки темпа.' : 'Предыдущая ступень уже достаточно знакома.',
+      topicIds: [course.nextNewTopic.topicId],
+      actionUrl: `/curriculum?tab=a1_units&topic=${course.nextNewTopic.topicId}`, minutes: 12,
+    });
   }
-  actions.push({
-    kind: 'skill', titleRu: `Навык дня: ${weakestSkill?.skill || 'speaking'}`,
-    descriptionRu: 'Короткая задача в реальном контексте; результат пойдёт в навыковый зачёт A1.',
-    skill: weakestSkill?.skill || 'speaking', actionUrl: weakestSkill?.skill === 'reading' ? '/stories' : '/chat', minutes: 7,
+  if (course.vocabulary.due === 0 && course.vocabulary.introduced < course.vocabulary.target) {
+    candidates.push({
+      kind: 'vocabulary_intro', priority: 'recommended', titleRu: 'Познакомиться с 8 новыми словами',
+      descriptionRu: 'Небольшая порция лексики из доступных модулей, без попытки выучить все 650 сразу.',
+      rationaleRu: 'Новые слова вводятся порциями, а затем возвращаются по интервальному расписанию.',
+      actionUrl: '/vocabulary', minutes: 6,
+    });
+  }
+  candidates.push({
+    kind: 'skill', priority: 'recommended', titleRu: `Навык: ${weakestSkill?.skill || 'speaking'}`,
+    descriptionRu: 'Короткая проверяемая задача в реальном контексте.',
+    rationaleRu: 'Это сейчас самый слабый из четырёх обязательных навыков A1.',
+    skill: weakestSkill?.skill || 'speaking', actionUrl: '/curriculum?tab=a1_skills', minutes: 8,
   });
-  return { generatedAt: iso(now), actions, course };
+  candidates.push({
+    kind: 'story', priority: 'optional', titleRu: 'Испанский в сюжете',
+    descriptionRu: 'Продолжить приключение и встретить знакомый материал в контексте.',
+    rationaleRu: 'Контекст поддерживает интерес и перенос знаний в чтение.', actionUrl: '/stories', minutes: 10,
+  });
+  if (!candidates.some((action) => action.priority === 'required')) {
+    if (candidates.length > 0) {
+      candidates[0] = { ...candidates[0], priority: 'required' };
+    } else {
+      candidates.push({
+        kind: 'practice', priority: 'required', titleRu: 'Короткая разминка',
+        descriptionRu: 'Смешанная практика уже знакомого материала.',
+        rationaleRu: 'Начинаем с извлечения из памяти.', actionUrl: '/exercises', minutes: 5,
+      });
+    }
+  }
+
+  const actions = [];
+  let plannedMinutes = 0;
+  for (const action of candidates) {
+    if (actions.length === 0 || plannedMinutes + action.minutes <= targetMinutes) {
+      actions.push(action);
+      plannedMinutes += action.minutes;
+    }
+  }
+  const primaryAction = actions[0];
+  const selectedKeys = new Set(actions.map((action) => `${action.kind}:${action.actionUrl}`));
+  const continueOptions = candidates.filter((action) => !selectedKeys.has(`${action.kind}:${action.actionUrl}`));
+
+  return {
+    generatedAt: iso(now),
+    targetMinutes,
+    plannedMinutes,
+    primaryAction,
+    actions,
+    continueOptions,
+    pace: {
+      presets: [15, 30, 60],
+      unlimited: true,
+      noteRu: 'Лимита занятий нет. План задаёт следующий лучший шаг, а после него можно продолжать сколько угодно.',
+      certificationNoteRu: 'Пройти упражнения можно быстро, но статус «освоено» требует повторений в разные дни и минимум 14 дней удержания.',
+    },
+    course,
+  };
 }
 
 export {

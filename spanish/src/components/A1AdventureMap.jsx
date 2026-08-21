@@ -178,7 +178,7 @@ export default function A1AdventureMap({ onSelectTopicForPractice }) {
   }, []);
 
   const a1TopicsMap = new Map(topics.map(t => [t.name.toLowerCase(), t]));
-  const masteredCount = topics.filter(t => t.is_locked || t.status === 'mastered' || t.score >= 80).length;
+  const masteredCount = topics.filter(t => t.status === 'mastered').length;
   const totalCount = Math.max(topics.length, 30);
   const progressPercent = Math.round((masteredCount / totalCount) * 100);
   const remainingPercent = 100 - progressPercent;
@@ -187,7 +187,7 @@ export default function A1AdventureMap({ onSelectTopicForPractice }) {
   for (let i = 0; i < A1_LANDMARKS.length; i++) {
     const lm = A1_LANDMARKS[i];
     const top = a1TopicsMap.get(lm.topicName.toLowerCase());
-    const isMastered = top && (top.is_locked || top.status === 'mastered' || top.score >= 80);
+    const isMastered = top && (top.status === 'mastered');
     if (!isMastered) {
       activeStationIndex = i;
       break;
@@ -271,7 +271,7 @@ export default function A1AdventureMap({ onSelectTopicForPractice }) {
         <div className="relative w-full h-[620px]">
           {A1_LANDMARKS.map((lm, idx) => {
             const top = a1TopicsMap.get(lm.topicName.toLowerCase());
-            const isMastered = top && (top.is_locked || top.status === 'mastered' || top.score >= 80);
+            const isMastered = top && (top.status === 'mastered');
             const isCurrent = idx === activeStationIndex;
             const isStoryDone = completedChapters.includes(lm.chapterId);
 

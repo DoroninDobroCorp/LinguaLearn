@@ -73,26 +73,12 @@ export default function A1CheckpointsView() {
       setSubmitting(true);
       const answersList = Object.values(answers);
 
-      // Check if there's a productive writing task
-      let productiveResult = null;
-      const writingTask = activeCheckpoint.tasks?.find(t => t.type === 'productive_writing');
-      if (writingTask && writingText.trim().length >= 10) {
-        productiveResult = {
-          skill: 'writing',
-          taskId: writingTask.id,
-          score: Math.min(100, Math.max(70, Math.round(writingText.trim().split(/\s+/).filter(Boolean).length * 4))),
-          passed: true,
-          eventId: globalThis.crypto?.randomUUID?.() || `chk-prod-${activeCheckpoint.unitId}-${Date.now()}`
-        };
-      }
+      // Productive writing is practice here; only server-validated objective answers affect this checkpoint.
 
       const res = await profileFetch(profileApiUrl(`/spanish/api/a1/checkpoints/${activeCheckpoint.unitId}/submit`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          answers: answersList,
-          productiveResult
-        })
+        body: JSON.stringify({ answers: answersList })
       });
 
       if (res.ok) {
@@ -258,10 +244,11 @@ export default function A1CheckpointsView() {
           <div className="p-6 rounded-3xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-center space-y-3">
             <Trophy className="w-12 h-12 text-amber-500 mx-auto" />
             <h4 className="text-xl font-extrabold text-gray-900 dark:text-white">
-              Контрольная точка успешно пройдена!
+              {submissionResult.passed ? 'Контрольная точка пройдена' : 'Контрольную точку стоит повторить'}
             </h4>
             <p className="text-sm text-gray-700 dark:text-gray-300">
-              Зафиксировано <strong>{submissionResult.recordedAttempts}</strong> учебных попыток. Результат учтен в адаптивной системе повторений курса A1.
+              Результат: <strong>{submissionResult.objectiveScore}%</strong>. Сервер проверил {submissionResult.recordedAttempts} ответов и передал их адаптивной системе повторений.
+              {submissionResult.productiveEvaluationRequired && ' Письменная часть здесь тренировочная; зачёт по письму сдаётся отдельно в разделе «4 навыка».'}
             </p>
             <button
               onClick={() => setActiveCheckpoint(null)}

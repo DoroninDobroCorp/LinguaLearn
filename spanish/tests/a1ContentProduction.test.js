@@ -237,7 +237,7 @@ describe('A1 Content Production Verification (TZ Specification)', () => {
     }
   });
 
-  it('contains exactly 650 core vocabulary lemmas strictly matching domain targets with 0 mature on init', () => {
+  it('contains exactly 650 available core lemmas, introduced progressively, with 0 mature on init', () => {
     assert.equal(A1_CORE_VOCABULARY.length, 650, 'A1_CORE_VOCABULARY must have exactly 650 lemmas');
 
     const expectedDomainCounts = {
@@ -286,7 +286,8 @@ describe('A1 Content Production Verification (TZ Specification)', () => {
 
     const snapshot = getA1CourseSnapshot(db, 1);
     assert.equal(snapshot.vocabulary.target, 650);
-    assert.equal(snapshot.vocabulary.introduced, 650);
+    assert.equal(snapshot.vocabulary.introduced, 0, 'Seeded storage is not the same as learner introduction');
+    assert.equal(snapshot.vocabulary.newAvailable, 650);
     assert.equal(snapshot.vocabulary.mature, 0, 'Initial mature vocabulary must be 0 (cannot be pre-marked mature)');
     assert.equal(snapshot.vocabulary.percent, 0);
 
