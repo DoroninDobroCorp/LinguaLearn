@@ -10,7 +10,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import MateoCharacter from './MateoCharacter';
 import SandwichStoryModal from './SandwichStoryModal';
 
-// 7 Interleaved Stations along the Buenos Aires adventure route
+// 9 Interleaved Stations along the Buenos Aires adventure route for Units 1 to 9
 const A1_LANDMARKS = [
   {
     order: 1,
@@ -19,8 +19,8 @@ const A1_LANDMARKS = [
     nameEs: "Aeropuerto de Ezeiza",
     topicName: "Greetings and introductions (saludos)",
     landmarkEmoji: "🛬",
-    x: 12,
-    y: 15,
+    x: 10,
+    y: 12,
     chapterId: "chapter-1",
     storyTitle: "Прилет в Эсейсу и первые слова",
     description: "Первые приветствия, знакомство и базовые местоимения yo/tú/vos."
@@ -32,8 +32,8 @@ const A1_LANDMARKS = [
     nameEs: "Obelisco & Av. 9 de Julio",
     topicName: "Gender and articles (el/la/los/las)",
     landmarkEmoji: "🚕",
-    x: 42,
-    y: 22,
+    x: 35,
+    y: 18,
     chapterId: "chapter-2",
     storyTitle: "Такси на Авенида 9 де Хулио",
     description: "Поездка на такси по широкому проспекту, артикли el/la, цвета и числа."
@@ -45,8 +45,8 @@ const A1_LANDMARKS = [
     nameEs: "Plaza de Mayo",
     topicName: "Ser vs Estar (basic)",
     landmarkEmoji: "🏛️",
-    x: 75,
-    y: 28,
+    x: 65,
+    y: 24,
     chapterId: "chapter-3",
     storyTitle: "Встреча на Пласа де Майо",
     description: "Встреча с гидом Софией, разница Ser vs Estar и описание людей."
@@ -58,8 +58,8 @@ const A1_LANDMARKS = [
     nameEs: "San Telmo & La Familia",
     topicName: "Tener (to have) and tener expressions",
     landmarkEmoji: "🏡",
-    x: 82,
-    y: 50,
+    x: 84,
+    y: 40,
     chapterId: "chapter-4",
     storyTitle: "Семья и уют в Сан-Тельмо",
     description: "Колониальный дворик, члены семьи, притяжательные mi/tu и глагол Tener."
@@ -71,8 +71,8 @@ const A1_LANDMARKS = [
     nameEs: "Caminito (La Boca)",
     topicName: "Present tense regular -ar verbs",
     landmarkEmoji: "🎨",
-    x: 52,
-    y: 60,
+    x: 60,
+    y: 52,
     chapterId: "chapter-5",
     storyTitle: "Танго и краски в Ла Бока",
     description: "Разноцветные домики, ритмы танго, глаголы на -AR и отрицание no."
@@ -80,28 +80,54 @@ const A1_LANDMARKS = [
   {
     order: 6,
     id: "station-6",
-    nameRu: "Кафе Тортони",
-    nameEs: "Café Tortoni",
-    topicName: "Present tense regular -er/-ir verbs",
-    landmarkEmoji: "☕",
-    x: 22,
-    y: 72,
+    nameRu: "Английская башня & Метро",
+    nameEs: "Torre Monumental & Subte",
+    topicName: "Asking and telling the time (la hora)",
+    landmarkEmoji: "🕰️",
+    x: 25,
+    y: 62,
     chapterId: "chapter-6",
-    storyTitle: "Завтрак в Кафе Тортони",
-    description: "Старейшее кафе Буэнос-Айреса, глаголы -ER/-IR, еда и заказ блюд."
+    storyTitle: "Время и ритм большого города",
+    description: "Часы на площади, расписание метро, дни недели и ориентация во времени."
   },
   {
     order: 7,
     id: "station-7",
-    nameRu: "Парки Палермо и финал A1",
-    nameEs: "Bosques de Palermo",
-    topicName: "Hay (there is / there are)",
-    landmarkEmoji: "🌳",
-    x: 50,
-    y: 88,
+    nameRu: "Кафе Тортони",
+    nameEs: "Café Tortoni",
+    topicName: "Present tense regular -er/-ir verbs",
+    landmarkEmoji: "☕",
+    x: 48,
+    y: 72,
     chapterId: "chapter-7",
-    storyTitle: "Вечерний парк в Палермо",
-    description: "Прогулка у озера, конструкция Hay, предлоги места и глагол Gustar."
+    storyTitle: "Завтрак в Кафе Тортони",
+    description: "Старейшее кафе Буэнос-Айреса, глаголы -ER/-IR, еда и заказ блюд."
+  },
+  {
+    order: 8,
+    id: "station-8",
+    nameRu: "Баррио Норте и Квартира",
+    nameEs: "Barrio Norte & Apartamento",
+    topicName: "House and furniture (la casa)",
+    landmarkEmoji: "🛋️",
+    x: 78,
+    y: 82,
+    chapterId: "chapter-8",
+    storyTitle: "Новый дом в Сан-Тельмо и уют",
+    description: "Обустройство квартиры, мебель, конструкция Hay и предлоги места."
+  },
+  {
+    order: 9,
+    id: "station-9",
+    nameRu: "Пуэрто-Мадеро & Выпускной A1",
+    nameEs: "Puerto Madero & Graduación",
+    topicName: "Gustar and similar verbs",
+    landmarkEmoji: "🎓",
+    x: 40,
+    y: 92,
+    chapterId: "chapter-9",
+    storyTitle: "Фиеста в Пуэрто-Мадеро и Выпускной A1",
+    description: "Женский мост, вечерняя фиеста, глаголы Gustar, планы на будущее и финал A1!"
   }
 ];
 
@@ -150,7 +176,7 @@ export default function A1AdventureMap({ onSelectTopicForPractice }) {
   useEffect(() => {
     fetchTopicsAndStory();
   }, []);
-  // Find first unmastered station
+
   const a1TopicsMap = new Map(topics.map(t => [t.name.toLowerCase(), t]));
   const masteredCount = topics.filter(t => t.is_locked || t.status === 'mastered' || t.score >= 80).length;
   const totalCount = Math.max(topics.length, 30);
@@ -175,13 +201,13 @@ export default function A1AdventureMap({ onSelectTopicForPractice }) {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* 1. Header Progress Bar & Remaining Percent */}
+      {/* 1. Header Progress Bar */}
       <div className="glass-card rounded-3xl p-6 border border-purple-100 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           <div>
             <div className="flex items-center space-x-2 text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
               <Trophy className="w-4 h-4 text-amber-500" />
-              <span>{t('today_a1_progress_title', 'Интерактивная карта приключений уровня A1')}</span>
+              <span>{t('today_a1_progress_title', 'Интерактивная карта приключений уровня A1 (9 глав)')}</span>
             </div>
             <h2 className="text-2xl font-black text-gray-900 dark:text-white mt-1 flex items-center gap-2">
               <span>{progressPercent}% {t('status_mastered', 'Освоено')}</span>
@@ -210,7 +236,7 @@ export default function A1AdventureMap({ onSelectTopicForPractice }) {
       </div>
 
       {/* 2. Illustrated Landscape SVG Map Canvas */}
-      <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl border-2 border-purple-200 dark:border-gray-700 bg-gradient-to-b from-sky-100 via-amber-50 to-emerald-100 dark:from-slate-900 dark:via-purple-950/40 dark:to-slate-900 min-h-[640px] p-4 sm:p-8 select-none">
+      <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl border-2 border-purple-200 dark:border-gray-700 bg-gradient-to-b from-sky-100 via-amber-50 to-emerald-100 dark:from-slate-900 dark:via-purple-950/40 dark:to-slate-900 min-h-[680px] p-4 sm:p-8 select-none">
 
         {/* Background Visual SVG Elements (Road, River, City silhouettes) */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 100 100">
@@ -221,9 +247,9 @@ export default function A1AdventureMap({ onSelectTopicForPractice }) {
           <path d="M 10,8 Q 15,2 22,8 Q 28,14 20,16 Q 10,16 10,8 Z" fill="rgba(255,255,255,0.6)" />
           <path d="M 60,6 Q 66,1 74,6 Q 80,12 70,14 Q 58,14 60,6 Z" fill="rgba(255,255,255,0.5)" />
 
-          {/* Winding Cobblestone Road Path for 7 stations */}
+          {/* Winding Cobblestone Road Path for 9 stations */}
           <path
-            d="M 12,15 C 28,18 34,20 42,22 C 58,24 68,26 75,28 C 84,32 86,42 82,50 C 78,56 64,58 52,60 C 38,62 28,66 22,72 C 16,78 35,84 50,88"
+            d="M 10,12 C 24,14 30,16 35,18 C 50,20 58,22 65,24 C 76,28 84,34 84,40 C 80,46 72,50 60,52 C 42,56 30,58 25,62 C 20,68 36,70 48,72 C 62,75 75,78 78,82 C 80,88 56,90 40,92"
             fill="none"
             stroke="#f59e0b"
             strokeWidth="3.5"
@@ -232,7 +258,7 @@ export default function A1AdventureMap({ onSelectTopicForPractice }) {
             className="opacity-75"
           />
           <path
-            d="M 12,15 C 28,18 34,20 42,22 C 58,24 68,26 75,28 C 84,32 86,42 82,50 C 78,56 64,58 52,60 C 38,62 28,66 22,72 C 16,78 35,84 50,88"
+            d="M 10,12 C 24,14 30,16 35,18 C 50,20 58,22 65,24 C 76,28 84,34 84,40 C 80,46 72,50 60,52 C 42,56 30,58 25,62 C 20,68 36,70 48,72 C 62,75 75,78 78,82 C 80,88 56,90 40,92"
             fill="none"
             stroke="#b45309"
             strokeWidth="0.8"
@@ -242,7 +268,7 @@ export default function A1AdventureMap({ onSelectTopicForPractice }) {
         </svg>
 
         {/* Stations Pins Placed Along the Path */}
-        <div className="relative w-full h-[580px]">
+        <div className="relative w-full h-[620px]">
           {A1_LANDMARKS.map((lm, idx) => {
             const top = a1TopicsMap.get(lm.topicName.toLowerCase());
             const isMastered = top && (top.is_locked || top.status === 'mastered' || top.score >= 80);
@@ -266,7 +292,7 @@ export default function A1AdventureMap({ onSelectTopicForPractice }) {
 
                 {/* Station Node Badge */}
                 <div
-                  className={`w-13 h-13 sm:w-16 sm:h-16 rounded-3xl shadow-xl flex flex-col items-center justify-center border-3 transition-all duration-300 transform group-hover:scale-110 group-hover:-translate-y-1.5 ${
+                  className={`w-12 h-12 sm:w-16 sm:h-16 rounded-3xl shadow-xl flex flex-col items-center justify-center border-3 transition-all duration-300 transform group-hover:scale-110 group-hover:-translate-y-1.5 ${
                     isMastered
                       ? 'bg-gradient-to-br from-emerald-400 to-green-600 border-green-200 text-white ring-4 ring-green-400/30'
                       : isCurrent
@@ -311,7 +337,7 @@ export default function A1AdventureMap({ onSelectTopicForPractice }) {
             </div>
             <div>
               <div className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
-                Сквозной сюжет • Sandwich Immersion (Чередование тем)
+                Сквозной сюжет • 9 Глав по Буэнос-Айресу
               </div>
               <div className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-white">
                 {currentStation ? `Глава ${currentStation.order}: ${currentStation.storyTitle}` : "Приключения Матео"}

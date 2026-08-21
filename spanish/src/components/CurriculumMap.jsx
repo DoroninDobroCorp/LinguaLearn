@@ -3,13 +3,14 @@ import { useSearchParams } from 'react-router-dom';
 import {
   ChevronDown, ChevronRight, CheckCircle2, Circle,
   TrendingUp, Filter, Map, Sparkles, Trophy, Award, GraduationCap, Compass,
-  BookOpen, Layers, ShieldCheck, Headphones, BookMarked
+  BookOpen, Layers, ShieldCheck, Headphones, BookMarked, HelpCircle
 } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import TopicTheoryModal from './TopicTheoryModal';
 import ExamModal from './ExamModal';
+import A1UnitsView from './A1UnitsView';
 import A1AdventureMap from './A1AdventureMap';
 import A1CheckpointsView from './A1CheckpointsView';
 import A1SkillsView from './A1SkillsView';
@@ -53,14 +54,18 @@ function StatusIcon({ status, score, isLocked }) {
 export default function CurriculumMap() {
   const { isDark } = useTheme();
   const { t } = useLanguage();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const topicParam = searchParams.get('topic');
 
-  const [activeTab, setActiveTab] = useState(tabParam && ['all_topics', 'a1_map', 'checkpoints', 'skills', 'vocab_domains'].includes(tabParam) ? tabParam : 'all_topics');
+  const VALID_TABS = ['a1_units', 'a1_map', 'checkpoints', 'skills', 'vocab_domains', 'all_topics'];
+  const [activeTab, setActiveTab] = useState(
+    tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'a1_units'
+  );
+
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedLevels, setExpandedLevels] = useState({ 'A1': true, 'A2': true, 'B1': false, 'B2': false, 'C1': false, 'C2': false });
+  const [expandedLevels, setExpandedLevels] = useState({ 'A1': true, 'A2': false, 'B1': false, 'B2': false, 'C1': false, 'C2': false });
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
 
@@ -88,7 +93,7 @@ export default function CurriculumMap() {
   }, []);
 
   useEffect(() => {
-    if (tabParam && ['all_topics', 'a1_map', 'checkpoints', 'skills', 'vocab_domains'].includes(tabParam)) {
+    if (tabParam && VALID_TABS.includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -103,6 +108,15 @@ export default function CurriculumMap() {
     }
   }, [topicParam, topics]);
 
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tabId);
+      return next;
+    });
+  };
+
   const toggleLevel = (level) => {
     setExpandedLevels(prev => ({ ...prev, [level]: !prev[level] }));
   };
@@ -115,98 +129,140 @@ export default function CurriculumMap() {
   const groupedByLevel = topics.reduce((acc, topic) => {
     if (!acc[topic.level]) acc[topic.level] = [];
     acc[topic.level].push(topic);
-    return acc, acc;
+    return acc;
   }, {});
 
-  const totalTopicsCount = topics.length;
+  const totalTopicsCount = topics.length || 158;
   const masteredTotal = topics.filter(t => t.is_locked || t.status === 'mastered' || t.score >= 80).length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn space-y-6">
       {/* Title banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-gradient flex items-center gap-3">
             <Map className="h-9 w-9 text-fuchsia-500" />
-            {t('nav_curriculum', 'Карта учебного плана')}
+            {t('nav_curriculum', 'Учебный план курса')}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm sm:text-base">
-            Все <strong>{totalTopicsCount} тем</strong> испанского языка по уровням CEFR (A1–C2) с теорией, AI-репетитором и экзаменами.
+          <p className="text-gray-600 dark:text-gray-400 mt-1 text-xs sm:text-sm">
+            Академическая программа CEFR: 9 модулей A1 с интерактивной практикой, аудио, контрольными точками и 650 леммами.
           </p>
         </div>
 
         {/* Tab switchers */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-white/80 dark:bg-gray-800/80 p-1.5 rounded-2xl border border-purple-200 dark:border-gray-700 shadow-sm">
+        <div className="flex flex-wrap items-center gap-1.5 bg-white/90 dark:bg-gray-800/90 p-1.5 rounded-2xl border border-purple-200 dark:border-gray-700 shadow-md">
           <button
-            onClick={() => setActiveTab('all_topics')}
-            className={`px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
-              activeTab === 'all_topics'
+            onClick={() => handleTabChange('a1_units')}
+            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+              activeTab === 'a1_units'
                 ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
-                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
             }`}
           >
-            <Layers className="w-4 h-4" />
-            <span>📋 Все темы ({totalTopicsCount})</span>
+            <Layers className="w-4 h-4 text-amber-300" />
+            <span>🎓 9 Модулей A1</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('a1_map')}
-            className={`px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+            onClick={() => handleTabChange('a1_map')}
+            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
               activeTab === 'a1_map'
                 ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
-                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
             }`}
           >
             <Compass className="w-4 h-4" />
-            <span>🗺️ Маршрут A1</span>
+            <span>🗺️ Карта (9 глав)</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('checkpoints')}
-            className={`px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+            onClick={() => handleTabChange('checkpoints')}
+            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
               activeTab === 'checkpoints'
                 ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
-                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
             }`}
           >
             <Trophy className="w-4 h-4" />
-            <span>🎯 Контрольные точки</span>
+            <span>🎯 10 Срезов</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('skills')}
-            className={`px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+            onClick={() => handleTabChange('skills')}
+            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
               activeTab === 'skills'
                 ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
-                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
             }`}
           >
             <Headphones className="w-4 h-4" />
-            <span>🎧 Навыки</span>
+            <span>🎧 4 Навыка</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('vocab_domains')}
-            className={`px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+            onClick={() => handleTabChange('vocab_domains')}
+            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
               activeTab === 'vocab_domains'
                 ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
-                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
             }`}
           >
             <BookMarked className="w-4 h-4" />
-            <span>📚 650 лемм A1</span>
+            <span>📚 650 Слов</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('all_topics')}
+            className={`px-3 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+              activeTab === 'all_topics'
+                ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            <span>🌐 Все уровни (A1–C2)</span>
           </button>
         </div>
       </div>
 
-      {/* VIEW 1: FULL 158-TOPIC CATALOG (A1 to C2) */}
+      {/* VIEW 1: 9 THEMATIC A1 UNITS (DEFAULT & PRIMARY) */}
+      {activeTab === 'a1_units' && (
+        <A1UnitsView
+          onOpenTheory={(topic) => openTheory(topic)}
+          onOpenExercises={(topic) => openTheory(topic)}
+          onOpenCheckpoint={(unitOrder) => handleTabChange('checkpoints')}
+          onOpenSkills={() => handleTabChange('skills')}
+          onOpenVocab={() => handleTabChange('vocab_domains')}
+        />
+      )}
+
+      {/* VIEW 2: A1 ADVENTURE ROADMAP WITH MATEO (9 CHAPTERS) */}
+      {activeTab === 'a1_map' && (
+        <A1AdventureMap onSelectTopicForPractice={(topic) => openTheory(topic)} />
+      )}
+
+      {/* VIEW 3: A1 CHECKPOINTS (UNITS 1-9 & FINAL) */}
+      {activeTab === 'checkpoints' && (
+        <A1CheckpointsView />
+      )}
+
+      {/* VIEW 4: A1 SKILL EVIDENCE ASSESSMENTS */}
+      {activeTab === 'skills' && (
+        <A1SkillsView />
+      )}
+
+      {/* VIEW 5: 650 CORE VOCABULARY LEMMAS ACROSS 12 DOMAINS */}
+      {activeTab === 'vocab_domains' && (
+        <A1VocabularyDomainsView />
+      )}
+
+      {/* VIEW 6: FULL 158-TOPIC CATALOG (A1 to C2) */}
       {activeTab === 'all_topics' && (
         <div className="space-y-6 animate-fadeIn">
           {/* Filters & Overall Summary */}
           <div className="flex flex-wrap items-center justify-between gap-4 bg-white/80 dark:bg-gray-800/80 p-4 rounded-3xl border border-purple-100 dark:border-gray-700 shadow-sm">
             <div className="flex items-center space-x-2 text-xs font-bold text-gray-500">
               <Filter className="w-4 h-4 text-purple-600" />
-              <span>Фильтр тем:</span>
+              <span>Фильтр каталога тем:</span>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -329,26 +385,6 @@ export default function CurriculumMap() {
             );
           })}
         </div>
-      )}
-
-      {/* VIEW 2: A1 ADVENTURE ROADMAP WITH MATEO */}
-      {activeTab === 'a1_map' && (
-        <A1AdventureMap onSelectTopicForPractice={(topic) => openTheory(topic)} />
-      )}
-
-      {/* VIEW 3: A1 CHECKPOINTS (UNITS 1-9 & FINAL) */}
-      {activeTab === 'checkpoints' && (
-        <A1CheckpointsView />
-      )}
-
-      {/* VIEW 4: A1 SKILL EVIDENCE ASSESSMENTS */}
-      {activeTab === 'skills' && (
-        <A1SkillsView />
-      )}
-
-      {/* VIEW 5: 650 CORE VOCABULARY LEMMAS ACROSS 12 DOMAINS */}
-      {activeTab === 'vocab_domains' && (
-        <A1VocabularyDomainsView />
       )}
 
       {/* Modals */}

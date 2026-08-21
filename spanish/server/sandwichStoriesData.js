@@ -300,6 +300,101 @@ export const MATEO_A1_STORY = {
         correctIndex: 0,
         explanation: "С глаголом GUSTAR используется конструкция «Me gusta...» (буквально: «мне нравится»)!"
       }
+    },
+    {
+      id: "chapter-8",
+      topicId: 26,
+      stationOrder: 8,
+      titleRu: "Глава 8: Новый дом в Сан-Тельмо и уют",
+      titleEs: "Capítulo 8: El Nuevo Departamento en San Telmo",
+      landmark: "San Telmo y el Departamento 🏢🛋️",
+      grammarFocus: "Конструкция Hay, предлоги места и мебель (La casa & Muebles)",
+      vocabHighlights: [
+        { es: "el departamento", ru: "квартира", audio: "el departamento" },
+        { es: "la habitación", ru: "комната / спальня", audio: "la habitación" },
+        { es: "encima de la mesa", ru: "на столе", audio: "encima de la mesa" },
+        { es: "al lado de la ventana", ru: "рядом с окном", audio: "al lado de la ventana" },
+        { es: "el balcón", ru: "балкон", audio: "el balcón" }
+      ],
+      paragraphs: [
+        {
+          textRu: "Матео решил снять уютную квартиру на третьем этаже старинного дома в Сан-Тельмо с кованым балконом и видом на мощеную улицу.",
+          spanishPhrase: null
+        },
+        {
+          textRu: "Хозяин дома, дон Эстебан, показал просторные комнаты и с гордостью отметил:",
+          spanishPhrase: "— En la sala hay un sofá cómodo y una mesa grande de madera.",
+          translationRu: "— В гостиной есть удобный диван и большой деревянный стол."
+        },
+        {
+          textRu: "Матео посмотрел на солнечный свет, заливающий комнату:",
+          spanishPhrase: "— La lámpara está encima de la mesa y la planta está al lado de la ventana. ¡Es perfecto!",
+          translationRu: "— Лампа стоит на столе, а растение — рядом с окном. Идеально!"
+        },
+        {
+          textRu: "Теперь у Матео есть настоящий дом в Буэнос-Айресе, где можно готовить мате и учить испанский!",
+          spanishPhrase: null
+        }
+      ],
+      quickQuiz: {
+        question: "Какой предлог означает «рядом с...»?",
+        options: [
+          "al lado de",
+          "debajo de",
+          "lejos de",
+          "dentro de"
+        ],
+        correctIndex: 0,
+        explanation: "«al lado de...» означает «рядом с... / сбоку от...»."
+      }
+    },
+    {
+      id: "chapter-9",
+      topicId: 12,
+      stationOrder: 9,
+      titleRu: "Глава 9: Фиеста в Пуэрто-Мадеро и Выпускной A1",
+      titleEs: "Capítulo 9: La Gran Fiesta de Graduación A1",
+      landmark: "Puerto Madero & Puente de la Mujer 🎓🥂✨",
+      grammarFocus: "Глаголы вкуса Gustar, неправильные глаголы ir/hacer/decir и выпускной A1",
+      vocabHighlights: [
+        { es: "la fiesta de graduación", ru: "выпускной праздник", audio: "la fiesta de graduación" },
+        { es: "Me gusta mucho", ru: "Мне очень нравится", audio: "Me gusta mucho" },
+        { es: "Voy a viajar", ru: "Я собираюсь путешествовать", audio: "Voy a viajar" },
+        { es: "¡Felicitaciones!", ru: "Поздравляю!", audio: "¡Felicitaciones!" },
+        { es: "el certificado", ru: "сертификат", audio: "el certificado" }
+      ],
+      paragraphs: [
+        {
+          textRu: "Наступил торжественный день завершения курса A1! В современном районе Пуэрто-Мадеро, на террасе с видом на Женский мост (Puente de la Mujer), друзья собрались на выпускную фиесту.",
+          spanishPhrase: null
+        },
+        {
+          textRu: "София вручила Матео красивый именной диплом:",
+          spanishPhrase: "— ¡Felicitaciones, Mateo! Vos hablas muy bien español y completaste el nivel A1.",
+          translationRu: "— Поздравляю, Матео! Ты отлично говоришь по-испански и завершил уровень A1."
+        },
+        {
+          textRu: "Матео поднял бокал за всех друзей и поделился планами на будущее:",
+          spanishPhrase: "— A mí me encanta Argentina. El próximo mes voy a viajar a la Patagonia y hacer muchas fotos.",
+          translationRu: "— Я обожаю Аргентину. В следующем месяце я поеду в Патагонию и сделаю много фотографий."
+        },
+        {
+          textRu: "Все зааплодировали: «¡Viva el español! ¡Nos vemos en el nivel A2!». Приключение только начинается!",
+          spanishPhrase: null
+        }
+      ],
+      quickQuiz: {
+        question: "Как сказать по-испански «Я собираюсь путешествовать»?",
+        options: [
+          "Voy a viajar",
+          "Hago viajar",
+          "Tengo viajar",
+          "Soy viajar"
+        ],
+        correctIndex: 0,
+        explanation: "Конструкция IR + A + инфинитив («Voy a viajar») выражает планы на будущее!"
+      }
     }
   ]
 };
+
