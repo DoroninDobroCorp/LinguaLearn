@@ -157,6 +157,10 @@ describe('A1 adaptive mastery engine', () => {
     const quick = getA1TodayPlan(db, 1, now, { targetMinutes: 15 });
     const deep = getA1TodayPlan(db, 1, now, { targetMinutes: 60 });
     assert.equal(quick.actions[0].kind, 'grammar_review');
+    assert.match(quick.actions[0].actionUrl, /^\/exercises\?tab=classic_quiz&mode=recommended&topicIds=/);
+    const recommendedIds = new URLSearchParams(quick.actions[0].actionUrl.split('?')[1]).get('topicIds').split(',').map(Number);
+    assert.deepEqual(recommendedIds, quick.actions[0].topicIds);
+    assert.ok(recommendedIds.every((id) => quick.course.dueTopics.some((topic) => topic.topicId === id)));
     assert.equal(quick.course.reviewBacklogHigh, true);
     assert.ok(quick.course.nextNewTopic, 'new material remains available to an intensive learner');
     assert.ok(quick.continueOptions.some((action) => action.kind === 'new_topic'));

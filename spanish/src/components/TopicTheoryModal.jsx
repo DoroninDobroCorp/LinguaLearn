@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   X, BookOpen, Bot, Sparkles, Send, Volume2, CheckCircle2,
   AlertTriangle, Lightbulb, ChevronRight, Loader2, ArrowRight,
-  RotateCcw, Copy, Check, HelpCircle, XCircle, Target, Award, Compass, MessageSquare, Dumbbell
+  RotateCcw, Copy, Check, HelpCircle, XCircle, Target, Award, Compass,
+  MessageSquare, Dumbbell, Languages, Lock
 } from 'lucide-react';
 import { profileApiUrl, profileFetch, getAssetUrl } from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
@@ -82,6 +83,9 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
   const [activeTab, setActiveTab] = useState('theory'); // 'theory' | 'exercises' | 'tutor'
   const [theoryData, setTheoryData] = useState(null);
   const [loadingTheory, setLoadingTheory] = useState(true);
+  const [lesson, setLesson] = useState(null);
+  const [vocabularyConfirmed, setVocabularyConfirmed] = useState(true);
+  const [theoryViewed, setTheoryViewed] = useState(false);
 
   // Quiz state inside theory modal
   const [quizAnswers, setQuizAnswers] = useState({});
@@ -114,6 +118,10 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
       setExerciseAnswers({});
       setUserExInput('');
       setUserTileOrder([]);
+      setLesson(null);
+      setVocabularyConfirmed(true);
+      setTheoryViewed(false);
+      setActiveTab('theory');
     }
   }, [isOpen, topicId, topicName]);
 
@@ -133,6 +141,11 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
       if (res.ok) {
         const data = await res.json();
         setTheoryData(data.theory || null);
+        const nextLesson = data.lesson || null;
+        const alreadyIntroduced = Boolean(nextLesson?.isIntroduced);
+        setLesson(nextLesson);
+        setVocabularyConfirmed(!nextLesson || alreadyIntroduced);
+        setActiveTab(nextLesson && !alreadyIntroduced && nextLesson.starterVocabulary?.length ? 'vocabulary' : 'theory');
       }
     } catch (error) {
       console.error('Error fetching topic theory:', error);
@@ -266,6 +279,8 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
   const examplesList = theoryData?.examples || [];
   const exercisesList = theoryData?.exercises || [];
   const currentEx = exercisesList[exerciseIndex];
+  const starterVocabulary = lesson?.starterVocabulary || [];
+  const exercisesUnlocked = !lesson || lesson.isIntroduced || (vocabularyConfirmed && theoryViewed);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
@@ -301,29 +316,49 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
 
         {/* Tab Switcher */}
         <div className="flex border-b border-purple-100 dark:border-gray-700 px-6 bg-gray-50/80 dark:bg-gray-800/50 flex-wrap">
+          {starterVocabulary.length > 0 && (
+            <button
+              onClick={() => setActiveTab('vocabulary')}
+              className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 ${
+                activeTab === 'vocabulary'
+                  ? 'border-purple-600 text-purple-600 dark:text-purple-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Languages className="w-4 h-4" />
+              <span>1. Слова ({starterVocabulary.length})</span>
+            </button>
+          )}
           <button
-            onClick={() => setActiveTab('theory')}
-            className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 ${
+            onClick={() => {
+              if (!vocabularyConfirmed) return;
+              setActiveTab('theory');
+            }}
+            disabled={!vocabularyConfirmed}
+            className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 disabled:opacity-40 ${
               activeTab === 'theory'
                 ? 'border-purple-600 text-purple-600 dark:text-purple-400'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            <span>Теория и Квиз</span>
+            <span>2. Правило и квиз</span>
+            {!vocabularyConfirmed && <Lock className="w-3 h-3" />}
           </button>
 
           {exercisesList.length > 0 && (
             <button
-              onClick={() => setActiveTab('exercises')}
-              className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 ${
+              onClick={() => exercisesUnlocked && setActiveTab('exercises')}
+              disabled={!exercisesUnlocked}
+              className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 disabled:opacity-40 ${
                 activeTab === 'exercises'
                   ? 'border-purple-600 text-purple-600 dark:text-purple-400'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
               <Dumbbell className="w-4 h-4" />
-              <span>Упражнения ({exercisesList.length})</span>
+              <span>3. Упражнения ({exercisesList.length})</span>
+              {!exercisesUnlocked && <Lock className="w-3 h-3" />}
             </button>
           )}
 
@@ -346,6 +381,46 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
             <div className="flex items-center justify-center h-64 text-purple-600">
               <Loader2 className="w-8 h-8 animate-spin" />
               <span className="ml-3 font-semibold text-sm">Загрузка материалов темы...</span>
+            </div>
+          ) : activeTab === 'vocabulary' ? (
+            <div className="space-y-5">
+              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+                <div className="font-black text-emerald-900 dark:text-emerald-100">Шаг 1 из 3 — слова для этого правила</div>
+                <p className="text-sm text-emerald-800 dark:text-emerald-200 mt-1">
+                  Сначала познакомьтесь с этими словами. Именно этот материал встретится в объяснении и контролируемой практике.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {starterVocabulary.map((item) => (
+                  <div key={item.word} className="p-4 rounded-2xl border border-purple-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-black text-lg text-purple-800 dark:text-purple-200">{item.word}</div>
+                        <div className="font-semibold text-gray-700 dark:text-gray-200">{item.translation}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => speakSpanish(item.word)}
+                        className="p-2 rounded-xl bg-purple-50 dark:bg-gray-700 text-purple-600"
+                        aria-label={`Прослушать ${item.word}`}
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {item.example && <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">{item.example}</div>}
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setVocabularyConfirmed(true);
+                  setActiveTab('theory');
+                }}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-black shadow-lg"
+              >
+                Слова просмотрены — перейти к правилу
+              </button>
             </div>
           ) : activeTab === 'theory' ? (
             theoryData ? (
@@ -925,12 +1000,19 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
             Закрыть
           </button>
 
-          {exercisesList.length > 0 && activeTab !== 'exercises' && (
+          {exercisesList.length > 0 && activeTab === 'theory' && (
             <button
-              onClick={() => setActiveTab('exercises')}
+              onClick={() => {
+                setTheoryViewed(true);
+                setActiveTab('exercises');
+              }}
               className="px-5 sm:px-6 py-2.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition-transform active:scale-95 text-xs sm:text-sm flex items-center gap-2"
             >
-              <span>Тренировать упражнения ({exercisesList.length})</span>
+              <span>
+                {exercisesUnlocked
+                  ? `Тренировать упражнения (${exercisesList.length})`
+                  : 'Правило прочитано — перейти к упражнениям'}
+              </span>
               <ArrowRight className="w-4 h-4" />
             </button>
           )}

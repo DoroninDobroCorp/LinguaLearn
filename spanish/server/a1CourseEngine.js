@@ -667,6 +667,13 @@ export function getA1CourseSnapshot(db, profileId, now = new Date()) {
   };
 }
 
+function a1PracticeUrl(topicIds = []) {
+  const params = new URLSearchParams({ tab: 'classic_quiz', mode: 'recommended' });
+  const validIds = topicIds.map(Number).filter((topicId) => Number.isInteger(topicId) && topicId > 0);
+  if (validIds.length > 0) params.set('topicIds', validIds.join(','));
+  return `/exercises?${params.toString()}`;
+}
+
 export function getA1TodayPlan(db, profileId, now = new Date(), options = {}) {
   const course = getA1CourseSnapshot(db, profileId, now);
   const targetMinutes = clamp(Math.round(Number(options.targetMinutes) || 30), 10, 120);
@@ -678,7 +685,8 @@ export function getA1TodayPlan(db, profileId, now = new Date(), options = {}) {
       kind: 'grammar_review', priority: 'required', titleRu: `Повторить ${Math.min(3, course.dueCount)} темы по расписанию`,
       descriptionRu: course.dueTopics.slice(0, 3).map((row) => row.name).join(' • '),
       rationaleRu: 'Срок повторения наступил: этот шаг лучше всего защищает материал от забывания.',
-      topicIds: course.dueTopics.slice(0, 3).map((row) => row.topicId), actionUrl: '/exercises', minutes: 8,
+      topicIds: course.dueTopics.slice(0, 3).map((row) => row.topicId),
+      actionUrl: a1PracticeUrl(course.dueTopics.slice(0, 3).map((row) => row.topicId)), minutes: 8,
     });
   }
   if (course.vocabulary.due > 0) {
@@ -727,7 +735,7 @@ export function getA1TodayPlan(db, profileId, now = new Date(), options = {}) {
       candidates.push({
         kind: 'practice', priority: 'required', titleRu: 'Короткая разминка',
         descriptionRu: 'Смешанная практика уже знакомого материала.',
-        rationaleRu: 'Начинаем с извлечения из памяти.', actionUrl: '/exercises', minutes: 5,
+        rationaleRu: 'Начинаем с извлечения из памяти.', actionUrl: a1PracticeUrl(), minutes: 5,
       });
     }
   }

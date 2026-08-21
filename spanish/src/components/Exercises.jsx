@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Brain, Target, RefreshCw, CheckCircle, XCircle, Award,
   TrendingUp, Play, RotateCcw, HelpCircle, Flame, Layers,
@@ -147,6 +148,9 @@ function WordTilesSection() {
 
   return (
     <div className="max-w-3xl mx-auto glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-purple-100 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 animate-fadeIn">
+      <div className="mb-5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-100 text-xs sm:text-sm">
+        Свободная смешанная практика: здесь могут встречаться фразы из будущих модулей. Для учебного маршрута используйте вкладку «Тесты & Вставка слов».
+      </div>
       <div className="flex items-center justify-between border-b border-purple-100 dark:border-gray-700 pb-4 mb-6">
         <div>
           <span className="text-xs font-bold bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2.5 py-1 rounded-full">
@@ -860,25 +864,37 @@ function VerbConjugationDrills({ onTopicUpdated }) {
 // ----------------------------------------------------
 // 5. CLASSIC QUIZ & FILL-IN (RESTORED!)
 // ----------------------------------------------------
-function ClassicQuizSection() {
+function ClassicQuizSection({ topicIds = [] }) {
   const { t } = useLanguage();
   const [exercises, setExercises] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
   const [userFillAnswer, setUserFillAnswer] = useState('');
   const [isAnswered, setIsAnswered] = useState(false);
+  const [result, setResult] = useState(null);
+  const [checking, setChecking] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const attemptEventRef = useRef(null);
+  const startedAtRef = useRef(Date.now());
+  const topicIdsKey = topicIds.join(',');
 
   const fetchExercises = async () => {
     try {
       setLoading(true);
-      const res = await profileFetch(profileApiUrl('/spanish/api/exercises?level=A1&category=Grammar'));
-      if (res.ok) {
-        const data = await res.json();
-        setExercises(data || []);
-      }
+      setError('');
+      const params = new URLSearchParams({ level: 'A1', category: 'Grammar', adaptive: '1', count: '20' });
+      if (topicIdsKey) params.set('topicIds', topicIdsKey);
+      const res = await profileFetch(profileApiUrl(`/spanish/api/exercises?${params.toString()}`));
+      const data = await res.json().catch(() => []);
+      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить упражнения');
+      setExercises(Array.isArray(data) ? data : []);
+      setCurrentIndex(0);
+      startedAtRef.current = Date.now();
     } catch (err) {
       console.error('Error fetching classic exercises:', err);
+      setExercises([]);
+      setError(err.message || 'Не удалось загрузить упражнения');
     } finally {
       setLoading(false);
     }
@@ -886,17 +902,43 @@ function ClassicQuizSection() {
 
   useEffect(() => {
     fetchExercises();
-  }, []);
+  }, [topicIdsKey]);
 
   const currentEx = exercises[currentIndex];
+  const isChoice = currentEx?.type === 'multiple-choice' || currentEx?.type === 'choice';
+  const userAnswer = isChoice ? selectedOption : userFillAnswer.trim();
 
-  const handleCheck = () => {
-    if (isAnswered || !currentEx) return;
-    setIsAnswered(true);
-    const userAnswer = currentEx.type === 'multiple-choice' ? selectedOption : userFillAnswer.trim();
-    const correct = (userAnswer || '').toLowerCase() === (currentEx.correctAnswer || '').toLowerCase();
-    if (correct) soundEngine.playCorrect();
-    else soundEngine.playWrong();
+  const handleCheck = async () => {
+    if (isAnswered || checking || !currentEx || !userAnswer) return;
+    setChecking(true);
+    setError('');
+    if (!attemptEventRef.current) {
+      attemptEventRef.current = globalThis.crypto?.randomUUID?.() || `practice-${currentEx.id}-${Date.now()}`;
+    }
+    try {
+      const res = await profileFetch(profileApiUrl('/spanish/api/a1/practice/verify'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topicId: currentEx.topicId,
+          exerciseId: currentEx.id,
+          answer: userAnswer,
+          eventId: attemptEventRef.current,
+          responseMs: Date.now() - startedAtRef.current,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось проверить ответ');
+      setResult(data);
+      setIsAnswered(true);
+      if (data.isCorrect) soundEngine.playCorrect();
+      else soundEngine.playWrong();
+      window.dispatchEvent(new CustomEvent('gamification_updated'));
+    } catch (err) {
+      setError(err.message || 'Не удалось проверить ответ');
+    } finally {
+      setChecking(false);
+    }
   };
 
   const handleNext = () => {
@@ -904,14 +946,23 @@ function ClassicQuizSection() {
     setSelectedOption(null);
     setUserFillAnswer('');
     setIsAnswered(false);
+    setResult(null);
+    setError('');
+    attemptEventRef.current = null;
+    startedAtRef.current = Date.now();
   };
 
-  if (loading || !currentEx) {
+  if (loading) {
     return <div className="p-8 text-center text-gray-500">Загрузка упражнений...</div>;
   }
-
-  const userAnswer = currentEx.type === 'multiple-choice' ? selectedOption : userFillAnswer.trim();
-  const isCorrect = (userAnswer || '').toLowerCase() === (currentEx.correctAnswer || '').toLowerCase();
+  if (!currentEx) {
+    return (
+      <div className="max-w-3xl mx-auto p-8 text-center rounded-3xl bg-white dark:bg-gray-800 border border-purple-100 dark:border-gray-700">
+        <p className="font-bold text-gray-800 dark:text-gray-100">{error || 'Пока нет материала для повторения.'}</p>
+        <p className="text-sm text-gray-500 mt-2">Сначала изучите первый набор слов и правило в рекомендованной теме.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-purple-100 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 animate-fadeIn">
@@ -921,7 +972,7 @@ function ClassicQuizSection() {
             {currentEx.level} • {currentEx.topic}
           </span>
           <h3 className="text-lg font-extrabold text-gray-900 dark:text-white mt-1">
-            {currentEx.type === 'multiple-choice' ? 'Тест с выбором ответа' : 'Вставка слова'}
+            {isChoice ? 'Тест с выбором ответа' : 'Ответ на испанском'}
           </h3>
         </div>
         <div className="text-sm font-bold text-purple-600 dark:text-purple-400">
@@ -933,12 +984,12 @@ function ClassicQuizSection() {
         {currentEx.question}
       </p>
 
-      {currentEx.type === 'multiple-choice' && (
+      {isChoice && (
         <div className="space-y-3 mb-6">
           {(currentEx.options || []).map((opt, idx) => {
             let btnStyle = 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:border-purple-400';
             if (isAnswered) {
-              if (opt.toLowerCase() === (currentEx.correctAnswer || '').toLowerCase()) {
+              if (opt.toLowerCase() === (result?.correctAnswer || '').toLowerCase()) {
                 btnStyle = 'bg-green-100 dark:bg-green-900/60 border-green-500 text-green-900 dark:text-green-200 font-bold';
               } else if (opt === selectedOption) {
                 btnStyle = 'bg-red-100 dark:bg-red-900/60 border-red-500 text-red-900 dark:text-red-200';
@@ -963,7 +1014,7 @@ function ClassicQuizSection() {
         </div>
       )}
 
-      {currentEx.type !== 'multiple-choice' && (
+      {!isChoice && (
         <div className="mb-6">
           <input
             type="text"
@@ -977,9 +1028,17 @@ function ClassicQuizSection() {
         </div>
       )}
 
+      {error && (
+        <div className="p-3 rounded-xl bg-red-50 text-red-700 text-sm font-semibold mb-4">{error}</div>
+      )}
+
       {isAnswered && (
-        <div className={`p-4 rounded-xl font-bold text-sm mb-6 ${isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-          {isCorrect ? '¡Excelente! Ответ правильный.' : `Неверно. Правильный ответ: ${currentEx.correctAnswer}`}
+        <div className={`p-4 rounded-xl font-bold text-sm mb-6 ${result?.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          <div>
+            {result?.isCorrect ? '¡Excelente! Ответ правильный.' : `Неверно. Правильный ответ: ${result?.correctAnswer}`}
+          </div>
+          {result?.explanation && <div className="mt-2 font-medium opacity-90">{result.explanation}</div>}
+          {result?.feedbackRu && <div className="mt-2 text-xs font-medium opacity-80">{result.feedbackRu}</div>}
         </div>
       )}
 
@@ -987,10 +1046,10 @@ function ClassicQuizSection() {
         {!isAnswered ? (
           <button
             onClick={handleCheck}
-            disabled={currentEx.type === 'multiple-choice' ? !selectedOption : !userFillAnswer.trim()}
+            disabled={checking || !userAnswer}
             className="px-6 py-2.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-bold rounded-xl shadow disabled:opacity-50"
           >
-            {t('btn_check', 'Проверить')}
+            {checking ? 'Проверяем…' : t('btn_check', 'Проверить')}
           </button>
         ) : (
           <button
@@ -1011,10 +1070,23 @@ function ClassicQuizSection() {
 // ----------------------------------------------------
 export default function Exercises() {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState('word_tiles');
+  const [searchParams] = useSearchParams();
+  const validTabs = ['word_tiles', 'speed_match', 'error_detective', 'verb_drills', 'classic_quiz'];
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(validTabs.includes(tabParam) ? tabParam : 'classic_quiz');
+  const recommendedMode = searchParams.get('mode') === 'recommended';
+  const topicIds = (searchParams.get('topicIds') || '')
+    .split(',')
+    .map(Number)
+    .filter((topicId) => Number.isInteger(topicId) && topicId > 0)
+    .slice(0, 5);
+
+  useEffect(() => {
+    if (validTabs.includes(tabParam)) setActiveTab(tabParam);
+  }, [tabParam]);
 
   const tabs = [
-    { id: 'word_tiles', label: t('tab_word_tiles', 'Конструктор фраз'), emoji: '🧩' },
+    { id: 'word_tiles', label: t('tab_word_tiles', 'Свободный конструктор'), emoji: '🧩' },
     { id: 'speed_match', label: t('tab_speed_match', 'Speed Match Blitz'), emoji: '⚡' },
     { id: 'error_detective', label: t('tab_error_detective', 'Детектив ошибок'), emoji: '🔍' },
     { id: 'verb_drills', label: t('tab_verb_drills', 'Спряжения глаголов'), emoji: '🎯' },
@@ -1032,6 +1104,13 @@ export default function Exercises() {
           {t('gym_sub', 'Выбирай формат практики для развития речи, грамматики и словарного запаса.')}
         </p>
       </div>
+
+      {recommendedMode && activeTab === 'classic_quiz' && (
+        <div className="mb-6 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100">
+          <div className="font-black text-sm">Рекомендованное повторение</div>
+          <div className="text-xs sm:text-sm mt-1">Здесь только темы, с которыми вы уже познакомились и которым сейчас нужна практика.</div>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2 mb-8 bg-white/80 dark:bg-gray-800/80 p-2 rounded-2xl border border-purple-100 dark:border-gray-700 shadow-sm">
         {tabs.map((tab) => {
@@ -1060,7 +1139,7 @@ export default function Exercises() {
       {activeTab === 'speed_match' && <SpeedMatchSection />}
       {activeTab === 'error_detective' && <ErrorDetectiveSection />}
       {activeTab === 'verb_drills' && <VerbConjugationDrills />}
-      {activeTab === 'classic_quiz' && <ClassicQuizSection />}
+      {activeTab === 'classic_quiz' && <ClassicQuizSection topicIds={topicIds} />}
     </div>
   );
 }

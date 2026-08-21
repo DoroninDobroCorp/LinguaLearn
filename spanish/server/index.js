@@ -25,6 +25,14 @@ import {
   updateDailyQuestProgress
 } from './gamification.js';
 import { getGrammarTheoryGuide, getAllA1TopicPackages } from './grammarTheoryData.js';
+import {
+  A1PracticeError,
+  buildA1StarterVocabulary,
+  buildA1PracticeExercises,
+  findA1PracticeExercise,
+  isA1PracticeAnswerCorrect,
+  parseA1PracticeTopicIds,
+} from './a1Practice.js';
 import { getFrequencyCatalogs, generateDecksForProfile } from './frequencyData.js';
 import { ensureCurriculumExamsSchema, getExamsStatus, generateExamQuestions, submitExamResult } from './examEngine.js';
 import { generateSpanishExercise } from './grammarExerciseEngine.js';
@@ -2701,8 +2709,24 @@ app.get('/api/curriculum/topics/:id/theory', (req, res) => {
     }
 
     const theory = getGrammarTheoryGuide(topicId, topicRow.name);
+    let lesson = null;
+    if (topicRow.level === 'A1') {
+      const course = getA1CourseSnapshot(db, getProfileId(req));
+      const unit = course.units.find((candidate) =>
+        candidate.topics.some((topic) => Number(topic.topicId) === topicId)
+      );
+      const topicState = unit?.topics.find((topic) => Number(topic.topicId) === topicId);
+      lesson = {
+        sequence: ['vocabulary', 'theory', 'exercises', 'spaced_review'],
+        isIntroduced: Boolean(topicState && topicState.phase !== 'new'),
+        unitId: unit?.id || null,
+        starterVocabulary: buildA1StarterVocabulary(topicId, topicRow.name, 10),
+        noteRu: 'Сначала познакомьтесь со словами, затем разберите правило и только после этого переходите к упражнениям.',
+      };
+    }
     res.json({
       topic: topicRow,
+      lesson,
       theory: theory || {
         id: topicId,
         topicName: topicRow.name,
@@ -3158,7 +3182,14 @@ Respond strictly as JSON in the following schema:
 // ==========================================
 app.get('/api/exercises', (req, res) => {
   try {
-    const { level, category, topicId, count = 20 } = req.query;
+    const { level, category, topicId, topicIds, count = 20 } = req.query;
+    const adaptive = req.query.adaptive === '1' || req.query.recommended === '1';
+    if (adaptive) {
+      const requestedTopicIds = parseA1PracticeTopicIds(topicIds ?? topicId);
+      const course = getA1CourseSnapshot(db, getProfileId(req));
+      return res.json(buildA1PracticeExercises(course, requestedTopicIds, { count }));
+    }
+
     const allPackages = getAllA1TopicPackages();
     let selected = [];
 
@@ -3199,7 +3230,52 @@ app.get('/api/exercises', (req, res) => {
     res.json(shuffled);
   } catch (error) {
     console.error('Error fetching exercises list:', error);
-    res.status(500).json({ error: error.message });
+    const status = error instanceof A1PracticeError ? error.status : Number(error.status) || 500;
+    res.status(status).json({ error: error.message, code: error.code || 'EXERCISE_LIST_ERROR' });
+  }
+});
+
+app.post('/api/a1/practice/verify', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const { topicId, exerciseId, answer, eventId, responseMs, hintsUsed = 0 } = req.body || {};
+    if (typeof answer !== 'string' || answer.trim().length === 0 || answer.length > 500) {
+      throw new A1PracticeError(400, 'INVALID_A1_ANSWER', 'answer must be a non-empty string of at most 500 characters');
+    }
+
+    const course = getA1CourseSnapshot(db, profileId);
+    const { exercise } = findA1PracticeExercise(course, topicId, exerciseId);
+    const isCorrect = isA1PracticeAnswerCorrect(exercise, answer);
+    const adaptive = recordA1Attempt(db, profileId, {
+      topicId,
+      eventId,
+      correct: isCorrect,
+      hintsUsed,
+      responseMs,
+      activityType: 'adaptive_practice',
+    });
+
+    let xpGained = 0;
+    if (isCorrect && !adaptive.replayed) {
+      xpGained = 10;
+      addProfileXp(db, profileId, xpGained, 'a1_adaptive_practice');
+    }
+
+    return res.status(adaptive.replayed ? 200 : 201).json({
+      isCorrect,
+      correctAnswer: exercise.correctAnswer,
+      explanation: exercise.explanation || '',
+      feedbackRu: adaptive.feedbackRu,
+      retentionCredit: adaptive.retentionCredit,
+      state: adaptive.state,
+      replayed: adaptive.replayed,
+      xpGained,
+      gamification: getGamificationStatus(db, profileId),
+    });
+  } catch (error) {
+    console.error('Error verifying adaptive A1 practice:', error);
+    const status = error instanceof A1PracticeError ? error.status : Number(error.status) || 500;
+    return res.status(status).json({ error: error.message, code: error.code || 'A1_PRACTICE_VERIFY_ERROR' });
   }
 });
 
