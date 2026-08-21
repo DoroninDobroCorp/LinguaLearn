@@ -2553,10 +2553,21 @@ app.get('/api/a1/skills/:skill', (req, res) => {
   }
 });
 
+app.get('/api/a1/skills/:skill/tasks', (req, res) => {
+  try {
+    const skill = req.params.skill;
+    const tasks = getA1SkillTasks(skill);
+    res.json({ skill, tasks });
+  } catch (error) {
+    console.error('Error fetching skill tasks:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/a1/vocabulary/domains', (req, res) => {
   try {
     const snapshot = getA1CourseSnapshot(db, getProfileId(req));
-    res.json({ vocabulary: snapshot.vocabulary });
+    res.json({ vocabulary: snapshot.vocabulary, domains: snapshot.vocabulary?.domains || [] });
   } catch (error) {
     console.error('Error fetching vocabulary domains:', error);
     res.status(500).json({ error: error.message });
