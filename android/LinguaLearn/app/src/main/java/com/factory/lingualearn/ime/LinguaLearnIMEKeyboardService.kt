@@ -1,10 +1,13 @@
 package com.factory.lingualearn.ime
 
+import android.content.Context
 import android.inputmethodservice.InputMethodService
+import android.os.Build
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -37,6 +40,10 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
     private lateinit var privacyManager: PrivacyConsentManager
     private lateinit var previewController: PreviewPopupController
 
+    private var isShiftEnabled = false
+    private val letterButtons = mutableListOf<Button>()
+    private var shiftButton: Button? = null
+
     private var candidatesContainer: LinearLayout? = null
     private var previewTextView: TextView? = null
     private var summaryTextView: TextView? = null
@@ -56,6 +63,7 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
 
     override fun onCreateInputView(): View {
         val context = applicationContext
+        letterButtons.clear()
         val keyboardLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(8, 8, 8, 8)
@@ -66,44 +74,132 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
             )
         }
 
-        val rows = listOf(
-            listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p"),
-            listOf("a", "s", "d", "f", "g", "h", "j", "k", "l"),
-            listOf("z", "x", "c", "v", "b", "n", "m", ",", ".")
-        )
+        val row1Keys = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
+        val row2Keys = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l")
+        val row3Letters = listOf("z", "x", "c", "v", "b", "n", "m")
 
-        for (rowKeys in rows) {
-            val rowLayout = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { topMargin = 4; bottomMargin = 4 }
-            }
-            for (key in rowKeys) {
-                val btn = Button(context).apply {
-                    text = key
-                    textSize = 14f
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                        leftMargin = 2
-                        rightMargin = 2
-                    }
-                    setOnClickListener {
-                        onKeyTyped(key)
-                    }
+        // Row 1
+        val row1Layout = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 4; bottomMargin = 4 }
+        }
+        for (key in row1Keys) {
+            val btn = Button(context).apply {
+                text = if (isShiftEnabled) key.uppercase() else key
+                textSize = 14f
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    leftMargin = 2
+                    rightMargin = 2
                 }
-                rowLayout.addView(btn)
+                setOnClickListener {
+                    onKeyTyped(if (isShiftEnabled) key.uppercase() else key)
+                }
             }
-            keyboardLayout.addView(rowLayout)
+            letterButtons.add(btn)
+            row1Layout.addView(btn)
+        }
+        keyboardLayout.addView(row1Layout)
+
+        // Row 2
+        val row2Layout = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 4; bottomMargin = 4 }
+        }
+        for (key in row2Keys) {
+            val btn = Button(context).apply {
+                text = if (isShiftEnabled) key.uppercase() else key
+                textSize = 14f
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    leftMargin = 2
+                    rightMargin = 2
+                }
+                setOnClickListener {
+                    onKeyTyped(if (isShiftEnabled) key.uppercase() else key)
+                }
+            }
+            letterButtons.add(btn)
+            row2Layout.addView(btn)
+        }
+        keyboardLayout.addView(row2Layout)
+
+        // Row 3: Shift, z, x, c, v, b, n, m, Backspace
+        val row3Layout = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 4; bottomMargin = 4 }
         }
 
-        // Bottom row: Space, Manual Check, Backspace, Send / Enter
+        val shiftBtn = Button(context).apply {
+            text = "⇧"
+            textSize = 14f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.2f).apply {
+                leftMargin = 2
+                rightMargin = 2
+            }
+            setOnClickListener {
+                toggleShift()
+            }
+        }
+        shiftButton = shiftBtn
+        row3Layout.addView(shiftBtn)
+
+        for (key in row3Letters) {
+            val btn = Button(context).apply {
+                text = if (isShiftEnabled) key.uppercase() else key
+                textSize = 14f
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    leftMargin = 2
+                    rightMargin = 2
+                }
+                setOnClickListener {
+                    onKeyTyped(if (isShiftEnabled) key.uppercase() else key)
+                }
+            }
+            letterButtons.add(btn)
+            row3Layout.addView(btn)
+        }
+
+        val backspaceBtn = Button(context).apply {
+            text = "⌫"
+            textSize = 14f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.2f).apply {
+                leftMargin = 2
+                rightMargin = 2
+            }
+            setOnClickListener {
+                onBackspaceTyped()
+            }
+        }
+        row3Layout.addView(backspaceBtn)
+        keyboardLayout.addView(row3Layout)
+
+        // Bottom row: Switch Keyboard (🌐), Space, Manual Check, Send / Enter
         val bottomRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { topMargin = 4; bottomMargin = 4 }
+        }
+
+        val switchImeBtn = Button(context).apply {
+            text = "🌐"
+            textSize = 14f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                leftMargin = 2
+                rightMargin = 2
+            }
+            setOnClickListener {
+                onSwitchKeyboardPressed()
+            }
         }
 
         val spaceBtn = Button(context).apply {
@@ -130,18 +226,6 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
             }
         }
 
-        val backspaceBtn = Button(context).apply {
-            text = "⌫"
-            textSize = 14f
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                leftMargin = 2
-                rightMargin = 2
-            }
-            setOnClickListener {
-                onBackspaceTyped()
-            }
-        }
-
         val sendBtn = Button(context).apply {
             text = "SEND / ↵"
             textSize = 11f
@@ -154,13 +238,39 @@ class LinguaLearnIMEKeyboardService : InputMethodService() {
             }
         }
 
+        bottomRow.addView(switchImeBtn)
         bottomRow.addView(spaceBtn)
         bottomRow.addView(checkBtn)
-        bottomRow.addView(backspaceBtn)
         bottomRow.addView(sendBtn)
         keyboardLayout.addView(bottomRow)
 
         return keyboardLayout
+    }
+
+    fun toggleShift() {
+        isShiftEnabled = !isShiftEnabled
+        for (btn in letterButtons) {
+            val cur = btn.text.toString()
+            btn.text = if (isShiftEnabled) cur.uppercase() else cur.lowercase()
+        }
+        shiftButton?.setBackgroundColor(if (isShiftEnabled) 0xFF4A5568.toInt() else 0xFF2D3748.toInt())
+    }
+
+    fun onSwitchKeyboardPressed() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            try {
+                if (!switchToNextInputMethod(false)) {
+                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.showInputMethodPicker()
+                }
+            } catch (e: Exception) {
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.showInputMethodPicker()
+            }
+        } else {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.showInputMethodPicker()
+        }
     }
 
     fun onKeyTyped(char: String) {

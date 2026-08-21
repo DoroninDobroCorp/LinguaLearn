@@ -22,7 +22,9 @@ data class QueueItem(
     val originalText: String,
     val sentAt: String,
     val previewOnly: Boolean,
-    val retryCount: Int = 0
+    val retryCount: Int = 0,
+    val lastError: String? = null,
+    val isTerminal: Boolean = false
 )
 
 class BackgroundSyncQueue(
@@ -35,6 +37,7 @@ class BackgroundSyncQueue(
     companion object {
         private const val KEY_QUEUE_ITEMS = "queue_items"
         private const val KEY_DEVICE_TOKEN = "device_token"
+        private const val KEY_LAST_GLOBAL_ERROR = "last_global_error"
         const val MAX_RETRIES = 5
         const val MAX_QUEUE_SIZE = 100
     }
@@ -122,7 +125,9 @@ class BackgroundSyncQueue(
                         originalText = obj.getString("originalText"),
                         sentAt = obj.getString("sentAt"),
                         previewOnly = obj.getBoolean("previewOnly"),
-                        retryCount = obj.optInt("retryCount", 0)
+                        retryCount = obj.optInt("retryCount", 0),
+                        lastError = if (obj.has("lastError") && !obj.isNull("lastError")) obj.getString("lastError") else null,
+                        isTerminal = obj.optBoolean("isTerminal", false)
                     )
                 )
             }
@@ -143,6 +148,8 @@ class BackgroundSyncQueue(
             obj.put("sentAt", item.sentAt)
             obj.put("previewOnly", item.previewOnly)
             obj.put("retryCount", item.retryCount)
+            item.lastError?.let { obj.put("lastError", it) }
+            obj.put("isTerminal", item.isTerminal)
             array.put(obj)
         }
         prefs.edit().putString(KEY_QUEUE_ITEMS, array.toString()).apply()
@@ -151,6 +158,40 @@ class BackgroundSyncQueue(
     @Synchronized
     fun dequeue(eventId: String) {
         val current = getQueueItems().filterNot { it.eventId == eventId }
+        saveQueueItems(current)
+    }
+
+    @Synchronized
+    fun clearAll() {
+        prefs.edit().putString(KEY_QUEUE_ITEMS, "[]").remove(KEY_LAST_GLOBAL_ERROR).apply()
+    }
+
+    fun getLastGlobalError(): String? {
+        return prefs.getString(KEY_LAST_GLOBAL_ERROR, null)
+    }
+
+    fun setLastGlobalError(error: String?) {
+        if (error != null) {
+            prefs.edit().putString(KEY_LAST_GLOBAL_ERROR, error).apply()
+        } else {
+            prefs.edit().remove(KEY_LAST_GLOBAL_ERROR).apply()
+        }
+    }
+
+    @Synchronized
+    fun markError(eventId: String, error: String, isTerminal: Boolean = false) {
+        val current = getQueueItems().map {
+            if (it.eventId == eventId) {
+                it.copy(
+                    retryCount = it.retryCount + 1,
+                    lastError = error,
+                    isTerminal = isTerminal
+                )
+            } else {
+                it
+            }
+        }
+        setLastGlobalError(error)
         saveQueueItems(current)
     }
 
@@ -173,7 +214,7 @@ class BackgroundSyncQueue(
         val token = getDeviceToken()
 
         for (item in items) {
-            if (item.retryCount >= MAX_RETRIES) {
+            if (item.retryCount >= MAX_RETRIES || item.isTerminal) {
                 // Keep exhausted items for diagnostics/manual retry; never silently lose raw text.
                 continue
             }
@@ -202,7 +243,7 @@ class BackgroundSyncQueue(
 
                         val is409Replay = status == 409 || reason.startsWith("HTTP 409")
 
-                        val isRetryable = status == 429 || reason.startsWith("HTTP 429") ||
+                        val isRetryable = status == 408 || status == 429 || reason.startsWith("HTTP 429") ||
                                 (status in 500..599) || reason.contains("HTTP 5") ||
                                 status == 0
 
@@ -215,17 +256,18 @@ class BackgroundSyncQueue(
                             dequeue(item.eventId)
                             syncedCount++
                         } else if (is401Permanent) {
-                            // Permanent client error (401, 400, 403, 422) -> drop item to unblock queue
+                            // Permanent client error (400, 401, 403, 422) -> mark terminal with status
+                            markError(item.eventId, reason.ifEmpty { "HTTP $status Client Error" }, isTerminal = true)
                             dequeue(item.eventId)
                         } else if (isRetryable) {
-                            // Transient error (429 rate limit, 5xx server error) -> increment retry with bounded backoff
-                            incrementRetry(item.eventId)
+                            // Transient error (408, 429 rate limit, 5xx server error) -> increment retry with bounded backoff
+                            markError(item.eventId, reason.ifEmpty { "HTTP $status Transient Error" }, isTerminal = false)
                         } else {
-                            incrementRetry(item.eventId)
+                            markError(item.eventId, reason.ifEmpty { "HTTP $status Error" }, isTerminal = false)
                         }
                     }
                 } catch (e: Exception) {
-                    incrementRetry(item.eventId)
+                    markError(item.eventId, e.message ?: "Network error", isTerminal = false)
                 }
             } else {
                 // Missing runtime dependencies are not delivery. Preserve the durable item.

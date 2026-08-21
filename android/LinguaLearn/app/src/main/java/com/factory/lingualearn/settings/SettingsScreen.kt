@@ -13,7 +13,8 @@ import kotlin.concurrent.thread
 @Composable
 fun SettingsScreen(
     authManager: AuthManager,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onNavigateToQueue: (() -> Unit)? = null
 ) {
     val privacyManager = remember { PrivacyConsentManager(authManager.context) }
     var capturePaused by remember { mutableStateOf(privacyManager.isCapturePaused()) }
@@ -83,28 +84,43 @@ fun SettingsScreen(
                 Text("Queue Depth: $queueDepth items", style = MaterialTheme.typography.bodySmall)
                 Text("Sync Status: $syncStatus", style = MaterialTheme.typography.bodySmall)
                 Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = {
-                        isTestingConnection = true
-                        syncStatus = "Testing..."
-                        thread {
-                            val client = ApiClient(authManager.getApiBaseUrl())
-                            val (success, commit) = client.testConnection()
-                            val syncQueue = BackgroundSyncQueue(authManager.context)
-                            val synced = syncQueue.sync(client)
-                            if (success) {
-                                backendCommit = commit
-                                syncStatus = if (synced > 0) "Connected (HTTP 200, synced $synced items)" else "Connected (HTTP 200)"
-                            } else {
-                                backendCommit = "Error"
-                                syncStatus = "Error: $commit"
-                            }
-                            isTestingConnection = false
-                        }
-                    },
-                    enabled = !isTestingConnection
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(if (isTestingConnection) "Testing..." else "Test Connection")
+                    Button(
+                        onClick = {
+                            isTestingConnection = true
+                            syncStatus = "Testing..."
+                            thread {
+                                val client = ApiClient(authManager.getApiBaseUrl())
+                                val (success, commit) = client.testConnection()
+                                val syncQueue = BackgroundSyncQueue(authManager.context)
+                                val synced = syncQueue.sync(client)
+                                if (success) {
+                                    backendCommit = commit
+                                    syncStatus = if (synced > 0) "Connected (HTTP 200, synced $synced items)" else "Connected (HTTP 200)"
+                                } else {
+                                    backendCommit = "Error"
+                                    syncStatus = "Error: $commit"
+                                }
+                                isTestingConnection = false
+                            }
+                        },
+                        enabled = !isTestingConnection,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(if (isTestingConnection) "Testing..." else "Test Connection")
+                    }
+
+                    if (onNavigateToQueue != null) {
+                        OutlinedButton(
+                            onClick = onNavigateToQueue,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Manage Queue")
+                        }
+                    }
                 }
             }
         }

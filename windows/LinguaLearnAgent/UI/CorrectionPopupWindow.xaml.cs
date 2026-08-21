@@ -63,9 +63,13 @@ public partial class CorrectionPopupWindow : Window
 
     private void ReplaceButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_targetElement != null && !string.IsNullOrWhiteSpace(_response.CorrectedText))
+        string targetText = !string.IsNullOrWhiteSpace(_response.RecommendedText)
+            ? _response.RecommendedText
+            : _response.CorrectedText;
+
+        if (_targetElement != null && !string.IsNullOrWhiteSpace(targetText))
         {
-            _replaceEngine.ReplaceTextInFocusedElement(_targetElement, _response.CorrectedText);
+            _replaceEngine.ReplaceTextInFocusedElement(_targetElement, _response.OriginalText, targetText);
         }
         Close();
     }

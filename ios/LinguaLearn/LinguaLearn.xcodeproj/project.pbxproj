@@ -36,6 +36,7 @@
 		7A545CED7DE287D26688FCAF /* KeychainAppGroupManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F122B81A6F52168AE3E965 /* KeychainAppGroupManagerTests.swift */; };
 		7ABC9E19865EA68C20D077CE /* PracticeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2CF51F46BA35D8E24F4A6C /* PracticeViewModel.swift */; };
 		89B4B4CC9696C5445DFDCB12 /* LinguaLearnKeyboardExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A42980D1FC3791A8FF67CB7E /* LinguaLearnKeyboardExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		91A5573B843A07358CA53018 /* AutoReplaceEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1332443FE972EB7DE66FBE6 /* AutoReplaceEngineTests.swift */; };
 		9854EEF9D7AB74D16AD7A0C4 /* RetentionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 698AD08FDAB2C55722F372D8 /* RetentionManager.swift */; };
 		A27B03D059EB22162D025BE7 /* TodayPracticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CF4707F98778F478773A4F5 /* TodayPracticeView.swift */; };
 		AA236F655F570B46D0D6AF88 /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879F1A8E349E707AF3E52248 /* InboxView.swift */; };
@@ -112,6 +113,7 @@
 		CEAABF90EF5D26AF8FAD1FDC /* CandidateFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CandidateFilter.swift; sourceTree = "<group>"; };
 		D0585B5C86C262819B8313E0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D0FC12180207375636A9BDC0 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		D1332443FE972EB7DE66FBE6 /* AutoReplaceEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoReplaceEngineTests.swift; sourceTree = "<group>"; };
 		D164FC228F3AB55AC98CCAAB /* SendTriggerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendTriggerTests.swift; sourceTree = "<group>"; };
 		DBBF42FE92994958C27A3EEC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		EEBF4DF2007296098A600586 /* InboxViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxViewModel.swift; sourceTree = "<group>"; };
@@ -198,6 +200,7 @@
 			children = (
 				62E3CD4F42BD51F0623A8A16 /* ApiClientTests.swift */,
 				0D535C23057AE8E955DE77B8 /* AppConfigTests.swift */,
+				D1332443FE972EB7DE66FBE6 /* AutoReplaceEngineTests.swift */,
 				F442EC00D9CFE2AF8C03F785 /* CandidateFilterTests.swift */,
 				C9F122B81A6F52168AE3E965 /* KeychainAppGroupManagerTests.swift */,
 				98A2181986855818BC104B84 /* RetryQueueTests.swift */,
@@ -380,6 +383,7 @@
 			files = (
 				5371BCCF3C293FE7EAB8A1FB /* ApiClientTests.swift in Sources */,
 				768AB3795CC8228619F37E96 /* AppConfigTests.swift in Sources */,
+				91A5573B843A07358CA53018 /* AutoReplaceEngineTests.swift in Sources */,
 				CD19372871E80A796DFCC56B /* CandidateFilterTests.swift in Sources */,
 				7A545CED7DE287D26688FCAF /* KeychainAppGroupManagerTests.swift in Sources */,
 				6B27ED02510127F02F3215FF /* RetryQueueTests.swift in Sources */,

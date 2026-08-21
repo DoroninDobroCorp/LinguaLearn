@@ -1,31 +1,50 @@
-# LinguaLearn Windows Desktop Agent (`windows/LinguaLearnAgent`)
+# LinguaLearn Windows Desktop Agent
 
-LinguaLearn Agent is a native Windows desktop application built with .NET 8 (WPF / Windows Forms / UI Automation).
-It captures learner writing on explicit Send or Hotkey trigger from focused edit controls, performs candidate filtering, and syncs writing samples to the LinguaLearn English backend via the unified OpenAPI contract (`schemaVersion: 1`).
+Canonical directory: `windows/LinguaLearnAgent`
 
-## Key Features
+LinguaLearn Windows Agent is a native desktop application built with .NET 8 (WPF / Windows Forms / UI Automation).
+It captures English writing upon explicit triggers (Enter / Send key hook or Win32 global hotkey), filters candidate text, and synchronizes writing samples with the LinguaLearn English backend via the unified OpenAPI 3.0 contract (`schemaVersion: 1`).
 
-- **HTTPS API Base URL Configuration**: User-configurable HTTPS API base URL (default `https://145.239.82.124.sslip.io/english` without hardcoded HTTP fallback) accessible via agent UI settings.
-- **DPAPI Credential & Queue Security**: Device tokens and offline retry queue (`offline_retry_queue.dat`) are encrypted on disk using Windows Data Protection API (`System.Security.Cryptography.ProtectedData` under `DataProtectionScope.CurrentUser`).
-- **UI Automation Edit Control Capture**: Listens to focus change events (`UIAutomationListener`) to track active controls without automatic text capture on focus change. Focus changes never trigger text capture; analysis occurs strictly on explicit trigger.
-- **System Tray Notification UI**: System tray menu providing Pause/Resume capture, Pair Device Token, Settings, Preview Hotkey Mode toggle, and Sync Retry Queue.
-- **WM_HOTKEY Preview Mode**: Real Win32 global hotkey (`WM_HOTKEY` via `HwndSource`) displaying full 4-tier preview cards including objective grammar errors, mechanical corrections, and optional suggestions without altering user topic progress (`previewOnly = true`).
-- **Password Control Rejection**: Password inputs, PIN controls, and sensitive edit fields are strictly excluded from capture.
-- **Auto-Replace Engine**: Replaces corrected text in focused edit controls using Windows UI Automation `ValuePattern` and fallback key events (`recommendedText`).
-- **Offline Retry Queue**: DPAPI-encrypted file-backed retry queue (`offline_retry_queue.dat`) for offline or transient network failures.
-- **Candidate Filtering**: Sensitive/password field rejection, Cyrillic character rejection, code/URL detection, and prose sentence boundary validation.
+## System Architecture
 
-## Architecture
+### 1. Focus & Trigger Subsystems
+- **UIAutomation Listener (`UIAutomation/UIAutomationListener.cs`)**: Tracks focused editable controls via Microsoft UIAutomation without automatic text capture on focus change. Focus changes never trigger network calls.
+- **Global Hotkey Preview (`Hotkey/PreviewHotkeyManager.cs`)**: Registers a Win32 `WM_HOTKEY` (default `Ctrl+Alt+G`) via `HwndSource`. When triggered on a focused edit control, it reads the current draft and sends a request with `previewOnly = true` (does not alter user curriculum mastery scores or evidence).
+- **Enter Key Hook (`UIAutomation/EnterKeyHook.cs`)**: Low-level keyboard hook (`WH_KEYBOARD_LL`) that detects Return/Enter in supported non-denied chat applications (Telegram, Slack, browser textarea, Notepad, Outlook).
 
-- `LinguaLearnAgent.csproj`: .NET 8 WPF project file targeting Windows.
-- `App.xaml` / `App.xaml.cs`: Application entrypoint initializing system tray, hotkey manager, and UI automation listeners.
-- `MainWindow.xaml` / `MainWindow.xaml.cs`: Agent dashboard for HTTPS API configuration, DPAPI device pairing, privacy controls, and queue management.
-- `UIAutomation/UIAutomationListener.cs`: Focus handler and explicit trigger execution manager.
-- `Filter/CandidateFilter.cs`: Prose validation and password field rejection rules.
-- `Tray/SystemTrayController.cs`: System tray icon, context menu, and balloon notifications.
-- `Hotkey/PreviewHotkeyManager.cs`: Win32 `WM_HOTKEY` global hotkey registration for Preview Mode.
-- `Replacement/AutoReplaceEngine.cs`: Text replacement handler in UI Automation edit controls.
-- `Queue/OfflineRetryQueue.cs`: DPAPI-encrypted persistent queue for offline analysis payloads.
-- `Network/ApiClient.cs`: Configurable HTTPS API client posting payloads to `POST /api/writing/analyze`.
-- `Settings/PrivacyConsentManager.cs`: Storage manager for DPAPI-protected device tokens and HTTPS settings.
-- `Tests/`: C# unit test suite for candidate filter, retry queue, API client, DPAPI encryption, and WM_HOTKEY hook.
+### 2. Candidate Filtering (`Filter/CandidateFilter.cs`)
+- **Sensitive Field Guard**: Rejects password edit controls, PIN inputs, CVV fields, and controls with sensitive naming patterns.
+- **Prose Validation**:
+  - Rejects text with Cyrillic characters.
+  - Rejects code snippets, shell commands, HTML markup, and SQL queries.
+  - Rejects URLs and email addresses.
+  - Requires minimum length (≥ 5 characters) and sentence terminators (`.`, `!`, `?`).
+
+### 3. DPAPI Credential & Queue Security (`Queue/OfflineRetryQueue.cs`, `Settings/PrivacyConsentManager.cs`)
+- **Fail-Closed DPAPI Encryption**: Device tokens and offline retry queue (`offline_retry_queue.dat`) are encrypted with the Windows Data Protection API (`System.Security.Cryptography.ProtectedData` under `DataProtectionScope.CurrentUser`).
+- **Zero Plaintext Fallback**: If DPAPI encryption/decryption fails, the agent fails closed and will not persist plaintext secrets or corrupt existing queues.
+- **Exact-Once eventId Deduplication**: Each capture payload preserves its unique client-generated GUID `eventId` across all retries, surviving agent restarts and reboots.
+- **Quarantine Handling**: Malformed or unprotectable queue files are moved to a timestamped `.quarantine` archive without crashing the agent.
+
+### 4. 4-Tier Assessment Popup Policy (`UI/CorrectionPopupController.cs`, `UI/CorrectionPopupWindow.xaml`)
+- `clear_error`: Large correction card displaying grammar error fragments, suggested corrections, and Russian pedagogical explanations.
+- `mechanical_only`, `acceptable`, `correct`: Compact confirmation chip (`Grammar OK ✓`) with auto-dismiss (1.8s).
+- **Stale Draft Guard (`Replacement/AutoReplaceEngine.cs`)**: Verifies that the focused edit control value has not changed during analysis before replacing. If modified, falls back to copying corrected text to clipboard.
+
+## Build and Test Instructions
+
+### Prerequisites
+- Windows 10/11 with .NET 8.0 SDK installed
+- Visual Studio 2022 or `dotnet` CLI
+
+### Running Tests & Building
+```powershell
+cd windows
+dotnet test LinguaLearnAgent.Tests/LinguaLearnAgent.Tests.csproj
+dotnet build -c Release LinguaLearnAgent/LinguaLearnAgent.csproj
+```
+
+### Installation & Launch
+1. Build the release binary: `dotnet publish -c Release -r win-x64 --self-contained`
+2. Launch `LinguaLearnAgent.exe`.
+3. From the System Tray icon, select **Pair Device** to enter your server device token (`ll_dev_...`).

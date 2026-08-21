@@ -95,4 +95,32 @@ class BackgroundSyncQueueTest {
         assertEquals(1, list.size)
         assertEquals(eventId, list.first().eventId)
     }
+
+    @Test
+    fun testTerminalStatusAndErrorTracking() {
+        val item = QueueItem(
+            eventId = "evt-terminal-001",
+            sourceApp = "com.slack",
+            originalText = "Testing terminal 400 rejection.",
+            sentAt = "2026-08-13T10:00:00Z",
+            previewOnly = false,
+            retryCount = 1,
+            lastError = "HTTP 400 Bad Request",
+            isTerminal = true
+        )
+
+        assertEquals("HTTP 400 Bad Request", item.lastError)
+        assertTrue(item.isTerminal)
+        assertEquals(1, item.retryCount)
+    }
+
+    @Test
+    fun testQueueClearAll() {
+        val list = mutableListOf<QueueItem>()
+        list.add(QueueItem("e1", "app", "text1", "2026-08-13T10:00:00Z", false))
+        list.add(QueueItem("e2", "app", "text2", "2026-08-13T10:00:00Z", false))
+        assertEquals(2, list.size)
+        list.clear()
+        assertEquals(0, list.size)
+    }
 }

@@ -12,6 +12,7 @@ import com.factory.lingualearn.auth.AuthManager
 import com.factory.lingualearn.auth.LoginScreen
 import com.factory.lingualearn.devices.DeviceTokenScreen
 import com.factory.lingualearn.inbox.InboxScreen
+import com.factory.lingualearn.queue.UnsentEventsScreen
 import com.factory.lingualearn.retention.RetentionStatusScreen
 import com.factory.lingualearn.settings.SettingsScreen
 import com.factory.lingualearn.today.TodayPracticeScreen
@@ -84,6 +85,12 @@ fun MainNavigationScreen(
                 NavigationBarItem(
                     selected = selectedTab == 4,
                     onClick = { selectedTab = 4 },
+                    label = { Text("Queue") },
+                    icon = { Text("📤") }
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 5,
+                    onClick = { selectedTab = 5 },
                     label = { Text("Settings") },
                     icon = { Text("⚙️") }
                 )
@@ -96,9 +103,11 @@ fun MainNavigationScreen(
                 1 -> InboxScreen()
                 2 -> DeviceTokenScreen(context = authManager.context)
                 3 -> RetentionStatusScreen()
-                4 -> SettingsScreen(
+                4 -> UnsentEventsScreen(context = authManager.context)
+                5 -> SettingsScreen(
                     authManager = authManager,
-                    onLogout = onLogout
+                    onLogout = onLogout,
+                    onNavigateToQueue = { selectedTab = 4 }
                 )
             }
         }
