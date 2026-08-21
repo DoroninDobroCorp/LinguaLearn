@@ -142,3 +142,18 @@ export async function profileFetch(input, init) {
 
   return response;
 }
+
+/**
+ * Safely resolves media asset paths (audio, webp, etc.) for both direct dev and /spanish/ production base URL.
+ */
+export function getAssetUrl(path) {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:') || path.startsWith('data:')) {
+    return path;
+  }
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  if (cleanPath.startsWith('/spanish/')) {
+    return cleanPath;
+  }
+  return `/spanish${cleanPath}`;
+}

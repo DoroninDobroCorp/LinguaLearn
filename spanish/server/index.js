@@ -6,6 +6,14 @@ import {
   getA1TodayPlan,
   recordA1Attempt,
   recordA1SkillEvidence,
+  recordA1CheckpointSubmission,
+  getA1CheckpointByUnit,
+  getAllA1Checkpoints,
+  getA1SkillTasks,
+  getA1SkillTaskById,
+  getA1VocabularyByDomain,
+  getA1VocabularyByUnit,
+  seedCoreA1Vocabulary,
 } from './a1CourseEngine.js';
 import { PRESET_STORIES } from './storiesData.js';
 import { PRESET_SCENARIOS } from './scenariosData.js';
@@ -16,7 +24,7 @@ import {
   addProfileXp,
   updateDailyQuestProgress
 } from './gamification.js';
-import { getGrammarTheoryGuide } from './grammarTheoryData.js';
+import { getGrammarTheoryGuide, getAllA1TopicPackages } from './grammarTheoryData.js';
 import { getFrequencyCatalogs, generateDecksForProfile } from './frequencyData.js';
 import { ensureCurriculumExamsSchema, getExamsStatus, generateExamQuestions, submitExamResult } from './examEngine.js';
 import { generateSpanishExercise } from './grammarExerciseEngine.js';
@@ -2457,6 +2465,125 @@ app.post('/api/a1/skill-evidence', (req, res) => {
   }
 });
 
+app.get('/api/a1/topics/:id/package', (req, res) => {
+  try {
+    const topicId = Number(req.params.id);
+    const guide = getGrammarTheoryGuide(topicId);
+    if (!guide) return res.status(404).json({ error: 'Topic package not found' });
+    res.json({ package: guide });
+  } catch (error) {
+    console.error('Error fetching topic package:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/a1/topics/:id/exercises', (req, res) => {
+  try {
+    const topicId = Number(req.params.id);
+    const count = Number(req.query.count) || 8;
+    const guide = getGrammarTheoryGuide(topicId);
+    if (!guide || !Array.isArray(guide.exercises) || guide.exercises.length === 0) {
+      return res.status(404).json({ error: 'Topic exercises not found' });
+    }
+    const shuffled = [...guide.exercises].sort(() => 0.5 - Math.random()).slice(0, count);
+    res.json({
+      topicId,
+      topicName: guide.topicName,
+      russianTitle: guide.russianTitle,
+      exercises: shuffled,
+      totalAvailable: guide.exercises.length,
+    });
+  } catch (error) {
+    console.error('Error fetching topic exercises:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/a1/checkpoints', (req, res) => {
+  try {
+    res.json({ checkpoints: getAllA1Checkpoints() });
+  } catch (error) {
+    console.error('Error fetching checkpoints:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/a1/checkpoints/:unitId', (req, res) => {
+  try {
+    const checkpoint = getA1CheckpointByUnit(req.params.unitId);
+    if (!checkpoint) return res.status(404).json({ error: 'Checkpoint not found' });
+    res.json({ checkpoint });
+  } catch (error) {
+    console.error('Error fetching checkpoint:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/a1/checkpoints/:unitId/submit', (req, res) => {
+  try {
+    const result = recordA1CheckpointSubmission(db, getProfileId(req), req.params.unitId, req.body || {});
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error recording checkpoint submission:', error);
+    res.status(Number(error.status) || 500).json({
+      error: error.message,
+      code: error.code || 'CHECKPOINT_SUBMIT_ERROR',
+    });
+  }
+});
+
+app.get('/api/a1/skills', (req, res) => {
+  try {
+    const snapshot = getA1CourseSnapshot(db, getProfileId(req));
+    res.json({ skills: snapshot.skills });
+  } catch (error) {
+    console.error('Error fetching skills:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/a1/skills/:skill', (req, res) => {
+  try {
+    const skill = req.params.skill;
+    const tasks = getA1SkillTasks(skill);
+    res.json({ skill, tasks });
+  } catch (error) {
+    console.error('Error fetching skill tasks:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/a1/vocabulary/domains', (req, res) => {
+  try {
+    const snapshot = getA1CourseSnapshot(db, getProfileId(req));
+    res.json({ vocabulary: snapshot.vocabulary });
+  } catch (error) {
+    console.error('Error fetching vocabulary domains:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/a1/vocabulary/domain/:domainId', (req, res) => {
+  try {
+    const domainId = req.params.domainId;
+    const words = getA1VocabularyByDomain(domainId);
+    res.json({ domainId, words, count: words.length });
+  } catch (error) {
+    console.error('Error fetching domain vocabulary:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/vocabulary/seed-a1', (req, res) => {
+  try {
+    const result = seedCoreA1Vocabulary(db, getProfileId(req));
+    res.json(result);
+  } catch (error) {
+    console.error('Error seeding A1 vocabulary:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // ==========================================
 // API: EXAMINATIONS (Milestone & Level Mastery)
@@ -3002,6 +3129,53 @@ Respond strictly as JSON in the following schema:
 // ==========================================
 // API: TACTILE MINI-GAMES & DRILLS
 // ==========================================
+app.get('/api/exercises', (req, res) => {
+  try {
+    const { level, category, topicId, count = 20 } = req.query;
+    const allPackages = getAllA1TopicPackages();
+    let selected = [];
+
+    if (topicId) {
+      const guide = getGrammarTheoryGuide(Number(topicId));
+      if (guide && Array.isArray(guide.exercises)) {
+        selected = guide.exercises.map((ex) => ({
+          ...ex,
+          topicId: guide.topicId,
+          topic: guide.topicName,
+          level: guide.level || 'A1',
+          category: guide.category || 'Grammar',
+        }));
+      }
+    } else {
+      for (const guide of allPackages) {
+        if (level && guide.level && guide.level.toLowerCase() !== String(level).toLowerCase()) {
+          continue;
+        }
+        if (category && guide.category && guide.category.toLowerCase() !== String(category).toLowerCase()) {
+          continue;
+        }
+        if (Array.isArray(guide.exercises)) {
+          for (const ex of guide.exercises) {
+            selected.push({
+              ...ex,
+              topicId: guide.topicId,
+              topic: guide.topicName,
+              level: guide.level || 'A1',
+              category: guide.category || 'Grammar',
+            });
+          }
+        }
+      }
+    }
+
+    const shuffled = [...selected].sort(() => 0.5 - Math.random()).slice(0, Number(count) || 20);
+    res.json(shuffled);
+  } catch (error) {
+    console.error('Error fetching exercises list:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/exercises/word-tiles', (req, res) => {
   try {
     const { level } = req.query;
@@ -3214,6 +3388,9 @@ app.get('/api/recommendations/today', (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+app.use(express.static(join(__dirname, '../public')));
+app.use(express.static(join(__dirname, '../dist')));
 
 function startServer(port = PORT) {
   return app.listen(port, () => {

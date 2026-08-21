@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   ChevronDown, ChevronRight, CheckCircle2, Circle,
   TrendingUp, Filter, Map, Sparkles, Trophy, Award, GraduationCap, Compass,
-  BookOpen, Layers, ShieldCheck
+  BookOpen, Layers, ShieldCheck, Headphones, BookMarked
 } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
@@ -10,6 +10,9 @@ import { useLanguage } from '../contexts/LanguageContext';
 import TopicTheoryModal from './TopicTheoryModal';
 import ExamModal from './ExamModal';
 import A1AdventureMap from './A1AdventureMap';
+import A1CheckpointsView from './A1CheckpointsView';
+import A1SkillsView from './A1SkillsView';
+import A1VocabularyDomainsView from './A1VocabularyDomainsView';
 
 const LEVEL_CONFIG = {
   'A1': { label: 'Principiante / Начальный', emoji: '📗', gradient: 'from-green-400 to-green-500' },
@@ -49,7 +52,7 @@ function StatusIcon({ status, score, isLocked }) {
 export default function CurriculumMap() {
   const { isDark } = useTheme();
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState('all_topics'); // 'all_topics' | 'a1_map'
+  const [activeTab, setActiveTab] = useState('all_topics'); // 'all_topics' | 'a1_map' | 'checkpoints' | 'skills' | 'vocab_domains'
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedLevels, setExpandedLevels] = useState({ 'A1': true, 'A2': true, 'B1': false, 'B2': false, 'C1': false, 'C2': false });
@@ -88,11 +91,10 @@ export default function CurriculumMap() {
     setSelectedTopicName(topic.name);
   };
 
-  // Group all 158 topics by level
   const groupedByLevel = topics.reduce((acc, topic) => {
     if (!acc[topic.level]) acc[topic.level] = [];
     acc[topic.level].push(topic);
-    return acc;
+    return acc, acc;
   }, {});
 
   const totalTopicsCount = topics.length;
@@ -113,29 +115,65 @@ export default function CurriculumMap() {
         </div>
 
         {/* Tab switchers */}
-        <div className="flex items-center space-x-2 bg-white/80 dark:bg-gray-800/80 p-1.5 rounded-2xl border border-purple-200 dark:border-gray-700 shadow-sm">
+        <div className="flex flex-wrap items-center gap-1.5 bg-white/80 dark:bg-gray-800/80 p-1.5 rounded-2xl border border-purple-200 dark:border-gray-700 shadow-sm">
           <button
             onClick={() => setActiveTab('all_topics')}
-            className={`px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
               activeTab === 'all_topics'
                 ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
                 : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>📋 Каталог всех тем ({totalTopicsCount})</span>
+            <span>📋 Все темы ({totalTopicsCount})</span>
           </button>
 
           <button
             onClick={() => setActiveTab('a1_map')}
-            className={`px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
               activeTab === 'a1_map'
                 ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
                 : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
             }`}
           >
             <Compass className="w-4 h-4" />
-            <span>🗺️ Маршрут A1 с Матео</span>
+            <span>🗺️ Маршрут A1</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('checkpoints')}
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+              activeTab === 'checkpoints'
+                ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+            }`}
+          >
+            <Trophy className="w-4 h-4" />
+            <span>🎯 Контрольные точки</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('skills')}
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+              activeTab === 'skills'
+                ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+            }`}
+          >
+            <Headphones className="w-4 h-4" />
+            <span>🎧 Навыки</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('vocab_domains')}
+            className={`px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+              activeTab === 'vocab_domains'
+                ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+            }`}
+          >
+            <BookMarked className="w-4 h-4" />
+            <span>📚 650 лемм A1</span>
           </button>
         </div>
       </div>
@@ -222,29 +260,35 @@ export default function CurriculumMap() {
                         e.stopPropagation();
                         setExamLevel(level);
                       }}
-                      className="px-3.5 py-1.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-extrabold text-xs rounded-xl shadow transition-transform active:scale-95 flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white rounded-xl text-xs font-bold shadow transition-transform active:scale-95 flex items-center space-x-1.5"
                     >
-                      <GraduationCap className="w-4 h-4" />
-                      <span>Экзамен {level}</span>
+                      <GraduationCap className="h-4 w-4" />
+                      <span className="hidden sm:inline">Экзамен {level}</span>
                     </button>
 
-                    {isExpanded ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+                    <div className="p-1 rounded-full text-gray-400 hover:text-gray-600">
+                      {isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                    </div>
                   </div>
                 </div>
 
-                {/* Topics Grid inside Level */}
+                {/* Topics Grid */}
                 {isExpanded && (
-                  <div className="p-5 border-t border-purple-50 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-gray-50/50 dark:bg-gray-850/50">
+                  <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 border-t border-purple-50 dark:border-gray-700/50">
                     {levelTopics.map((topic) => (
                       <div
                         key={topic.id}
                         onClick={() => openTheory(topic)}
-                        className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-purple-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer flex items-center justify-between group"
+                        className="p-3.5 rounded-2xl border border-purple-100 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/70 hover:bg-white dark:hover:bg-gray-750 hover:border-purple-300 dark:hover:border-purple-600 transition-all cursor-pointer shadow-sm hover:shadow-md flex items-center justify-between group"
                       >
-                        <div className="flex items-center space-x-3 pr-2 min-w-0">
-                          <StatusIcon status={topic.status} score={topic.score} isLocked={topic.is_locked} />
+                        <div className="flex items-center space-x-3 min-w-0">
+                          <StatusIcon
+                            status={topic.status}
+                            score={topic.score || 0}
+                            isLocked={topic.is_locked}
+                          />
                           <div className="min-w-0">
-                            <div className="text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">
+                            <div className="text-[10px] uppercase font-bold text-gray-400">
                               {topic.category}
                             </div>
                             <div className="text-sm font-bold text-gray-900 dark:text-white truncate">
@@ -269,6 +313,21 @@ export default function CurriculumMap() {
       {/* VIEW 2: A1 ADVENTURE ROADMAP WITH MATEO */}
       {activeTab === 'a1_map' && (
         <A1AdventureMap onSelectTopicForPractice={(topic) => openTheory(topic)} />
+      )}
+
+      {/* VIEW 3: A1 CHECKPOINTS (UNITS 1-9 & FINAL) */}
+      {activeTab === 'checkpoints' && (
+        <A1CheckpointsView />
+      )}
+
+      {/* VIEW 4: A1 SKILL EVIDENCE ASSESSMENTS */}
+      {activeTab === 'skills' && (
+        <A1SkillsView />
+      )}
+
+      {/* VIEW 5: 650 CORE VOCABULARY LEMMAS ACROSS 12 DOMAINS */}
+      {activeTab === 'vocab_domains' && (
+        <A1VocabularyDomainsView />
       )}
 
       {/* Modals */}

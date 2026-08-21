@@ -1,3 +1,7 @@
+import { A1_CORE_VOCABULARY, getA1VocabularyByDomain, getA1VocabularyByUnit } from './a1VocabularyData.js';
+import { A1_CHECKPOINTS, getA1CheckpointByUnit, getAllA1Checkpoints } from './a1CheckpointsData.js';
+import { A1_SKILL_TASKS, getA1SkillTasks, getA1SkillTaskById } from './a1SkillTasksData.js';
+
 const DAY_MS = 86_400_000;
 
 export const A1_COURSE_VERSION = 1;
@@ -89,8 +93,7 @@ export function ensureA1CourseSchema(db) {
     db.exec('ALTER TABLE curriculum_progress ADD COLUMN is_locked INTEGER DEFAULT 0');
   }
   db.exec(`
-    CREATE TABLE IF NOT EXISTS a1_topic_mastery (
-      profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    CREATE TABLE IF NOT EXISTS a1_topic_mastery (\n      profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
       topic_id INTEGER NOT NULL REFERENCES curriculum_topics(id) ON DELETE CASCADE,
       phase TEXT NOT NULL DEFAULT 'new' CHECK (phase IN ('new','learning','review','relearning','mastered')),
       mastery_score REAL NOT NULL DEFAULT 0,
@@ -150,11 +153,38 @@ export function ensureA1CourseSchema(db) {
     );
   `);
 
+  const cardColumns = columns(db, 'vocabulary_review_cards');
+  if (cardColumns.size > 0) {
+    if (!cardColumns.has('direction')) db.exec('ALTER TABLE vocabulary_review_cards ADD COLUMN direction TEXT NOT NULL DEFAULT \'source_to_target\'');
+    if (!cardColumns.has('state')) db.exec('ALTER TABLE vocabulary_review_cards ADD COLUMN state TEXT NOT NULL DEFAULT \'new\'');
+    if (!cardColumns.has('review_count')) db.exec('ALTER TABLE vocabulary_review_cards ADD COLUMN review_count INTEGER NOT NULL DEFAULT 0');
+    if (!cardColumns.has('lapse_count')) db.exec('ALTER TABLE vocabulary_review_cards ADD COLUMN lapse_count INTEGER NOT NULL DEFAULT 0');
+    if (!cardColumns.has('interval_days')) db.exec('ALTER TABLE vocabulary_review_cards ADD COLUMN interval_days REAL NOT NULL DEFAULT 0');
+    if (!cardColumns.has('ease_factor')) db.exec('ALTER TABLE vocabulary_review_cards ADD COLUMN ease_factor REAL NOT NULL DEFAULT 2.3');
+    if (!cardColumns.has('next_review_at')) db.exec('ALTER TABLE vocabulary_review_cards ADD COLUMN next_review_at TEXT');
+    if (!cardColumns.has('created_at')) db.exec('ALTER TABLE vocabulary_review_cards ADD COLUMN created_at TEXT');
+    if (!cardColumns.has('updated_at')) db.exec('ALTER TABLE vocabulary_review_cards ADD COLUMN updated_at TEXT');
+  }
+
   const vocabularyColumns = columns(db, 'vocabulary');
+  if (!vocabularyColumns.has('level')) db.exec('ALTER TABLE vocabulary ADD COLUMN level INTEGER DEFAULT 0');
+  if (!vocabularyColumns.has('next_review')) db.exec('ALTER TABLE vocabulary ADD COLUMN next_review TEXT');
+  if (!vocabularyColumns.has('review_count')) db.exec('ALTER TABLE vocabulary ADD COLUMN review_count INTEGER DEFAULT 0');
+  if (!vocabularyColumns.has('word')) db.exec('ALTER TABLE vocabulary ADD COLUMN word TEXT');
+  if (!vocabularyColumns.has('word_key')) db.exec('ALTER TABLE vocabulary ADD COLUMN word_key TEXT');
+  if (!vocabularyColumns.has('translation')) db.exec('ALTER TABLE vocabulary ADD COLUMN translation TEXT');
+  if (!vocabularyColumns.has('translation_key')) db.exec('ALTER TABLE vocabulary ADD COLUMN translation_key TEXT');
+  if (!vocabularyColumns.has('example')) db.exec('ALTER TABLE vocabulary ADD COLUMN example TEXT');
   if (!vocabularyColumns.has('cefr_level')) db.exec('ALTER TABLE vocabulary ADD COLUMN cefr_level TEXT');
   if (!vocabularyColumns.has('course_domain')) db.exec('ALTER TABLE vocabulary ADD COLUMN course_domain TEXT');
   if (!vocabularyColumns.has('course_unit_id')) db.exec('ALTER TABLE vocabulary ADD COLUMN course_unit_id TEXT');
   if (!vocabularyColumns.has('is_core_a1')) db.exec('ALTER TABLE vocabulary ADD COLUMN is_core_a1 INTEGER NOT NULL DEFAULT 0');
+  if (!vocabularyColumns.has('part_of_speech')) db.exec('ALTER TABLE vocabulary ADD COLUMN part_of_speech TEXT');
+  if (!vocabularyColumns.has('gender')) db.exec('ALTER TABLE vocabulary ADD COLUMN gender TEXT');
+  if (!vocabularyColumns.has('base_form')) db.exec('ALTER TABLE vocabulary ADD COLUMN base_form TEXT');
+  if (!vocabularyColumns.has('example_translation')) db.exec('ALTER TABLE vocabulary ADD COLUMN example_translation TEXT');
+  if (!vocabularyColumns.has('notes')) db.exec('ALTER TABLE vocabulary ADD COLUMN notes TEXT');
+
   db.exec('CREATE INDEX IF NOT EXISTS idx_vocabulary_a1_coverage ON vocabulary(profile_id, is_core_a1, course_domain)');
 
   const upsert = db.prepare(`
@@ -168,6 +198,71 @@ export function ensureA1CourseSchema(db) {
     for (const [id, title, target, unitId] of A1_VOCABULARY_DOMAINS) {
       upsert.run(id, title, target, unitId, A1_COURSE_VERSION);
     }
+  })();
+}
+
+export function seedCoreA1Vocabulary(db, profileId) {
+  ensureA1CourseSchema(db);
+
+  const selectExisting = db.prepare(`
+    SELECT id FROM vocabulary WHERE profile_id = ? AND word_key = ? AND translation_key = ?
+  `);
+
+  const insertVocab = db.prepare(`
+    INSERT INTO vocabulary (
+      word, word_key, translation, translation_key, example, example_translation,
+      part_of_speech, gender, base_form, notes, cefr_level, course_domain,
+      course_unit_id, is_core_a1, profile_id, level, next_review, review_count
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 0, CURRENT_TIMESTAMP, 0)
+  `);
+
+  const updateVocab = db.prepare(`
+    UPDATE vocabulary SET
+      cefr_level = ?, course_domain = ?, course_unit_id = ?, is_core_a1 = 1,
+      part_of_speech = ?, gender = ?, base_form = ?, example_translation = ?, notes = ?
+    WHERE id = ?
+  `);
+
+  const insertCard = db.prepare(`
+    INSERT OR IGNORE INTO vocabulary_review_cards (
+      vocabulary_id, profile_id, direction, state, review_count, lapse_count,
+      interval_days, ease_factor, next_review_at, created_at, updated_at
+    )
+    VALUES (?, ?, ?, 'new', 0, 0, 0, 2.3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  `);
+
+  return db.transaction(() => {
+    let count = 0;
+    for (const item of A1_CORE_VOCABULARY) {
+      const wordKey = String(item.word).toLowerCase().trim();
+      const translationKey = String(item.translation).toLowerCase().trim();
+      const existing = selectExisting.get(profileId, wordKey, translationKey);
+      let vocabId;
+
+      if (existing) {
+        vocabId = existing.id;
+        updateVocab.run(
+          item.cefr_level, item.course_domain, item.course_unit_id,
+          item.part_of_speech, item.gender, item.base_form, item.example_translation, item.notes,
+          vocabId
+        );
+      } else {
+        const res = insertVocab.run(
+          item.word, wordKey, item.translation, translationKey, item.example,
+          item.example_translation, item.part_of_speech, item.gender, item.base_form,
+          item.notes, item.cefr_level, item.course_domain, item.course_unit_id, profileId
+        );
+        vocabId = res.lastInsertRowid;
+      }
+
+      if (vocabId) {
+        insertCard.run(vocabId, profileId, 'source_to_target');
+        insertCard.run(vocabId, profileId, 'target_to_source');
+        count++;
+      }
+    }
+    return { profileId, seededCount: count };
   })();
 }
 
@@ -315,6 +410,16 @@ export function recordA1Attempt(db, profileId, input, now = new Date()) {
 }
 
 function vocabularyCoverage(db, profileId) {
+  // Check if profile needs A1 vocabulary seeding
+  const countRow = db.prepare('SELECT COUNT(*) AS c FROM vocabulary WHERE profile_id = ? AND is_core_a1 = 1').get(profileId);
+  if (!countRow || countRow.c < A1_CORE_VOCABULARY_TARGET) {
+    try {
+      seedCoreA1Vocabulary(db, profileId);
+    } catch (e) {
+      console.warn('Auto-seed vocabulary warning:', e.message);
+    }
+  }
+
   const domains = db.prepare(`
     SELECT b.domain_id, b.title_ru, b.target_count, b.unit_id,
       COUNT(DISTINCT CASE WHEN v.is_core_a1 = 1 THEN v.id END) AS introduced,
@@ -371,6 +476,54 @@ export function recordA1SkillEvidence(db, profileId, input, now = new Date()) {
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(profileId, eventId, skill, taskId, score, passed ? 1 : 0, iso(now));
   return { replayed: result.changes === 0, skills: skillCoverage(db, profileId) };
+}
+
+export function recordA1CheckpointSubmission(db, profileId, unitId, input, now = new Date()) {
+  ensureA1CourseSchema(db);
+  const checkpoint = getA1CheckpointByUnit(unitId);
+  if (!checkpoint) {
+    throw Object.assign(new Error(`Checkpoint '${unitId}' not found`), { status: 404, code: 'CHECKPOINT_NOT_FOUND' });
+  }
+
+  const answers = Array.isArray(input?.answers) ? input.answers : [];
+  const productiveResult = input?.productiveResult || null;
+
+  return db.transaction(() => {
+    const attemptResults = [];
+    for (const ans of answers) {
+      if (!ans.topicId) continue;
+      const attemptRes = recordA1Attempt(db, profileId, {
+        topicId: Number(ans.topicId),
+        eventId: String(ans.eventId || `chk-${unitId}-${ans.taskId || ans.id}-${Date.now()}`),
+        correct: Boolean(ans.correct),
+        quality: ans.quality !== undefined ? Number(ans.quality) : (ans.correct ? 4 : 1),
+        activityType: `checkpoint_${unitId}`,
+        hintsUsed: Number(ans.hintsUsed || 0),
+        responseMs: Number(ans.responseMs || 0),
+      }, now);
+      attemptResults.push(attemptRes);
+    }
+
+    let skillEvidenceRes = null;
+    if (productiveResult && productiveResult.skill && productiveResult.taskId && Number.isFinite(productiveResult.score)) {
+      skillEvidenceRes = recordA1SkillEvidence(db, profileId, {
+        eventId: String(productiveResult.eventId || `chk-skill-${unitId}-${Date.now()}`),
+        skill: productiveResult.skill,
+        taskId: productiveResult.taskId,
+        score: Number(productiveResult.score),
+        passed: typeof productiveResult.passed === 'boolean' ? productiveResult.passed : Number(productiveResult.score) >= 70,
+      }, now);
+    }
+
+    const courseSnapshot = getA1CourseSnapshot(db, profileId, now);
+    return {
+      success: true,
+      unitId,
+      recordedAttempts: attemptResults.length,
+      skillEvidence: skillEvidenceRes,
+      course: courseSnapshot,
+    };
+  })();
 }
 
 function unitFor(name) {
@@ -458,3 +611,15 @@ export function getA1TodayPlan(db, profileId, now = new Date()) {
   });
   return { generatedAt: iso(now), actions, course };
 }
+
+export {
+  A1_CORE_VOCABULARY,
+  getA1VocabularyByDomain,
+  getA1VocabularyByUnit,
+  A1_CHECKPOINTS,
+  getA1CheckpointByUnit,
+  getAllA1Checkpoints,
+  A1_SKILL_TASKS,
+  getA1SkillTasks,
+  getA1SkillTaskById
+};
