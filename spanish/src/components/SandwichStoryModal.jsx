@@ -11,37 +11,43 @@ export default function SandwichStoryModal({ chapter, isOpen, onClose, onChapter
   const [selectedOpt, setSelectedOpt] = useState(null);
   const [quizAnswered, setQuizAnswered] = useState(false);
   const [savingProgress, setSavingProgress] = useState(false);
+  const [correctOpt, setCorrectOpt] = useState(null);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [explanation, setExplanation] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   if (!isOpen || !chapter) return null;
 
   const handleQuizAnswer = async (optIdx) => {
-    if (quizAnswered) return;
+    if (savingProgress || (quizAnswered && isCorrect)) return;
     setSelectedOpt(optIdx);
-    setQuizAnswered(true);
-
-    const isCorrect = optIdx === chapter.quickQuiz.correctIndex;
-    if (isCorrect) {
-      soundEngine.playCorrect();
-    } else {
-      soundEngine.playWrong();
-    }
-
+    setSavingProgress(true);
+    setErrorMessage('');
     try {
-      setSavingProgress(true);
-      await profileFetch(profileApiUrl('/spanish/api/sandwich-story/progress'), {
+      const eventId = `web-${globalThis.crypto?.randomUUID?.() || Date.now()}`;
+      const res = await profileFetch(profileApiUrl('/spanish/api/sandwich-story/progress'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chapterId: chapter.id })
+        body: JSON.stringify({ chapterId: chapter.id, answerIndex: optIdx, eventId }),
       });
-      if (onChapterFinished) {
-        onChapterFinished(chapter.id);
+      const data = await res.json();
+      setQuizAnswered(true);
+      setCorrectOpt(data.correctIndex);
+      setIsCorrect(Boolean(data.isCorrect));
+      setExplanation(data.explanation || '');
+      if (data.isCorrect) {
+        soundEngine.playCorrect();
+        if (onChapterFinished) onChapterFinished(chapter.id);
+      } else {
+        soundEngine.playWrong();
       }
     } catch (err) {
-      console.error('Error saving chapter progress:', err);
+      setErrorMessage('Не удалось проверить ответ. Попробуйте ещё раз.');
     } finally {
       setSavingProgress(false);
     }
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
@@ -156,7 +162,7 @@ export default function SandwichStoryModal({ chapter, isOpen, onClose, onChapter
                 {chapter.quickQuiz.options.map((opt, optIdx) => {
                   let btnClass = 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:border-purple-400';
                   if (quizAnswered) {
-                    if (optIdx === chapter.quickQuiz.correctIndex) {
+                    if (optIdx === correctOpt) {
                       btnClass = 'bg-green-100 dark:bg-green-900/60 border-green-500 text-green-900 dark:text-green-200 font-bold';
                     } else if (optIdx === selectedOpt) {
                       btnClass = 'bg-red-100 dark:bg-red-900/60 border-red-500 text-red-900 dark:text-red-200';
@@ -169,7 +175,7 @@ export default function SandwichStoryModal({ chapter, isOpen, onClose, onChapter
                     <button
                       key={optIdx}
                       onClick={() => handleQuizAnswer(optIdx)}
-                      disabled={quizAnswered}
+                      disabled={savingProgress || (quizAnswered && isCorrect)}
                       className={`p-3 text-left rounded-xl border text-xs font-semibold transition-all ${btnClass}`}
                     >
                       {opt}
@@ -180,8 +186,8 @@ export default function SandwichStoryModal({ chapter, isOpen, onClose, onChapter
 
               {quizAnswered && (
                 <div className="mt-3 p-3 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/40 dark:to-pink-950/40 border border-purple-200 dark:border-purple-800 text-xs text-purple-900 dark:text-purple-200 font-semibold flex items-center justify-between">
-                  <div>💡 {chapter.quickQuiz.explanation}</div>
-                  <span className="font-extrabold text-amber-500">+50 XP!</span>
+                  <div>💡 {explanation || (isCorrect ? 'Верно!' : 'Посмотрите ответ и попробуйте ещё раз.')}</div>
+                  <span className="font-extrabold text-amber-500">{isCorrect ? '+50 XP!' : 'Ещё попытка'}</span>
                 </div>
               )}
             </div>

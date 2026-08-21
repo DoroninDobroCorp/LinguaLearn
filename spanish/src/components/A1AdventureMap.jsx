@@ -349,9 +349,10 @@ export default function A1AdventureMap({ onSelectTopicForPractice }) {
             <button
               onClick={() => {
                 const chap = storyData.chapters.find(c => c.id === currentStation.chapterId) || storyData.chapters[0];
-                setActiveStoryChapter(chap);
+                if (chap?.access?.isUnlocked) setActiveStoryChapter(chap);
               }}
-              className="px-5 py-2.5 bg-gradient-to-r from-amber-500 via-fuchsia-500 to-purple-600 hover:from-amber-600 hover:to-purple-700 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg transition-transform active:scale-95 flex items-center gap-2 self-stretch sm:self-auto justify-center"
+              disabled={!storyData.chapters.find(c => c.id === currentStation.chapterId)?.access?.isUnlocked}
+              className="px-5 py-2.5 bg-gradient-to-r from-amber-500 via-fuchsia-500 to-purple-600 hover:from-amber-600 hover:to-purple-700 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg transition-transform active:scale-95 flex items-center gap-2 self-stretch sm:self-auto justify-center disabled:opacity-45 disabled:cursor-not-allowed"
             >
               <BookOpen className="w-4 h-4" />
               <span>Читать сюжет главы {currentStation.order}</span>
@@ -401,12 +402,13 @@ export default function A1AdventureMap({ onSelectTopicForPractice }) {
                 <button
                   onClick={() => {
                     const chap = storyData.chapters.find(c => c.id === selectedStation.chapterId);
-                    if (chap) {
+                    if (chap?.access?.isUnlocked) {
                       setActiveStoryChapter(chap);
                       setSelectedStation(null);
                     }
                   }}
-                  className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold rounded-2xl shadow-md transition-transform active:scale-95 flex items-center justify-center space-x-2 text-xs sm:text-sm"
+                  disabled={!storyData.chapters.find(c => c.id === selectedStation.chapterId)?.access?.isUnlocked}
+                  className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold rounded-2xl shadow-md transition-transform active:scale-95 flex items-center justify-center space-x-2 text-xs sm:text-sm disabled:opacity-45 disabled:cursor-not-allowed"
                 >
                   <BookOpen className="w-4 h-4" />
                   <span>📖 Читать сюжет главы {selectedStation.order}</span>

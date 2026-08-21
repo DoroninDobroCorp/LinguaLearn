@@ -5,6 +5,7 @@ import {
   getA1CourseSnapshot,
   getA1TodayPlan,
   recordA1Attempt,
+  recordA1SkillEvidence,
   recordA1CheckpointSubmission,
   getA1CheckpointByUnit,
   getAllA1Checkpoints,
@@ -33,6 +34,12 @@ import {
   isA1PracticeAnswerCorrect,
   parseA1PracticeTopicIds,
 } from './a1Practice.js';
+import {
+  answerStoryQuestion,
+  buildA1StoryAccess,
+  buildSandwichStoryAccess,
+  buildScenarioAccess,
+} from './a1StoryEngine.js';
 import { getFrequencyCatalogs, generateDecksForProfile } from './frequencyData.js';
 import { ensureCurriculumExamsSchema, getExamsStatus, generateExamQuestions, submitExamResult } from './examEngine.js';
 import { generateSpanishExercise } from './grammarExerciseEngine.js';
@@ -1182,129 +1189,30 @@ app.post('/api/chat', async (req, res) => {
     // Получение истории чата (последние 10 сообщений)
     const history = db.prepare('SELECT role, content FROM chat_history WHERE profile_id = ? ORDER BY id DESC LIMIT 10').all(profileId).reverse();
 
-    const systemPrompt = `You are a friendly and professional Spanish language tutor specializing in Argentine Spanish (Rioplatense dialect). Your tasks:
-1. Help the user learn Argentine Spanish through natural dialogue IN SPANISH ONLY
-2. Give varied learning activities: casual chat, exercises, recommendations
-3. Track mistakes and successes
-4. After each user's answer to a task, evaluate it and report the result
+    const a1Course = getA1CourseSnapshot(db, profileId);
+    const introducedTopics = a1Course.units
+      .flatMap((unit) => unit.topics)
+      .filter((topic) => topic.phase !== 'new')
+      .map((topic) => topic.name);
+    const nextTopicName = a1Course.nextNewTopic?.name || 'Greetings and introductions (saludos)';
 
-${getTopicsContext(profileId)}
+    const systemPrompt = `You are an optional Spanish conversation partner for an A1 learner.
+Your role is enjoyable, low-pressure practice. You do not certify mastery and must never claim that chat changes course progress.
 
-ARGENTINE DIALECT (RIOPLATENSE) RULES:
-- Use voseo ALWAYS for informal singular addressing (use "vos" instead of "tú", and matching present tense verb forms like "sos", "tenés", "hablás", "querés", "estás", "escribís").
-- Never use "vosotros" or "vosotras" for informal plural addressing. Always use "ustedes" (with third-person plural conjugations).
-- Use Argentine vocabulary and idioms where appropriate (e.g., use "auto" instead of "coche", "computadora" instead of "ordenador", "lindo" instead of "bonito", "plata" instead of "dinero", "chau" instead of "adiós").
-- Occasionally introduce and explain common Argentine slang (Lunfardo) like "che", "pibe", "mina", "laburo" (work), "copado" (cool), "guita" (money), "morfar" (to eat), or "birra" (beer) to enrich the student's cultural fluency.
-- In speech evaluation and pronunciation explanations, emphasize the Argentine pronunciation (e.g. sheísmo/zheísmo: pronouncing "y" and "ll" as [sh] or [zh]).
+STRICT COURSE BOUNDARY:
+- Use Rioplatense Spanish with vos, but keep every sentence at CEFR A1.
+- Practise only material already introduced in the course: ${introducedTopics.join(', ') || 'none yet'}.
+- The next planned topic is: ${nextTopicName}.
+- If no topics are introduced yet, explain in Russian that the first lesson starts with words and a rule.
+- Do not introduce A2 grammar, past tenses, subjunctive, slang, or unexplained vocabulary.
+- For an absolute beginner, use short Spanish phrases followed by a Russian translation.
+- Correct at most two important mistakes per turn. Explain corrections gently in Russian.
+- Ask one clear question at a time and accept short answers.
+- Never emit TOPICS_UPDATE and never assign mastery scores.
 
-TEACHING APPROACH:
-- VARY your responses: casual conversation → interactive exercises → video/resource recommendations
-- Always respect user's choice - if they decline an activity, continue naturally
-- For exercises, use the interactive format below
-- Suggest relevant YouTube videos or resources occasionally (especially for topics with low scores)
-- Keep it engaging and natural - don't force activities
-
-INTERACTIVE EXERCISE FORMAT:
-When giving a quiz/exercise, use this JSON format:
-[EXERCISE: {"type": "multiple-choice|fill-blank|open", "question": "Your question here", "options": ["A", "B", "C", "D"], "correctAnswer": "B", "topic": "Grammar", "level": "A2"}]
-
-Example multiple-choice:
-¡Vamos a practicar el pretérito! Aquí tenés un ejercicio rápido:
-[EXERCISE: {"type": "multiple-choice", "question": "Ayer, yo ___ al supermercado.", "options": ["voy", "fui", "iba", "iré"], "correctAnswer": "fui", "topic": "Preterite tense (irregular verbs)", "level": "A2"}]
-
-Example fill-blank:
-[EXERCISE: {"type": "fill-blank", "question": "Ella ___ (ser/estar) contenta ayer.", "correctAnswer": "estaba", "topic": "Ser vs Estar (basic)", "level": "A1"}]
-
-Example open question:
-[EXERCISE: {"type": "open", "question": "Escribe una oración sobre lo que hiciste el fin de semana pasado usando el pretérito.", "topic": "Preterite tense (regular verbs)", "level": "A2"}]
-
-TOPICS UPDATE - MANDATORY:
-**EVERY TIME** a user answers an exercise (correct or incorrect), you MUST include:
-[TOPICS_UPDATE: {"updates": [{"topic": "topic name", "category": "grammar/vocabulary/pronunciation/etc", "level": "A1-C2", "success": true/false}]}]
-
-NO EXCEPTIONS - This is automatic, not optional.
-
-When user answers CORRECTLY:
-Response: "¡Excelente! 'Fui' es la respuesta correcta. 🎉
-[TOPICS_UPDATE: {"updates": [{"topic": "Preterite tense (irregular verbs)", "category": "Grammar", "level": "A2", "success": true}]}]"
-
-When user answers INCORRECTLY:
-Response: "¡Casi! La respuesta correcta es 'estaba'.
-[TOPICS_UPDATE: {"updates": [{"topic": "Ser vs Estar (basic)", "category": "Grammar", "level": "A1", "success": false}]}]"
-
-CRITICAL: Do NOT say "let's add this topic" - just include the tag directly. The topic will be created automatically.
-
-VOCABULARY SYSTEM:
-When user asks about a word meaning, or you introduce a new useful word, you can add it to their vocabulary:
-[VOCAB_ADD: {"word": "word here", "translation": "перевод здесь", "example": "Example sentence with the word."}]
-
-Example:
-¡Buena pregunta! "Madrugada" significa las primeras horas de la mañana, antes del amanecer.
-[VOCAB_ADD: {"word": "madrugada", "translation": "раннее утро, предрассветные часы", "example": "Llegamos a casa de madrugada."}]
-
-WHAT TO TRACK AND HOW:
-
-📚 Use [TOPICS_UPDATE: ...] for GRAMMAR topics — BOTH mistakes AND correct usage:
-- Wrong verb conjugation, ser/estar confusion, gender agreement errors → success: false
-- Subjunctive errors: using indicative where subjunctive is needed → success: false
-- Preposition mistakes: wrong use of por/para, a/en → success: false
-- Word order or sentence structure errors → success: false
-- **ALSO track when user CORRECTLY uses grammar**: if user writes a correct sentence using subjunctive, preterite vs imperfect, conditionals, etc. → success: true
-
-📖 Use [VOCAB_ADD: ...] for VOCABULARY/SPELLING issues:
-- Misspelled words (e.g. "bienos" → "buenos")
-- Wrong word choice, false friends (e.g. "embarazada" ≠ "embarrassed")
-- New useful words the user doesn't know
-
-❌ Don't track:
-- Simple accent mark issues on isolated occasions
-- One-time obvious typos (single letter off)
-
-TRACKING CORRECT GRAMMAR IN CASUAL CHAT:
-When user writes grammatically correct sentences, notice the grammar structures they used well and track them!
-Example: User says "Si hubiera tenido más tiempo, habría viajado a Argentina."
-→ Track: [TOPICS_UPDATE: {"updates": [{"topic": "Si clauses (real and unreal conditions)", "category": "Grammar", "level": "B2", "success": true}]}]
-
-Example: User says "Llevo tres años viviendo aquí."
-→ Track: [TOPICS_UPDATE: {"updates": [{"topic": "Perifrasis verbales (ir + gerundio, llevar + gerundio)", "category": "Grammar", "level": "C1", "success": true}]}]
-
-Don't track every single sentence — only when the user demonstrates a notable grammar structure (subjunctive, conditionals, perfect tenses, passive voice, relative clauses, etc.)
-
-CASUAL CONVERSATION ERROR CORRECTION:
-When user makes mistakes in casual chat, you MUST:
-1. Gently point out the error in a friendly way
-2. For grammar errors → use [TOPICS_UPDATE: ...] to create/update a grammar topic
-3. For spelling/vocabulary errors → use [VOCAB_ADD: ...] to add the correct word to their dictionary
-4. Don't interrupt the flow of conversation - correct naturally within your response
-
-Example (spelling/vocab error):
-User: "Yo soy muy embarazado porque no entendo la pregunta"
-Response: "¡No te preocupés! Un par de cositas:
-- Se dice **avergonzado**, no 'embarazado' — 'embarazada' significa 'pregnant' 😊
-- Y **entiendo**, no 'entendo' — es un verbo con cambio de raíz (e→ie).
-[VOCAB_ADD: {"word": "avergonzado", "translation": "смущённый", "example": "Estoy avergonzado porque cometí un error."}]
-[VOCAB_ADD: {"word": "entender", "translation": "понимать", "example": "No entiendo la pregunta."}]"
-
-Example (grammar error):
-User: "Ayer yo soy 25 años y fui a una fiesta"
-Response: "¡Qué bien! Pequeña nota gramatical: se dice '**tengo** 25 años' (no 'soy'), porque en español usamos **tener** para la edad 😊
-[TOPICS_UPDATE: {"updates": [{"topic": "Tener (to have) and tener expressions", "category": "Grammar", "level": "A1", "success": false}]}]"
-
-Example (correct grammar noticed):
-User: "Si hubiera sabido de la fiesta, habría ido."
-Response: "¡Qué buena historia! Y excelente uso de la condicional mixta, por cierto. 👏
-[TOPICS_UPDATE: {"updates": [{"topic": "Si clauses (real and unreal conditions)", "category": "Grammar", "level": "B2", "success": true}]}]"
-
-IMPORTANT RULES:
-- Always communicate in Spanish, even if user writes in another language
-- If user declines an activity, say "¡No hay problema! ¿Qué te gustaría hacer?"
-- Vary your approach naturally - don't be too rigid
-- Celebrate successes enthusiastically
-- Be encouraging with mistakes - correct them gently, never mock
-- Add useful vocabulary when teaching new words
-- Use [TOPICS_UPDATE: ...] ONLY for grammar, use [VOCAB_ADD: ...] for words/spelling
-- When tracking topics, try to use exact names from the CEFR curriculum when possible`;
-
+You may sparingly save one useful A1 word with:
+[VOCAB_ADD: {"word": "hola", "translation": "привет", "example": "Hola, ¿cómo estás?"}]
+Only save words relevant to the current exchange.`;
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       systemInstruction: systemPrompt
@@ -1364,23 +1272,8 @@ IMPORTANT RULES:
       });
     }
 
-    // Парсинг обновлений тем — handle ALL TOPICS_UPDATE tags
+    // AI chat is optional, unverified practice. It must never mutate certified A1 mastery.
     const topicChanges = [];
-
-    for (const updates of extractAllTags(responseText, '[TOPICS_UPDATE: ')) {
-      if (updates.updates) {
-        for (const update of updates.updates) {
-          try {
-            const result = updateTopic(update.topic, update.category, update.level, update.success, profileId);
-            if (result) {
-              topicChanges.push(result);
-            }
-          } catch (e) {
-            console.error('Error processing topic update:', e);
-          }
-        }
-      }
-    }
 
     // Парсинг добавления слов в словарь — handle ALL VOCAB_ADD tags
     for (const vocab of extractAllTags(responseText, '[VOCAB_ADD: ')) {
@@ -2917,90 +2810,176 @@ app.post('/api/gamification/quest-progress', (req, res) => {
 // ==========================================
 // API: INTERACTIVE BRANCHING STORIES
 // ==========================================
+function parseStoryProgressRow(row, fallbackChapterId = null) {
+  let completedChapters = [];
+  try {
+    completedChapters = JSON.parse(row?.completed_chapters_json || '[]');
+  } catch {
+    completedChapters = [];
+  }
+  return {
+    currentChapterId: row?.current_chapter_id || fallbackChapterId,
+    completedChapters: Array.isArray(completedChapters) ? completedChapters : [],
+    isFinished: Boolean(row?.is_finished),
+  };
+}
+
+function storyForProfile(profileId, story) {
+  ensureGamificationSchema(db);
+  const row = db.prepare(
+    'SELECT * FROM story_progress WHERE profile_id = ? AND story_id = ?'
+  ).get(profileId, story.id);
+  const progress = parseStoryProgressRow(row, story.chapters[0]?.id || null);
+  const course = getA1CourseSnapshot(db, profileId);
+  return buildA1StoryAccess(story, course, progress);
+}
+
+function requireStoryEventId(value) {
+  const eventId = String(value || '').trim();
+  if (!eventId || eventId.length > 120 || !/^[a-zA-Z0-9._:-]+$/.test(eventId)) {
+    throw Object.assign(new Error('eventId is required'), { status: 400, code: 'INVALID_EVENT_ID' });
+  }
+  return eventId;
+}
+
 app.get('/api/stories', (req, res) => {
   try {
     const profileId = getProfileId(req);
-    ensureGamificationSchema(db);
-    const progressRows = db.prepare('SELECT * FROM story_progress WHERE profile_id = ?').all(profileId);
-    const progressMap = new Map(progressRows.map(r => [r.story_id, r]));
-
-    const stories = PRESET_STORIES.map(s => {
-      const prog = progressMap.get(s.id);
-      return {
-        ...s,
-        progress: {
-          currentChapterId: prog?.current_chapter_id || s.chapters[0]?.id,
-          completedChapters: JSON.parse(prog?.completed_chapters_json || '[]'),
-          isFinished: Boolean(prog?.is_finished)
-        }
-      };
-    });
-
-    res.json({ stories });
+    res.json({ stories: PRESET_STORIES.map((story) => storyForProfile(profileId, story)) });
   } catch (error) {
     console.error('Error fetching stories:', error);
-    res.status(500).json({ error: error.message });
+    res.status(error.status || 500).json({ error: error.message, code: error.code });
   }
 });
 
 app.get('/api/stories/:id', (req, res) => {
   try {
     const profileId = getProfileId(req);
-    const story = PRESET_STORIES.find(s => s.id === req.params.id);
-    if (!story) {
-      return res.status(404).json({ error: 'Story not found' });
-    }
-
-    const prog = db.prepare('SELECT * FROM story_progress WHERE profile_id = ? AND story_id = ?').get(profileId, story.id);
-    res.json({
-      story,
-      progress: {
-        currentChapterId: prog?.current_chapter_id || story.chapters[0]?.id,
-        completedChapters: JSON.parse(prog?.completed_chapters_json || '[]'),
-        isFinished: Boolean(prog?.is_finished)
-      }
-    });
+    const story = PRESET_STORIES.find((item) => item.id === req.params.id);
+    if (!story) return res.status(404).json({ error: 'Story not found' });
+    res.json({ story: storyForProfile(profileId, story) });
   } catch (error) {
     console.error('Error fetching story by id:', error);
-    res.status(500).json({ error: error.message });
+    res.status(error.status || 500).json({ error: error.message, code: error.code });
+  }
+});
+
+app.post('/api/stories/:id/chapters/:chapterId/verify', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const eventId = requireStoryEventId(req.body?.eventId);
+    const story = PRESET_STORIES.find((item) => item.id === req.params.id);
+    const chapter = story?.chapters.find((item) => item.id === req.params.chapterId);
+    if (!story || !chapter) return res.status(404).json({ error: 'Story chapter not found' });
+
+    const publicStory = storyForProfile(profileId, story);
+    const publicChapter = publicStory.chapters.find((item) => item.id === chapter.id);
+    if (!publicChapter?.access?.isUnlocked) {
+      return res.status(403).json({
+        error: publicChapter?.access?.lockedReasonRu || 'Глава пока закрыта.',
+        code: 'STORY_CHAPTER_LOCKED',
+      });
+    }
+
+    const result = answerStoryQuestion(chapter.question, req.body?.answerIndex);
+    recordA1SkillEvidence(db, profileId, {
+      skill: 'reading',
+      eventId: `story-verify:${eventId}`,
+      taskId: `${story.id}:${chapter.id}`,
+      score: result.isCorrect ? 100 : 0,
+      passed: result.isCorrect,
+    });
+    res.status(result.isCorrect ? 200 : 422).json(result);
+  } catch (error) {
+    console.error('Error verifying story chapter:', error);
+    res.status(error.status || 500).json({ error: error.message, code: error.code });
   }
 });
 
 app.post('/api/stories/:id/progress', (req, res) => {
   try {
     const profileId = getProfileId(req);
-    const { chapterId, isFinished = false, xp = 35 } = req.body || {};
-    const story = PRESET_STORIES.find(s => s.id === req.params.id);
-    if (!story) {
-      return res.status(404).json({ error: 'Story not found' });
+    const eventId = requireStoryEventId(req.body?.eventId);
+    const story = PRESET_STORIES.find((item) => item.id === req.params.id);
+    const chapter = story?.chapters.find((item) => item.id === req.body?.chapterId);
+    if (!story || !chapter) return res.status(404).json({ error: 'Story chapter not found' });
+
+    const before = storyForProfile(profileId, story);
+    const publicChapter = before.chapters.find((item) => item.id === chapter.id);
+    if (!publicChapter?.access?.isUnlocked) {
+      return res.status(403).json({
+        error: publicChapter?.access?.lockedReasonRu || 'Глава пока закрыта.',
+        code: 'STORY_CHAPTER_LOCKED',
+      });
     }
 
-    ensureGamificationSchema(db);
-    let prog = db.prepare('SELECT * FROM story_progress WHERE profile_id = ? AND story_id = ?').get(profileId, story.id);
-    let completed = prog ? JSON.parse(prog.completed_chapters_json || '[]') : [];
-    if (chapterId && !completed.includes(chapterId)) {
-      completed.push(chapterId);
+    const answer = answerStoryQuestion(chapter.question, req.body?.answerIndex);
+    if (chapter.question && !answer.isCorrect) {
+      return res.status(422).json({ ...answer, error: 'Сначала ответьте правильно на вопрос главы.' });
     }
+
+    let targetChapterId = chapter.id;
+    if (!chapter.isEnd && (chapter.choices || []).length > 0) {
+      const choice = chapter.choices.find((item) => item.id === req.body?.choiceId);
+      if (!choice) return res.status(400).json({ error: 'Выберите продолжение истории.', code: 'CHOICE_REQUIRED' });
+      targetChapterId = choice.targetChapterId;
+    }
+
+    const completed = [...new Set([...(before.progress.completedChapters || []), chapter.id])];
+    const newlyCompleted = !before.progress.completedChapters.includes(chapter.id);
+    const isFinished = Boolean(chapter.isEnd);
+    const provisional = buildA1StoryAccess(story, getA1CourseSnapshot(db, profileId), {
+      currentChapterId: targetChapterId,
+      completedChapters: completed,
+      isFinished,
+    });
+    const target = provisional.chapters.find((item) => item.id === targetChapterId);
+    const currentChapterId = target?.access?.isUnlocked ? targetChapterId : chapter.id;
 
     db.prepare(`
-      INSERT INTO story_progress (profile_id, story_id, current_chapter_id, completed_chapters_json, is_finished, updated_at)
+      INSERT INTO story_progress
+        (profile_id, story_id, current_chapter_id, completed_chapters_json, is_finished, updated_at)
       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       ON CONFLICT(profile_id, story_id) DO UPDATE SET
         current_chapter_id = excluded.current_chapter_id,
         completed_chapters_json = excluded.completed_chapters_json,
         is_finished = MAX(is_finished, excluded.is_finished),
         updated_at = CURRENT_TIMESTAMP
-    `).run(profileId, story.id, chapterId || story.chapters[0]?.id, JSON.stringify(completed), isFinished ? 1 : 0);
+    `).run(profileId, story.id, currentChapterId, JSON.stringify(completed), isFinished ? 1 : 0);
 
-    const xpGained = isFinished ? (story.xpReward || 100) : Number(xp) || 35;
-    addProfileXp(db, profileId, xpGained, isFinished ? 'story_completed' : 'story_chapter');
-    updateDailyQuestProgress(db, profileId, 'story', 1);
+    recordA1SkillEvidence(db, profileId, {
+      skill: 'reading',
+      eventId: `story-verify:${eventId}`,
+      taskId: `${story.id}:${chapter.id}`,
+      score: 100,
+      passed: true,
+    });
 
-    const gamification = getGamificationStatus(db, profileId);
-    res.json({ success: true, completedChapters: completed, isFinished, xpGained, gamification });
+    let xpGained = 0;
+    if (newlyCompleted) {
+      xpGained = isFinished
+        ? Math.max(25, Number(story.xpReward || 100) - ((completed.length - 1) * 25))
+        : 25;
+      addProfileXp(db, profileId, xpGained, isFinished ? 'story_completed' : 'story_chapter');
+      updateDailyQuestProgress(db, profileId, 'story', 1);
+    }
+
+    const refreshed = storyForProfile(profileId, story);
+    res.json({
+      success: true,
+      story: refreshed,
+      completedChapters: refreshed.progress.completedChapters,
+      isFinished: refreshed.progress.isFinished,
+      nextChapterId: refreshed.progress.currentChapterId,
+      nextChapterUnlocked: Boolean(
+        refreshed.chapters.find((item) => item.id === targetChapterId)?.access?.isUnlocked
+      ),
+      xpGained,
+      gamification: getGamificationStatus(db, profileId),
+    });
   } catch (error) {
     console.error('Error saving story progress:', error);
-    res.status(500).json({ error: error.message });
+    res.status(error.status || 500).json({ error: error.message, code: error.code });
   }
 });
 
@@ -3012,21 +2991,21 @@ app.get('/api/scenarios', (req, res) => {
     const profileId = getProfileId(req);
     ensureGamificationSchema(db);
     const rows = db.prepare('SELECT * FROM scenario_progress WHERE profile_id = ?').all(profileId);
-    const map = new Map(rows.map(r => [r.scenario_id, r]));
-
-    const scenarios = PRESET_SCENARIOS.map(s => {
-      const prog = map.get(s.id);
+    const progressById = new Map(rows.map((row) => [row.scenario_id, row]));
+    const completedIds = rows.filter((row) => row.is_completed).map((row) => row.scenario_id);
+    const course = getA1CourseSnapshot(db, profileId);
+    const scenarios = buildScenarioAccess(PRESET_SCENARIOS, course, completedIds).map((scenario) => {
+      const progress = progressById.get(scenario.id);
       return {
-        ...s,
+        ...scenario,
         progress: {
-          completedGoals: JSON.parse(prog?.completed_goals_json || '[]'),
-          messagesCount: prog?.messages_count || 0,
-          isCompleted: Boolean(prog?.is_completed)
-        }
+          completedGoals: JSON.parse(progress?.completed_goals_json || '[]'),
+          messagesCount: progress?.messages_count || 0,
+          isCompleted: Boolean(progress?.is_completed),
+        },
       };
     });
-
-    res.json({ scenarios });
+    res.json({ scenarios, noteRu: 'AI-диалоги — дополнительная практика и не подтверждают освоение A1.' });
   } catch (error) {
     console.error('Error fetching scenarios:', error);
     res.status(500).json({ error: error.message });
@@ -3035,12 +3014,33 @@ app.get('/api/scenarios', (req, res) => {
 
 app.post('/api/scenarios/:id/chat', async (req, res) => {
   const profileId = getProfileId(req);
-  const { message, history = [], completedGoalIds = [] } = req.body || {};
+  const { message, history = [] } = req.body || {};
   const scenario = PRESET_SCENARIOS.find(s => s.id === req.params.id);
 
   if (!scenario) {
     return res.status(404).json({ error: 'Scenario not found' });
   }
+
+  ensureGamificationSchema(db);
+  const scenarioRows = db.prepare(
+    'SELECT * FROM scenario_progress WHERE profile_id = ?'
+  ).all(profileId);
+  const completedScenarioIds = scenarioRows
+    .filter((row) => row.is_completed)
+    .map((row) => row.scenario_id);
+  const publicScenario = buildScenarioAccess(
+    PRESET_SCENARIOS,
+    getA1CourseSnapshot(db, profileId),
+    completedScenarioIds
+  ).find((item) => item.id === scenario.id);
+  if (!publicScenario?.access?.isUnlocked) {
+    return res.status(403).json({
+      error: publicScenario?.access?.lockedReasonRu || 'Сценарий пока закрыт.',
+      code: 'SCENARIO_LOCKED',
+    });
+  }
+  const existingProgress = scenarioRows.find((row) => row.scenario_id === scenario.id);
+  const storedCompletedGoalIds = JSON.parse(existingProgress?.completed_goals_json || '[]');
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ error: 'message is required' });
@@ -3058,7 +3058,7 @@ app.post('/api/scenarios/:id/chat', async (req, res) => {
 
   if (geminiAvailable) {
     try {
-      const remainingGoals = scenario.objectives.filter(g => !completedGoalIds.includes(g.id));
+      const remainingGoals = scenario.objectives.filter(g => !storedCompletedGoalIds.includes(g.id));
       const promptInstruction = `
 ${scenario.systemPrompt}
 
@@ -3137,10 +3137,14 @@ Respond strictly as JSON in the following schema:
   }
 
   // Update progress
-  const allCompleted = Array.from(new Set([...completedGoalIds, ...newlyCompletedGoals]));
+  const remainingGoalIds = new Set(
+    scenario.objectives.filter((goal) => !storedCompletedGoalIds.includes(goal.id)).map((goal) => goal.id)
+  );
+  newlyCompletedGoals = newlyCompletedGoals.filter((goalId) => remainingGoalIds.has(goalId));
+  const allCompleted = Array.from(new Set([...storedCompletedGoalIds, ...newlyCompletedGoals]));
   const isScenarioCompleted = scenario.objectives.every(g => allCompleted.includes(g.id));
 
-  let prog = db.prepare('SELECT * FROM scenario_progress WHERE profile_id = ? AND scenario_id = ?').get(profileId, scenario.id);
+  const prog = existingProgress;
   const msgCount = (prog?.messages_count || 0) + 1;
 
   db.prepare(`
@@ -3153,15 +3157,15 @@ Respond strictly as JSON in the following schema:
       updated_at = CURRENT_TIMESTAMP
   `).run(profileId, scenario.id, JSON.stringify(allCompleted), msgCount, isScenarioCompleted ? 1 : 0);
 
-  let xpEarned = 10;
+  let xpEarned = 0;
   if (newlyCompletedGoals.length > 0) {
-    xpEarned += newlyCompletedGoals.length * 25;
+    xpEarned += newlyCompletedGoals.length * 10;
     updateDailyQuestProgress(db, profileId, 'scenario', newlyCompletedGoals.length);
   }
   if (isScenarioCompleted && !prog?.is_completed) {
-    xpEarned += 100;
+    xpEarned += 40;
   }
-  addProfileXp(db, profileId, xpEarned, 'scenario_interaction');
+  if (xpEarned > 0) addProfileXp(db, profileId, xpEarned, 'scenario_interaction');
 
   const gamification = getGamificationStatus(db, profileId);
 
@@ -3516,66 +3520,99 @@ export { app, db, startServer };
 app.get('/api/sandwich-story', (req, res) => {
   try {
     const profileId = getProfileId(req);
-    let completedChapterIds = [];
-    try {
-      const row = db.prepare('SELECT completed_chapters_json FROM story_progress WHERE profile_id = ? AND story_id = ?').get(profileId, MATEO_A1_STORY.id);
-      if (row) {
-        completedChapterIds = JSON.parse(row.completed_chapters_json || '[]');
-      }
-    } catch (e) {
-      console.error('Error fetching sandwich story progress:', e);
-    }
-
-    res.json({
-      story: MATEO_A1_STORY,
-      completedChapterIds
-    });
+    ensureGamificationSchema(db);
+    const row = db.prepare(
+      'SELECT * FROM story_progress WHERE profile_id = ? AND story_id = ?'
+    ).get(profileId, MATEO_A1_STORY.id);
+    const progress = parseStoryProgressRow(row);
+    const story = buildSandwichStoryAccess(
+      MATEO_A1_STORY,
+      getA1CourseSnapshot(db, profileId),
+      progress.completedChapters
+    );
+    res.json({ story, completedChapterIds: progress.completedChapters });
   } catch (error) {
     console.error('Error fetching sandwich story:', error);
-    res.status(500).json({ error: error.message });
+    res.status(error.status || 500).json({ error: error.message, code: error.code });
   }
 });
 
 app.post('/api/sandwich-story/progress', (req, res) => {
   try {
     const profileId = getProfileId(req);
-    const { chapterId } = req.body || {};
-    if (!chapterId) {
-      return res.status(400).json({ error: 'Chapter ID required' });
+    const eventId = requireStoryEventId(req.body?.eventId);
+    const chapter = MATEO_A1_STORY.chapters.find((item) => item.id === req.body?.chapterId);
+    if (!chapter) return res.status(404).json({ error: 'Story chapter not found' });
+
+    ensureGamificationSchema(db);
+    const row = db.prepare(
+      'SELECT * FROM story_progress WHERE profile_id = ? AND story_id = ?'
+    ).get(profileId, MATEO_A1_STORY.id);
+    const progress = parseStoryProgressRow(row);
+    const course = getA1CourseSnapshot(db, profileId);
+    const publicStory = buildSandwichStoryAccess(
+      MATEO_A1_STORY,
+      course,
+      progress.completedChapters
+    );
+    const publicChapter = publicStory.chapters.find((item) => item.id === chapter.id);
+    if (!publicChapter?.access?.isUnlocked) {
+      return res.status(403).json({
+        error: publicChapter?.access?.lockedReasonRu || 'Глава пока закрыта.',
+        code: 'STORY_CHAPTER_LOCKED',
+      });
     }
 
-    let completedChapterIds = [];
-    const row = db.prepare('SELECT completed_chapters_json FROM story_progress WHERE profile_id = ? AND story_id = ?').get(profileId, MATEO_A1_STORY.id);
-    if (row) {
-      completedChapterIds = JSON.parse(row.completed_chapters_json || '[]');
+    const answer = answerStoryQuestion(chapter.quickQuiz, req.body?.answerIndex);
+    recordA1SkillEvidence(db, profileId, {
+      skill: 'reading',
+      eventId: `sandwich:${eventId}`,
+      taskId: `${MATEO_A1_STORY.id}:${chapter.id}`,
+      score: answer.isCorrect ? 100 : 0,
+      passed: answer.isCorrect,
+    });
+    if (!answer.isCorrect) return res.status(422).json(answer);
+
+    const newlyCompleted = !progress.completedChapters.includes(chapter.id);
+    const completedChapterIds = [...new Set([...progress.completedChapters, chapter.id])];
+    const refreshedStory = buildSandwichStoryAccess(MATEO_A1_STORY, course, completedChapterIds);
+    const nextChapterId = refreshedStory.access.nextChapterId || chapter.id;
+    const isFinished = completedChapterIds.length === MATEO_A1_STORY.chapters.length;
+
+    db.prepare(`
+      INSERT INTO story_progress
+        (profile_id, story_id, current_chapter_id, completed_chapters_json, is_finished, updated_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(profile_id, story_id) DO UPDATE SET
+        current_chapter_id = excluded.current_chapter_id,
+        completed_chapters_json = excluded.completed_chapters_json,
+        is_finished = MAX(is_finished, excluded.is_finished),
+        updated_at = CURRENT_TIMESTAMP
+    `).run(
+      profileId,
+      MATEO_A1_STORY.id,
+      nextChapterId,
+      JSON.stringify(completedChapterIds),
+      isFinished ? 1 : 0
+    );
+
+    const xpGained = newlyCompleted ? 50 : 0;
+    if (xpGained) {
+      addProfileXp(db, profileId, xpGained, 'sandwich_story_chapter');
+      updateDailyQuestProgress(db, profileId, 'story', 1);
     }
-
-    if (!completedChapterIds.includes(chapterId)) {
-      completedChapterIds.push(chapterId);
-      db.prepare(`
-        INSERT INTO story_progress (profile_id, story_id, current_chapter_id, completed_chapters_json, is_finished, updated_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ON CONFLICT(profile_id, story_id) DO UPDATE SET
-          completed_chapters_json = excluded.completed_chapters_json,
-          is_finished = CASE WHEN ? >= ? THEN 1 ELSE 0 END,
-          updated_at = CURRENT_TIMESTAMP
-      `).run(
-        profileId,
-        MATEO_A1_STORY.id,
-        chapterId,
-        JSON.stringify(completedChapterIds),
-        completedChapterIds.length,
-        MATEO_A1_STORY.chapters.length
-      );
-
-      // Award XP
-      addProfileXp(db, profileId, 50, "sandwich_story_chapter");
-    }
-
-    res.json({ success: true, completedChapterIds });
+    res.json({
+      success: true,
+      isCorrect: true,
+      correctIndex: answer.correctIndex,
+      explanation: answer.explanation,
+      completedChapterIds,
+      story: refreshedStory,
+      xpGained,
+    });
   } catch (error) {
     console.error('Error saving sandwich story progress:', error);
-    res.status(500).json({ error: error.message });
+    res.status(error.status || 500).json({ error: error.message, code: error.code });
   }
 });
 

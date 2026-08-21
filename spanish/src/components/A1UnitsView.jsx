@@ -345,9 +345,10 @@ export default function A1UnitsView({ onOpenTheory, onOpenExercises, onOpenCheck
                         <button
                           onClick={() => {
                             const chap = storyData.chapters.find(c => c.stationOrder === unitOrder) || storyData.chapters[unitOrder - 1];
-                            if (chap) setActiveStoryChapter(chap);
+                            if (chap?.access?.isUnlocked) setActiveStoryChapter(chap);
                           }}
-                          className="px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 font-black text-xs flex items-center gap-1.5 transition-transform active:scale-95 shadow-sm"
+                          disabled={!(storyData.chapters.find(c => c.stationOrder === unitOrder) || storyData.chapters[unitOrder - 1])?.access?.isUnlocked}
+                          className="px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 font-black text-xs flex items-center gap-1.5 transition-transform active:scale-95 shadow-sm disabled:opacity-45 disabled:cursor-not-allowed"
                         >
                           <BookOpen className="w-3.5 h-3.5 text-amber-600" />
                           <span>Глава {unitOrder} истории с Матео</span>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   BookOpen, Sparkles, Volume2, CheckCircle2, ChevronRight,
   RotateCcw, ArrowLeft, Plus, Check, Award, Compass, Heart, HelpCircle
@@ -8,6 +9,8 @@ import { soundEngine, speakSpanish } from '../utils/soundEffects';
 
 export default function Stories() {
   const [stories, setStories] = useState([]);
+  const [searchParams] = useSearchParams();
+  const [deepLinkHandled, setDeepLinkHandled] = useState(false);
   const [selectedStory, setSelectedStory] = useState(null);
   const [currentChapter, setCurrentChapter] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -24,6 +27,10 @@ export default function Stories() {
 
   // Completion state
   const [finishedStory, setFinishedStory] = useState(false);
+  const [correctAnswerIndex, setCorrectAnswerIndex] = useState(null);
+  const [answerEventId, setAnswerEventId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const fetchStories = async () => {
     try {
@@ -44,59 +51,114 @@ export default function Stories() {
     fetchStories();
   }, []);
 
-  const openStory = (story) => {
-    setSelectedStory(story);
-    const startChapterId = story.progress?.currentChapterId || story.chapters[0]?.id;
-    const startChapter = story.chapters.find(c => c.id === startChapterId) || story.chapters[0];
-    setCurrentChapter(startChapter);
+  const resetQuestion = () => {
     setSelectedWord(null);
     setSelectedAnswer(null);
     setQuestionAnswered(false);
+    setIsQuestionCorrect(false);
+    setCorrectAnswerIndex(null);
+    setAnswerEventId(null);
+  };
+
+  const openStory = (story, requestedChapterId = null) => {
+    if (!story?.access?.isUnlocked) {
+      setErrorMessage(story?.access?.lockedReasonRu || 'Сюжет пока закрыт.');
+      return;
+    }
+    const startChapterId = requestedChapterId || story.access?.nextChapterId || story.progress?.currentChapterId;
+    const startChapter = story.chapters.find(
+      (chapter) => chapter.id === startChapterId && chapter.access?.isUnlocked
+    ) || story.chapters.find((chapter) => chapter.access?.isUnlocked);
+    if (!startChapter) return;
+    setSelectedStory(story);
+    setCurrentChapter(startChapter);
+    resetQuestion();
+    setErrorMessage('');
     setFinishedStory(Boolean(story.progress?.isFinished));
   };
 
-  const chooseOption = async (choice) => {
-    soundEngine.playTileClick();
-    const nextChapter = selectedStory.chapters.find(c => c.id === choice.targetChapterId);
-    if (!nextChapter) return;
-
-    setCurrentChapter(nextChapter);
-    setSelectedWord(null);
-    setSelectedAnswer(null);
-    setQuestionAnswered(false);
-
-    const isEnd = Boolean(nextChapter.isEnd);
-    if (isEnd) {
-      setFinishedStory(true);
-      soundEngine.playLevelUp();
+  useEffect(() => {
+    if (deepLinkHandled || selectedStory || stories.length === 0) return;
+    const storyId = searchParams.get('story');
+    const chapterId = searchParams.get('chapter');
+    if (!storyId) {
+      setDeepLinkHandled(true);
+      return;
     }
+    const story = stories.find((item) => item.id === storyId);
+    setDeepLinkHandled(true);
+    if (story?.access?.isUnlocked) openStory(story, chapterId);
+  }, [stories, searchParams, selectedStory, deepLinkHandled]);
 
+  const handleAnswerQuestion = async (idx) => {
+    if (submitting || !currentChapter?.question || (questionAnswered && isQuestionCorrect)) return;
+    const eventId = `web-${globalThis.crypto?.randomUUID?.() || Date.now()}`;
+    setSubmitting(true);
+    setSelectedAnswer(idx);
+    setErrorMessage('');
     try {
-      await profileFetch(profileApiUrl(`/spanish/api/stories/${selectedStory.id}/progress`), {
+      const res = await profileFetch(profileApiUrl(
+        `/spanish/api/stories/${selectedStory.id}/chapters/${currentChapter.id}/verify`
+      ), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chapterId: nextChapter.id,
-          isFinished: isEnd,
-          xp: isEnd ? (selectedStory.xpReward || 100) : 35
-        })
+        body: JSON.stringify({ answerIndex: idx, eventId }),
       });
-      fetchStories();
+      const data = await res.json();
+      setQuestionAnswered(true);
+      setIsQuestionCorrect(Boolean(data.isCorrect));
+      setCorrectAnswerIndex(data.correctIndex);
+      setAnswerEventId(eventId);
+      if (data.isCorrect) soundEngine.playCorrect();
+      else soundEngine.playWrong();
     } catch (err) {
-      console.error('Error saving story progress:', err);
+      setErrorMessage('Не удалось проверить ответ. Попробуйте ещё раз.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleAnswerQuestion = (idx) => {
-    if (questionAnswered || !currentChapter?.question) return;
-    setSelectedAnswer(idx);
-    setQuestionAnswered(true);
-    const correct = idx === currentChapter.question.correctIndex;
-    setIsQuestionCorrect(correct);
-    if (correct) {
-      soundEngine.playCorrect();
-    } else {
-      soundEngine.playWrong();
+  const chooseOption = async (choice = null) => {
+    if (submitting || (currentChapter.question && !isQuestionCorrect)) return;
+    setSubmitting(true);
+    setErrorMessage('');
+    try {
+      const eventId = answerEventId || `web-${globalThis.crypto?.randomUUID?.() || Date.now()}`;
+      const res = await profileFetch(profileApiUrl(
+        `/spanish/api/stories/${selectedStory.id}/progress`
+      ), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chapterId: currentChapter.id,
+          answerIndex: selectedAnswer,
+          choiceId: choice?.id || null,
+          eventId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Не удалось сохранить главу.');
+      soundEngine.playTileClick();
+      setSelectedStory(data.story);
+      setStories((items) => items.map((item) => item.id === data.story.id ? data.story : item));
+      setFinishedStory(Boolean(data.isFinished));
+      if (data.isFinished) {
+        soundEngine.playLevelUp();
+      } else if (choice) {
+        const next = data.story.chapters.find(
+          (chapter) => chapter.id === choice.targetChapterId && chapter.access?.isUnlocked
+        );
+        if (next) {
+          setCurrentChapter(next);
+          resetQuestion();
+        } else {
+          setErrorMessage('Глава завершена. Продолжение откроется после знакомства с материалом следующего модуля.');
+        }
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Не удалось сохранить главу.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -279,8 +341,14 @@ export default function Stories() {
             </div>
           )}
 
+          {errorMessage && (
+            <div className="my-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 text-sm text-amber-900 dark:text-amber-200">
+              {errorMessage}
+            </div>
+          )}
+
           {/* Chapter Question (Comprehension Check) */}
-          {currentChapter.question && !isEnd && (
+          {currentChapter.question && (
             <div className="my-8 p-6 rounded-2xl bg-purple-50/70 dark:bg-gray-800/70 border border-purple-200 dark:border-gray-700">
               <div className="flex items-center space-x-2 text-purple-700 dark:text-purple-300 font-bold text-sm mb-3">
                 <HelpCircle className="w-4 h-4" />
@@ -294,7 +362,7 @@ export default function Stories() {
                 {currentChapter.question.options.map((opt, idx) => {
                   let btnStyle = 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:border-purple-400';
                   if (questionAnswered) {
-                    if (idx === currentChapter.question.correctIndex) {
+                    if (idx === correctAnswerIndex) {
                       btnStyle = 'bg-green-100 dark:bg-green-900/60 border-green-500 text-green-900 dark:text-green-200 font-bold';
                     } else if (idx === selectedAnswer) {
                       btnStyle = 'bg-red-100 dark:bg-red-900/60 border-red-500 text-red-900 dark:text-red-200';
@@ -307,7 +375,7 @@ export default function Stories() {
                     <button
                       key={idx}
                       onClick={() => handleAnswerQuestion(idx)}
-                      disabled={questionAnswered}
+                      disabled={submitting || (questionAnswered && isQuestionCorrect)}
                       className={`p-3 text-left rounded-xl border-2 text-sm transition-all ${btnStyle}`}
                     >
                       {opt}
@@ -319,7 +387,7 @@ export default function Stories() {
           )}
 
           {/* Interactive Branching Choices */}
-          {!isEnd && currentChapter.choices && (
+          {!isEnd && currentChapter.choices && (!currentChapter.question || isQuestionCorrect) && (
             <div className="mt-8 pt-6 border-t border-purple-100 dark:border-gray-700">
               <h3 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <Compass className="w-5 h-5 text-fuchsia-500" />
@@ -351,7 +419,19 @@ export default function Stories() {
           )}
 
           {/* End of Story Celebration */}
-          {isEnd && (
+          {isEnd && !finishedStory && (!currentChapter.question || isQuestionCorrect) && (
+            <div className="mt-8 text-center">
+              <button
+                onClick={() => chooseOption(null)}
+                disabled={submitting}
+                className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-purple-600 text-white font-bold rounded-2xl shadow-lg disabled:opacity-50"
+              >
+                Завершить историю
+              </button>
+            </div>
+          )}
+
+          {isEnd && finishedStory && (
             <div className="mt-8 p-8 rounded-3xl bg-gradient-to-r from-emerald-500 via-teal-500 to-purple-600 text-white text-center shadow-2xl animate-fadeIn">
               <div className="text-5xl mb-3">🎉</div>
               <h3 className="text-2xl sm:text-3xl font-extrabold mb-2">
@@ -426,6 +506,7 @@ export default function Stories() {
         {filteredStories.map((story) => {
           const isFinished = Boolean(story.progress?.isFinished);
           const hasStarted = story.progress?.completedChapters?.length > 0;
+          const isUnlocked = Boolean(story.access?.isUnlocked);
 
           return (
             <div
@@ -472,10 +553,11 @@ export default function Stories() {
 
                 <button
                   onClick={() => openStory(story)}
-                  className="w-full py-3 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold rounded-2xl shadow-lg transition-transform active:scale-95 flex items-center justify-center space-x-2 text-sm"
+                  disabled={!isUnlocked}
+                  className="w-full py-3 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold rounded-2xl shadow-lg transition-transform active:scale-95 flex items-center justify-center space-x-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <BookOpen className="w-4 h-4" />
-                  <span>{isFinished ? 'Releer Historia' : hasStarted ? 'Continuar Historia' : 'Comenzar Historia'}</span>
+                  <span>{!isUnlocked ? 'Сначала изучите нужный модуль' : isFinished ? 'Releer Historia' : hasStarted ? 'Continuar Historia' : 'Comenzar Historia'}</span>
                 </button>
               </div>
             </div>

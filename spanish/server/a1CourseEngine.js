@@ -1,6 +1,8 @@
 import { A1_CORE_VOCABULARY, getA1VocabularyByDomain, getA1VocabularyByUnit } from './a1VocabularyData.js';
 import { A1_CHECKPOINTS, getA1CheckpointByUnit, getAllA1Checkpoints } from './a1CheckpointsData.js';
 import { A1_SKILL_TASKS, getA1SkillTasks, getA1SkillTaskById } from './a1SkillTasksData.js';
+import { PRESET_STORIES } from './storiesData.js';
+import { buildA1StoryAccess } from './a1StoryEngine.js';
 
 const DAY_MS = 86_400_000;
 const EARLY_REVIEW_GRACE_MS = 24 * 60 * 60 * 1000;
@@ -723,11 +725,39 @@ export function getA1TodayPlan(db, profileId, now = new Date(), options = {}) {
     rationaleRu: 'Это сейчас самый слабый из четырёх обязательных навыков A1.',
     skill: weakestSkill?.skill || 'speaking', actionUrl: '/curriculum?tab=a1_skills', minutes: 8,
   });
-  candidates.push({
-    kind: 'story', priority: 'optional', titleRu: 'Испанский в сюжете',
-    descriptionRu: 'Продолжить приключение и встретить знакомый материал в контексте.',
-    rationaleRu: 'Контекст поддерживает интерес и перенос знаний в чтение.', actionUrl: '/stories', minutes: 10,
-  });
+  try {
+    const story = PRESET_STORIES.find((item) => item.chapters.every((chapter) => chapter.unitId));
+    const row = story && db.prepare(
+      'SELECT * FROM story_progress WHERE profile_id = ? AND story_id = ?'
+    ).get(profileId, story.id);
+    let completedChapters = [];
+    try {
+      completedChapters = JSON.parse(row?.completed_chapters_json || '[]');
+    } catch {
+      completedChapters = [];
+    }
+    const publicStory = story && buildA1StoryAccess(story, course, {
+      currentChapterId: row?.current_chapter_id,
+      completedChapters,
+      isFinished: Boolean(row?.is_finished),
+    });
+    const nextChapter = publicStory?.chapters.find(
+      (chapter) => chapter.id === publicStory.access.nextChapterId && chapter.access.isUnlocked
+    );
+    if (nextChapter && !publicStory.progress.completedChapters.includes(nextChapter.id) && !publicStory.progress.isFinished) {
+      candidates.push({
+        kind: 'story',
+        priority: 'optional',
+        titleRu: `История: ${nextChapter.title}`,
+        descriptionRu: 'Новая глава использует уже знакомые слова и правила.',
+        rationaleRu: 'Сюжет закрепляет изученное в контексте и проверяет понимание.',
+        actionUrl: `/stories?story=${story.id}&chapter=${nextChapter.id}`,
+        minutes: 10,
+      });
+    }
+  } catch {
+    // Story recommendations are optional; the core daily plan must remain available.
+  }
   if (!candidates.some((action) => action.priority === 'required')) {
     if (candidates.length > 0) {
       candidates[0] = { ...candidates[0], priority: 'required' };

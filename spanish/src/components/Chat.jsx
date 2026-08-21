@@ -290,6 +290,7 @@ export default function Chat() {
 
   // Handle Scenario Selection
   const startScenario = (sc) => {
+    if (!sc?.access?.isUnlocked) return;
     setSelectedScenario(sc);
     setScenarioMessages([
       { role: 'model', content: sc.initialMessage }
@@ -387,7 +388,7 @@ export default function Chat() {
             }`}
           >
             <MessageCircle className="w-4 h-4" />
-            <span>🤖 {t('quests_tab_tutor', 'AI-репетитор (Отслеживание тем & ошибок)')}</span>
+            <span>🤖 {t('quests_tab_tutor', 'AI-собеседник (дополнительная практика)')}</span>
           </button>
 
           <button
@@ -427,11 +428,11 @@ export default function Chat() {
               </div>
               <div>
                 <h3 className="font-extrabold text-gray-900 dark:text-white text-sm">
-                  AI-репетитор испанского языка
+                  AI-собеседник для практики
                 </h3>
                 <p className="text-xs text-green-600 dark:text-green-400 font-semibold flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  Анализирует грамматику и в реальном времени обновляет прогресс тем (+5% / -10%)
+                  Подстраивается под уже изученные темы, но не ставит оценки и не меняет прогресс курса
                 </p>
               </div>
             </div>
@@ -535,8 +536,10 @@ export default function Chat() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {scenarios.map((sc) => {
                   const completedGoalsCount = sc.progress?.completedGoals?.length || 0;
-                  const totalGoals = sc.objectives.length;
-                  const isDone = sc.progress?.isCompleted || completedGoalsCount >= totalGoals;
+                  const objectives = sc.objectives || [];
+                  const totalGoals = objectives.length;
+                  const isUnlocked = Boolean(sc.access?.isUnlocked);
+                  const isDone = isUnlocked && (sc.progress?.isCompleted || completedGoalsCount >= totalGoals);
 
                   return (
                     <div
@@ -575,7 +578,7 @@ export default function Chat() {
                           <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                             {t('quests_objectives', 'Цели миссии')} ({completedGoalsCount}/{totalGoals}):
                           </div>
-                          {sc.objectives.map((obj) => {
+                          {objectives.map((obj) => {
                             const isObjDone = sc.progress?.completedGoals?.includes(obj.id);
                             return (
                               <div
@@ -594,10 +597,11 @@ export default function Chat() {
 
                       <button
                         onClick={() => startScenario(sc)}
-                        className="w-full py-3 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold rounded-2xl shadow-lg transition-transform active:scale-95 flex items-center justify-center space-x-2 text-sm"
+                        disabled={!isUnlocked}
+                        className="w-full py-3 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold rounded-2xl shadow-lg transition-transform active:scale-95 flex items-center justify-center space-x-2 text-sm disabled:opacity-45 disabled:cursor-not-allowed"
                       >
                         <Target className="w-4 h-4" />
-                        <span>{isDone ? 'Rejugar Misión' : 'Iniciar Misión'}</span>
+                        <span>{!isUnlocked ? `Откроется после модуля ${sc.access?.unitOrder}` : isDone ? 'Rejugar Misión' : 'Iniciar Misión'}</span>
                       </button>
                     </div>
                   );
