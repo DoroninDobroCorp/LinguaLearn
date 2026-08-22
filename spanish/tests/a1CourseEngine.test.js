@@ -187,4 +187,14 @@ describe('A1 adaptive mastery engine', () => {
     assert.equal(state.learningSpanDays, 14);
   });
 
+  it('reports course-study progress separately from vocabulary-weighted readiness', () => {
+    const db = createDb();
+    const snapshot = getA1CourseSnapshot(db, 1, new Date('2026-07-01T00:00:00Z'));
+
+    assert.equal(snapshot.courseworkPercent, 0);
+    assert.equal(snapshot.overallPercent, 0);
+    assert.equal(snapshot.courseworkPercent, Math.round(
+      ((snapshot.topicPercent * 0.55) + (snapshot.skillPercent * 0.20)) / 0.75
+    ));
+  });
 });

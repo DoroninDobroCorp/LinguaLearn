@@ -3,9 +3,13 @@ import { useSearchParams } from 'react-router-dom';
 import {
   ChevronDown, ChevronRight, CheckCircle2, Circle,
   TrendingUp, Filter, Map, Sparkles, Trophy, Award, GraduationCap, Compass,
-  BookOpen, Layers, ShieldCheck, Headphones, BookMarked, HelpCircle
+  BookOpen, Layers, ShieldCheck, Headphones, BookMarked, HelpCircle, Search
 } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
+import {
+  clampTopicScore, getTopicStage, getTopicStatusLabel,
+  isTopicMastered, topicMatchesFilters,
+} from '../utils/topicCatalog';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import TopicTheoryModal from './TopicTheoryModal';
@@ -25,14 +29,20 @@ const LEVEL_CONFIG = {
   'C2': { label: 'Dominio / Владение в совершенстве', emoji: '📕', gradient: 'from-red-400 to-rose-500' },
 };
 
-function StatusIcon({ status, score, isLocked }) {
+const CATEGORY_LABELS = {
+  Grammar: 'Грамматика',
+  Vocabulary: 'Словарный запас',
+  Speaking: 'Разговорная речь',
+};
+
+function StatusIcon({ stage, score, isLocked }) {
   if (isLocked) {
     return <ShieldCheck className="h-5 w-5 text-amber-500 flex-shrink-0" title="Выучено" />;
   }
-  if (status === 'mastered') {
+  if (stage === 'mastered') {
     return <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />;
   }
-  if (status === 'in_progress') {
+  if (stage === 'in_progress') {
     return (
       <div className="relative flex-shrink-0">
         <svg className="h-5 w-5" viewBox="0 0 20 20">
@@ -40,7 +50,7 @@ function StatusIcon({ status, score, isLocked }) {
           <circle
             cx="10" cy="10" r="8" fill="none"
             stroke="#f59e0b" strokeWidth="2.5"
-            strokeDasharray={`${(score / 100) * 50.3} 50.3`}
+            strokeDasharray={`${(clampTopicScore(score) / 100) * 50.3} 50.3`}
             strokeLinecap="round"
             transform="rotate(-90 10 10)"
           />
@@ -67,7 +77,8 @@ export default function CurriculumMap() {
   const [loading, setLoading] = useState(true);
   const [expandedLevels, setExpandedLevels] = useState({ 'A1': true, 'A2': false, 'B1': false, 'B2': false, 'C1': false, 'C2': false });
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('Grammar');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [selectedTopicId, setSelectedTopicId] = useState(null);
   const [selectedTopicName, setSelectedTopicName] = useState(null);
@@ -132,11 +143,10 @@ export default function CurriculumMap() {
     return acc;
   }, {});
 
-  const isTopicMastered = (topic) => topic.level === 'A1'
-    ? topic.status === 'mastered'
-    : Boolean(topic.is_locked || topic.status === 'mastered' || topic.score >= 80);
-  const totalTopicsCount = topics.length || 158;
+  const totalTopicsCount = topics.length;
   const masteredTotal = topics.filter(isTopicMastered).length;
+  const activeTotal = topics.filter(topic => getTopicStage(topic) === 'in_progress').length;
+  const grammarTotal = topics.filter(topic => topic.category === 'Grammar').length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn space-y-6">
@@ -222,7 +232,7 @@ export default function CurriculumMap() {
                 : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
             }`}
           >
-            <span>🌐 Все уровни (A1–C2)</span>
+            <span>📋 Каталог тем (158)</span>
           </button>
         </div>
       </div>
@@ -262,55 +272,89 @@ export default function CurriculumMap() {
       {activeTab === 'all_topics' && (
         <div className="space-y-6 animate-fadeIn">
           {/* Filters & Overall Summary */}
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-white/80 dark:bg-gray-800/80 p-4 rounded-3xl border border-purple-100 dark:border-gray-700 shadow-sm">
-            <div className="flex items-center space-x-2 text-xs font-bold text-gray-500">
-              <Filter className="w-4 h-4 text-purple-600" />
-              <span>Фильтр каталога тем:</span>
+          <div className="space-y-4 bg-white/80 dark:bg-gray-800/80 p-4 rounded-3xl border border-purple-100 dark:border-gray-700 shadow-sm">
+            <div>
+              <h2 className="text-lg font-black text-gray-900 dark:text-white">
+                Каталог тем A1–C2
+              </h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Полная карта программы. По умолчанию показана грамматика; переключите категорию, чтобы увидеть все 158 тем.
+              </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="px-3 py-1.5 bg-gray-50 dark:bg-gray-700 rounded-xl border border-purple-200 dark:border-gray-600 text-xs font-bold text-gray-800 dark:text-white"
-              >
-                <option value="all">Все категории</option>
-                <option value="Grammar">📝 Грамматика</option>
-                <option value="Vocabulary">📖 Словарный запас</option>
-                <option value="Speaking">🗣️ Разговорная речь</option>
-              </select>
+            <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+              <label className="relative flex-1 max-w-xl">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500" />
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Найти тему, например «глаголы»…"
+                  className="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-purple-200 dark:border-gray-600 text-sm font-semibold text-gray-800 dark:text-white placeholder:text-gray-400"
+                  aria-label="Поиск по каталогу тем"
+                />
+              </label>
 
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 py-1.5 bg-gray-50 dark:bg-gray-700 rounded-xl border border-purple-200 dark:border-gray-600 text-xs font-bold text-gray-800 dark:text-white"
-              >
-                <option value="all">Все статусы</option>
-                <option value="mastered">✓ Освоено (80%+)</option>
-                <option value="in_progress">○ В процессе</option>
-                <option value="not_started">Не начато</option>
-              </select>
+              <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 mr-1">
+                  <Filter className="w-4 h-4 text-purple-600" />
+                  <span>Фильтры</span>
+                </div>
+                <select
+                  value={filterCategory}
+                  onChange={(event) => setFilterCategory(event.target.value)}
+                  className="px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-purple-200 dark:border-gray-600 text-xs font-bold text-gray-800 dark:text-white"
+                >
+                  <option value="all">Все категории</option>
+                  <option value="Grammar">📝 Грамматика</option>
+                  <option value="Vocabulary">📖 Словарный запас</option>
+                  <option value="Speaking">🗣️ Разговорная речь</option>
+                </select>
+
+                <select
+                  value={filterStatus}
+                  onChange={(event) => setFilterStatus(event.target.value)}
+                  className="px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-xl border border-purple-200 dark:border-gray-600 text-xs font-bold text-gray-800 dark:text-white"
+                >
+                  <option value="all">Все статусы</option>
+                  <option value="mastered">✓ Освоено</option>
+                  <option value="in_progress">◔ Изучается / повторяется</option>
+                  <option value="not_started">○ Не начато</option>
+                </select>
+              </div>
             </div>
 
-            <div className="text-xs font-extrabold text-purple-600 dark:text-purple-400">
-              Освоено тем: {masteredTotal} / {totalTopicsCount}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+              {[
+                ['Всего тем', totalTopicsCount, 'text-purple-600'],
+                ['Грамматика', grammarTotal, 'text-blue-600'],
+                ['В работе', activeTotal, 'text-amber-600'],
+                ['Освоено', masteredTotal, 'text-green-600'],
+              ].map(([label, value, color]) => (
+                <div key={label} className="rounded-2xl bg-gray-50/90 dark:bg-gray-700/70 px-3 py-2.5">
+                  <div className="text-[10px] uppercase tracking-wide font-bold text-gray-400">{label}</div>
+                  <div className={`text-xl font-black ${color}`}>{loading ? '…' : value}</div>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Level Accordions */}
           {Object.keys(LEVEL_CONFIG).map((level) => {
-            const levelTopics = (groupedByLevel[level] || []).filter(t => {
-              if (filterCategory !== 'all' && t.category !== filterCategory) return false;
-              if (filterStatus === 'mastered' && !isTopicMastered(t)) return false;
-              if (filterStatus === 'in_progress' && (t.status !== 'in_progress' && t.score < 10)) return false;
-              if (filterStatus === 'not_started' && (t.status === 'mastered' || t.score > 0)) return false;
-              return true;
-            });
+            const allLevelTopics = groupedByLevel[level] || [];
+            const levelTopics = allLevelTopics.filter(topic => topicMatchesFilters(topic, {
+              category: filterCategory,
+              status: filterStatus,
+              search: searchTerm,
+            }));
 
             const isExpanded = expandedLevels[level];
             const cfg = LEVEL_CONFIG[level];
-            const masteredInLevel = (groupedByLevel[level] || []).filter(isTopicMastered).length;
-            const totalInLevel = (groupedByLevel[level] || []).length;
+            const masteredInLevel = allLevelTopics.filter(isTopicMastered).length;
+            const totalInLevel = allLevelTopics.length;
+            const averageInLevel = totalInLevel
+              ? Math.round(allLevelTopics.reduce((sum, topic) => sum + clampTopicScore(topic.score), 0) / totalInLevel)
+              : 0;
 
             return (
               <div
@@ -328,9 +372,15 @@ export default function CurriculumMap() {
                       <h3 className="font-extrabold text-lg text-gray-900 dark:text-white">
                         Уровень {level} — {cfg.label}
                       </h3>
-                      <span className="text-xs text-gray-500 font-medium">
-                        {masteredInLevel} из {totalInLevel} тем освоено • ({levelTopics.length} отображается)
-                      </span>
+                      <div className="text-xs text-gray-500 font-medium mt-1">
+                        {masteredInLevel} из {totalInLevel} освоено • средний прогресс {averageInLevel}% • показано {levelTopics.length}
+                      </div>
+                      <div className="mt-2 h-1.5 w-full max-w-xs rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                        <div
+                          className={`h-full bg-gradient-to-r ${cfg.gradient} transition-all`}
+                          style={{ width: `${averageInLevel}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -355,33 +405,64 @@ export default function CurriculumMap() {
                 {/* Topics Grid */}
                 {isExpanded && (
                   <div className="p-5 pt-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 border-t border-purple-50 dark:border-gray-700/50">
-                    {levelTopics.map((topic) => (
-                      <div
-                        key={topic.id}
-                        onClick={() => openTheory(topic)}
-                        className="p-3.5 rounded-2xl border border-purple-100 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/70 hover:bg-white dark:hover:bg-gray-750 hover:border-purple-300 dark:hover:border-purple-600 transition-all cursor-pointer shadow-sm hover:shadow-md flex items-center justify-between group"
-                      >
-                        <div className="flex items-center space-x-3 min-w-0">
-                          <StatusIcon
-                            status={topic.status}
-                            score={topic.score || 0}
-                            isLocked={topic.is_locked}
-                          />
-                          <div className="min-w-0">
-                            <div className="text-[10px] uppercase font-bold text-gray-400">
-                              {topic.category}
+                    {levelTopics.length === 0 ? (
+                      <div className="md:col-span-2 lg:col-span-3 py-8 text-center text-sm font-semibold text-gray-400">
+                        В этом уровне нет тем, подходящих под выбранные фильтры.
+                      </div>
+                    ) : levelTopics.map((topic) => {
+                      const score = clampTopicScore(topic.score);
+                      const stage = getTopicStage(topic);
+                      const statusLabel = getTopicStatusLabel(topic);
+                      const statusColor = stage === 'mastered'
+                        ? 'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/30'
+                        : stage === 'in_progress'
+                          ? 'text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-900/30'
+                          : 'text-gray-500 bg-gray-200 dark:text-gray-300 dark:bg-gray-700';
+
+                      return (
+                        <div
+                          key={topic.id}
+                          onClick={() => openTheory(topic)}
+                          className="p-4 rounded-2xl border border-purple-100 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/70 hover:bg-white dark:hover:bg-gray-750 hover:border-purple-300 dark:hover:border-purple-600 transition-all cursor-pointer shadow-sm hover:shadow-md group"
+                        >
+                          <div className="flex items-start gap-3">
+                            <StatusIcon
+                              stage={stage}
+                              score={score}
+                              isLocked={topic.is_locked}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-bold leading-snug text-gray-900 dark:text-white">
+                                {topic.name}
+                              </div>
                             </div>
-                            <div className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                              {topic.name}
-                            </div>
+                            <span className="text-sm font-black text-purple-600 dark:text-purple-400">
+                              {score}%
+                            </span>
+                          </div>
+
+                          <div className="mt-3 flex items-center justify-between gap-2">
+                            <span className="text-[10px] uppercase tracking-wide font-bold text-gray-400">
+                              {CATEGORY_LABELS[topic.category] || topic.category}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColor}`}>
+                              {statusLabel}
+                            </span>
+                          </div>
+
+                          <div className="mt-2 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                            <div
+                              className={`h-full transition-all ${stage === 'mastered' ? 'bg-green-500' : 'bg-amber-500'}`}
+                              style={{ width: `${score}%` }}
+                            />
+                          </div>
+
+                          <div className="mt-3 text-right text-xs font-bold text-purple-600 group-hover:underline">
+                            Открыть теорию ➔
                           </div>
                         </div>
-
-                        <span className="text-xs font-bold text-purple-600 group-hover:underline flex-shrink-0 ml-2">
-                          Теория ➔
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

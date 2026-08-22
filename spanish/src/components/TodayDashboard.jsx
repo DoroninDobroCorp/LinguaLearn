@@ -14,7 +14,7 @@ export default function TodayDashboard() {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
   const [recommendations, setRecommendations] = useState(null);
-  const [a1Stats, setA1Stats] = useState({ mastered: 0, total: 30, percent: 0 });
+  const [a1Stats, setA1Stats] = useState({ mastered: 0, total: 30, percent: 0, readiness: 0 });
   const [loading, setLoading] = useState(true);
   const [targetMinutes, setTargetMinutes] = useState(() => {
     const saved = Number(globalThis.localStorage?.getItem('spanish_daily_pace_minutes'));
@@ -32,7 +32,8 @@ export default function TodayDashboard() {
           setA1Stats({
             mastered: data.course.masteredTopics,
             total: data.course.totalTopics,
-            percent: data.course.overallPercent,
+            percent: data.course.courseworkPercent ?? data.course.topicPercent ?? 0,
+            readiness: data.course.overallPercent ?? 0,
           });
         }
       }
@@ -85,14 +86,14 @@ export default function TodayDashboard() {
             <div className="text-center px-3 border-r border-purple-100 dark:border-gray-700">
               <div className="text-2xl font-black text-amber-500 flex items-center justify-center gap-1">
                 <Flame className="w-5 h-5 fill-amber-500" />
-                {gamification.streakDays || 1}
+                {gamification.streakDays ?? 0}
               </div>
               <div className="text-[10px] text-gray-500 uppercase font-bold">{t('today_streak', 'Дней')}</div>
             </div>
 
             <div className="text-center px-3 border-r border-purple-100 dark:border-gray-700">
               <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
-                {gamification.xp || 100}
+                {gamification.xp ?? 0}
               </div>
               <div className="text-[10px] text-gray-500 uppercase font-bold">{t('today_xp', 'XP')}</div>
             </div>
@@ -116,11 +117,16 @@ export default function TodayDashboard() {
               <span>{t('today_a1_progress_title', 'Прогресс уровня A1')}</span>
             </div>
             <h3 className="text-xl font-black text-gray-900 dark:text-white mt-0.5">
-              {a1Stats.percent}% {t('today_readiness', 'готовности к завершению')}
+              {a1Stats.percent}% {t('today_course_progress', 'прогресса курса')}
               <span className="text-sm font-normal text-gray-500 ml-2">
                 ({a1Stats.mastered} из {a1Stats.total} тем) • {language === 'ru' ? `Осталось ${remainingPercent}%` : `${remainingPercent}% remaining`}
               </span>
             </h3>
+            {a1Stats.readiness !== a1Stats.percent && (
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Общая готовность A1 с учётом сохранённого словаря: {a1Stats.readiness}%
+              </div>
+            )}
           </div>
 
           <Link
@@ -136,7 +142,7 @@ export default function TodayDashboard() {
         <div className="h-3.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden p-0.5 border border-purple-100 dark:border-gray-600 shadow-inner">
           <div
             className="h-full bg-gradient-to-r from-amber-400 via-fuchsia-500 to-purple-600 rounded-full transition-all duration-700 shadow"
-            style={{ width: `${Math.max(a1Stats.percent, 4)}%` }}
+            style={{ width: `${a1Stats.percent}%` }}
           />
         </div>
       </div>

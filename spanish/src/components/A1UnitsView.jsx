@@ -92,7 +92,7 @@ export default function A1UnitsView({ onOpenTheory, onOpenExercises, onOpenCheck
   }
 
   const units = courseData?.units || [];
-  const overallPercent = courseData?.overallPercent || 0;
+  const courseworkPercent = courseData?.courseworkPercent ?? courseData?.topicPercent ?? 0;
   const masteredTopics = courseData?.masteredTopics || 0;
   const totalTopics = courseData?.totalTopics || 30;
   const dueCount = courseData?.dueCount || 0;
@@ -125,7 +125,7 @@ export default function A1UnitsView({ onOpenTheory, onOpenExercises, onOpenCheck
             {/* Quick Progress Badge */}
             <div className="bg-white/15 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-white/20 shadow-lg flex flex-col items-center justify-center min-w-[170px] text-center">
               <div className="text-3xl sm:text-4xl font-black text-amber-300">
-                {overallPercent}%
+                {courseworkPercent}%
               </div>
               <div className="text-xs font-bold uppercase tracking-wider text-purple-100 mt-0.5">
                 Освоение курса

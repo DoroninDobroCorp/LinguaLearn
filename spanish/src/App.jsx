@@ -154,7 +154,7 @@ function AppContent() {
           <Route path="/chat" element={<Chat />} />
           <Route path="/stories" element={<Stories />} />
           <Route path="/curriculum" element={<CurriculumMap />} />
-          <Route path="/topics" element={<Navigate to="/curriculum" replace />} />
+          <Route path="/topics" element={<Navigate to="/curriculum?tab=all_topics" replace />} />
           <Route path="/exercises" element={<Exercises />} />
           <Route path="/vocabulary" element={<Vocabulary />} />
           <Route path="/settings" element={<SettingsPanel />} />

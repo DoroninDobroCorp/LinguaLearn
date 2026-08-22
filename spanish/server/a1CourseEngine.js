@@ -627,6 +627,9 @@ export function getA1CourseSnapshot(db, profileId, now = new Date()) {
   const learningSpanDays = courseStartedAt ? Math.max(0, Math.floor((now.getTime() - new Date(courseStartedAt).getTime()) / DAY_MS)) : 0;
   const earliestPossibleCompletionAt = courseStartedAt ? addDays(courseStartedAt, MINIMUM_MASTERY_SPAN_DAYS) : null;
   const skillPercent = Math.round(skills.reduce((sum, skill) => sum + skill.percent, 0) / skills.length);
+  // Course-study progress excludes the learner's independent, persistent vocabulary library.
+  // CEFR readiness below still includes mature vocabulary as a graduation requirement.
+  const courseworkPercent = Math.round(((topicPercent * 0.55) + (skillPercent * 0.20)) / 0.75);
   const completionGates = {
     topics: topicStates.length > 0 && topicStates.every((state) => state.phase === 'mastered'),
     vocabulary: vocabulary.mature >= A1_CORE_VOCABULARY_TARGET,
@@ -637,6 +640,7 @@ export function getA1CourseSnapshot(db, profileId, now = new Date()) {
     courseVersion: A1_COURSE_VERSION,
     level: 'A1',
     overallPercent: Math.round((topicPercent * 0.55) + (vocabulary.percent * 0.25) + (skillPercent * 0.20)),
+    courseworkPercent,
     topicPercent,
     familiarityPercent,
     skillPercent,
