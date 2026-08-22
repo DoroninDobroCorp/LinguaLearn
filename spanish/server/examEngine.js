@@ -166,32 +166,26 @@ export async function generateExamQuestions({ db, profileId, level = 'A1', examT
   let selectedTopics = [];
   const targetQuestionCount = examType === 'level_mastery' ? 30 : 20;
 
-  if (examType === 'milestone') {
-    const eligible = allLevelTopics.filter((t) => t.score >= 50 && t.is_locked === 0);
-
-    if (Array.isArray(topicIds) && topicIds.length > 0) {
-      selectedTopics = eligible.filter((t) => topicIds.includes(t.id));
-    } else {
-      selectedTopics = eligible.slice(0, 6);
-    }
-
-    if (selectedTopics.length < 4) {
-      // If user passed specific IDs but fewer than 4, take up to 6 from eligible
-      selectedTopics = eligible.slice(0, 6);
-    }
-
-    if (selectedTopics.length < 4) {
-      throw new Error(
-        `Для промежуточного экзамена требуется минимум 4 изученные темы (прогресс от 50%), не замороженные на 100%. Сейчас доступно: ${eligible.length}.`
-      );
-    }
-
-    selectedTopics = selectedTopics.slice(0, 6);
-  } else {
-    // Level mastery covers all preset topics of the level
+  if (examType === 'level_mastery') {
     selectedTopics = allLevelTopics;
     if (selectedTopics.length === 0) {
       throw new Error(`Нет доступных тем для уровня ${level}.`);
+    }
+  } else if (Array.isArray(topicIds) && topicIds.length > 0) {
+    // Custom user-selected topics (any 1..N topics chosen by student)
+    selectedTopics = allLevelTopics.filter((t) => topicIds.includes(t.id));
+    if (selectedTopics.length === 0) {
+      selectedTopics = allLevelTopics.slice(0, 4);
+    }
+  } else if (examType === 'custom') {
+    selectedTopics = allLevelTopics.slice(0, 4);
+  } else {
+    // Standard milestone mode
+    const eligible = allLevelTopics.filter((t) => t.score >= 50 && t.is_locked === 0);
+    if (eligible.length >= 4) {
+      selectedTopics = eligible.slice(0, 6);
+    } else {
+      selectedTopics = allLevelTopics.slice(0, 4);
     }
   }
 

@@ -252,12 +252,14 @@ export default function ExamModal({ level = 'A1', examType = 'milestone', topicI
                   {level}
                 </span>
                 <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
-                  {examType === 'level_mastery' ? '🏆 Финальный экзамен уровня' : '🎓 Промежуточный экзамен'}
+                  {examType === 'level_mastery' ? '🏆 Финальный экзамен уровня' : examType === 'custom' ? '🎯 Пользовательский экзамен (ИИ)' : '🎓 Промежуточный экзамен'}
                 </span>
               </div>
               <h2 className="text-lg sm:text-xl font-bold tracking-tight mt-0.5">
                 {examType === 'level_mastery' 
-                  ? `Аттестация по всему курсу ${level} (30 вопросов)` 
+                  ? `Аттестация по всему курсу ${level} (30 вопросов от ИИ)` 
+                  : examType === 'custom'
+                  ? `Экзамен по выбранным темам (${totalQ || 20} вопросов от ИИ)`
                   : `Промежуточный экзамен по изученным темам (20 вопросов)`}
               </h2>
             </div>

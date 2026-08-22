@@ -1129,7 +1129,7 @@ function getTopicsContext(profileId) {
     `SELECT ct.name, ct.level, ct.category FROM curriculum_topics ct
      WHERE ct.source = 'preset'
         OR ct.id IN (SELECT topic_id FROM curriculum_progress WHERE profile_id = ?)
-     ORDER BY ct.level, ct.category, ct.pedagogical_order ASC, ct.id ASC`
+     ORDER BY ct.pedagogical_order ASC, ct.level, ct.id ASC`
   ).all(profileId);
   const curriculumByLevel = {};
   for (const ct of curriculumNames) {
@@ -2277,7 +2277,7 @@ app.get(['/api/curriculum', '/api/curriculum/topics'], (req, res) => {
       LEFT JOIN curriculum_progress cp ON cp.topic_id = ct.id AND cp.profile_id = ?
       LEFT JOIN a1_topic_mastery am ON am.topic_id = ct.id AND am.profile_id = ?
       WHERE ct.source = 'preset' OR cp.profile_id IS NOT NULL
-      ORDER BY ct.level, ct.category, ct.pedagogical_order ASC, ct.id ASC
+      ORDER BY ct.pedagogical_order ASC, ct.level, ct.id ASC
     `).all(profileId, profileId);
     res.json({ topics, maxLevel: settings.max_level });
   } catch (error) {
@@ -3187,11 +3187,17 @@ Respond strictly as JSON in the following schema:
 app.get('/api/exercises', (req, res) => {
   try {
     const { level, category, topicId, topicIds, count = 20 } = req.query;
-    const adaptive = req.query.adaptive === '1' || req.query.recommended === '1';
+    const isExplicitRecommended = req.query.recommended === '1';
+    const adaptive = req.query.adaptive === '1' || isExplicitRecommended;
     if (adaptive) {
-      const requestedTopicIds = parseA1PracticeTopicIds(topicIds ?? topicId);
-      const course = getA1CourseSnapshot(db, getProfileId(req));
-      return res.json(buildA1PracticeExercises(course, requestedTopicIds, { count }));
+      try {
+        const requestedTopicIds = parseA1PracticeTopicIds(topicIds ?? topicId);
+        const course = getA1CourseSnapshot(db, getProfileId(req));
+        return res.json(buildA1PracticeExercises(course, requestedTopicIds, { count }));
+      } catch (adaptErr) {
+        // If not explicitly running the linear curriculum progression, fallback to curated exercises for requested topics
+        if (isExplicitRecommended) throw adaptErr;
+      }
     }
 
     const allPackages = getAllA1TopicPackages();
@@ -3626,6 +3632,127 @@ app.post('/api/gamification/record-practice', (req, res) => {
     res.json(status);
   } catch (error) {
     console.error('Error recording practice gamification:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+app.post('/api/curriculum/topics/:id/enroll-vocabulary', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const topicId = Number(req.params.id);
+    const topicRow = db.prepare('SELECT id, name, category, level FROM curriculum_topics WHERE id = ?').get(topicId);
+    if (!topicRow) {
+      return res.status(404).json({ error: 'Topic not found' });
+    }
+
+    let wordsToEnroll = req.body?.words;
+    if (!Array.isArray(wordsToEnroll) || wordsToEnroll.length === 0) {
+      wordsToEnroll = buildA1StarterVocabulary(topicId, topicRow.name, 10);
+    }
+
+    // Find or create topic group
+    const groupName = `Тема: ${topicRow.name}`;
+    let group = db.prepare('SELECT id FROM vocabulary_groups WHERE profile_id = ? AND name = ?').get(profileId, groupName);
+    if (!group) {
+      try {
+        const createResult = db.prepare('INSERT INTO vocabulary_groups (profile_id, name) VALUES (?, ?)').run(profileId, groupName);
+        group = { id: createResult.lastInsertRowid };
+      } catch (e) {
+        group = db.prepare('SELECT id FROM vocabulary_groups WHERE profile_id = ? AND name = ?').get(profileId, groupName);
+      }
+    }
+    const groupId = group ? group.id : null;
+
+    let newlyAdded = 0;
+    let existingLinked = 0;
+
+    for (const w of wordsToEnroll) {
+      if (!w || !w.word) continue;
+      const cleanWord = String(w.word).trim();
+      const cleanTrans = String(w.translation || '').trim();
+      const cleanEx = String(w.example || '').trim();
+      if (!cleanWord || !cleanTrans) continue;
+
+      try {
+        const created = createVocabularyEntry(db, profileId, {
+          word: cleanWord,
+          translation: cleanTrans,
+          example: cleanEx,
+          groupIds: groupId ? [groupId] : []
+        });
+        if (created) newlyAdded += 1;
+      } catch (err) {
+        // If already exists, attach to group if not already attached
+        if (groupId) {
+          const existing = db.prepare('SELECT id FROM vocabulary WHERE profile_id = ? AND (word = ? OR word_key = ?)').get(
+            profileId, cleanWord, cleanWord.toLowerCase()
+          );
+          if (existing) {
+            try {
+              addWordToGroup(db, profileId, groupId, existing.id);
+              existingLinked += 1;
+            } catch (ignore) {}
+          }
+        }
+      }
+    }
+
+    addProfileXp(db, profileId, 30, 'topic_vocabulary_enrolled');
+    updateDailyQuestProgress(db, profileId, 'vocab_review', Math.min(10, wordsToEnroll.length));
+
+    res.json({
+      success: true,
+      topicId,
+      groupName,
+      groupId,
+      newlyAdded,
+      existingLinked,
+      totalWords: wordsToEnroll.length,
+      xpGained: 30
+    });
+  } catch (error) {
+    console.error('Error enrolling topic vocabulary:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+app.post('/api/exercises/generate-batch', async (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const { level = 'A1', topicIds = [], count = 10 } = req.body || {};
+    const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
+
+    const exam = await generateExamQuestions({
+      db,
+      profileId,
+      level,
+      examType: 'custom',
+      topicIds,
+      apiKey
+    });
+
+    const exercises = (exam.questions || []).slice(0, count).map((q) => ({
+      id: q.id,
+      topicId: q.topicId,
+      topic: q.topicName,
+      level: q.level || level,
+      type: q.type || 'multiple-choice',
+      question: q.question,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      alternativeAnswers: q.alternativeAnswers || [q.correctAnswer],
+      explanation: q.explanation || ''
+    }));
+
+    res.json({
+      success: true,
+      exercises,
+      topicsCount: topicIds.length
+    });
+  } catch (error) {
+    console.error('Error generating exercises batch:', error);
     res.status(500).json({ error: error.message });
   }
 });

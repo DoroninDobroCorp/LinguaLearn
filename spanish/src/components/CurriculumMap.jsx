@@ -77,7 +77,7 @@ export default function CurriculumMap() {
   const [loading, setLoading] = useState(true);
   const [expandedLevels, setExpandedLevels] = useState({ 'A1': true, 'A2': false, 'B1': false, 'B2': false, 'C1': false, 'C2': false });
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterCategory, setFilterCategory] = useState('Grammar');
+  const [filterCategory, setFilterCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   const [selectedTopicId, setSelectedTopicId] = useState(null);
@@ -278,7 +278,7 @@ export default function CurriculumMap() {
                 Каталог тем A1–C2
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Полная карта программы. По умолчанию показана грамматика; переключите категорию, чтобы увидеть все 158 тем.
+                Полная карта программы. Показаны все темы программы (все 30 тем уровня A1 и 158 тем курса A1–C2).
               </p>
             </div>
 
@@ -342,11 +342,13 @@ export default function CurriculumMap() {
           {/* Level Accordions */}
           {Object.keys(LEVEL_CONFIG).map((level) => {
             const allLevelTopics = groupedByLevel[level] || [];
-            const levelTopics = allLevelTopics.filter(topic => topicMatchesFilters(topic, {
-              category: filterCategory,
-              status: filterStatus,
-              search: searchTerm,
-            }));
+            const levelTopics = allLevelTopics
+              .filter(topic => topicMatchesFilters(topic, {
+                category: filterCategory,
+                status: filterStatus,
+                search: searchTerm,
+              }))
+              .sort((a, b) => (a.pedagogical_order || a.id) - (b.pedagogical_order || b.id));
 
             const isExpanded = expandedLevels[level];
             const cfg = LEVEL_CONFIG[level];
@@ -433,6 +435,9 @@ export default function CurriculumMap() {
                             />
                             <div className="min-w-0 flex-1">
                               <div className="text-sm font-bold leading-snug text-gray-900 dark:text-white">
+                                <span className="text-purple-600 dark:text-purple-400 font-extrabold mr-1.5">
+                                  {topic.pedagogical_order || topic.id}.
+                                </span>
                                 {topic.name}
                               </div>
                             </div>

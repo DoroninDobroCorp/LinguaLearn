@@ -10,6 +10,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { soundEngine, speakSpanish } from '../utils/soundEffects';
 import MateoCharacter from './MateoCharacter';
+import InteractiveVocabularyIntro from './InteractiveVocabularyIntro';
+import BiteSizedTheoryDeck from './BiteSizedTheoryDeck';
 
 function normalizeExerciseText(text) {
   if (!text) return '';
@@ -106,6 +108,29 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [isEnrolling, setIsEnrolling] = useState(false);
+
+  const handleEnrollVocabulary = async () => {
+    try {
+      setIsEnrolling(true);
+      const targetId = topicId || theoryData?.id || 1;
+      const res = await profileFetch(profileApiUrl(`/spanish/api/curriculum/topics/${targetId}/enroll-vocabulary`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ words: starterVocabulary })
+      });
+      if (res.ok) {
+        soundEngine.playLevelUp();
+        window.dispatchEvent(new CustomEvent('gamification_updated'));
+      }
+    } catch (e) {
+      console.error('Error enrolling topic vocabulary:', e);
+    } finally {
+      setIsEnrolling(false);
+      setVocabularyConfirmed(true);
+      setActiveTab('theory');
+    }
+  };
   const chatBottomRef = useRef(null);
 
   useEffect(() => {
@@ -383,414 +408,30 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
               <span className="ml-3 font-semibold text-sm">Загрузка материалов темы...</span>
             </div>
           ) : activeTab === 'vocabulary' ? (
-            <div className="space-y-5">
-              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
-                <div className="font-black text-emerald-900 dark:text-emerald-100">Шаг 1 из 3 — слова для этого правила</div>
-                <p className="text-sm text-emerald-800 dark:text-emerald-200 mt-1">
-                  Сначала познакомьтесь с этими словами. Именно этот материал встретится в объяснении и контролируемой практике.
-                </p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {starterVocabulary.map((item) => (
-                  <div key={item.word} className="p-4 rounded-2xl border border-purple-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-black text-lg text-purple-800 dark:text-purple-200">{item.word}</div>
-                        <div className="font-semibold text-gray-700 dark:text-gray-200">{item.translation}</div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => speakSpanish(item.word)}
-                        className="p-2 rounded-xl bg-purple-50 dark:bg-gray-700 text-purple-600"
-                        aria-label={`Прослушать ${item.word}`}
-                      >
-                        <Volume2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                    {item.example && <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">{item.example}</div>}
-                  </div>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setVocabularyConfirmed(true);
-                  setActiveTab('theory');
-                }}
-                className="w-full py-3 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-black shadow-lg"
-              >
-                Слова просмотрены — перейти к правилу
-              </button>
-            </div>
+            <InteractiveVocabularyIntro
+              words={starterVocabulary}
+              topicName={theoryData?.russianTitle || topicName}
+              isEnrolling={isEnrolling}
+              onComplete={handleEnrollVocabulary}
+              onSkipToTheory={() => {
+                setVocabularyConfirmed(true);
+                setActiveTab('theory');
+              }}
+            />
           ) : activeTab === 'theory' ? (
             theoryData ? (
-              <div className="space-y-6">
-                {/* Mateo Guide Intro */}
-                <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800">
-                  <MateoCharacter
-                    mood="thinking"
-                    speechText={
-                      language === 'ru'
-                        ? `Привет! Давай разберем тему «${theoryData.russianTitle || topicName}». Я подготовил для тебя цели, правила, типичные ловушки и проверочный квиз!`
-                        : `¡Hola! Veamos juntos «${theoryData.topicName}». ¡Tengo objetivos, reglas, trampas y mini-quiz!`
-                    }
-                    size="sm"
-                  />
-                </div>
-
-                {/* 1. Measurable Learning Goals */}
-                {goalsList.length > 0 && (
-                  <div className="p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60">
-                    <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200 font-extrabold text-sm mb-2.5">
-                      <Target className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                      <span>После этого урока вы сможете:</span>
-                    </div>
-                    <ul className="space-y-1.5 text-xs sm:text-sm text-indigo-950 dark:text-indigo-200">
-                      {goalsList.map((g, gIdx) => (
-                        <li key={gIdx} className="flex items-start gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5" />
-                          <span>{g}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* 2. Summary Box */}
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200 dark:border-purple-800/50 text-gray-800 dark:text-gray-200 text-sm sm:text-base leading-relaxed">
-                  💡 <span className="font-semibold">{theoryData.summary}</span>
-                </div>
-
-                {/* 3. Mnemonic Rule */}
-                {theoryData.mnemonicRule && (
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-extrabold text-sm sm:text-base shadow-md flex items-center gap-3">
-                    <span className="text-2xl">🧠</span>
-                    <div>
-                      <div className="text-[11px] uppercase tracking-wider text-amber-200">Золотое правило:</div>
-                      <div>{theoryData.mnemonicRule}</div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 4. Sections & Tables */}
-                {(theoryData.sections || []).map((sec, sIdx) => (
-                  <div key={sIdx} className="space-y-3 pt-2">
-                    <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-fuchsia-500" />
-                      {sec.title}
-                    </h3>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {sec.content}
-                    </p>
-
-                    {(sec.tables || []).map((tbl, tIdx) => (
-                      <div key={tIdx} className="overflow-x-auto rounded-2xl border border-purple-100 dark:border-gray-700 shadow-sm my-3">
-                        <table className="w-full text-left text-sm">
-                          <thead className="bg-purple-100 dark:bg-gray-800 text-purple-900 dark:text-purple-200 font-bold">
-                            <tr>
-                              {tbl.headers.map((h, hIdx) => (
-                                <th key={hIdx} className="p-3 whitespace-nowrap">{h}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-purple-50 dark:divide-gray-700 bg-white dark:bg-gray-850">
-                            {tbl.rows.map((row, rIdx) => (
-                              <tr key={rIdx} className="hover:bg-purple-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                                {row.map((cell, cIdx) => (
-                                  <td key={cIdx} className="p-3 text-gray-800 dark:text-gray-200">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span>{cell}</span>
-                                      {cIdx <= 1 && typeof cell === 'string' && cell.length > 1 && !cell.includes(' ') && (
-                                        <button
-                                          onClick={() => speakSpanish(cell.split('(')[0])}
-                                          className="text-gray-400 hover:text-purple-600 p-1 transition-colors"
-                                          title="Прослушать"
-                                        >
-                                          <Volume2 className="w-3.5 h-3.5" />
-                                        </button>
-                                      )}
-                                    </div>
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-
-                {/* 5. Examples with Audio */}
-                {examplesList.length > 0 && (
-                  <div className="p-4 rounded-2xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/60 space-y-2.5">
-                    <h4 className="font-extrabold text-sky-900 dark:text-sky-200 text-sm flex items-center gap-2">
-                      <BookOpen className="w-4 h-4 text-sky-600" />
-                      Живые примеры употребления:
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {examplesList.map((ex, eIdx) => (
-                        <div key={eIdx} className="p-3 rounded-xl bg-white dark:bg-gray-800 border border-sky-100 dark:border-gray-700 flex items-start justify-between gap-2 text-xs sm:text-sm">
-                          <div>
-                            <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-                              <span>{ex.es}</span>
-                              <button
-                                onClick={() => speakSpanish(ex.es)}
-                                className="text-gray-400 hover:text-purple-600 transition-colors"
-                                title="Прослушать"
-                              >
-                                <Volume2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                            <div className="text-gray-600 dark:text-gray-400 mt-0.5">{ex.ru}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 6. Typical Mistakes of Russian Speakers */}
-                {mistakesList.length > 0 && (
-                  <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 space-y-3">
-                    <div className="flex items-center gap-2 font-bold text-sm text-rose-700 dark:text-rose-300">
-                      <AlertTriangle className="w-4 h-4 text-rose-500" />
-                      <span>Типичные ошибки русскоязычных учеников:</span>
-                    </div>
-                    <div className="space-y-2">
-                      {mistakesList.map((m, mIdx) => (
-                        <div key={mIdx} className="p-3 rounded-xl bg-white dark:bg-gray-800 border border-rose-200 dark:border-rose-800/80 text-xs sm:text-sm space-y-1">
-                          <div className="text-red-600 dark:text-red-400 font-semibold line-through">❌ {m.mistake}</div>
-                          <div className="text-green-600 dark:text-green-400 font-bold">✅ {m.correction}</div>
-                          <div className="text-gray-600 dark:text-gray-400 text-xs">{m.explanation}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 7. Dialect Notes */}
-                {theoryData.dialectNote && (
-                  <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-200 text-sm flex items-start gap-3">
-                    <span className="text-xl">🧉</span>
-                    <div>
-                      <div className="font-bold">Колорит и диалекты (Рио-де-ла-Плата / Испания):</div>
-                      <div className="mt-0.5 text-xs sm:text-sm">{theoryData.dialectNote}</div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 8. Mini-Scenario Real-Life Application */}
-                {theoryData.miniScenario && (
-                  <div className="p-4 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-3">
-                    <div className="flex items-center gap-2 font-extrabold text-sm text-emerald-900 dark:text-emerald-200">
-                      <Compass className="w-4 h-4 text-emerald-600" />
-                      <span>Мини-сценарий: {theoryData.miniScenario.title}</span>
-                    </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400 italic">
-                      📍 {theoryData.miniScenario.setting} — {theoryData.miniScenario.situation}
-                    </div>
-
-                    {theoryData.miniScenario.dialog && (
-                      <div className="space-y-1.5 p-3 rounded-xl bg-white dark:bg-gray-800 border border-emerald-100 dark:border-gray-700 text-xs sm:text-sm">
-                        {theoryData.miniScenario.dialog.map((d, dIdx) => (
-                          <div key={dIdx} className="flex items-start gap-2">
-                            <span className="font-bold text-emerald-700 dark:text-emerald-400 w-24 flex-shrink-0">{d.speaker}:</span>
-                            <span className="text-gray-800 dark:text-gray-200">{d.text}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {theoryData.miniScenario.options && (
-                      <div className="space-y-2 pt-1">
-                        <p className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white">
-                          👉 {theoryData.miniScenario.prompt}
-                        </p>
-                        <div className="grid grid-cols-1 gap-1.5">
-                          {theoryData.miniScenario.options.map((opt, optIdx) => {
-                            const isAnswered = scenarioAnswer !== null;
-                            const isCorrect = optIdx === theoryData.miniScenario.correctIndex;
-                            let btnCls = 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200';
-                            if (isAnswered) {
-                              if (isCorrect) btnCls = 'bg-green-100 dark:bg-green-900/60 border-green-500 text-green-900 dark:text-green-200 font-bold';
-                              else if (optIdx === scenarioAnswer) btnCls = 'bg-red-100 dark:bg-red-900/60 border-red-500 text-red-900 dark:text-red-200';
-                              else btnCls = 'opacity-40';
-                            }
-                            return (
-                              <button
-                                key={optIdx}
-                                onClick={() => setScenarioAnswer(optIdx)}
-                                disabled={isAnswered}
-                                className={`p-2.5 text-left rounded-xl border text-xs font-semibold transition-all ${btnCls}`}
-                              >
-                                {opt}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {scenarioAnswer !== null && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 italic mt-1">
-                            💡 {theoryData.miniScenario.explanation}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* 9. Short Text / Reading practice */}
-                {theoryData.shortText && (
-                  <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 space-y-3">
-                    <div className="flex items-center gap-2 font-extrabold text-sm text-amber-900 dark:text-amber-200">
-                      <BookOpen className="w-4 h-4 text-amber-600" />
-                      <span>Короткий текст для чтения: {theoryData.shortText.title}</span>
-                    </div>
-                    <p className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 p-3 rounded-xl bg-white dark:bg-gray-800 border border-amber-100 dark:border-gray-700 leading-relaxed">
-                      {theoryData.shortText.text}
-                    </p>
-
-                    <div className="space-y-3 pt-1">
-                      {(theoryData.shortText.questions || []).map((stq, stIdx) => {
-                        const answered = shortTextAnswers[stIdx] !== undefined;
-                        const sel = shortTextAnswers[stIdx];
-                        return (
-                          <div key={stIdx} className="space-y-1.5 text-xs sm:text-sm">
-                            <div className="font-bold text-gray-900 dark:text-white">
-                              {stIdx + 1}. {stq.question}
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                              {stq.options.map((opt, optIdx) => {
-                                let bClass = 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200';
-                                if (answered) {
-                                  if (optIdx === stq.correctIndex) bClass = 'bg-green-100 dark:bg-green-900/60 border-green-500 font-bold';
-                                  else if (optIdx === sel) bClass = 'bg-red-100 dark:bg-red-900/60 border-red-500';
-                                  else bClass = 'opacity-40';
-                                }
-                                return (
-                                  <button
-                                    key={optIdx}
-                                    onClick={() => setShortTextAnswers(prev => ({ ...prev, [stIdx]: optIdx }))}
-                                    disabled={answered}
-                                    className={`p-2 text-left rounded-xl border text-xs font-semibold ${bClass}`}
-                                  >
-                                    {opt}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            {answered && (
-                              <div className="text-[11px] text-gray-500 italic">💡 {stq.explanation}</div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* 10. Productive Task with Rubric */}
-                {theoryData.productiveTask && (
-                  <div className="p-4 rounded-2xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/60 space-y-2.5">
-                    <div className="flex items-center gap-2 font-extrabold text-sm text-purple-900 dark:text-purple-200">
-                      <Award className="w-4 h-4 text-purple-600" />
-                      <span>Продуктивное задание ({theoryData.productiveTask.type === 'writing' ? 'Письмо ✍️' : 'Говорение 🎙️'}): {theoryData.productiveTask.title}</span>
-                    </div>
-                    <div className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 p-3 rounded-xl bg-white dark:bg-gray-800 border border-purple-100 dark:border-gray-700 whitespace-pre-line leading-relaxed">
-                      {theoryData.productiveTask.prompt}
-                    </div>
-                    {theoryData.productiveTask.rubric?.criteria && (
-                      <div className="text-xs space-y-1 pt-1">
-                        <div className="font-bold text-gray-600 dark:text-gray-400">Критерии оценивания (0–100 баллов):</div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                          {theoryData.productiveTask.rubric.criteria.map((crit, crIdx) => (
-                            <div key={crIdx} className="p-2 rounded-lg bg-white/70 dark:bg-gray-800 border border-purple-100 dark:border-gray-700 text-[11px]">
-                              <span className="font-bold text-purple-700 dark:text-purple-300">{crit.name} ({crit.points || crit.max} б.):</span> {crit.description}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* 11. Quick Check Quiz (12 Questions with Explanations) */}
-                {quizList.length > 0 && (
-                  <div className="pt-6 border-t border-purple-100 dark:border-gray-700 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-base font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HelpCircle className="w-5 h-5 text-purple-600" />
-                        <span>Проверочный квиз ({quizList.length} вопросов):</span>
-                      </h3>
-                      <span className="text-xs text-purple-600 font-bold">
-                        {Object.keys(quizAnswers).length} / {quizList.length} пройдено
-                      </span>
-                    </div>
-
-                    <div className="space-y-4">
-                      {quizList.map((q, qIdx) => {
-                        const answered = quizAnswers[qIdx] !== undefined;
-                        const selectedOpt = quizAnswers[qIdx];
-                        const typeLabel = q.type === 'recognition' ? 'Узнавание' : q.type === 'application' ? 'Применение' : 'Перенос в контекст';
-
-                        return (
-                          <div key={qIdx} className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 space-y-2.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white">
-                                {qIdx + 1}. {q.question}
-                              </span>
-                              <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 flex-shrink-0">
-                                {typeLabel}
-                              </span>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {q.options.map((opt, optIdx) => {
-                                let btnClass = 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:border-purple-400';
-                                if (answered) {
-                                  if (optIdx === q.correctIndex) {
-                                    btnClass = 'bg-green-100 dark:bg-green-900/60 border-green-500 text-green-900 dark:text-green-200 font-bold';
-                                  } else if (optIdx === selectedOpt) {
-                                    btnClass = 'bg-red-100 dark:bg-red-900/60 border-red-500 text-red-900 dark:text-red-200';
-                                  } else {
-                                    btnClass = 'opacity-40';
-                                  }
-                                }
-
-                                return (
-                                  <button
-                                    key={optIdx}
-                                    onClick={() => handleQuizAnswer(qIdx, optIdx, q.correctIndex)}
-                                    disabled={answered}
-                                    className={`p-3 text-left rounded-xl border text-xs font-semibold transition-all ${btnClass}`}
-                                  >
-                                    {opt}
-                                  </button>
-                                );
-                              })}
-                            </div>
-
-                            {answered && (
-                              <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 italic p-2 rounded-lg bg-white/60 dark:bg-gray-750 border border-gray-100 dark:border-gray-700">
-                                💡 {q.explanations?.[selectedOpt] || q.explanation || (selectedOpt === q.correctIndex ? 'Правильно!' : 'Неверный вариант.')}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <BiteSizedTheoryDeck
+                theoryData={theoryData}
+                topicName={theoryData.russianTitle || topicName}
+                onFinishTheory={() => setExercisesUnlocked(true)}
+                onStartExercises={() => {
+                  setExercisesUnlocked(true);
+                  if (exercisesList.length > 0) setActiveTab('exercises');
+                }}
+              />
             ) : (
-              <div className="text-center py-16 text-gray-500">
-                <BookOpen className="w-12 h-12 text-purple-400 mx-auto mb-3" />
-                <h4 className="font-bold text-gray-800 dark:text-gray-200 text-lg mb-1">
-                  Теория по теме «{topicName}»
-                </h4>
-                <p className="text-sm max-w-md mx-auto mb-4">
-                  Вы можете задать любой вопрос нашему AI-репетитору во вкладке «AI-Репетитор»!
-                </p>
+              <div className="text-center py-12 text-gray-500">
+                Теоретические материалы для этой темы пока готовятся...
               </div>
             )
           ) : activeTab === 'exercises' ? (

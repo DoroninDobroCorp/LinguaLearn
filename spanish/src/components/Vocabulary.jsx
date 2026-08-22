@@ -30,10 +30,10 @@ import {
   GraduationCap,
   CheckCircle2,
   ArrowUpDown,
+  Layers
 } from 'lucide-react';
 import { useSpeechPractice } from '../hooks/useSpeechPractice';
 import VocabularyDecksModal from './VocabularyDecksModal';
-import { Layers } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
 import {
   getVoicePracticeSpanishContent,

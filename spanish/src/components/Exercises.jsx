@@ -1,7 +1,8 @@
+import ExamModal from './ExamModal';
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Brain, Target, RefreshCw, CheckCircle, XCircle, Award,
+  Brain, Lightbulb, Target, RefreshCw, CheckCircle, XCircle, Award, Trophy, ListOrdered,
   TrendingUp, Play, RotateCcw, HelpCircle, Flame, Layers,
   Infinity as InfinityIcon, Globe, Check, Search, Filter, ShieldCheck,
   Sparkles, Zap, Puzzle, Clock, CheckCircle2, Volume2, ArrowRight,
@@ -660,7 +661,7 @@ function ErrorDetectiveSection() {
 // ----------------------------------------------------
 function VerbConjugationDrills({ onTopicUpdated }) {
   const { t } = useLanguage();
-  const [drillType, setDrillType] = useState('regular');
+  const [drillType, setDrillType] = useState('fourKeyVerbs'); // 'fourKeyVerbs' | 'regular' | 'ser' | 'estar' | 'tener' | 'ir' | 'serEstar'
   const [pronounMode, setPronounMode] = useState('all');
   const [runMode, setRunMode] = useState('ten');
   const [currentQuestion, setCurrentQuestion] = useState(null);
@@ -669,6 +670,9 @@ function VerbConjugationDrills({ onTopicUpdated }) {
   const [isCorrect, setIsCorrect] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
   const [stats, setStats] = useState({ correct: 0, incorrect: 0, completed: 0 });
+  const [showRuleHint, setShowRuleHint] = useState(false);
+
+  const SPANISH_CHARS = ['á', 'é', 'í', 'ó', 'ú', 'ñ', '¿', '¡'];
 
   const startSession = () => {
     setStats({ correct: 0, incorrect: 0, completed: 0 });
@@ -676,7 +680,9 @@ function VerbConjugationDrills({ onTopicUpdated }) {
     setAnswer('');
     setShowResult(false);
     setIsCorrect(false);
+    setShowRuleHint(false);
     setSessionActive(true);
+    soundEngine.playLevelUp();
   };
 
   const checkDrillAnswer = async () => {
@@ -689,8 +695,8 @@ function VerbConjugationDrills({ onTopicUpdated }) {
       completed: stats.completed + 1,
     };
 
-    setIsCorrect(correct);
     setStats(nextStats);
+    setIsCorrect(correct);
     setShowResult(true);
 
     if (correct) soundEngine.playCorrect();
@@ -727,27 +733,78 @@ function VerbConjugationDrills({ onTopicUpdated }) {
     setIsCorrect(false);
   };
 
+  const insertChar = (c) => setAnswer(prev => prev + c);
+
+  const currentRules = DRILL_TYPES[drillType]?.rules || [];
+
   return (
     <div className="max-w-3xl mx-auto glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-purple-100 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 animate-fadeIn">
+      {/* Top Header */}
       <div className="flex items-center justify-between border-b border-purple-100 dark:border-gray-700 pb-4 mb-6">
         <div>
           <h3 className="text-xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
             <Target className="w-6 h-6 text-fuchsia-500" />
-            {t('verb_drills_title', 'Тренировка спряжения глаголов')}
+            <span>Тренировка спряжения глаголов</span>
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {t('verb_drills_sub', 'Отрабатывай правильные и неправильные глаголы с аргентинским voseo.')}
+            Отрабатывай 4 главных глагола (ser, estar, tener, ir) и правильные окончания с аргентинским voseo.
           </p>
         </div>
+
+        {sessionActive && (
+          <button
+            onClick={() => setShowRuleHint(!showRuleHint)}
+            className="px-3.5 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 font-bold text-xs hover:bg-amber-100 transition-all flex items-center gap-1.5 shadow-sm"
+          >
+            <Lightbulb className="w-4 h-4 text-amber-600" />
+            <span>{showRuleHint ? 'Скрыть подсказку ▲' : '💡 Подсказка правила ▼'}</span>
+          </button>
+        )}
       </div>
+
+      {/* RULE HINT MODAL / ACCORDION */}
+      {showRuleHint && currentRules.length > 0 && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/90 dark:bg-amber-950/50 border-2 border-amber-300 dark:border-amber-700 shadow-md mb-6 animate-fadeIn space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 font-black text-sm text-amber-950 dark:text-amber-200">
+              <Lightbulb className="w-5 h-5 text-amber-600 flex-shrink-0" />
+              <span>Правило и шпаргалка спряжений: {DRILL_TYPES[drillType]?.label}</span>
+            </div>
+            <button
+              onClick={() => setShowRuleHint(false)}
+              className="text-xs text-amber-700 hover:text-amber-900 font-bold"
+            >
+              ✕ Закрыть
+            </button>
+          </div>
+
+          <div className="space-y-2 text-xs sm:text-sm font-medium text-amber-950 dark:text-amber-100">
+            {currentRules.map((rule, rIdx) => (
+              <div key={rIdx} className="p-2.5 rounded-xl bg-white/80 dark:bg-gray-800/80 border border-amber-200 dark:border-amber-800">
+                {rule}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {!sessionActive ? (
         <div className="space-y-6">
-          {/* Verb Type Picker (Fixed with proper labels!) */}
+          {/* Verb Type Picker */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
-              {t('verb_types_label', 'Тип глаголов:')}
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">
+                Тип глаголов:
+              </label>
+              <button
+                onClick={() => setShowRuleHint(!showRuleHint)}
+                className="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1"
+              >
+                <Lightbulb className="w-3.5 h-3.5" />
+                <span>{showRuleHint ? 'Скрыть шпаргалку' : 'Посмотреть шпаргалку правил'}</span>
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {Object.entries(DRILL_TYPES).map(([k, v]) => (
                 <button
@@ -774,7 +831,7 @@ function VerbConjugationDrills({ onTopicUpdated }) {
           {/* Pronoun Selector */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
-              {t('verb_pronouns_label', 'Местоимения:')}
+              Местоимения:
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {Object.entries(DRILL_PRONOUN_MODES).map(([k, v]) => (
@@ -796,61 +853,106 @@ function VerbConjugationDrills({ onTopicUpdated }) {
             </div>
           </div>
 
+          {/* Start Button */}
           <button
             onClick={startSession}
-            className="w-full py-3.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-extrabold text-base rounded-2xl shadow-xl hover:from-fuchsia-600 hover:to-purple-700 active:scale-95 transition-all"
+            className="w-full py-4 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-black text-base sm:text-lg rounded-2xl shadow-xl hover:from-fuchsia-600 hover:to-purple-700 active:scale-95 transition-all flex items-center justify-center gap-2"
           >
-            {t('verb_start_btn', 'Начать тренировку')}
+            <Play className="w-5 h-5" />
+            <span>Начать тренировку спряжений</span>
           </button>
         </div>
       ) : (
         <div>
           {currentQuestion && (
-            <div className="space-y-6">
-              <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/40 dark:to-pink-950/40 border border-purple-200 dark:border-gray-700 text-center">
+            <div className="space-y-6 animate-fadeIn">
+              <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/40 dark:to-pink-950/40 border border-purple-200 dark:border-gray-700 text-center relative">
                 <div className="text-xs font-bold uppercase text-purple-600 dark:text-purple-400 mb-1">
                   Глагол: {currentQuestion.verb} ({currentQuestion.translation})
                 </div>
-                <div className="text-2xl font-extrabold text-gray-900 dark:text-white my-2">
+                <div className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white my-2">
                   {currentQuestion.prompt || `${currentQuestion.pronoun} _______`}
                 </div>
                 {currentQuestion.instruction && (
-                  <div className="text-xs text-gray-500 italic">{currentQuestion.instruction}</div>
+                  <div className="text-xs text-gray-500 italic mt-1">{currentQuestion.instruction}</div>
                 )}
               </div>
 
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  disabled={showResult}
-                  placeholder="Введи форму глагола..."
-                  className="flex-1 px-4 py-3 border-2 border-purple-200 dark:border-gray-600 dark:bg-gray-800 rounded-xl font-bold text-gray-900 dark:text-white focus:border-purple-500 focus:outline-none"
-                  onKeyDown={(e) => e.key === 'Enter' && checkDrillAnswer()}
-                />
-                {!showResult ? (
-                  <button
-                    onClick={checkDrillAnswer}
-                    disabled={!answer.trim()}
-                    className="px-6 py-3 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-bold rounded-xl shadow-md disabled:opacity-50"
-                  >
-                    {t('verb_check_btn', 'Проверить')}
-                  </button>
-                ) : (
-                  <button
-                    onClick={nextQuestion}
-                    className="px-6 py-3 bg-green-600 text-white font-bold rounded-xl shadow-md flex items-center gap-1.5"
-                  >
-                    <span>{t('verb_next_btn', 'Далее')}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+              {/* Input & Virtual Chars */}
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    disabled={showResult}
+                    placeholder="Введи форму глагола..."
+                    className="flex-1 px-4 py-3.5 border-2 border-purple-200 dark:border-gray-600 dark:bg-gray-800 rounded-xl font-bold text-base text-gray-900 dark:text-white focus:border-purple-500 focus:outline-none"
+                    onKeyDown={(e) => e.key === 'Enter' && (showResult ? nextQuestion() : checkDrillAnswer())}
+                  />
+                  {!showResult ? (
+                    <button
+                      onClick={checkDrillAnswer}
+                      disabled={!answer.trim()}
+                      className="px-6 py-3.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-bold rounded-xl shadow-md disabled:opacity-50"
+                    >
+                      Проверить
+                    </button>
+                  ) : (
+                    <button
+                      onClick={nextQuestion}
+                      className="px-6 py-3.5 bg-green-600 text-white font-bold rounded-xl shadow-md flex items-center gap-1.5"
+                    >
+                      <span>Далее ➔</span>
+                    </button>
+                  )}
+                </div>
+
+                {!showResult && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[11px] font-bold text-gray-500 mr-1">Быстрый ввод:</span>
+                    {SPANISH_CHARS.map((char) => (
+                      <button
+                        key={char}
+                        type="button"
+                        onClick={() => insertChar(char)}
+                        className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs font-black text-gray-800 dark:text-gray-200 hover:bg-purple-100 dark:hover:bg-purple-900 transition-colors shadow-sm"
+                      >
+                        {char}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
 
+              {/* Feedback and Rule Explanation on Check */}
               {showResult && (
-                <div className={`p-4 rounded-xl font-bold text-sm ${isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  {isCorrect ? '¡Excelente! Форма верна.' : `Неверно. Правильная форма: ${getVerbDrillDisplayAnswer(currentQuestion)}`}
+                <div className="space-y-3 animate-fadeIn">
+                  <div className={`p-4 rounded-2xl font-bold text-sm border-2 ${
+                    isCorrect
+                      ? 'bg-green-50 dark:bg-green-950/40 border-green-500 text-green-900 dark:text-green-200'
+                      : 'bg-rose-50 dark:bg-rose-950/40 border-rose-500 text-rose-900 dark:text-rose-200'
+                  }`}>
+                    <div className="text-base font-black flex items-center gap-2">
+                      {isCorrect ? <CheckCircle2 className="w-5 h-5 text-green-600" /> : <XCircle className="w-5 h-5 text-rose-600" />}
+                      <span>{isCorrect ? '¡Excelente! Форма верна.' : `Неверно. Правильная форма: ${getVerbDrillDisplayAnswer(currentQuestion)}`}</span>
+                    </div>
+
+                    {currentQuestion.reason && (
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-2 pl-7">
+                        💡 {currentQuestion.reason}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Compact rule reminder box */}
+                  <div className="p-3.5 rounded-xl bg-purple-50/70 dark:bg-gray-750 border border-purple-200 dark:border-gray-700 text-xs text-purple-950 dark:text-purple-200 flex items-start gap-2">
+                    <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="font-bold">Шпаргалка: </strong>
+                      <span>{currentRules[0] || 'Обратите внимание на спряжение для данного местоимения.'}</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -861,11 +963,16 @@ function VerbConjugationDrills({ onTopicUpdated }) {
   );
 }
 
-// ----------------------------------------------------
-// 5. CLASSIC QUIZ & FILL-IN (RESTORED!)
+
+// 5. CLASSIC QUIZ & FILL-IN & EXAM BUILDER (AI-POWERED)
 // ----------------------------------------------------
 function ClassicQuizSection({ topicIds = [] }) {
   const { t } = useLanguage();
+  const [availableTopics, setAvailableTopics] = useState([]);
+  const [selectedTopicIds, setSelectedTopicIds] = useState(topicIds.length > 0 ? topicIds : [1, 27]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showTopicSelector, setShowTopicSelector] = useState(false);
+
   const [exercises, setExercises] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -874,35 +981,108 @@ function ClassicQuizSection({ topicIds = [] }) {
   const [result, setResult] = useState(null);
   const [checking, setChecking] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [error, setError] = useState('');
+  
+  // Exam Modal State
+  const [examModalConfig, setExamModalConfig] = useState({
+    isOpen: false,
+    level: 'A1',
+    examType: 'custom',
+    topicIds: []
+  });
+
   const attemptEventRef = useRef(null);
   const startedAtRef = useRef(Date.now());
-  const topicIdsKey = topicIds.join(',');
 
-  const fetchExercises = async () => {
+  // Fetch available A1 topics for selection
+  useEffect(() => {
+    const fetchTopics = async () => {
+      try {
+        const res = await profileFetch(profileApiUrl('/spanish/api/curriculum/topics?level=A1'));
+        if (res.ok) {
+          const data = await res.json();
+          const list = Array.isArray(data.topics) ? data.topics : Array.isArray(data) ? data : [];
+          setAvailableTopics(list.filter(t => t.level === 'A1' || !t.level));
+        }
+      } catch (err) {
+        console.warn('Could not load topics list:', err);
+      }
+    };
+    fetchTopics();
+  }, []);
+
+  const fetchExercises = async (customIds = selectedTopicIds, isAi = false) => {
     try {
-      setLoading(true);
+      if (isAi) setIsGeneratingAi(true);
+      else setLoading(true);
       setError('');
-      const params = new URLSearchParams({ level: 'A1', category: 'Grammar', adaptive: '1', count: '20' });
-      if (topicIdsKey) params.set('topicIds', topicIdsKey);
-      const res = await profileFetch(profileApiUrl(`/spanish/api/exercises?${params.toString()}`));
-      const data = await res.json().catch(() => []);
-      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить упражнения');
-      setExercises(Array.isArray(data) ? data : []);
-      setCurrentIndex(0);
+
+      if (isAi) {
+        // AI batch generation
+        const res = await profileFetch(profileApiUrl('/spanish/api/exercises/generate-batch'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            level: 'A1',
+            topicIds: customIds,
+            count: 10
+          })
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.exercises) && data.exercises.length > 0) {
+          setExercises(data.exercises);
+          setCurrentIndex(0);
+          soundEngine.playLevelUp();
+        } else {
+          throw new Error(data.error || 'Не удалось сгенерировать упражнения через ИИ');
+        }
+      } else {
+        const params = new URLSearchParams({ level: 'A1', category: 'Grammar', adaptive: '1', count: '20' });
+        if (customIds.length > 0) params.set('topicIds', customIds.join(','));
+        const res = await profileFetch(profileApiUrl(`/spanish/api/exercises?${params.toString()}`));
+        const data = await res.json().catch(() => []);
+        if (!res.ok) throw new Error(data.error || 'Не удалось загрузить упражнения');
+        setExercises(Array.isArray(data) ? data : []);
+        setCurrentIndex(0);
+      }
+
       startedAtRef.current = Date.now();
     } catch (err) {
-      console.error('Error fetching classic exercises:', err);
-      setExercises([]);
+      console.error('Error fetching exercises:', err);
       setError(err.message || 'Не удалось загрузить упражнения');
     } finally {
       setLoading(false);
+      setIsGeneratingAi(false);
     }
   };
 
+  // Wait for user to select topics and click generate or start
   useEffect(() => {
-    fetchExercises();
-  }, [topicIdsKey]);
+    setLoading(false);
+  }, []);
+
+  const toggleTopic = (id) => {
+    setSelectedTopicIds(prev => {
+      const numId = Number(id);
+      if (prev.includes(numId)) {
+        const next = prev.filter(x => x !== numId);
+        return next.length > 0 ? next : prev; // keep at least 1
+      } else {
+        return [...prev, numId];
+      }
+    });
+  };
+
+  const handleSelectAllA1 = () => {
+    const allIds = availableTopics.map(t => t.id);
+    setSelectedTopicIds(allIds);
+  };
+
+  const handleSelectFirstFour = () => {
+    const firstFour = availableTopics.slice(0, 4).map(t => t.id);
+    setSelectedTopicIds(firstFour);
+  };
 
   const currentEx = exercises[currentIndex];
   const isChoice = currentEx?.type === 'multiple-choice' || currentEx?.type === 'choice';
@@ -952,115 +1132,256 @@ function ClassicQuizSection({ topicIds = [] }) {
     startedAtRef.current = Date.now();
   };
 
-  if (loading) {
-    return <div className="p-8 text-center text-gray-500">Загрузка упражнений...</div>;
-  }
-  if (!currentEx) {
-    return (
-      <div className="max-w-3xl mx-auto p-8 text-center rounded-3xl bg-white dark:bg-gray-800 border border-purple-100 dark:border-gray-700">
-        <p className="font-bold text-gray-800 dark:text-gray-100">{error || 'Пока нет материала для повторения.'}</p>
-        <p className="text-sm text-gray-500 mt-2">Сначала изучите первый набор слов и правило в рекомендованной теме.</p>
-      </div>
-    );
-  }
+  const filteredTopics = availableTopics.filter(t => 
+    !searchQuery.trim() || 
+    t.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="max-w-3xl mx-auto glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-purple-100 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 animate-fadeIn">
-      <div className="flex items-center justify-between border-b border-purple-100 dark:border-gray-700 pb-4 mb-6">
-        <div>
-          <span className="text-xs font-bold bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2.5 py-1 rounded-full">
-            {currentEx.level} • {currentEx.topic}
-          </span>
-          <h3 className="text-lg font-extrabold text-gray-900 dark:text-white mt-1">
-            {isChoice ? 'Тест с выбором ответа' : 'Ответ на испанском'}
-          </h3>
-        </div>
-        <div className="text-sm font-bold text-purple-600 dark:text-purple-400">
-          {currentIndex + 1} / {exercises.length}
-        </div>
-      </div>
-
-      <p className="text-lg font-bold text-gray-900 dark:text-white mb-6">
-        {currentEx.question}
-      </p>
-
-      {isChoice && (
-        <div className="space-y-3 mb-6">
-          {(currentEx.options || []).map((opt, idx) => {
-            let btnStyle = 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:border-purple-400';
-            if (isAnswered) {
-              if (opt.toLowerCase() === (result?.correctAnswer || '').toLowerCase()) {
-                btnStyle = 'bg-green-100 dark:bg-green-900/60 border-green-500 text-green-900 dark:text-green-200 font-bold';
-              } else if (opt === selectedOption) {
-                btnStyle = 'bg-red-100 dark:bg-red-900/60 border-red-500 text-red-900 dark:text-red-200';
-              } else {
-                btnStyle = 'opacity-40';
-              }
-            } else if (selectedOption === opt) {
-              btnStyle = 'bg-purple-100 border-purple-500 text-purple-900 font-bold';
-            }
-
-            return (
-              <button
-                key={idx}
-                onClick={() => !isAnswered && setSelectedOption(opt)}
-                disabled={isAnswered}
-                className={`w-full text-left p-4 rounded-xl border-2 font-medium text-sm transition-all ${btnStyle}`}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {!isChoice && (
-        <div className="mb-6">
-          <input
-            type="text"
-            value={userFillAnswer}
-            onChange={(e) => setUserFillAnswer(e.target.value)}
-            disabled={isAnswered}
-            placeholder="Введи ответ на испанском..."
-            className="w-full px-4 py-3 border-2 border-purple-200 dark:border-gray-600 dark:bg-gray-800 rounded-xl font-bold text-gray-900 dark:text-white focus:border-purple-500 focus:outline-none"
-            onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
-          />
-        </div>
-      )}
-
-      {error && (
-        <div className="p-3 rounded-xl bg-red-50 text-red-700 text-sm font-semibold mb-4">{error}</div>
-      )}
-
-      {isAnswered && (
-        <div className={`p-4 rounded-xl font-bold text-sm mb-6 ${result?.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+    <div className="space-y-6">
+      {/* 1. TOPIC SELECTOR & EXAM LAUNCHER BAR */}
+      <div className="max-w-4xl mx-auto p-6 rounded-3xl bg-gradient-to-br from-purple-50 via-white to-fuchsia-50 dark:from-gray-800 dark:via-gray-800 dark:to-purple-950/30 border-2 border-purple-200 dark:border-gray-700 shadow-xl space-y-4">
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            {result?.isCorrect ? '¡Excelente! Ответ правильный.' : `Неверно. Правильный ответ: ${result?.correctAnswer}`}
+            <div className="flex items-center gap-2">
+              <span className="p-2 rounded-xl bg-purple-600 text-white font-black text-sm">
+                🧠 ИИ-Тренажер & Экзамены
+              </span>
+              <span className="text-xs font-bold text-purple-700 dark:text-purple-300">
+                Выбрано тем: {selectedTopicIds.length}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Выберите любые темы курса для точечной тренировки или запуска официального экзамена от ИИ.
+            </p>
           </div>
-          {result?.explanation && <div className="mt-2 font-medium opacity-90">{result.explanation}</div>}
-          {result?.feedbackRu && <div className="mt-2 text-xs font-medium opacity-80">{result.feedbackRu}</div>}
-        </div>
-      )}
 
-      <div className="flex justify-end">
-        {!isAnswered ? (
           <button
-            onClick={handleCheck}
-            disabled={checking || !userAnswer}
-            className="px-6 py-2.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-bold rounded-xl shadow disabled:opacity-50"
+            onClick={() => setShowTopicSelector(!showTopicSelector)}
+            className="px-4 py-2 rounded-xl border border-purple-300 dark:border-gray-600 bg-white dark:bg-gray-750 text-purple-700 dark:text-purple-300 font-bold text-xs hover:bg-purple-50 transition-all flex items-center justify-center gap-1.5 shadow-sm"
           >
-            {checking ? 'Проверяем…' : t('btn_check', 'Проверить')}
+            <ListOrdered className="w-4 h-4" />
+            <span>{showTopicSelector ? 'Скрыть выбор тем ▲' : 'Выбрать темы (' + selectedTopicIds.length + ') ▼'}</span>
           </button>
-        ) : (
+        </div>
+
+        {/* Action Buttons Row */}
+        <div className="flex flex-wrap items-center gap-3 pt-1">
           <button
-            onClick={handleNext}
-            className="px-6 py-2.5 bg-green-600 text-white font-bold rounded-xl shadow flex items-center gap-1.5"
+            onClick={() => fetchExercises(selectedTopicIds, true)}
+            disabled={isGeneratingAi || loading}
+            className="flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            <span>{t('btn_next', 'Следующее')}</span>
-            <ArrowRight className="w-4 h-4" />
+            <Sparkles className="w-4 h-4 text-yellow-300" />
+            <span>{isGeneratingAi ? 'Генерируем вопросы ИИ...' : 'Сгенерировать 10 вопросов ИИ ⚡'}</span>
           </button>
+
+          <button
+            onClick={() => setExamModalConfig({
+              isOpen: true,
+              level: 'A1',
+              examType: 'custom',
+              topicIds: selectedTopicIds
+            })}
+            className="py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <Target className="w-4 h-4" />
+            <span>Свой экзамен (20 вопросов) 🎯</span>
+          </button>
+
+          <button
+            onClick={() => setExamModalConfig({
+              isOpen: true,
+              level: 'A1',
+              examType: 'level_mastery',
+              topicIds: []
+            })}
+            className="py-3 px-5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <Trophy className="w-4 h-4 text-yellow-200" />
+            <span>Итоговый экзамен A1 (30 вопросов) 🏆</span>
+          </button>
+        </div>
+
+        {/* EXPANDABLE TOPIC SELECTOR */}
+        {showTopicSelector && (
+          <div className="pt-3 border-t border-purple-100 dark:border-gray-700 space-y-3 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск по темам..."
+                className="w-full sm:w-64 px-3 py-1.5 rounded-xl border border-purple-200 dark:border-gray-600 dark:bg-gray-750 text-xs font-semibold text-gray-900 dark:text-white focus:outline-none"
+              />
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  onClick={handleSelectFirstFour}
+                  className="text-xs px-2.5 py-1 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 font-bold hover:bg-purple-200"
+                >
+                  Первые 4 темы
+                </button>
+                <button
+                  onClick={handleSelectAllA1}
+                  className="text-xs px-2.5 py-1 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 font-bold hover:bg-purple-200"
+                >
+                  Выбрать все ({availableTopics.length})
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-1">
+              {filteredTopics.map((t) => {
+                const isSelected = selectedTopicIds.includes(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => toggleTopic(t.id)}
+                    className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-2 text-xs font-semibold ${
+                      isSelected
+                        ? 'bg-purple-100 dark:bg-purple-900/60 border-purple-500 text-purple-900 dark:text-purple-200 shadow-sm font-bold'
+                        : 'bg-white dark:bg-gray-750 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-purple-300'
+                    }`}
+                  >
+                    <span className="truncate">{t.id}. {t.name}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-purple-600 flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
+
+      {/* 2. ACTIVE EXERCISE QUESTION CARD */}
+      {loading ? (
+        <div className="p-12 text-center text-purple-600 font-bold">
+          Загрузка упражнений...
+        </div>
+      ) : !currentEx ? (
+        <div className="max-w-3xl mx-auto p-8 text-center rounded-3xl bg-white dark:bg-gray-800 border border-purple-100 dark:border-gray-700 shadow-lg">
+          <p className="font-bold text-gray-800 dark:text-gray-100">{error || 'Пока нет сгенерированных упражнений.'}</p>
+          <button
+            onClick={() => fetchExercises(selectedTopicIds, true)}
+            className="mt-4 px-6 py-2.5 rounded-xl bg-purple-600 text-white font-bold text-xs"
+          >
+            Сгенерировать вопросы через ИИ ⚡
+          </button>
+        </div>
+      ) : (
+        <div className="max-w-3xl mx-auto glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-purple-100 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 animate-fadeIn">
+          <div className="flex items-center justify-between border-b border-purple-100 dark:border-gray-700 pb-4 mb-6">
+            <div>
+              <span className="text-xs font-bold bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2.5 py-1 rounded-full">
+                {currentEx.level} • {currentEx.topic}
+              </span>
+              <h3 className="text-lg font-extrabold text-gray-900 dark:text-white mt-1">
+                {isChoice ? 'Тест с выбором ответа' : 'Ответ на испанском'}
+              </h3>
+            </div>
+            <div className="text-sm font-bold text-purple-600 dark:text-purple-400">
+              {currentIndex + 1} / {exercises.length}
+            </div>
+          </div>
+
+          <p className="text-lg font-bold text-gray-900 dark:text-white mb-6">
+            {currentEx.question}
+          </p>
+
+          {isChoice && (
+            <div className="space-y-3 mb-6">
+              {(currentEx.options || []).map((opt, idx) => {
+                let btnStyle = 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:border-purple-400';
+                if (isAnswered) {
+                  if (opt.toLowerCase() === (result?.correctAnswer || currentEx.correctAnswer || '').toLowerCase()) {
+                    btnStyle = 'bg-green-100 dark:bg-green-900/60 border-green-500 text-green-900 dark:text-green-200 font-bold';
+                  } else if (opt === selectedOption) {
+                    btnStyle = 'bg-red-100 dark:bg-red-900/60 border-red-500 text-red-900 dark:text-red-200';
+                  } else {
+                    btnStyle = 'opacity-40';
+                  }
+                } else if (selectedOption === opt) {
+                  btnStyle = 'bg-purple-100 border-purple-500 text-purple-900 font-bold';
+                }
+
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => !isAnswered && setSelectedOption(opt)}
+                    disabled={isAnswered}
+                    className={`w-full text-left p-4 rounded-xl border-2 font-medium text-sm transition-all ${btnStyle}`}
+                  >
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {!isChoice && (
+            <div className="mb-6">
+              <input
+                type="text"
+                value={userFillAnswer}
+                onChange={(e) => setUserFillAnswer(e.target.value)}
+                disabled={isAnswered}
+                placeholder="Введи ответ на испанском..."
+                className="w-full px-4 py-3 border-2 border-purple-200 dark:border-gray-600 dark:bg-gray-800 rounded-xl font-bold text-gray-900 dark:text-white focus:border-purple-500 focus:outline-none"
+                onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
+              />
+            </div>
+          )}
+
+          {error && (
+            <div className="p-3 rounded-xl bg-red-50 text-red-700 text-sm font-semibold mb-4">{error}</div>
+          )}
+
+          {isAnswered && (
+            <div className={`p-4 rounded-xl font-bold text-sm mb-6 ${result?.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              <div>
+                {result?.isCorrect ? '¡Excelente! Ответ правильный.' : `Неверно. Правильный ответ: ${result?.correctAnswer || currentEx.correctAnswer}`}
+              </div>
+              {(result?.explanation || currentEx.explanation) && (
+                <div className="mt-2 font-medium opacity-90">{result?.explanation || currentEx.explanation}</div>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            {!isAnswered ? (
+              <button
+                onClick={handleCheck}
+                disabled={checking || !userAnswer}
+                className="px-6 py-2.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-bold rounded-xl shadow disabled:opacity-50"
+              >
+                {checking ? 'Проверяем…' : t('btn_check', 'Проверить')}
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                className="px-6 py-2.5 bg-green-600 text-white font-bold rounded-xl shadow flex items-center gap-1.5"
+              >
+                <span>{t('btn_next', 'Следующее')}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 3. EXAM MODAL LAUNCHER */}
+      <ExamModal
+        isOpen={examModalConfig.isOpen}
+        level={examModalConfig.level}
+        examType={examModalConfig.examType}
+        topicIds={examModalConfig.topicIds}
+        onClose={() => setExamModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onExamFinished={(res) => {
+          window.dispatchEvent(new CustomEvent('gamification_updated'));
+        }}
+      />
     </div>
   );
 }
@@ -1071,7 +1392,7 @@ function ClassicQuizSection({ topicIds = [] }) {
 export default function Exercises() {
   const { t } = useLanguage();
   const [searchParams] = useSearchParams();
-  const validTabs = ['word_tiles', 'speed_match', 'error_detective', 'verb_drills', 'classic_quiz'];
+  const validTabs = ['translation', 'classic_quiz', 'verb_drills', 'word_tiles', 'speed_match', 'error_detective'];
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(validTabs.includes(tabParam) ? tabParam : 'classic_quiz');
   const recommendedMode = searchParams.get('mode') === 'recommended';
@@ -1086,11 +1407,12 @@ export default function Exercises() {
   }, [tabParam]);
 
   const tabs = [
-    { id: 'word_tiles', label: t('tab_word_tiles', 'Свободный конструктор'), emoji: '🧩' },
-    { id: 'speed_match', label: t('tab_speed_match', 'Speed Match Blitz'), emoji: '⚡' },
-    { id: 'error_detective', label: t('tab_error_detective', 'Детектив ошибок'), emoji: '🔍' },
-    { id: 'verb_drills', label: t('tab_verb_drills', 'Спряжения глаголов'), emoji: '🎯' },
-    { id: 'classic_quiz', label: t('tab_classic_quiz', 'Тесты & Вставка слов'), emoji: '📝' },
+    { id: 'translation', label: 'Перевод предложений', emoji: '🌐' },
+    { id: 'classic_quiz', label: 'Тесты & Экзамены (ИИ)', emoji: '🧠' },
+    { id: 'verb_drills', label: 'Спряжения глаголов', emoji: '🎯' },
+    { id: 'word_tiles', label: 'Конструктор фраз', emoji: '🧩' },
+    { id: 'speed_match', label: 'Speed Match Blitz', emoji: '⚡' },
+    { id: 'error_detective', label: 'Детектив ошибок', emoji: '🔍' },
   ];
 
   return (
@@ -1135,6 +1457,7 @@ export default function Exercises() {
         })}
       </div>
 
+      {activeTab === 'translation' && <SentenceTranslationExerciseSection />}
       {activeTab === 'word_tiles' && <WordTilesSection />}
       {activeTab === 'speed_match' && <SpeedMatchSection />}
       {activeTab === 'error_detective' && <ErrorDetectiveSection />}

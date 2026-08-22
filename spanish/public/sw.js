@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'spanish-pwa-v2-exam-theory-20260820';
+const CACHE_VERSION = 'spanish-pwa-v4-illustrations-live-20260822';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -13,7 +13,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Always fetch network first so user always sees latest version
+  // Always fetch latest network assets
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );
