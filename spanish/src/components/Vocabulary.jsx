@@ -663,6 +663,7 @@ function Vocabulary() {
   const [selectedGroupFilterIds, setSelectedGroupFilterIds] = useState([]);
   const [sortBy, setSortBy] = useState('newest');
   const [selectedStudyGroupIds, setSelectedStudyGroupIds] = useState([]);
+  const [isGroupsStudyExpanded, setIsGroupsStudyExpanded] = useState(false);
   const [showGroupManager, setShowGroupManager] = useState(false);
   const [showDecksModal, setShowDecksModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
@@ -1808,113 +1809,137 @@ function Vocabulary() {
 
           {groups.length > 0 && (
             <div className="pt-4 border-t border-indigo-200/80 mt-4 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-indigo-950 flex items-center gap-1.5">
+              {/* Collapsible Accordion Header */}
+              <div
+                onClick={() => setIsGroupsStudyExpanded(prev => !prev)}
+                className="flex flex-wrap items-center justify-between gap-2 cursor-pointer select-none p-2 rounded-xl hover:bg-indigo-100/70 transition-all border border-transparent hover:border-indigo-200"
+              >
+                <div className="flex items-center gap-2">
                   <Folder className="h-4 w-4 text-indigo-600" />
-                  Study by Group (Select one or multiple groups)
-                </p>
-                <div className="flex items-center gap-2 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStudyGroupIds(groups.map((g) => g.id))}
-                    className="text-indigo-700 hover:text-indigo-900 font-semibold underline"
-                  >
-                    Select all
-                  </button>
-                  <span className="text-indigo-300">|</span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedStudyGroupIds([])}
-                    className="text-indigo-700 hover:text-indigo-900 font-semibold underline"
-                  >
-                    Clear selection
-                  </button>
+                  <p className="text-xs font-bold uppercase tracking-wider text-indigo-950">
+                    Study by Group (Select one or multiple groups)
+                  </p>
+                  <span className="text-[11px] font-bold text-indigo-700 bg-indigo-200/80 px-2 py-0.5 rounded-full">
+                    {selectedStudyGroupIds.length > 0
+                      ? `✓ ${selectedStudyGroupIds.length} selected`
+                      : `${groups.length} groups`}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {isGroupsStudyExpanded && (
+                    <div className="flex items-center gap-2 text-xs" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStudyGroupIds(groups.map((g) => g.id))}
+                        className="text-indigo-700 hover:text-indigo-900 font-bold underline"
+                      >
+                        Select all
+                      </button>
+                      <span className="text-indigo-300">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStudyGroupIds([])}
+                        className="text-indigo-700 hover:text-indigo-900 font-bold underline"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
+                  <div className="p-1 rounded-lg bg-white/70 border border-indigo-200 text-indigo-700 hover:bg-white transition-colors">
+                    {isGroupsStudyExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </div>
                 </div>
               </div>
 
-              {/* Group selection chips */}
-              <div className="flex flex-wrap gap-2">
-                {groups.map((group) => {
-                  const isSelected = selectedStudyGroupIds.includes(group.id);
-                  const isCurrentMode = reviewSession.mode === `group_once:${group.id}` ||
-                    (typeof reviewSession.mode === 'string' && reviewSession.mode.startsWith('groups_once:') &&
-                      reviewSession.mode.split(':')[1].split(',').map(Number).includes(group.id));
-                  return (
-                    <button
-                      key={group.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedStudyGroupIds((prev) =>
-                          prev.includes(group.id) ? prev.filter((id) => id !== group.id) : [...prev, group.id]
-                        );
-                      }}
-                      className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border-2 transition-all shadow-sm ${
-                        isSelected
-                          ? 'border-indigo-600 bg-indigo-600 text-white ring-2 ring-indigo-300'
-                          : isCurrentMode
-                          ? 'border-purple-400 bg-purple-100 text-purple-950 ring-1 ring-purple-300'
-                          : 'border-indigo-200 bg-white text-indigo-900 hover:border-indigo-400 hover:bg-indigo-50/60'
-                      }`}
-                      title={isCurrentMode ? 'Currently active in-progress round' : isSelected ? 'Selected for next round' : 'Click to select'}
-                    >
-                      <span className={`w-4 h-4 rounded flex items-center justify-center text-[11px] font-bold border ${
-                        isSelected ? 'bg-white text-indigo-700 border-white' : isCurrentMode ? 'bg-purple-200 border-purple-400 text-purple-900' : 'border-indigo-300 text-transparent'
-                      }`}>
-                        {isSelected ? '✓' : isCurrentMode ? '⏳' : ''}
-                      </span>
-                      <span>{group.name}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        isSelected
-                          ? 'bg-indigo-800 text-white'
-                          : isCurrentMode
-                          ? 'bg-purple-200 text-purple-900'
-                          : 'bg-indigo-100 text-indigo-900'
-                      }`}>
-                        {isCurrentMode && !isSelected ? `${group.word_count || 0} (in round)` : (group.word_count || 0)}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              {/* Collapsible Body */}
+              {isGroupsStudyExpanded && (
+                <div className="space-y-3 pt-1 animate-fadeIn">
+                  {/* Group selection chips */}
+                  <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto p-1">
+                    {groups.map((group) => {
+                      const isSelected = selectedStudyGroupIds.includes(group.id);
+                      const isCurrentMode = reviewSession.mode === `group_once:${group.id}` ||
+                        (typeof reviewSession.mode === 'string' && reviewSession.mode.startsWith('groups_once:') &&
+                          reviewSession.mode.split(':')[1].split(',').map(Number).includes(group.id));
+                      return (
+                        <button
+                          key={group.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedStudyGroupIds((prev) =>
+                              prev.includes(group.id) ? prev.filter((id) => id !== group.id) : [...prev, group.id]
+                            );
+                          }}
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all shadow-sm ${
+                            isSelected
+                              ? 'border-indigo-600 bg-indigo-600 text-white ring-2 ring-indigo-300'
+                              : isCurrentMode
+                              ? 'border-purple-400 bg-purple-100 text-purple-950 ring-1 ring-purple-300'
+                              : 'border-indigo-200 bg-white text-indigo-900 hover:border-indigo-400 hover:bg-indigo-50/60'
+                          }`}
+                          title={isCurrentMode ? 'Currently active in-progress round' : isSelected ? 'Selected for next round' : 'Click to select'}
+                        >
+                          <span className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[10px] font-bold border ${
+                            isSelected ? 'bg-white text-indigo-700 border-white' : isCurrentMode ? 'bg-purple-200 border-purple-400 text-purple-900' : 'border-indigo-300 text-transparent'
+                          }`}>
+                            {isSelected ? '✓' : isCurrentMode ? '⏳' : ''}
+                          </span>
+                          <span>{group.name}</span>
+                          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            isSelected
+                              ? 'bg-indigo-800 text-white'
+                              : isCurrentMode
+                              ? 'bg-purple-200 text-purple-900'
+                              : 'bg-indigo-100 text-indigo-900'
+                          }`}>
+                            {isCurrentMode && !isSelected ? `${group.word_count || 0} (in round)` : (group.word_count || 0)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
 
-              {/* Action button to launch study */}
-              <div className="pt-1">
-                {selectedStudyGroupIds.length > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (selectedStudyGroupIds.length === 1) {
-                        startReviewSession(`group_once:${selectedStudyGroupIds[0]}`);
-                      } else {
-                        startReviewSession(`groups_once:${selectedStudyGroupIds.join(',')}`);
-                      }
-                    }}
-                    className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-md hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Play className="h-4 w-4 fill-current" />
-                    <span>
-                      {selectedStudyGroupIds.length === 1
-                        ? `Study 1 Group (${groups.find((g) => g.id === selectedStudyGroupIds[0])?.name || ''}) — ${groups.find((g) => g.id === selectedStudyGroupIds[0])?.word_count || 0} words`
-                        : `Study ${selectedStudyGroupIds.length} Selected Groups Combined (${(() => {
-                            const wordIds = new Set();
-                            for (const gid of selectedStudyGroupIds) {
-                              const grp = groups.find((g) => g.id === gid);
-                              (grp?.word_ids || []).forEach((wid) => wordIds.add(wid));
-                              entries.forEach((e) => {
-                                const egids = (e.group_ids || []).concat((e.groups || []).map((g) => g.id));
-                                if (egids.includes(gid)) wordIds.add(e.id);
-                              });
-                            }
-                            return wordIds.size;
-                          })()} words)`}
-                    </span>
-                  </button>
-                ) : (
-                  <p className="text-xs text-indigo-700 italic">
-                    💡 Click one or more group tags above to select them, then start your study round.
-                  </p>
-                )}
-              </div>
+                  {/* Action button to launch study */}
+                  <div className="pt-2">
+                    {selectedStudyGroupIds.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (selectedStudyGroupIds.length === 1) {
+                            startReviewSession(`group_once:${selectedStudyGroupIds[0]}`);
+                          } else {
+                            startReviewSession(`groups_once:${selectedStudyGroupIds.join(',')}`);
+                          }
+                        }}
+                        className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-md hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2 active:scale-95"
+                      >
+                        <Play className="h-4 w-4 fill-current" />
+                        <span>
+                          {selectedStudyGroupIds.length === 1
+                            ? `Study 1 Group (${groups.find((g) => g.id === selectedStudyGroupIds[0])?.name || ''}) — ${groups.find((g) => g.id === selectedStudyGroupIds[0])?.word_count || 0} words`
+                            : `Study ${selectedStudyGroupIds.length} Selected Groups Combined (${(() => {
+                                const wordIds = new Set();
+                                for (const gid of selectedStudyGroupIds) {
+                                  const grp = groups.find((g) => g.id === gid);
+                                  (grp?.word_ids || []).forEach((wid) => wordIds.add(wid));
+                                  entries.forEach((e) => {
+                                    const egids = (e.group_ids || []).concat((e.groups || []).map((g) => g.id));
+                                    if (egids.includes(gid)) wordIds.add(e.id);
+                                  });
+                                }
+                                return wordIds.size;
+                              })()} words)`}
+                        </span>
+                      </button>
+                    ) : (
+                      <p className="text-xs text-indigo-700 font-medium">
+                        💡 Click on any group chip above to select it, or select multiple groups to study them together in one practice round.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

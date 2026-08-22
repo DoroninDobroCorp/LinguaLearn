@@ -123,9 +123,17 @@ const VALID_CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const DEFAULT_CEFR_LEVEL = 'A1';
 
 // Инициализация Gemini
-const geminiApiKey = String(process.env.GEMINI_API_KEY || '').trim();
-const geminiEnabled = geminiApiKey.length > 0;
-const genAI = geminiEnabled ? new GoogleGenerativeAI(geminiApiKey) : null;
+function parseGeminiApiKeys() {
+  const raw = String(process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '').trim();
+  if (!raw) return [];
+  return raw.split(/[,\s]+/).map((k) => k.trim()).filter(Boolean);
+}
+
+const geminiApiKeys = parseGeminiApiKeys();
+const geminiApiKey = geminiApiKeys[0] || '';
+const geminiEnabled = geminiApiKeys.length > 0;
+const genAIPool = geminiApiKeys.map((k) => new GoogleGenerativeAI(k));
+const genAI = genAIPool[0] || null;
 
 if (!geminiEnabled) {
   console.warn(

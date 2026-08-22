@@ -12,10 +12,7 @@ final class SparkleUpdater: NSObject, SPUUpdaterDelegate {
 
     func start() {
         guard updaterController == nil else { return }
-        let controller = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
-        controller.updater.automaticallyDownloadsUpdates = true
-        controller.updater.automaticallyChecksForUpdates = true
-        updaterController = controller
+        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: self, userDriverDelegate: nil)
     }
 
     func checkForUpdates() {

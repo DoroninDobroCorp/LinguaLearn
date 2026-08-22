@@ -55,9 +55,17 @@ const hpmorPodcastPostHtmlCache = new Map();
 let hpmorPodcastHtmlCache = null;
 
 // Инициализация Gemini
-const geminiApiKey = String(process.env.GEMINI_API_KEY || '').trim();
-const geminiEnabled = geminiApiKey.length > 0;
-const genAI = geminiEnabled ? new GoogleGenerativeAI(geminiApiKey) : null;
+function parseGeminiApiKeys() {
+  const raw = String(process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '').trim();
+  if (!raw) return [];
+  return raw.split(/[,\s]+/).map((k) => k.trim()).filter(Boolean);
+}
+
+const geminiApiKeys = parseGeminiApiKeys();
+const geminiApiKey = geminiApiKeys[0] || '';
+const geminiEnabled = geminiApiKeys.length > 0;
+const genAIPool = geminiApiKeys.map((k) => new GoogleGenerativeAI(k));
+const genAI = genAIPool[0] || null;
 const geminiChatModel = String(
   process.env.GEMINI_CHAT_MODEL || 'gemini-3.5-flash-lite'
 ).trim();
@@ -296,7 +304,7 @@ seedCurriculum();
 const chatIdempotencyStore = createChatIdempotencyStore(db);
 const writingAnalysisService = createWritingAnalysisService({
   db,
-  analyzer: createGeminiWritingAnalyzer({ genAI }),
+  analyzer: createGeminiWritingAnalyzer({ genAI, genAIs: genAIPool }),
 });
 const deviceTokenService = createDeviceTokenService(db);
 const deviceAuth = createDeviceAuthMiddleware(db);

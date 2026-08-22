@@ -1,13 +1,7 @@
 import Foundation
 
 public struct CaptureConfiguration: Codable, Equatable, Sendable {
-    public static let canonicalProductionEndpoint = "https://145.239.82.124.sslip.io/english"
-    public static let canonicalProductionAPIURL = "https://145.239.82.124.sslip.io/english/api/writing/analyze"
-    public static let defaultVibeProxyAPIURL = "http://127.0.0.1:8318/v1/chat/completions"
-    public static let defaultVibeProxyAppURL = "http://127.0.0.1:8318"
-
     public var apiURL: String
-    public var model: String
     public var bearerToken: String
     public var appURL: String
     public var ingressPort: UInt16
@@ -23,10 +17,9 @@ public struct CaptureConfiguration: Codable, Equatable, Sendable {
     public var maxQueueDepth: Int
 
     public init(
-        apiURL: String = CaptureConfiguration.defaultVibeProxyAPIURL,
-        model: String = "gemini-3.7-flash-high",
-        bearerToken: String = "",
-        appURL: String = CaptureConfiguration.defaultVibeProxyAppURL,
+        apiURL: String,
+        bearerToken: String,
+        appURL: String,
         ingressPort: UInt16 = 43_119,
         ingressToken: String,
         captureEnabled: Bool = true,
@@ -40,7 +33,6 @@ public struct CaptureConfiguration: Codable, Equatable, Sendable {
         maxQueueDepth: Int = 1_000
     ) {
         self.apiURL = apiURL
-        self.model = model
         self.bearerToken = bearerToken
         self.appURL = appURL
         self.ingressPort = ingressPort
@@ -54,32 +46,6 @@ public struct CaptureConfiguration: Codable, Equatable, Sendable {
         self.composerClearTimeoutMilliseconds = max(100, composerClearTimeoutMilliseconds)
         self.showOnlyWhenChanged = showOnlyWhenChanged
         self.maxQueueDepth = max(1, maxQueueDepth)
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case apiURL, model, bearerToken, appURL, ingressPort, ingressToken
-        case captureEnabled, allowAllNonDenied, allowedBundleIdentifiers, deniedBundleIdentifiers
-        case minimumEnglishWords, dedupeWindowSeconds, composerClearTimeoutMilliseconds
-        case showOnlyWhenChanged, maxQueueDepth
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        apiURL = try container.decodeIfPresent(String.self, forKey: .apiURL) ?? CaptureConfiguration.defaultVibeProxyAPIURL
-        model = try container.decodeIfPresent(String.self, forKey: .model) ?? "gemini-3.7-flash-high"
-        bearerToken = try container.decodeIfPresent(String.self, forKey: .bearerToken) ?? ""
-        appURL = try container.decodeIfPresent(String.self, forKey: .appURL) ?? CaptureConfiguration.defaultVibeProxyAppURL
-        ingressPort = try container.decodeIfPresent(UInt16.self, forKey: .ingressPort) ?? 43_119
-        ingressToken = try container.decodeIfPresent(String.self, forKey: .ingressToken) ?? ""
-        captureEnabled = try container.decodeIfPresent(Bool.self, forKey: .captureEnabled) ?? true
-        allowAllNonDenied = try container.decodeIfPresent(Bool.self, forKey: .allowAllNonDenied) ?? true
-        allowedBundleIdentifiers = try container.decodeIfPresent([String].self, forKey: .allowedBundleIdentifiers) ?? []
-        deniedBundleIdentifiers = try container.decodeIfPresent([String].self, forKey: .deniedBundleIdentifiers) ?? CaptureConfiguration.defaultDeniedBundleIdentifiers
-        minimumEnglishWords = max(2, try container.decodeIfPresent(Int.self, forKey: .minimumEnglishWords) ?? 2)
-        dedupeWindowSeconds = max(1, try container.decodeIfPresent(TimeInterval.self, forKey: .dedupeWindowSeconds) ?? 2)
-        composerClearTimeoutMilliseconds = max(100, try container.decodeIfPresent(Int.self, forKey: .composerClearTimeoutMilliseconds) ?? 900)
-        showOnlyWhenChanged = try container.decodeIfPresent(Bool.self, forKey: .showOnlyWhenChanged) ?? false
-        maxQueueDepth = max(1, try container.decodeIfPresent(Int.self, forKey: .maxQueueDepth) ?? 1_000)
     }
 
     public static let defaultDeniedBundleIdentifiers = [
@@ -99,18 +65,7 @@ public struct CaptureConfiguration: Codable, Equatable, Sendable {
 
     public static var template: CaptureConfiguration {
         CaptureConfiguration(
-            apiURL: defaultVibeProxyAPIURL,
-            model: "gemini-3.7-flash-high",
-            bearerToken: "",
-            appURL: defaultVibeProxyAppURL,
-            ingressToken: UUID().uuidString.replacingOccurrences(of: "-", with: "")
-        )
-    }
-
-    public static var canonicalProductionTemplate: CaptureConfiguration {
-        CaptureConfiguration(
             apiURL: "https://145.239.82.124.sslip.io/english/api/writing/analyze",
-            model: "gemini-3.5-flash-lite",
             bearerToken: "CHANGE_ME",
             appURL: "https://145.239.82.124.sslip.io/english",
             ingressToken: UUID().uuidString.replacingOccurrences(of: "-", with: "")
@@ -135,15 +90,11 @@ public enum ConfigurationError: LocalizedError {
 }
 
 public extension CaptureConfiguration {
-    func isLoopback(_ url: URL) -> Bool {
-        let host = url.host?.lowercased() ?? ""
-        return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "[::1]"
-    }
-
-    func isSecureOrLoopback(_ url: URL) -> Bool {
+    private func isSecureOrLoopback(_ url: URL) -> Bool {
         if url.scheme?.lowercased() == "https" { return true }
         guard url.scheme?.lowercased() == "http" else { return false }
-        return isLoopback(url)
+        let host = url.host?.lowercased() ?? ""
+        return host == "localhost" || host == "127.0.0.1" || host == "::1"
     }
 
     func validatedAPIURL() throws -> URL {
@@ -151,9 +102,6 @@ public extension CaptureConfiguration {
               url.host != nil,
               isSecureOrLoopback(url) else {
             throw ConfigurationError.invalidAPIURL
-        }
-        if isLoopback(url) {
-            return url
         }
         let token = bearerToken.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !token.isEmpty, token != "CHANGE_ME" else {

@@ -27,9 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configureStatusItem() {
         if let button = statusItem.button {
-            let image = NSImage(systemSymbolName: "character.bubble.fill", accessibilityDescription: "LinguaLearn Capture")
-            image?.isTemplate = true
-            button.image = image
+            button.image = NSImage(systemSymbolName: "text.bubble.fill", accessibilityDescription: "LinguaLearn Capture")
             if button.image == nil { button.title = "LL" }
             button.toolTip = "LinguaLearn Capture"
         }
@@ -227,7 +225,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             sentAt: preview.capturedAt
         )
         popupController.showAnalyzing(event: event)
-        setStatus("Checking draft with AI…")
+        setStatus("Checking draft with Gemini…")
 
         AnalysisAPIClient(configuration: configuration).analyze(event: event, previewOnly: true) { [weak self, weak monitor] result in
             DispatchQueue.main.async {
@@ -375,11 +373,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 switch result {
                 case .success(let health):
-                    let commit = health.gitCommit ?? "vibeproxy"
+                    let commit = health.gitCommit ?? "unknown"
                     self?.lastBackendCommit = commit
                     self?.showAlert(
                         title: "Connection Test Succeeded ✓",
-                        message: "Service status: \(health.status ?? "healthy")\nProvider / Version: \(health.appVersion ?? "vibeproxy")"
+                        message: "Backend status: \(health.status ?? "healthy")\nBackend commit: \(commit)\nApp version: \(health.appVersion ?? "1.0.0")"
                     )
                 case .failure(let error):
                     self?.lastBackendCommit = "Error"
@@ -428,8 +426,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if response == .alertFirstButtonReturn {
             let newToken = inputTextField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !newToken.isEmpty else { return }
-
-            _ = KeychainTokenStorage.saveToken(newToken)
 
             if var config = configuration {
                 config.bearerToken = newToken

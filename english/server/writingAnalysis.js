@@ -1292,14 +1292,20 @@ Schema constraints:
 
 export function createGeminiWritingAnalyzer({
   genAI,
+  genAIs,
   modelName = String(
     process.env.GEMINI_WRITING_MODEL || 'gemini-3.5-flash-lite'
   ).trim(),
   promptVersion = 'v1',
   circuitBreaker = null,
 }) {
+  const pool = Array.isArray(genAIs) && genAIs.length > 0
+    ? genAIs
+    : (Array.isArray(genAI) ? genAI : (genAI ? [genAI] : []));
+  let poolIndex = 0;
+
   return async ({ text, canonicalTopics }) => {
-    if (!genAI) {
+    if (pool.length === 0) {
       throw httpError(
         503,
         'Writing analysis is unavailable because GEMINI_API_KEY is not configured.',
@@ -1318,44 +1324,56 @@ export function createGeminiWritingAnalyzer({
       throw err;
     }
 
-    try {
-      const systemInstruction = buildWritingSystemInstruction({ canonicalTopics, promptVersion });
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: ANALYSIS_SCHEMA,
-        },
-        systemInstruction,
-      });
+    const systemInstruction = buildWritingSystemInstruction({ canonicalTopics, promptVersion });
+    let lastError = null;
 
-      const result = await model.generateContent(`Analyze this message:\n<message>\n${text}\n</message>`);
-      const responseText = result.response.text();
-      let parsed;
+    for (let attempt = 0; attempt < pool.length; attempt++) {
+      const currentGenAI = pool[(poolIndex + attempt) % pool.length];
       try {
-        parsed = JSON.parse(responseText);
-      } catch {
-        throw httpError(502, 'Gemini returned invalid JSON for writing analysis.', 'INVALID_ANALYZER_JSON');
+        const model = currentGenAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            responseSchema: ANALYSIS_SCHEMA,
+          },
+          systemInstruction,
+        });
+
+        const result = await model.generateContent(`Analyze this message:\n<message>\n${text}\n</message>`);
+        const responseText = result.response.text();
+        let parsed;
+        try {
+          parsed = JSON.parse(responseText);
+        } catch {
+          throw httpError(502, 'Gemini returned invalid JSON for writing analysis.', 'INVALID_ANALYZER_JSON');
+        }
+        if (circuitBreaker) circuitBreaker.recordSuccess();
+        poolIndex = (poolIndex + attempt + 1) % pool.length;
+        return parsed;
+      } catch (error) {
+        lastError = error;
+        if (isRateLimitError(error) && attempt < pool.length - 1) {
+          console.warn(`[WritingAnalyzer] Gemini key ${attempt + 1}/${pool.length} hit rate limit, trying next key in pool...`);
+          continue;
+        }
+        if (isRateLimitError(error)) {
+          if (circuitBreaker) circuitBreaker.recordFailure(true);
+          const retryDelayMs = parseRetryDelayMs(error);
+          const rateLimitErr = httpError(
+            429,
+            `Gemini API rate limit exceeded: ${error.message}`,
+            'RATE_LIMIT_EXCEEDED',
+          );
+          rateLimitErr.retryAfterSeconds = Math.max(1, Math.ceil(retryDelayMs / 1000));
+          throw rateLimitErr;
+        }
+        if (circuitBreaker && (error.statusCode >= 500 || error.status >= 500)) {
+          circuitBreaker.recordFailure(true);
+        }
+        throw error;
       }
-      if (circuitBreaker) circuitBreaker.recordSuccess();
-      return parsed;
-    } catch (error) {
-      if (isRateLimitError(error)) {
-        if (circuitBreaker) circuitBreaker.recordFailure(true);
-        const retryDelayMs = parseRetryDelayMs(error);
-        const rateLimitErr = httpError(
-          429,
-          `Gemini API rate limit exceeded: ${error.message}`,
-          'RATE_LIMIT_EXCEEDED',
-        );
-        rateLimitErr.retryAfterSeconds = Math.max(1, Math.ceil(retryDelayMs / 1000));
-        throw rateLimitErr;
-      }
-      if (circuitBreaker && (error.statusCode >= 500 || error.status >= 500)) {
-        circuitBreaker.recordFailure(true);
-      }
-      throw error;
     }
+    throw lastError;
   };
 }
 
