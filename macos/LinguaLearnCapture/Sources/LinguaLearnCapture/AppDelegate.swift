@@ -27,7 +27,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configureStatusItem() {
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "text.bubble.fill", accessibilityDescription: "LinguaLearn Capture")
+            let image = NSImage(systemSymbolName: "character.bubble.fill", accessibilityDescription: "LinguaLearn Capture")
+            image?.isTemplate = true
+            button.image = image
             if button.image == nil { button.title = "LL" }
             button.toolTip = "LinguaLearn Capture"
         }

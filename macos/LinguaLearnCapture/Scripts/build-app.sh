@@ -21,6 +21,9 @@ if [[ -d "${binary_dir}/Sparkle.framework" ]]; then
     /usr/bin/ditto "${binary_dir}/Sparkle.framework" "${temporary_app}/Contents/MacOS/Sparkle.framework"
 fi
 /bin/cp "${package_root}/Resources/Info.plist" "${temporary_app}/Contents/Info.plist"
+if [[ -f "${package_root}/Resources/AppIcon.icns" ]]; then
+    /bin/cp "${package_root}/Resources/AppIcon.icns" "${temporary_app}/Contents/Resources/AppIcon.icns"
+fi
 /bin/chmod 0755 "${temporary_app}/Contents/MacOS/LinguaLearnCapture"
 
 codesign_identity="${LINGUALEARN_CODESIGN_IDENTITY:-}"
