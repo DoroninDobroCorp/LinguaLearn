@@ -1,19 +1,13 @@
 {
-  "apiURL": "https://145.239.82.124.sslip.io/english/api/writing/analyze",
-  "bearerToken": "CHANGE_ME",
-  "appURL": "https://145.239.82.124.sslip.io/english",
+  "apiURL": "http://127.0.0.1:8318/v1/chat/completions",
+  "model": "gemini-3.7-flash-high",
+  "bearerToken": "",
+  "appURL": "http://127.0.0.1:8318",
   "ingressPort": 43119,
-  "ingressToken": "GENERATED_BY_INSTALLER",
+  "ingressToken": "CHANGE_TO_32_HEX_CHARS",
   "captureEnabled": true,
   "allowAllNonDenied": true,
-  "allowedBundleIdentifiers": [
-    "org.telegram.desktop",
-    "com.tdesktop.Telegram",
-    "net.whatsapp.WhatsApp",
-    "com.openai.codex",
-    "com.google.Chrome",
-    "com.apple.Safari"
-  ],
+  "allowedBundleIdentifiers": [],
   "deniedBundleIdentifiers": [
     "com.apple.Terminal",
     "com.googlecode.iterm2",
@@ -22,6 +16,7 @@
     "com.apple.dt.Xcode*",
     "com.jetbrains.*",
     "com.sublimetext.*",
+    "com.github.atom",
     "com.agilebits.*",
     "com.1password.*",
     "com.bitwarden.*",

@@ -227,7 +227,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             sentAt: preview.capturedAt
         )
         popupController.showAnalyzing(event: event)
-        setStatus("Checking draft with Gemini…")
+        setStatus("Checking draft with AI…")
 
         AnalysisAPIClient(configuration: configuration).analyze(event: event, previewOnly: true) { [weak self, weak monitor] result in
             DispatchQueue.main.async {
@@ -375,11 +375,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 switch result {
                 case .success(let health):
-                    let commit = health.gitCommit ?? "unknown"
+                    let commit = health.gitCommit ?? "vibeproxy"
                     self?.lastBackendCommit = commit
                     self?.showAlert(
                         title: "Connection Test Succeeded ✓",
-                        message: "Backend status: \(health.status ?? "healthy")\nBackend commit: \(commit)\nApp version: \(health.appVersion ?? "1.0.0")"
+                        message: "Service status: \(health.status ?? "healthy")\nProvider / Version: \(health.appVersion ?? "vibeproxy")"
                     )
                 case .failure(let error):
                     self?.lastBackendCommit = "Error"
@@ -428,6 +428,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if response == .alertFirstButtonReturn {
             let newToken = inputTextField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !newToken.isEmpty else { return }
+
+            _ = KeychainTokenStorage.saveToken(newToken)
 
             if var config = configuration {
                 config.bearerToken = newToken

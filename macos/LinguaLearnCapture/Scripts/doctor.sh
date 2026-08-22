@@ -191,13 +191,23 @@ fi
 
 if [[ -f "${configuration_file}" ]]; then
     app_url="$(/usr/bin/jq -r '.appURL // empty' "${configuration_file}")"
+    api_url="$(/usr/bin/jq -r '.apiURL // empty' "${configuration_file}")"
     if [[ -n "${app_url}" ]]; then
-        public_health_url="${app_url%/}/api/health"
-        public_health="$(/usr/bin/curl --silent --max-time 5 "${public_health_url}" 2>/dev/null || true)"
-        if /bin/echo "${public_health}" | /usr/bin/jq -e '.status == "healthy"' >/dev/null 2>&1; then
-            pass_check "Production English API healthy: ${public_health_url}"
+        if [[ "${app_url}" =~ 127\.0\.0\.1|localhost ]] || [[ "${api_url}" =~ 127\.0\.0\.1|localhost ]]; then
+            vibe_health="$(/usr/bin/curl --silent --max-time 5 "${app_url%/}/v1/models" 2>/dev/null || true)"
+            if /bin/echo "${vibe_health}" | /usr/bin/jq -e '.data // .object' >/dev/null 2>&1; then
+                pass_check "VibeProxy endpoint healthy: ${app_url%/}/v1/models"
+            else
+                fail_check "VibeProxy endpoint недоступен: ${app_url%/}/v1/models"
+            fi
         else
-            fail_check "Production English API health не подтверждён: ${public_health_url}"
+            public_health_url="${app_url%/}/api/health"
+            public_health="$(/usr/bin/curl --silent --max-time 5 "${public_health_url}" 2>/dev/null || true)"
+            if /bin/echo "${public_health}" | /usr/bin/jq -e '.status == "healthy"' >/dev/null 2>&1; then
+                pass_check "Production English API healthy: ${public_health_url}"
+            else
+                fail_check "Production English API health не подтверждён: ${public_health_url}"
+            fi
         fi
     fi
 fi
