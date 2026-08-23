@@ -190,32 +190,38 @@ export async function generateExamQuestions({ db, userId, level = 'A1', examType
 
   const topicsListStr = selectedTopics.map((t, idx) => `${idx + 1}. [ID: ${t.id}] ${t.name} (${t.category}, Level: ${t.level})`).join('\n');
 
-  const prompt = `You are a certified Cambridge / CEFR English language examiner.
-Generate a rigorous, engaging, and pedagogically balanced English EXAM of exactly ${targetQuestionCount} questions for Level ${level}.
-Exam Type: ${examType === 'level_mastery' ? 'FINAL LEVEL MASTERY EXAM (30 questions)' : 'INTERMEDIATE MILESTONE EXAM (20 questions)'}.
+  let questions = [];
+  const proxyBase = process.env.GEMINI_API_BASE_URL || 'http://127.0.0.1:58433';
+  // NOTE: Model 2.5 is strictly for audio/speech generation. In text generation, the minimum model is 3.5 (gemini-3.7-flash, gemini-3.5-flash).
+  const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash'];
 
-TOPICS COVERED IN THIS EXAM:
+  async function generateAIBatch(batchTopics, count) {
+    const topicsListStr = batchTopics.map((t, idx) => `${idx + 1}. [ID: ${t.id}] ${t.name} (${t.category}, Level: ${t.level})`).join('\n');
+    const prompt = `You are a certified Cambridge / CEFR English examiner.
+Generate exactly ${count} English exam questions for Level ${level}.
+Exam Type: ${examType}.
+
+TOPICS COVERED IN THIS SECTION:
 ${topicsListStr}
 
 STUDENT VOCABULARY TO EMBED IN QUESTIONS:
 ${vocabListStr}
 
 CRITICAL EXAM SPECIFICATIONS:
-1. Total questions MUST be exactly ${targetQuestionCount}.
-2. Distribute questions evenly across the ${selectedTopics.length} topics.
-3. 70% multiple-choice (4 options) and 30% fill-in-the-blank questions.
-4. "explanation" MUST be in Russian explaining the grammar rule.
+1. Total questions MUST be exactly ${count}.
+2. Distribute questions evenly across the listed topics.
+3. For type: "multiple-choice", "options" MUST be an array of EXACTLY 4 distinct English choices (1 correct + 3 wrong options).
+4. For type: "fill-blank", omit the "options" field.
+5. "correctAnswer" MUST be the exact correct English form.
+6. "explanation" MUST be a clear, concise grammatical explanation in Russian (1-2 sentences).
 
-OUTPUT SCHEMA (Respond ONLY with valid JSON):
+OUTPUT SCHEMA (JSON only):
 {
-  "examType": "${examType}",
-  "level": "${level}",
-  "totalQuestions": ${targetQuestionCount},
   "questions": [
     {
       "id": 1,
-      "topicId": ${selectedTopics[0].id},
-      "topicName": "${selectedTopics[0].name}",
+      "topicId": ${batchTopics[0]?.id || 1},
+      "topicName": "${batchTopics[0]?.name || 'Grammar'}",
       "type": "multiple-choice",
       "question": "Sentence or prompt in English with Russian context",
       "options": ["Option A", "Option B", "Option C", "Option D"],
@@ -226,95 +232,84 @@ OUTPUT SCHEMA (Respond ONLY with valid JSON):
   ]
 }`;
 
-  let questions = [];
-  const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-2.5-flash'];
-
-  if (apiKey) {
     for (const m of aiModels) {
       try {
         const aiRes = await Promise.race([
-          fetch(`http://127.0.0.1:58433/v1beta/models/${m}:generateContent?key=${apiKey}`, {
+          fetch(`${proxyBase}/v1beta/models/${m}:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { responseMimeType: 'application/json', temperature: 0.6 }
+              generationConfig: { responseMimeType: 'application/json', temperature: 0.4 }
             })
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 60000))
         ]);
 
         if (aiRes.ok) {
           const aiData = await aiRes.json();
           const rawJson = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
           const parsed = JSON.parse(rawJson);
-          if (Array.isArray(parsed.questions) && parsed.questions.length >= 10) {
-            questions = parsed.questions.map((q, idx) => ({
-              ...q,
-              id: idx + 1,
-              level
-            }));
-            break;
+          if (Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+            return parsed.questions;
           }
+        } else {
+          console.warn(`Model ${m} HTTP ${aiRes.status} in English exam generation:`, await aiRes.text());
         }
       } catch (err) {
-        console.warn(`Model ${m} error in English exam generation:`, err.message);
+        console.warn(`Model ${m} batch error in English exam generation:`, err.message);
       }
+    }
+    return [];
+  }
+
+  if (apiKey && selectedTopics.length > 0) {
+    const numBatches = targetQuestionCount >= 30 ? 3 : (targetQuestionCount >= 20 ? 2 : 1);
+    const countPerBatch = Math.ceil(targetQuestionCount / numBatches);
+    const batches = [];
+
+    for (let b = 0; b < numBatches; b++) {
+      const startIdx = Math.floor((b * selectedTopics.length) / numBatches);
+      const endIdx = Math.floor(((b + 1) * selectedTopics.length) / numBatches);
+      const batchTopics = selectedTopics.slice(startIdx, Math.max(startIdx + 1, endIdx));
+      batches.push({ topics: batchTopics.length > 0 ? batchTopics : selectedTopics, count: countPerBatch });
+    }
+
+    try {
+      const rawCombined = [];
+      for (const b of batches) {
+        const batchQ = await generateAIBatch(b.topics, b.count);
+        if (Array.isArray(batchQ)) {
+          rawCombined.push(...batchQ);
+        }
+      }
+      if (rawCombined.length >= Math.floor(targetQuestionCount * 0.7)) {
+        questions = rawCombined.slice(0, targetQuestionCount).map((q, idx) => {
+          let type = q.type || 'multiple-choice';
+          let options = Array.isArray(q.options) ? q.options.filter(Boolean) : undefined;
+          if (type === 'multiple-choice' && (!options || options.length < 2)) {
+            type = 'fill-blank';
+            options = undefined;
+          }
+          return {
+            ...q,
+            id: idx + 1,
+            type,
+            options,
+            level
+          };
+        });
+      }
+    } catch (err) {
+      console.warn('Error in AI exam generation:', err.message);
     }
   }
 
-  // Fallback generation
+  // If AI generation failed, DO NOT fall back to dumb template questions — throw explicit error
   if (questions.length === 0) {
-    const questionsPerTopic = Math.max(1, Math.floor(targetQuestionCount / selectedTopics.length));
-    let qId = 1;
-
-    for (const t of selectedTopics) {
-      for (let i = 0; i < questionsPerTopic && questions.length < targetQuestionCount; i++) {
-        const ex = generateEnglishExercise({
-          topic: t,
-          exerciseType: i % 2 === 0 ? 'multiple-choice' : 'fill-blank',
-          targetWordObj: userWords[i % userWords.length] || { word: 'book', translation: 'книга' },
-          allUserWords: userWords
-        });
-
-        questions.push({
-          id: qId++,
-          topicId: t.id,
-          topicName: t.name,
-          type: ex.type || 'multiple-choice',
-          question: ex.question,
-          options: ex.options || ['is', 'are', 'am', 'be'],
-          correctAnswer: ex.correctAnswer,
-          alternativeAnswers: [ex.correctAnswer],
-          explanation: ex.explanation || `Правило темы "${t.name}".`,
-          level
-        });
-      }
-    }
-
-    // Fill remainder up to targetQuestionCount
-    while (questions.length < targetQuestionCount) {
-      const t = selectedTopics[questions.length % selectedTopics.length];
-      const ex = generateEnglishExercise({
-        topic: t,
-        exerciseType: 'multiple-choice',
-        targetWordObj: userWords[questions.length % userWords.length] || { word: 'house', translation: 'дом' },
-        allUserWords: userWords
-      });
-
-      questions.push({
-        id: qId++,
-        topicId: t.id,
-        topicName: t.name,
-        type: 'multiple-choice',
-        question: ex.question,
-        options: ex.options || ['is', 'are', 'am', 'be'],
-        correctAnswer: ex.correctAnswer,
-        alternativeAnswers: [ex.correctAnswer],
-        explanation: ex.explanation || `Правило темы "${t.name}".`,
-        level
-      });
-    }
+    throw new Error(
+      'Failed to generate exam questions via AI (Gemini 3.5+). Please try again in a few moments.'
+    );
   }
 
   return {

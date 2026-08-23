@@ -247,25 +247,42 @@ export function generateSpanishExercise({ topic, exerciseType, targetWordObj, al
   }
 
   // 9. GENERAL / CONTEXTUAL GRAMMAR SENTENCE (Fallback for other topics)
-  // Instead of a plain word translation, generates a rich sentence usage exercise testing context!
-  const templates = [
-    {
-      q: `Вставьте пропущенное слово «${word}» (${translation}) в контекстное предложение:\n"Siempre veo ese/esa ___ cuando voy al trabajo por la mañana."`,
+  const lowerWord = word.toLowerCase();
+  let t;
+
+  if (['cuándo', 'cuando', 'dónde', 'donde', 'qué', 'que', 'quién', 'quien', 'cómo', 'como', 'por qué', 'porque'].includes(lowerWord)) {
+    t = {
+      q: `Выберите правильное вопросительное/союзное слово со значением «${translation}»:\n"¿___ vas a la oficina por la mañana?"`,
       ans: word,
-      exp: `Слово «${word}» (${translation}) гармонично дополняет контекст предложения. Полная фраза: «Siempre veo ese/esa ${word} cuando voy al trabajo por la mañana.»`,
-    },
-    {
-      q: `Дополните предложение правильным словом (${translation}):\n"Mi amigo me habló sobre un/una ___ muy interesante ayer."`,
+      exp: `Слово «${word}» переводится как «${translation}». Полная фраза: «¿${word} vas a la oficina por la mañana?»`
+    };
+  } else if (lowerWord.endsWith('ar') || lowerWord.endsWith('er') || lowerWord.endsWith('ir')) {
+    t = {
+      q: `Вставьте подходящий инфинитив глагола со значением «${translation}»:\n"Quiero ___ español todos los días."`,
       ans: word,
-      exp: `Правильное слово: «${word}» (${translation}). Полное предложение: «Mi amigo me habló sobre un/una ${word} muy interesante ayer.»`,
-    },
-    {
-      q: `Выберите точное испанское слово (${translation}) для завершения мысли:\n"Necesitamos encontrar el/la ___ antes de continuar el viaje."`,
-      ans: word,
-      exp: `«${word}» означает «${translation}». Полная фраза: «Necesitamos encontrar el/la ${word} antes de continuar el viaje.»`,
-    },
-  ];
-  const t = sample(templates);
+      exp: `Глагол «${word}» означает «${translation}». Полная фраза: «Quiero ${word} español todos los días.»`
+    };
+  } else {
+    const templates = [
+      {
+        q: `Дополните предложение словом «${translation}»:\n"En mi día a día, siempre uso el/la ___ para trabajar."`,
+        ans: word,
+        exp: `Слово «${word}» (${translation}) верно дополняет контекст. Полная фраза: «En mi día a día, siempre uso el/la ${word} para trabajar.»`,
+      },
+      {
+        q: `Выберите точное испанское слово со значением «${translation}»:\n"Mi amigo me habló sobre un/una ___ muy interesante ayer."`,
+        ans: word,
+        exp: `Правильное слово: «${word}» (${translation}). Полное предложение: «Mi amigo me habló sobre un/una ${word} muy interesante ayer.»`,
+      },
+      {
+        q: `Какое испанское слово переводится как «${translation}»:\n"Necesitamos encontrar el/la ___ antes de salir."`,
+        ans: word,
+        exp: `«${word}» означает «${translation}». Полная фраза: «Necesitamos encontrar el/la ${word} antes de salir.»`,
+      },
+    ];
+    t = sample(templates);
+  }
+
   const otherWords = allUserWords.map((w) => cleanWord(w.word)).filter((w) => w.toLowerCase() !== word.toLowerCase());
   const distractors = otherWords.sort(() => 0.5 - Math.random()).slice(0, 3);
   while (distractors.length < 3) {

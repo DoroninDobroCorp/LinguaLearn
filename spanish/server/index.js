@@ -1221,8 +1221,9 @@ STRICT COURSE BOUNDARY:
 You may sparingly save one useful A1 word with:
 [VOCAB_ADD: {"word": "hola", "translation": "привет", "example": "Hola, ¿cómo estás?"}]
 Only save words relevant to the current exchange.`;
+    // NOTE: Model 2.5 is strictly for audio/speech generation. In text generation, the minimum model is 3.5.
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       systemInstruction: systemPrompt
     });
 
@@ -1624,7 +1625,8 @@ Respond ONLY with a valid JSON object matching this exact schema:
 }`;
 
     let exercises = [];
-    const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
+    // NOTE: Model 2.5 is strictly for audio/speech generation. In text generation, the minimum model is 3.5.
+    const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
     for (const m of aiModels) {
       try {
         const aiRes = await Promise.race([
@@ -1781,7 +1783,8 @@ Respond ONLY with valid JSON matching this exact schema:
 }`;
 
     let exercises = [];
-    const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
+    // NOTE: Model 2.5 is strictly for audio/speech generation. In text generation, the minimum model is 3.5.
+    const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
     for (const m of aiModels) {
       try {
         const aiRes = await Promise.race([
@@ -2707,7 +2710,8 @@ RULES FOR YOUR RESPONSES:
     });
 
     let reply = '';
-    const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+    // NOTE: Model 2.5 is strictly for audio/speech generation. In text generation, the minimum model is 3.5.
+    const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash'];
     for (const m of aiModels) {
       try {
         const aiRes = await Promise.race([
@@ -3086,7 +3090,8 @@ Respond strictly as JSON in the following schema:
 }
 `;
 
-      const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+      // NOTE: Model 2.5 is strictly for audio/speech generation. In text generation, the minimum model is 3.5.
+      const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash'];
       let rawAiResponse = null;
 
       for (const m of aiModels) {

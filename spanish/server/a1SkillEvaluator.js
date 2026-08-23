@@ -1,7 +1,7 @@
 import { getA1SkillTaskById, recordA1SkillEvidence } from './a1CourseEngine.js';
 
-const ALLOWED_AUDIO_MIME_TYPES = new Set(['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/mpeg', 'audio/wav', 'audio/x-wav']);
-const AI_MODELS = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
+// NOTE: Model 2.5 is strictly for audio generation. In text generation, the minimum model is 3.5.
+const AI_MODELS = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
 
 function apiError(status, code, message) {
   return Object.assign(new Error(message), { status, code });
