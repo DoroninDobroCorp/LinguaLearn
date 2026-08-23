@@ -2726,7 +2726,7 @@ app.get('/api/curriculum/topics/:id/theory', (req, res) => {
       return res.status(404).json({ error: 'Topic not found' });
     }
 
-    const curatedTheory = getGrammarTheoryGuide(topicId);
+    const curatedTheory = getGrammarTheoryGuide(topicId, topic.name);
     if (curatedTheory) {
       return res.json({ topic, theory: curatedTheory, source: 'curated' });
     }
@@ -2784,7 +2784,7 @@ app.post('/api/curriculum/topics/:id/tutor-chat', async (req, res) => {
       return res.status(404).json({ error: 'Topic not found' });
     }
 
-    const curated = getGrammarTheoryGuide(topicId);
+    const curated = getGrammarTheoryGuide(topicId, topic.name);
     const systemInstruction = `You are a certified, friendly, and pedagogical English language tutor.
 The student is viewing the theory card for the topic: "${topic.name}" (Level: ${topic.level}, Category: ${topic.category}).
 Your mission:

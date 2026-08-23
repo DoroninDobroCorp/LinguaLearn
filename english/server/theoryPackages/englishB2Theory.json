@@ -1,0 +1,2022 @@
+{
+  "90": {
+    "topicId": 90,
+    "topicName": "Third Conditional (if + would have)",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Third Conditional: Третий тип условных предложений (Сожаление о прошлом)",
+    "summaryRu": "Third Conditional описывает нереальные события в ПРОШЛОМ, которые уже невозможно изменить («Если бы тогда... то тогда бы...»). Формула: If + had + V3, would have + V3.",
+    "sections": [
+      {
+        "title": "1. Формула Third Conditional",
+        "content": "Формула: **If + Past Perfect (had + V3), would have + V3**. Например: *If I had studied harder, I would have passed the exam (Если бы я тогда учился усерднее, я бы сдал тот экзамен).*"
+      },
+      {
+        "title": "2. Модальные варианты (could have / might have)",
+        "content": "Вместо would have можно использовать **could have** (смог бы) или **might have** (возможно, сделал бы): *If we had taken a taxi, we might have arrived on time.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Все 3 типа условных предложений",
+        "headers": [
+          "Тип",
+          "Время ситуации",
+          "Формула",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "1st",
+            "Будущее (реально)",
+            "If + Present, will + V1",
+            "If it rains, I will stay home."
+          ],
+          [
+            "2nd",
+            "Настоящее (воображаемо)",
+            "If + Past, would + V1",
+            "If I had time, I would help."
+          ],
+          [
+            "3rd",
+            "Прошлое (не изменить)",
+            "If + had V3, would have V3",
+            "If I had known, I would have come."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "If we had left earlier, we wouldn't have missed the flight.",
+        "ru": "Если бы мы выехали раньше, мы бы не опоздали на рейс.",
+        "note": "Сожаление о прошлом"
+      },
+      {
+        "en": "She would have won if she hadn't made that mistake.",
+        "ru": "Она бы победила, если бы не совершила ту ошибку.",
+        "note": "Third Conditional"
+      }
+    ],
+    "commonMistakes": [
+      "Would have в части с if: ❌ If I would have known -> ✅ If I had known.",
+      "Забывание have: ❌ I would passed -> ✅ I would have passed."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Third Conditional: Третий тип условных предложений (Сожаление о прошлом)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "91": {
+    "topicId": 91,
+    "topicName": "Mixed Conditionals",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Смешанные условные предложения: Mixed Conditionals",
+    "summaryRu": "Mixed Conditionals объединяют условие из прошлого с результатом в настоящем (или наоборот: постоянную черту характера с событием в прошлом).",
+    "sections": [
+      {
+        "title": "1. Тип 1: Прошлое условие -> Настоящий результат (Type 3 + Type 2)",
+        "content": "Формула: **If + had + V3, would + V1**. *If I had won the lottery yesterday (прошлое), I would be rich today (настоящее).*"
+      },
+      {
+        "title": "2. Тип 2: Постоянное свойство -> Прошлый результат (Type 2 + Type 3)",
+        "content": "Формула: **If + Past Simple, would have + V3**. *If I spoke fluent French (постоянный навык), I would have applied for that job last month (действие в прошлом).*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Типы Mixed Conditionals",
+        "headers": [
+          "Схема",
+          "Формула",
+          "Пример предложения",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Прошлое -> Настоящее",
+            "If + had V3, would + V1",
+            "If I had taken the job, I would live in London now.",
+            "Если бы я принял ту работу, я бы жил в Лондоне сейчас."
+          ],
+          [
+            "Настоящее -> Прошлое",
+            "If + Past Simple, would have V3",
+            "If I weren't afraid of flying, I would have traveled with you.",
+            "Если бы я не боялся летать (вообще), я бы полетел с тобой тогда."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "If you had listened to my advice yesterday, you wouldn't be in trouble now.",
+        "ru": "Если бы ты послушал мой совет вчера, ты бы не был в беде сейчас.",
+        "note": "Past condition -> Present result"
+      }
+    ],
+    "commonMistakes": [
+      "Использование would have в части с if: ❌ If I would have learned -> ✅ If I had learned."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Смешанные условные предложения: Mixed Conditionals» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "92": {
+    "topicId": 92,
+    "topicName": "Wish / If only",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Конструкции сожаления и желаний: Wish / If only",
+    "summaryRu": "WISH и IF ONLY используются для выражения сожаления о том, что всё не так, как хотелось бы. Времена сдвигаются на шаг назад: о настоящем — Past Simple, о прошлом — Past Perfect.",
+    "sections": [
+      {
+        "title": "1. Сожаление о настоящем (Wish + Past Simple)",
+        "content": "Когда мы хотим изменить текущее положение дел: **I wish I had more free time** (Жаль, что у меня мало свободного времени). **I wish I were taller**."
+      },
+      {
+        "title": "2. Сожаление о прошлом (Wish + Past Perfect)",
+        "content": "Когда мы сожалеем о совершенном поступке в прошлом: **I wish I hadn't bought this car** (Жаль, что я купил эту машину тогда)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Сетка конструкций I wish",
+        "headers": [
+          "Тип желания",
+          "Формула",
+          "Пример",
+          "Истинный смысл"
+        ],
+        "rows": [
+          [
+            "О настоящем",
+            "Wish + Past Simple",
+            "I wish I spoke fluent German.",
+            "I don't speak fluent German."
+          ],
+          [
+            "О прошлом (сожаление)",
+            "Wish + Past Perfect",
+            "I wish I had accepted the offer.",
+            "I didn't accept the offer."
+          ],
+          [
+            "Раздражение на действие",
+            "Wish + would + V1",
+            "I wish it would stop raining.",
+            "It is raining and annoying me."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I wish I knew the answer to this question.",
+        "ru": "Жаль, что я не знаю ответа на этот вопрос.",
+        "note": "Wish + Past Simple"
+      },
+      {
+        "en": "If only I had listened to your advice!",
+        "ru": "Если бы только я послушал твой совет тогда!",
+        "note": "If only + Past Perfect"
+      }
+    ],
+    "commonMistakes": [
+      "Использование Present после wish о настоящем: ❌ I wish I have a car -> ✅ I wish I had a car.",
+      "Использование I wish I would о себе: с местоимением I/we говорят *I wish I could*."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Конструкции сожаления и желаний: Wish / If only» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "93": {
+    "topicId": 93,
+    "topicName": "Past Perfect",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Past Perfect: Предпрошедшее время (had + V3)",
+    "summaryRu": "Past Perfect выражает действие, которое произошло и завершилось РАНЬШЕ другого события в прошлом: When I arrived, the train had already left.",
+    "sections": [
+      {
+        "title": "1. Образование и логика времени",
+        "content": "Формула: **had + 3-я форма глагола (V3 / -ed)** для всех лиц. Past Perfect используется для наведения хронологического порядка: то, что произошло раньше всего — в Past Perfect, а более позднее событие — в Past Simple."
+      },
+      {
+        "title": "2. Маркеры времени",
+        "content": "*before, after, by the time (к тому моменту как), already, never before*. Например: *By the time police arrived, the burglar had escaped.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Хронология: Past Perfect vs Past Simple",
+        "headers": [
+          "Событие 1 (Самое раннее)",
+          "Событие 2 (Позже)",
+          "Результирующее предложение"
+        ],
+        "rows": [
+          [
+            "He booked a table (18:00)",
+            "They arrived at cafe (19:00)",
+            "He had booked a table before they arrived."
+          ],
+          [
+            "She finished work (17:00)",
+            "I called her (17:30)",
+            "When I called, she had already finished work."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "When I got to the station, the train had already departed.",
+        "ru": "Когда я добрался до вокзала, поезд уже уехал.",
+        "note": "Уехал ДО моего прибытия"
+      },
+      {
+        "en": "She had never seen the ocean before she visited Portugal.",
+        "ru": "Она никогда раньше не видела океан, пока не побывала в Португалии.",
+        "note": "Опыт до момента в прошлом"
+      }
+    ],
+    "commonMistakes": [
+      "Использование Past Perfect без связи с другим событием в прошлом: Past Perfect нужен только для сопоставления двух моментов в прошлом!",
+      "Путаница had и have: ❌ When I arrived he has left -> ✅ he had left."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Past Perfect: Предпрошедшее время (had + V3)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "94": {
+    "topicId": 94,
+    "topicName": "Past Perfect Continuous",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Past Perfect Continuous: Длительность до момента в прошлом (had been + V-ing)",
+    "summaryRu": "Past Perfect Continuous выражает длительное действие, которое началось в прошлом и продолжалось до определенного момента в прошлом (часто с видимым результатом).",
+    "sections": [
+      {
+        "title": "1. Формула и употребление",
+        "content": "Формула: **had been + V-ing** (для всех лиц). Например: *He was exhausted because he **had been driving** for eight hours (Он был истощен, потому что вел машину 8 часов подряд)*."
+      },
+      {
+        "title": "2. Сравнение с Past Continuous",
+        "content": "Past Continuous описывает действие в момент прошлого (*At 5 PM I was working*). Past Perfect Continuous подчеркивает **длительность к моменту** (*By 5 PM I had been working for 6 hours*)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Past Perfect Continuous vs Past Continuous",
+        "headers": [
+          "Время",
+          "Акцент",
+          "Формула",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "Past Perfect Continuous",
+            "Длительность до момента (Как долго?)",
+            "had been + V-ing",
+            "The ground was wet because it had been raining all night."
+          ],
+          [
+            "Past Continuous",
+            "Процесс в момент речи в прошлом",
+            "was/were + V-ing",
+            "When I looked out, it was raining."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "We had been discussing the architecture for three hours before reaching a consensus.",
+        "ru": "Мы обсуждали архитектуру три часа, прежде чем пришли к консенсусу.",
+        "note": "had been discussing + for 3 hours"
+      }
+    ],
+    "commonMistakes": [
+      "Использование have been вместо had been: ❌ When she arrived I have been waiting -> ✅ had been waiting."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Past Perfect Continuous: Длительность до момента в прошлом (had been + V-ing)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "95": {
+    "topicId": 95,
+    "topicName": "Future Continuous",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Future Continuous: Будущее длительное время (will be + V-ing)",
+    "summaryRu": "Future Continuous выражает действие, которое будет длиться в определенный точный момент в будущем: At this time tomorrow, I will be flying to Tokyo.",
+    "sections": [
+      {
+        "title": "1. Образование и сферы применения",
+        "content": "Формула: **will be + V-ing**. 1) Действие в точный момент будущего (*Tomorrow at 10 AM I will be having a job interview*). 2) Вежливый вопрос о чьих-то планах (*Will you be using your laptop later?*)."
+      },
+      {
+        "title": "2. Утверждения, отрицания и вопросы",
+        "content": "Утверждение: *I will be working*. Отрицание: *I won't be working*. Вопрос: *Will you be working?*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Сравнение Future Continuous и Future Simple",
+        "headers": [
+          "Время",
+          "Суть",
+          "Пример",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Future Continuous",
+            "Процесс в точный момент будущего",
+            "At 8 PM tonight, I will be watching the game.",
+            "В 20:00 сегодня я буду смотреть матч (буду в процессе)."
+          ],
+          [
+            "Future Simple",
+            "Факт / спонтанное решение",
+            "I will watch the game tonight.",
+            "Я посмотрю матч сегодня."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Don't call me between 2 and 4 PM, I will be conducting interviews.",
+        "ru": "Не звони мне с 14 до 16, я буду проводить собеседования.",
+        "note": "will be conducting"
+      }
+    ],
+    "commonMistakes": [
+      "Пропуск глагола be: ❌ I will working -> ✅ I will be working."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Future Continuous: Будущее длительное время (will be + V-ing)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "96": {
+    "topicId": 96,
+    "topicName": "Future Perfect",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Future Perfect: Будущее совершенное время (will have + V3)",
+    "summaryRu": "Future Perfect выражает действие, которое завершится К определенному моменту в будущем (со словом BY / BY THE TIME).",
+    "sections": [
+      {
+        "title": "1. Формула и маркеры времени",
+        "content": "Формула: **will have + 3-я форма глагола (V3 / -ed)**. Ключевые маркеры: **by tomorrow, by 5 PM, by next year, by the time you arrive**."
+      },
+      {
+        "title": "2. Пример ситуации дедлайна",
+        "content": "*By next Friday, we **will have launched** the new mobile update (К следующей пятнице мы уже завершим запуск обновления).*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Времена Future: Simple vs Continuous vs Perfect",
+        "headers": [
+          "Время",
+          "Фокус",
+          "Формула",
+          "Пример с 18:00"
+        ],
+        "rows": [
+          [
+            "Future Simple",
+            "Факт старта / решение",
+            "will + V1",
+            "I will start cooking at 18:00."
+          ],
+          [
+            "Future Continuous",
+            "Процесс в 18:00",
+            "will be + V-ing",
+            "At 18:00, I will be cooking dinner."
+          ],
+          [
+            "Future Perfect",
+            "Завершение К 18:00",
+            "will have + V3",
+            "By 18:00, I will have cooked dinner."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "By the time you graduate, you will have mastered English.",
+        "ru": "К тому моменту как ты закончишь учебу, ты овладеешь английским в совершенстве.",
+        "note": "will have mastered + by the time"
+      }
+    ],
+    "commonMistakes": [
+      "Использование will в части с by the time: ❌ By the time you will arrive -> ✅ By the time you arrive, I will have finished."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Future Perfect: Будущее совершенное время (will have + V3)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "97": {
+    "topicId": 97,
+    "topicName": "Passive voice (all tenses)",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Пассивный залог во всех временах: Passive Voice (All tenses)",
+    "summaryRu": "Сводная система пассивного залога во всех грамматических временах: Present/Past Continuous Passive, Present/Past Perfect Passive, Modal Passive.",
+    "sections": [
+      {
+        "title": "1. Универсальная формула пассива",
+        "content": "Формула: **BE (в соответствующем времени) + 3-я форма глагола (V3 / -ed)**."
+      },
+      {
+        "title": "2. Таблица всех времен в пассиве",
+        "content": "Continuous Passive требует связки **being**: *is being built, was being repaired*. Perfect Passive требует связки **been**: *has been developed, had been tested*. Модальный пассив: **modal + be + V3** (*must be done, should be sent*)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Сводка Passive Voice по всем временам",
+        "headers": [
+          "Время",
+          "Формула пассива",
+          "Пример предложения",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Present Continuous Passive",
+            "am/is/are + being + V3",
+            "The server is being upgraded right now.",
+            "Сервер сейчас обновляется."
+          ],
+          [
+            "Past Continuous Passive",
+            "was/were + being + V3",
+            "The bridge was being repaired last month.",
+            "Мост ремонтировался в прошлом месяце."
+          ],
+          [
+            "Present Perfect Passive",
+            "have/has + been + V3",
+            "The bug has already been fixed.",
+            "Баг уже исправлен."
+          ],
+          [
+            "Past Perfect Passive",
+            "had + been + V3",
+            "The file had been deleted before we noticed.",
+            "Файл был удален до того, как мы заметили."
+          ],
+          [
+            "Modal Passive",
+            "modal + be + V3",
+            "This code must be reviewed by the lead.",
+            "Этот код должен быть проверен тимлидом."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The feature is currently being tested by the QA engineers.",
+        "ru": "Функционал в данный момент тестируется инженерами по качеству.",
+        "note": "is being tested"
+      }
+    ],
+    "commonMistakes": [
+      "Пропуск being в Continuous Passive: ❌ The house is repairing -> ✅ The house is being repaired."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Пассивный залог во всех временах: Passive Voice (All tenses)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "98": {
+    "topicId": 98,
+    "topicName": "Reported speech (advanced)",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Косвенная речь продвинутого уровня: Reported Speech with reporting verbs",
+    "summaryRu": "Продвинутая косвенная речь использует специальные глаголы-индикаторы вместо скучного say/tell: encourage, warn, apologize for, refuse, suggest, admit, convince.",
+    "sections": [
+      {
+        "title": "1. Группы глаголов по структурам",
+        "content": "1) **Verb + to V1**: *agree, offer, promise, refuse, threaten* (*He offered to help*). 2) **Verb + Object + to V1**: *advise, convince, encourage, remind, warn* (*She advised me to invest*). 3) **Verb + -ing**: *admit, deny, suggest, recommend* (*He admitted making a mistake*). 4) **Verb + preposition + -ing**: *apologize for, insist on* (*He apologized for being late*)."
+      },
+      {
+        "title": "2. Особенности глаголов suggest и recommend",
+        "content": "Глаголы *suggest* и *recommend* требуют герундия (*suggest doing*) или придаточного предложения с should (*suggest that we should do*), но никогда не сочетаются с инфинитивом (*не suggest to do*)!"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Продвинутые вводные глаголы",
+        "headers": [
+          "Глагол",
+          "Синтаксическая модель",
+          "Пример предложения",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "advise / warn",
+            "verb + obj + to V1",
+            "The doctor advised him to stop smoking.",
+            "Врач посоветовал ему бросить курить."
+          ],
+          [
+            "refuse / offer",
+            "verb + to V1",
+            "He refused to disclose the details.",
+            "Он отказался раскрывать детали."
+          ],
+          [
+            "admit / deny",
+            "verb + V-ing",
+            "She denied leaking the internal documents.",
+            "Она отрицала утечку внутренних документов."
+          ],
+          [
+            "apologize for",
+            "verb + for + V-ing",
+            "The company apologized for the outage.",
+            "Компания извинилась за сбой."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The CEO convinced the board to invest in AI infrastructure.",
+        "ru": "Генеральный директор убедил совет директоров инвестировать в инфраструктуру ИИ.",
+        "note": "convinced + board + to invest"
+      }
+    ],
+    "commonMistakes": [
+      "Неправильный предлог после apologize: ❌ apologized about being late -> ✅ apologized for being late."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Косвенная речь продвинутого уровня: Reported Speech with reporting verbs» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "99": {
+    "topicId": 99,
+    "topicName": "Relative clauses (non-defining)",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Неограничительные определительные придаточные: Non-defining relative clauses",
+    "summaryRu": "Non-defining relative clauses дают ДОПОЛНИТЕЛЬНУЮ (необязательную) информацию о предмете или человеке. Они ВСЕГДА выделяются запятыми, и в них ЗАПРЕЩЕНО использовать слово THAT!",
+    "sections": [
+      {
+        "title": "1. Запятые и запрет на THAT",
+        "content": "Если информацию можно удалить без потери смысла: *My brother, **who lives in New York**, is a designer*. Запятые обязательны! Вместо who/which нельзя ставить that (*My brother, that lives... — грубая ошибка!*)."
+      },
+      {
+        "title": "2. Which со ссылкой на все предыдущее предложение",
+        "content": "*He passed the exam on the first attempt, **which surprised everyone** (Он сдал экзамен с первой попытки, что удивило всех).*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Defining vs Non-defining",
+        "headers": [
+          "Тип",
+          "Смысл",
+          "Запятые",
+          "Слово THAT",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "Defining (Ограничительное)",
+            "Критическая информация для идентификации",
+            "НЕТ",
+            "Разрешено (who/which/that)",
+            "The employees who work remotely love flexibility."
+          ],
+          [
+            "Non-defining (Описательное)",
+            "Дополнительный второстепенный факт",
+            "ОБЯЗАТЕЛЬНО",
+            "ЗАПРЕЩЕНО (только who/which)",
+            "Apple, which was founded in 1976, released a new chip."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "London, which is the capital of the UK, attracts millions of tourists.",
+        "ru": "Лондон, который является столицей Великобритании, привлекает миллионы туристов.",
+        "note": "Non-defining с запятыми"
+      }
+    ],
+    "commonMistakes": [
+      "Использование that с запятыми в Non-defining: ❌ London, that is capital -> ✅ London, which is capital."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Неограничительные определительные придаточные: Non-defining relative clauses» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "100": {
+    "topicId": 100,
+    "topicName": "Causative (have/get something done)",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Каузативные конструкции: Have / Get something done",
+    "summaryRu": "Каузатив Have something done используется, когда мы не сами выполняем действие, а делегируем его специалисту (подстричь волосы, починить машину, покрасить стены).",
+    "sections": [
+      {
+        "title": "1. Формула каузатива",
+        "content": "Формула: **HAVE / GET + предмет + 3-я форма глагола (V3 / -ed)**. Например: *I cut my hair* = я сам взял ножницы и подстригся. *I had my hair cut* = парикмахер подстриг меня в салоне."
+      },
+      {
+        "title": "2. Времена в каузативных конструкциях",
+        "content": "Сам глагол HAVE / GET меняется по временам: *Present Simple: I have my car washed; Past Simple: I had my car washed yesterday; Future: I will have my car washed.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Примеры каузатива в разных временах",
+        "headers": [
+          "Время",
+          "Формула",
+          "Пример",
+          "Смысл"
+        ],
+        "rows": [
+          [
+            "Present Simple",
+            "have/get + obj + V3",
+            "I have my eyes tested every year.",
+            "Окулист проверяет мне зрение."
+          ],
+          [
+            "Past Simple",
+            "had/got + obj + V3",
+            "We had our roof repaired.",
+            "Мастера починили нам крышу."
+          ],
+          [
+            "Present Continuous",
+            "am/is/are having + obj + V3",
+            "She is having her apartment painted.",
+            "Ей сейчас красят квартиру."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I need to have my passport renewed before the trip.",
+        "ru": "Мне нужно обновить загранпаспорт (в паспортном столе) перед поездкой.",
+        "note": "have + passport + renewed"
+      },
+      {
+        "en": "Where did you get your laptop fixed?",
+        "ru": "Где тебе починили ноутбук?",
+        "note": "get + laptop + fixed"
+      }
+    ],
+    "commonMistakes": [
+      "Путаница \"I repaired my car\" (сам чинил) и \"I had my car repaired\" (в автосервисе).",
+      "Неверный порядок слов: ❌ I had repaired my car -> это Past Perfect! ✅ I had my car repaired."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Каузативные конструкции: Have / Get something done» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "101": {
+    "topicId": 101,
+    "topicName": "Inversion (negative adverbials)",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Инверсия с отрицательными наречиями (Negative Inversion)",
+    "summaryRu": "Инверсия (обратный порядок слов как в вопросе) используется для усиления выразительности и драматизма речи при вынесении отрицательных наречий в начало предложения.",
+    "sections": [
+      {
+        "title": "1. Формула отрицательной инверсии",
+        "content": "Когда предложение начинается с *Never, Seldom, Rarely, Hardly, Scarcely, Little, Under no circumstances*, вспомогательный глагол ставится ПЕРЕД подлежащим: **Отрицательное слово + Вспомогательный глагол + Подлежащее + Основной глагол**."
+      },
+      {
+        "title": "2. Конструкция Hardly... when / No sooner... than",
+        "content": "*No sooner had I arrived at the station than the train left (Не успел я прибыть на вокзал, как поезд ушел).*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Трансформация предложений с инверсией",
+        "headers": [
+          "Обычный порядок",
+          "Стилистическая инверсия",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "I have never seen such beauty.",
+            "Never have I seen such beauty.",
+            "Никогда в жизни я не видел такой красоты."
+          ],
+          [
+            "She rarely complains.",
+            "Rarely does she complain.",
+            "Редко когда она жалуется."
+          ],
+          [
+            "He little knew the truth.",
+            "Little did he know the truth.",
+            "Меньше всего он знал правду."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Under no circumstances should you share your password.",
+        "ru": "Ни при каких обстоятельствах вам не следует делиться паролем.",
+        "note": "Инверсия should you"
+      },
+      {
+        "en": "Seldom have we witnessed such outstanding teamwork.",
+        "ru": "Редко когда мы были свидетелями столь выдающейся командной работы.",
+        "note": "Seldom have we"
+      }
+    ],
+    "commonMistakes": [
+      "Прямой порядок слов после отрицательного маркера в начале: ❌ Never I have seen -> ✅ Never have I seen.",
+      "Путаница than и when: No sooner требует **than**, а Hardly — **when**."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Инверсия с отрицательными наречиями (Negative Inversion)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "102": {
+    "topicId": 102,
+    "topicName": "Participle clauses",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Причастные обороты в английском: Participle clauses (-ing and -ed)",
+    "summaryRu": "Причастные обороты позволяют объединить два предложения в одно компактное и стильное высказывание, заменяя союзы when, because, after.",
+    "sections": [
+      {
+        "title": "1. Present Participle (-ing) для активного залога",
+        "content": "Заменяет активное действие (*because / when*): *Feeling exhausted, he went to bed early (= Because he felt exhausted)*. *Walking down the street, I ran into an old friend.*"
+      },
+      {
+        "title": "2. Past Participle (-ed / V3) и Having Done",
+        "content": "Для пассивного значения: *Built in 1889, the Eiffel Tower is iconic*. Для предшествующего действия: *Having finished the project, the team celebrated.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Типы причастных оборотов",
+        "headers": [
+          "Тип оборота",
+          "Форма",
+          "Пример предложения",
+          "Исходный эквивалент"
+        ],
+        "rows": [
+          [
+            "Present Participle",
+            "V-ing",
+            "Opening the envelope, she found a letter.",
+            "When she opened the envelope..."
+          ],
+          [
+            "Past Participle",
+            "V3 / -ed (пассив)",
+            "Shocked by the news, he couldn't speak.",
+            "Because he was shocked by the news..."
+          ],
+          [
+            "Perfect Participle",
+            "Having + V3",
+            "Having saved enough money, they bought a house.",
+            "After they had saved enough money..."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Having passed all code reviews, the pull request was merged.",
+        "ru": "Пройдя все ревью кода, пулл-реквест был смержен.",
+        "note": "Having passed"
+      }
+    ],
+    "commonMistakes": [
+      "Dangling participle (висячее причастие, относящееся не к тому подлежащему): ❌ Walking down the street, the rain started -> ✅ Walking down the street, I got caught in the rain."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Причастные обороты в английском: Participle clauses (-ing and -ed)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "103": {
+    "topicId": 103,
+    "topicName": "Modals of deduction (must/can't/might have)",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Модальная дедукция в прошлом: Modals of deduction (must have, can't have, might have + V3)",
+    "summaryRu": "Модальные глаголы с перфектным инфинитивом (have + V3) выражают догадки и дедуктивные выводы о событиях в ПРОШЛОМ.",
+    "sections": [
+      {
+        "title": "1. Степень уверенности в прошлом",
+        "content": "**MUST HAVE + V3** = 99% уверенность («должно быть, точно сделал»): *He must have forgotten his keys*. **CAN'T / COULDN'T HAVE + V3** = 99% невозможность («не мог этого сделать»): *He can't have stolen the money, he was with me*. **MIGHT / MAY / COULD HAVE + V3** = 40% вероятность («возможно, сделал»): *She might have missed the bus*."
+      },
+      {
+        "title": "2. Should have + V3 (Критика и сожаление)",
+        "content": "**SHOULD HAVE + V3** выражает упрек или сожаление («следовало сделать, но не сделал»): *You should have called me!*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Дедукция о событиях в прошлом",
+        "headers": [
+          "Модальная конструкция",
+          "Уверенность о прошлом",
+          "Пример предложения",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "must have + V3",
+            "99% уверенность (+)",
+            "The streets are wet; it must have rained overnight.",
+            "Улицы мокрые; ночью точно шел дождь."
+          ],
+          [
+            "can't have + V3",
+            "99% невозможность (-)",
+            "He can't have written this code, he doesn't know Rust.",
+            "Он не мог написать этот код."
+          ],
+          [
+            "might have + V3",
+            "40% вероятность",
+            "I might have left my wallet in the car.",
+            "Возможно, я оставил кошелек в машине."
+          ],
+          [
+            "should have + V3",
+            "Сожаление / упрек",
+            "We should have booked the tickets in advance.",
+            "Нам следовало забронировать билеты заранее."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "She can't have known about the surprise party, nobody told her.",
+        "ru": "Она не могла знать о вечеринке-сюрпризе, никто ей не говорил.",
+        "note": "can't have known"
+      }
+    ],
+    "commonMistakes": [
+      "Использование must not have для невозможности: ❌ He must not have seen it -> ✅ He can't have seen it."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Модальная дедукция в прошлом: Modals of deduction (must have, can't have, might have + V3)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "104": {
+    "topicId": 104,
+    "topicName": "Articles — zero article",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Нулевой артикль: Zero article (продвинутые случаи)",
+    "summaryRu": "Случаи, когда артикль (a/an/the) строго ЗАПРЕЩЕН: абстрактные понятия, материалы, приемы пищи, учреждения по назначению (school, hospital, prison, church).",
+    "sections": [
+      {
+        "title": "1. Учреждения по их прямому назначению",
+        "content": "Если человек находится в учреждении по его основной функции, артикль НЕ ставится: *He is in prison (как заключенный), She went to hospital (как пациентка), Children go to school (учиться)*. Если прийти как посетитель — ставится **THE**: *I went to **the** school to meet the teacher.*"
+      },
+      {
+        "title": "2. Языки, спорт, транспорт и абстракции",
+        "content": "*English (но the English language), play tennis, travel by plane, love, life, science*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Zero article vs The",
+        "headers": [
+          "Категория",
+          "БЕЗ артикля (Zero article)",
+          "С артиклем THE (конкретика)"
+        ],
+        "rows": [
+          [
+            "Учреждения (прямая цель)",
+            "in hospital (на лечении), in bed (спать)",
+            "in the hospital (в здании больницы)"
+          ],
+          [
+            "Приемы пищи",
+            "have breakfast, before lunch",
+            "The breakfast at the hotel was great."
+          ],
+          [
+            "Абстрактные понятия",
+            "Life is unpredictable. Love is strong.",
+            "The life of Steve Jobs."
+          ],
+          [
+            "Транспорт с предлогом by",
+            "by bus, by train, by air",
+            "on the bus, in the car"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "He was sent to prison for financial fraud.",
+        "ru": "Его отправили в тюрьму (как преступника) за финансовое мошенничество.",
+        "note": "to prison без артикля"
+      }
+    ],
+    "commonMistakes": [
+      "Артикль перед видами спорта и языками: ❌ I play the basketball -> ✅ I play basketball."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Нулевой артикль: Zero article (продвинутые случаи)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "105": {
+    "topicId": 105,
+    "topicName": "Emphasis (cleft sentences: It is... / What I...)",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Эмфатические расщепленные предложения: Cleft sentences (It is... that / What I need is...)",
+    "summaryRu": "Cleft sentences (расщепленные предложения) служат для сильного логического ударения и выделения ключевой информации в предложении.",
+    "sections": [
+      {
+        "title": "1. Конструкция \"It is / It was... that/who\"",
+        "content": "Формула: **It is / was + выделяемое слово + that / who + остальная часть**. Например: Обычное: *Alex solved the problem*. Эмфатическое: *It was **Alex who** solved the problem (Именно Алекс решил проблему!)*."
+      },
+      {
+        "title": "2. WH-clefts (What I... is...)",
+        "content": "Формула: **What... is / was...**: *What I really need is a cup of hot coffee (Что мне действительно нужно — так это чашка кофе).*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Типы Cleft Sentences",
+        "headers": [
+          "Тип конструкции",
+          "Схема",
+          "Пример предложения",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "It-cleft",
+            "It is/was [фокус] that/who...",
+            "It was his dedication that inspired the entire team.",
+            "Именно его самоотверженность вдохновила команду."
+          ],
+          [
+            "Wh-cleft (What...)",
+            "What [подлежащее + глагол] is/was...",
+            "What we need is more actionable data.",
+            "Что нам нужно — так это больше практических данных."
+          ],
+          [
+            "All-cleft (All I want...)",
+            "All [clause] is/was...",
+            "All I want is a good night's sleep.",
+            "Всё, чего я хочу — это выспаться."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "It was in 2020 that our startup secured its first major investment.",
+        "ru": "Именно в 2020 году наш стартап привлек первые крупные инвестиции.",
+        "note": "It was in 2020 that..."
+      }
+    ],
+    "commonMistakes": [
+      "Неправильный порядок слов: ❌ What I want it is... -> ✅ What I want is..."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Эмфатические расщепленные предложения: Cleft sentences (It is... that / What I need is...)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "106": {
+    "topicId": 106,
+    "topicName": "Work and career",
+    "level": "B2",
+    "category": "Vocabulary",
+    "russianTitle": "Работа и карьера продвинутого уровня: Work and career",
+    "summaryRu": "Бизнес-лексика: performance review, climb the corporate ladder, severance package, job perks, resign vs be dismissed.",
+    "sections": [
+      {
+        "title": "1. Профессиональное развитие",
+        "content": "*land a job (получить желанную работу), negotiate a salary (вести переговоры по зарплате), promotion (повышение), high-pressure environment*."
+      },
+      {
+        "title": "2. Увольнение и смена работы",
+        "content": "*resign / step down (уволиться по собственному желанию), be laid off (попасть под сокращение), be fired / dismissed (быть уволенным за проступок)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Карьерный глоссарий B2",
+        "headers": [
+          "Фраза",
+          "Перевод",
+          "Пример в речи"
+        ],
+        "rows": [
+          [
+            "climb the career ladder",
+            "продвигаться по карьерной лестнице",
+            "She worked diligently to climb the career ladder."
+          ],
+          [
+            "laid off due to downsizing",
+            "сокращен из-за оптимизации штата",
+            "Many tech workers were laid off last quarter."
+          ],
+          [
+            "fringe benefits / perks",
+            "дополнительные льготы/бонусы",
+            "Health insurance and stock options are key job perks."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "He decided to resign from his executive position to launch his own venture.",
+        "ru": "Он решил уйти с руководящей должности, чтобы запустить собственный бизнес.",
+        "note": "resign from position"
+      }
+    ],
+    "commonMistakes": [
+      "Путаница quit / fired / laid off: \"laid off\" — сокращение компании (без вины сотрудника), \"fired\" — увольнение за провинность."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Работа и карьера продвинутого уровня: Work and career» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "107": {
+    "topicId": 107,
+    "topicName": "Media and news",
+    "level": "B2",
+    "category": "Vocabulary",
+    "russianTitle": "Медиа и новости: Media and news",
+    "summaryRu": "Словарь современных медиа: breaking news, biased reporting, clickbait, investigative journalism, press release.",
+    "sections": [
+      {
+        "title": "1. Анализ медиа-контента",
+        "content": "*biased vs objective (предвзятый vs объективный), verify sources (проверять источники), viral content (вирусный контент)*."
+      },
+      {
+        "title": "2. Журналистские термины",
+        "content": "*headline (заголовок), whistleblower (информатор), censorship (цензура), front page*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Медиа-лексикон",
+        "headers": [
+          "Термин",
+          "Перевод",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "breaking news headline",
+            "срочная новость в заголовках",
+            "Breaking news interrupted the scheduled broadcast."
+          ],
+          [
+            "biased coverage",
+            "предвзятое освещение событий",
+            "The article was criticized for biased political coverage."
+          ],
+          [
+            "investigative journalism",
+            "журналистское расследование",
+            "The scandal was exposed through investigative journalism."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "It is essential to fact-check information to avoid falling for sensational clickbait.",
+        "ru": "Важно проверять факты, чтобы не попадаться на сенсационный кликбейт.",
+        "note": "fact-check & clickbait"
+      }
+    ],
+    "commonMistakes": [
+      "News во множественном числе: ❌ These news are shocking -> ✅ This news is shocking (news неисчисляемое)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Медиа и новости: Media and news» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "108": {
+    "topicId": 108,
+    "topicName": "Relationships and society",
+    "level": "B2",
+    "category": "Vocabulary",
+    "russianTitle": "Общество и социальные отношения: Relationships and society",
+    "summaryRu": "Социологический и этический словарь: social mobility, cultural diversity, peer pressure, demographic shift, welfare state.",
+    "sections": [
+      {
+        "title": "1. Общественные процессы",
+        "content": "*civil society (гражданское общество), bridge the gap (сократить разрыв), social inequality (социальное неравенство)*."
+      },
+      {
+        "title": "2. Межличностные отношения B2",
+        "content": "*drift apart (постепенно отдаляться друг от друга), maintain ties (поддерживать связи), mutual respect (взаимное уважение)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Социологические термины",
+        "headers": [
+          "Выражение",
+          "Перевод",
+          "Пример контекста"
+        ],
+        "rows": [
+          [
+            "bridge the wealth gap",
+            "сократить разрыв в благосостоянии",
+            "Policies aimed at bridging the wealth gap are vital."
+          ],
+          [
+            "cultural diversity",
+            "культурное многообразие",
+            "Cultural diversity fosters innovation in international teams."
+          ],
+          [
+            "peer pressure",
+            "давление со стороны сверстников/окружения",
+            "Young professionals often feel peer pressure to overwork."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Rapid urbanization has triggered significant demographic shifts in metropolitan areas.",
+        "ru": "Стремительная урбанизация вызвала значительные демографические сдвиги в мегаполисах.",
+        "note": "demographic shifts"
+      }
+    ],
+    "commonMistakes": [
+      "Sociable vs Social: *sociable* — общительный человек; *social* — относящийся к обществу (social issues)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Общество и социальные отношения: Relationships and society» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "109": {
+    "topicId": 109,
+    "topicName": "Science and research",
+    "level": "B2",
+    "category": "Vocabulary",
+    "russianTitle": "Наука и академические исследования: Science and research",
+    "summaryRu": "Исследовательский вокабуляр: conduct an experiment, peer-reviewed journal, hypothesis, breakthrough, empirical data.",
+    "sections": [
+      {
+        "title": "1. Научный метод",
+        "content": "*formulate a hypothesis (сформулировать гипотезу), gather empirical data (собирать эмпирические данные), prove/disprove a theory (доказать/опровергнуть теорию)*."
+      },
+      {
+        "title": "2. Публикация и инновации",
+        "content": "*scientific breakthrough (научный прорыв), peer review (рецензирование коллегами), clinical trials (клинические испытания)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Научный глоссарий",
+        "headers": [
+          "Понятие",
+          "Перевод",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "conduct an experiment",
+            "проводить эксперимент",
+            "Scientists conducted a series of controlled experiments."
+          ],
+          [
+            "peer-reviewed study",
+            "рецензированное исследование",
+            "The findings were published in a peer-reviewed journal."
+          ],
+          [
+            "major breakthrough",
+            "крупный научный прорыв",
+            "CRISPR technology represents a major breakthrough in genetics."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The researchers gathered extensive empirical data before drawing final conclusions.",
+        "ru": "Исследователи собрали обширные эмпирические данные, прежде чем делать окончательные выводы.",
+        "note": "empirical data"
+      }
+    ],
+    "commonMistakes": [
+      "Research во множественном числе: ❌ many researches -> ✅ much research / several studies."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Наука и академические исследования: Science and research» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "110": {
+    "topicId": 110,
+    "topicName": "Phrasal verbs (common)",
+    "level": "B2",
+    "category": "Vocabulary",
+    "russianTitle": "Продвинутые фразовые глаголы (Phrasal verbs common in B2)",
+    "summaryRu": "Фразовые глаголы делового и аналитического общения: weigh up, back down, come up with, call off, phase out, rule out.",
+    "sections": [
+      {
+        "title": "1. Топ глаголов B2",
+        "content": "*come up with an idea (придумать идею), call off a meeting (отменить встречу), rule out a possibility (исключить возможность), phase out legacy tools (постепенно выводить из эксплуатации)*."
+      },
+      {
+        "title": "2. Аналитические глаголы",
+        "content": "*weigh up pros and cons (взвесить за и против), stem from (проистекать из/быть следствием), narrow down options (сузить выбор)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Фразовые глаголы B2",
+        "headers": [
+          "Глагол",
+          "Значение",
+          "Пример в контексте"
+        ],
+        "rows": [
+          [
+            "come up with",
+            "придумать, предложить решение",
+            "Our team came up with an ingenious architecture design."
+          ],
+          [
+            "call off",
+            "отменить запланированное событие",
+            "They had to call off the product launch due to bugs."
+          ],
+          [
+            "rule out",
+            "исключить вариант из рассмотрения",
+            "We cannot rule out the possibility of a market correction."
+          ],
+          [
+            "phase out",
+            "постепенно свернуть / вывести из оборота",
+            "The company is phasing out on-premise servers."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "After weighing up the options, we decided to narrow down our roadmap.",
+        "ru": "Взвесив варианты, мы решили сузить нашу дорожную карту.",
+        "note": "weigh up & narrow down"
+      }
+    ],
+    "commonMistakes": [
+      "Смешение call off (отменить насовсем) и put off / postpone (перенести на более поздний срок)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Продвинутые фразовые глаголы (Phrasal verbs common in B2)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "111": {
+    "topicId": 111,
+    "topicName": "Collocations (make/do/take/get)",
+    "level": "B2",
+    "category": "Vocabulary",
+    "russianTitle": "Устойчивые коллокации с глаголами: Make / Do / Take / Get",
+    "summaryRu": "Коллокации — это устойчивые сочетания: make a decision (НЕ do!), do business, take a risk, get an impression.",
+    "sections": [
+      {
+        "title": "1. MAKE vs DO",
+        "content": "**MAKE** — создание чего-то нового, результат или решение: *make a mistake, make money, make a decision, make an effort, make an appointment*. **DO** — деятельность, работа, обязательства: *do homework, do research, do business, do someone a favor, do your best*."
+      },
+      {
+        "title": "2. TAKE и GET",
+        "content": "**TAKE**: *take a risk, take responsibility, take advantage of, take into account*. **GET**: *get permission, get involved, get the impression*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Коллокации Make / Do / Take / Get",
+        "headers": [
+          "Глагол",
+          "Типичные словосочетания",
+          "Пример предложения"
+        ],
+        "rows": [
+          [
+            "MAKE",
+            "a decision, a mistake, profit, an exception",
+            "We need to make a strategic decision today."
+          ],
+          [
+            "DO",
+            "research, business, your best, harm, a favor",
+            "Our analysts will do thorough market research."
+          ],
+          [
+            "TAKE",
+            "a risk, responsibility, measures, into account",
+            "The leadership must take full responsibility."
+          ],
+          [
+            "GET",
+            "access, permission, in touch, ready",
+            "You need admin rights to get access to the cluster."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "We must take into account user feedback before making any major modifications.",
+        "ru": "Мы обязаны принять во внимание отзывы пользователей перед внесением любых крупных изменений.",
+        "note": "take into account & make modifications"
+      }
+    ],
+    "commonMistakes": [
+      "Do a mistake: ❌ do a mistake -> ✅ make a mistake.",
+      "Make research: ❌ make research -> ✅ do research."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Устойчивые коллокации с глаголами: Make / Do / Take / Get» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "112": {
+    "topicId": 112,
+    "topicName": "Idioms (common)",
+    "level": "B2",
+    "category": "Vocabulary",
+    "russianTitle": "Популярные английские идиомы: Common Idioms",
+    "summaryRu": "Идиомы обогащают речь носителей: cut corners (халявить/экономить на качестве), bite the bullet (стиснуть зубы и сделать), on the same page (на одной волне).",
+    "sections": [
+      {
+        "title": "1. Деловые и повседневные идиомы",
+        "content": "*hit the ground running (сходу включиться в работу), learn the ropes (освоить азы дела), think outside the box (мыслить нестандартно), touch base (кратко связаться)*."
+      },
+      {
+        "title": "2. Идиомы риска и решений",
+        "content": "*bite the bullet (решиться на неприятный шаг), play it by ear (действовать по обстановке), burn the midnight oil (работать допоздна)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Топ-6 идиом уровня B2",
+        "headers": [
+          "Идиома",
+          "Буквальный смысл",
+          "Истинное значение",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "on the same page",
+            "на одной странице",
+            "быть единомышленниками, иметь общее видение",
+            "Let's align so that everyone is on the same page."
+          ],
+          [
+            "cut corners",
+            "срезать углы",
+            "экономить в ущерб качеству / халтурить",
+            "Never cut corners on security protocols."
+          ],
+          [
+            "bite the bullet",
+            "прикусить пулю",
+            "стиснуть зубы и принять неизбежное",
+            "We had to bite the bullet and rewrite the codebase."
+          ],
+          [
+            "touch base",
+            "коснуться базы",
+            "кратко связаться и сверить статус",
+            "Let's touch base next Monday at 10 AM."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "To stay competitive, our engineers are encouraged to think outside the box.",
+        "ru": "Чтобы оставаться конкурентоспособными, нашим инженерам предлагается мыслить нестандартно.",
+        "note": "think outside the box"
+      }
+    ],
+    "commonMistakes": [
+      "Дословный перевод русских фразеологизмов: не переводите «вешать лапшу» буквально; в английском есть эквивалент *pull someone's leg*."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Популярные английские идиомы: Common Idioms» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "113": {
+    "topicId": 113,
+    "topicName": "Debating and persuading",
+    "level": "B2",
+    "category": "Speaking",
+    "russianTitle": "Дебаты и искусство убеждения: Debating and persuading",
+    "summaryRu": "Риторические стратегии убеждения: playing devil's advocate, conceding points, refuting arguments, persuasive hooks.",
+    "sections": [
+      {
+        "title": "1. Структура убедительного аргумента (A-R-E-L)",
+        "content": "**Assertion** (Тезис) -> **Reasoning** (Обоснование) -> **Evidence** (Факты и цифры) -> **Link** (Связка с главной целью)."
+      },
+      {
+        "title": "2. Дипломатичное опровержение",
+        "content": "*While I concede that initial costs are high, the long-term ROI is undeniable.* *I see the logic behind your claim, but the statistics indicate otherwise.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Риторические клише дебатов",
+        "headers": [
+          "Цель",
+          "Английская фраза",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Смягченное согласие с частью довода",
+            "I concede that point, however...",
+            "Я признаю этот пункт, однако..."
+          ],
+          [
+            "Опровержение контраргумента",
+            "That argument overlooks the fact that...",
+            "Этот аргумент упускает из виду тот факт, что..."
+          ],
+          [
+            "Адвокат дьявола",
+            "Playing devil's advocate for a moment...",
+            "Если выступить в роли адвоката дьявола на секунду..."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "While I acknowledge your concerns about latency, the benchmark tests prove the new cache layer is faster.",
+        "ru": "Хотя я признаю ваши опасения по поводу задержек, тесты производительности доказывают, что новый слой кэширования работает быстрее.",
+        "note": "Дипломатичное убеждение"
+      }
+    ],
+    "commonMistakes": [
+      "Агрессивный перебив собеседника: используйте вводные вежливые конструкции *If I may add..., May I address this point?*."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Дебаты и искусство убеждения: Debating and persuading» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "114": {
+    "topicId": 114,
+    "topicName": "Speculating about the future",
+    "level": "B2",
+    "category": "Speaking",
+    "russianTitle": "Прогнозы и гипотезы о будущем: Speculating about the future",
+    "summaryRu": "Конструкции предсказаний с разной степенью вероятности: is bound to, is likely / unlikely to, on the verge of, by all accounts.",
+    "sections": [
+      {
+        "title": "1. Градация вероятности будущего",
+        "content": "100% неизбежность: **be bound to + V1** (*This system is bound to succeed*). 75% высокая вероятность: **be likely to + V1** (*Prices are likely to drop*). 25% маловероятно: **be unlikely to + V1** (*He is unlikely to agree*)."
+      },
+      {
+        "title": "2. На грани события",
+        "content": "**be on the verge of / on the brink of + V-ing/Noun** (*Scientists are on the verge of a major discovery*)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Модели вероятности будущего",
+        "headers": [
+          "Конструкция",
+          "Вероятность",
+          "Пример предложения",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "be bound to + V1",
+            "99% неизбежно",
+            "AI is bound to transform software engineering.",
+            "ИИ неизбежно трансформирует разработку ПО."
+          ],
+          [
+            "be likely to + V1",
+            "75% вероятно",
+            "The interest rates are likely to remain stable.",
+            "Процентные ставки, скорее всего, останутся стабильными."
+          ],
+          [
+            "be unlikely to + V1",
+            "25% маловероятно",
+            "We are unlikely to encounter any downtime.",
+            "Мы вряд ли столкнемся с простоем системы."
+          ],
+          [
+            "on the verge of + -ing",
+            "Событие вот-вот наступит",
+            "They are on the verge of closing the deal.",
+            "Они на грани закрытия сделки."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Autonomous vehicles are bound to become mainstream within the next decade.",
+        "ru": "Автономные автомобили неизбежно станут массовыми в течение следующего десятилетия.",
+        "note": "is bound to become"
+      }
+    ],
+    "commonMistakes": [
+      "It is likely that he will vs He is likely to: модель *He is likely to come* считается более естественной и стильной в B2."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Прогнозы и гипотезы о будущем: Speculating about the future» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "115": {
+    "topicId": 115,
+    "topicName": "Describing trends and data",
+    "level": "B2",
+    "category": "Speaking",
+    "russianTitle": "Описание графиков, тенденций и данных: Describing trends and data",
+    "summaryRu": "Аналитический язык отчетов: soar, plummet, fluctuate, level off, dramatic increase, steady decline.",
+    "sections": [
+      {
+        "title": "1. Глаголы динамики",
+        "content": "Резкий рост: *soar, skyrocket, surge*. Резкое падение: *plummet, plunge, drop sharply*. Колебания: *fluctuate*. Стабилизация: *level off, plateau*."
+      },
+      {
+        "title": "2. Наречия степени изменения",
+        "content": "*substantially, dramatically, steadily, marginally, noticeably*. Например: *Sales increased steadily by 15%.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Лексика аналитики и графиков",
+        "headers": [
+          "Направление тренда",
+          "Глаголы (Verbs)",
+          "Существительные (Nouns)",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "Резкий рост (📈)",
+            "soar, surge, peak at",
+            "a sharp increase, a surge",
+            "User acquisition soared by 40%."
+          ],
+          [
+            "Резкий спад (📉)",
+            "plummet, plunge, drop",
+            "a steep decline, a slump",
+            "Latency plummeted after optimization."
+          ],
+          [
+            "Колебания (〰️)",
+            "fluctuate between X and Y",
+            "fluctuations",
+            "Currency rates fluctuated throughout May."
+          ],
+          [
+            "Стабилизация (➡️)",
+            "level off, reach a plateau",
+            "a period of stability",
+            "Traffic leveled off at 1M monthly visits."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Revenue grew steadily in Q3 before reaching a plateau in November.",
+        "ru": "Выручка стабильно росла в 3-м квартале, прежде чем вышла на плато в ноябре.",
+        "note": "grew steadily & reached a plateau"
+      }
+    ],
+    "commonMistakes": [
+      "Предлоги с цифрами: *increase **by** 20%* (изменилось на 20%), *increase **from** 100 **to** 120* (с 100 до 120)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Описание графиков, тенденций и данных: Describing trends and data» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "116": {
+    "topicId": 116,
+    "topicName": "Formal vs informal register",
+    "level": "B2",
+    "category": "Speaking",
+    "russianTitle": "Официальный и неформальный регистры речи: Formal vs informal register",
+    "summaryRu": "Стилистическая трансформация текста: разговорный сленг и сокращения vs деловой академический стиль переписки.",
+    "sections": [
+      {
+        "title": "1. Сравнение лексических пар",
+        "content": "*ask for -> request*, *tell -> inform*, *help -> assist*, *buy -> purchase*, *check -> verify*, *fix -> resolve*, *get -> obtain/receive*."
+      },
+      {
+        "title": "2. Правила официального письма",
+        "content": "В формальном регистре: НИКАКИХ сокращений (write *do not*, not *don't*), больше пассивных конструкций (*The issue has been resolved*), использование формальных связок (*Furthermore, Consequently*)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Регистры: Formal vs Informal",
+        "headers": [
+          "Смысл",
+          "Неформальный (Chat / Slack)",
+          "Официальный (Email / Report)"
+        ],
+        "rows": [
+          [
+            "Начать письмо",
+            "Hey guys! / Hi team,",
+            "Dear Mr. Davis, / Dear colleagues,"
+          ],
+          [
+            "Сообщить о баге",
+            "We messed up and broke the build.",
+            "We regret to inform you of a technical malfunction."
+          ],
+          [
+            "Запросить инфу",
+            "Drop me the details ASAP.",
+            "Could you kindly provide the relevant details at your earliest convenience?"
+          ],
+          [
+            "Завершение",
+            "Cheers! / Catch you later!",
+            "Sincerely yours, / Best regards,"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Informal: We got your email and will fix it soon. -> Formal: We have received your correspondence and will rectify the issue promptly.",
+        "ru": "Мы получили ваше письмо и оперативно устраним возникшую проблему.",
+        "note": "Трансформация регистра"
+      }
+    ],
+    "commonMistakes": [
+      "Использование сленга и сокращений в официальных письмах руководству или клиентам: ❌ wanna, gonna, thanks a bunch."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Официальный и неформальный регистры речи: Formal vs informal register» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "117": {
+    "topicId": 117,
+    "topicName": "Expressing hypothetical situations",
+    "level": "B2",
+    "category": "Speaking",
+    "russianTitle": "Гипотетические сценарии и предположения: Expressing hypothetical situations",
+    "summaryRu": "Продвинутые конструкции гипотез: Suppose / Supposing, What if, Imagine, Provided that, As long as, In the event of.",
+    "sections": [
+      {
+        "title": "1. Suppose / Supposing / What if",
+        "content": "Используются для моделирования возможных ситуаций. Если ситуация гипотетическая в настоящем — глагол ставится в Past Simple: *Supposing we lost the contract, what would we do? (Предположим, мы потеряли бы контракт, что бы мы делали?)*"
+      },
+      {
+        "title": "2. Provided that / As long as (При условии что)",
+        "content": "*We can launch next week **provided that** all tests pass green (= If and only if).*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Гипотетические конструкции",
+        "headers": [
+          "Конструкция",
+          "Значение",
+          "Пример предложения",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Supposing (that)...",
+            "Предположим, что...",
+            "Supposing you had unlimited budget, what would you build?",
+            "Предположим, у тебя был бы неограниченный бюджет, что бы ты построил?"
+          ],
+          [
+            "Provided that / As long as",
+            "При условии, если...",
+            "We will sign the SLA provided that uptime is guaranteed.",
+            "Мы подпишем соглашение при условии гарантии аптайма."
+          ],
+          [
+            "In the event of...",
+            "В случае наступления...",
+            "In the event of a power outage, the generator starts.",
+            "В случае отключения питания запустится генератор."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Supposing we migrated to Kubernetes, how much engineering overhead would that reduce?",
+        "ru": "Предположим, мы мигрировали бы на Kubernetes, насколько снизились бы трудозатраты инженеров?",
+        "note": "Supposing + Past Simple"
+      }
+    ],
+    "commonMistakes": [
+      "Использование will после provided that: ❌ provided that you will come -> ✅ provided that you come."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Гипотетические сценарии и предположения: Expressing hypothetical situations» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "11256": {
+    "topicId": 11256,
+    "topicName": "Three-part phrasal verbs (look forward to, run out of, get rid of)",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Трехсоставные фразовые глаголы (look forward to, run out of, get rid of, put up with)",
+    "summaryRu": "Трехсоставные фразовые глаголы состоят из глагола и двух предлогов. Они НИКОГДА не разделяются дополнением.",
+    "sections": [
+      {
+        "title": "1. Золотой топ B2",
+        "content": "*look forward to (с нетерпением ждать + V-ing!), run out of (заканчиваться: we ran out of memory), get rid of (избавляться от), put up with (мириться/терпеть), cut down on (сокращать потребление), catch up with (наверстывать/догонять)*."
+      },
+      {
+        "title": "2. Герундий после Look forward to",
+        "content": "Поскольку *to* — это предлог, после него идет **существительное или -ing**: *I look forward to hearing from you (не hear!).*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Топ трехсоставных глаголов",
+        "headers": [
+          "Глагол",
+          "Значение",
+          "Пример предложения",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "look forward to",
+            "с нетерпением ждать (+ -ing!)",
+            "I look forward to working with you.",
+            "С нетерпением жду совместной работы."
+          ],
+          [
+            "run out of",
+            "исчерпать запас чего-то",
+            "We have run out of time on this agenda item.",
+            "У нас закончилось время по этому пункту."
+          ],
+          [
+            "get rid of",
+            "избавиться от чего-то ненужного",
+            "We need to get rid of legacy code.",
+            "Нам нужно избавиться от легаси-кода."
+          ],
+          [
+            "put up with",
+            "терпеть, мириться с чем-то неприятным",
+            "I cannot put up with this noise any longer.",
+            "Я больше не могу терпеть этот шум."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "We decided to cut down on unnecessary meetings.",
+        "ru": "Мы решили сократить количество ненужных встреч.",
+        "note": "cut down on"
+      }
+    ],
+    "commonMistakes": [
+      "Инфинитив после look forward to: ❌ I look forward to see you -> ✅ I look forward to seeing you."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Трехсоставные фразовые глаголы (look forward to, run out of, get rid of, put up with)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "11257": {
+    "topicId": 11257,
+    "topicName": "Causative structures (have/get something done)",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Продвинутые каузативные структуры: Have someone do vs Get someone to do vs Make / Let",
+    "summaryRu": "Различия каузативных глаголов: HAVE someone do (делегировать без to), GET someone to do (уговорить с to), MAKE someone do (заставить), LET someone do (разрешить).",
+    "sections": [
+      {
+        "title": "1. Разница между Have, Get, Make, Let",
+        "content": "1) **HAVE + лицо + V1 (без to)**: *I had the developer fix the bug (Я поручил разработчику исправить баг)*. 2) **GET + лицо + TO V1 (с to!)**: *I got him to agree (Я убедил его согласиться)*. 3) **MAKE + лицо + V1 (без to)**: *He made me laugh (Он заставил меня смеяться)*. 4) **LET + лицо + V1 (без to)**: *Let me know (Дай мне знать)*."
+      },
+      {
+        "title": "2. Каузатив в пассивном залоге",
+        "content": "В пассивном залоге глагол MAKE требует частицу TO: *I was made to wait for an hour*. Глагол LET в пассиве заменяется на **be allowed to**: *We were allowed to leave early*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Каузативные конструкции с лицом",
+        "headers": [
+          "Конструкция",
+          "Оттенок смысла",
+          "Частица TO",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "HAVE someone DO",
+            "Поручить / Делегировать",
+            "БЕЗ TO",
+            "The manager had the team prepare the report."
+          ],
+          [
+            "GET someone TO DO",
+            "Уговорить / Убедить",
+            "С ЧАСТИЦЕЙ TO",
+            "She got the client to sign the deal."
+          ],
+          [
+            "MAKE someone DO",
+            "Принудить / Заставить",
+            "БЕЗ TO",
+            "The error made the server restart."
+          ],
+          [
+            "LET someone DO",
+            "Позволить / Разрешить",
+            "БЕЗ TO",
+            "Please let me finish my sentence."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I will get the designer to update the mockups by tomorrow.",
+        "ru": "Я договорюсь с дизайнером, чтобы он обновил макеты к завтрашнему дню.",
+        "note": "get + designer + to update"
+      }
+    ],
+    "commonMistakes": [
+      "To после make / let: ❌ He made me to do it -> ✅ He made me do it.",
+      "Пропуск to после get: ❌ I got him do it -> ✅ I got him to do it."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Продвинутые каузативные структуры: Have someone do vs Get someone to do vs Make / Let» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "11258": {
+    "topicId": 11258,
+    "topicName": "Mixed conditionals & inverted conditionals (Had I known, Were you to)",
+    "level": "B2",
+    "category": "Grammar",
+    "russianTitle": "Инверсия в условных предложениях (Had I known, Were you to, Should you need)",
+    "summaryRu": "Формальная литературная и деловая инверсия в условных предложениях без слова IF: Had I known, Were I you, Should you require assistance.",
+    "sections": [
+      {
+        "title": "1. Инверсия для 1-го, 2-го и 3-го типов",
+        "content": "1) **1st Condition**: *If you need -> **Should you need** any help*. 2) **2nd Condition**: *If I were -> **Were I** in your shoes*. 3) **3rd Condition**: *If I had known -> **Had I known** about the issue*."
+      },
+      {
+        "title": "2. Отрицания при инверсии",
+        "content": "В отрицательных инверсиях частица **not** ставится ПОСЛЕ подлежащего (сокращения wouldn't/hadn't не используются): *Had we **not** taken a taxi, we would have missed the train.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Инвертированные условные конструкции",
+        "headers": [
+          "Тип Condition",
+          "Обычная форма с IF",
+          "Инверсия высокого стиля",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "1st Conditional (Should)",
+            "If you have any questions...",
+            "Should you have any questions, feel free to ask.",
+            "Если у вас возникнут вопросы, обращайтесь."
+          ],
+          [
+            "2nd Conditional (Were)",
+            "If we were to accept the offer...",
+            "Were we to accept the offer, we would grow.",
+            "Если бы мы приняли это предложение..."
+          ],
+          [
+            "3rd Conditional (Had)",
+            "If I had realized the risk...",
+            "Had I realized the risk, I would have declined.",
+            "Если бы я осознавал риск тогда..."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Should you experience any issues with the build, reach out to DevOps.",
+        "ru": "Если у вас возникнут проблемы со сборкой, свяжитесь с DevOps.",
+        "note": "Should you experience..."
+      }
+    ],
+    "commonMistakes": [
+      "Одновременное использование if и инверсии: ❌ If had I known -> ✅ Had I known."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Инверсия в условных предложениях (Had I known, Were you to, Should you need)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  }
+}

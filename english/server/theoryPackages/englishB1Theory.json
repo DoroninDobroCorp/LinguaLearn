@@ -1,0 +1,2116 @@
+{
+  "61": {
+    "topicId": 61,
+    "topicName": "Present Perfect (experience)",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Present Perfect: Жизненный опыт и результаты (have/has + V3)",
+    "summaryRu": "Present Perfect связывает прошлое действие с настоящим моментом: жизненный опыт (бывал/не бывал), результат к текущей секунде или действие за незавершенный период.",
+    "sections": [
+      {
+        "title": "1. Формула Present Perfect",
+        "content": "Формула: **have / has + 3-я форма глагола (V3 / -ed)**. *Have* (с I, you, we, they), *has* (с he, she, it). Например: *I have seen this movie. She has visited London.*"
+      },
+      {
+        "title": "2. Маркеры времени",
+        "content": "Слова-маркеры: **ever** (когда-либо в вопросах), **never** (никогда), **already** (уже в утверждениях), **yet** (уже в вопросах, еще не в отрицаниях), **just** (только что)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Маркеры Present Perfect",
+        "headers": [
+          "Маркер",
+          "Значение",
+          "Позиция",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "ever",
+            "когда-либо",
+            "перед V3 в вопросе",
+            "Have you ever been to Japan?"
+          ],
+          [
+            "never",
+            "никогда",
+            "перед V3",
+            "I have never eaten oysters."
+          ],
+          [
+            "already",
+            "уже",
+            "перед V3",
+            "I have already finished the task."
+          ],
+          [
+            "yet",
+            "еще не / уже",
+            "в конце предложения",
+            "I haven't received the email yet."
+          ],
+          [
+            "just",
+            "только что",
+            "перед V3",
+            "He has just left the office."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Have you ever worked in a remote team?",
+        "ru": "Ты когда-либо работал в удаленной команде?",
+        "note": "Жизненный опыт (ever)"
+      },
+      {
+        "en": "I have already sent the report.",
+        "ru": "Я уже отправил отчет.",
+        "note": "Результат в настоящем"
+      }
+    ],
+    "commonMistakes": [
+      "Указание точного времени с Present Perfect: ❌ I have seen him yesterday -> ✅ I saw him yesterday.",
+      "Забывание has в 3-м лице: ❌ She have done it -> ✅ She has done it."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Present Perfect: Жизненный опыт и результаты (have/has + V3)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "62": {
+    "topicId": 62,
+    "topicName": "Present Perfect vs Past Simple",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Контраст: Present Perfect против Past Simple",
+    "summaryRu": "Главная дилемма английского языка: Past Simple — для событий с точным временем в закрытом прошлом (yesterday, in 2021). Present Perfect — для опыта и результатов в связи с НАСТОЯЩИМ (без точной даты).",
+    "sections": [
+      {
+        "title": "1. Сравнение контекстов",
+        "content": "Если есть маркеры точного времени (*yesterday, last week, ago, in 2018*) — ВСЕГДА **Past Simple**. Если важен факт свершения, результат или опыт (*ever, never, already, yet, so far*) — **Present Perfect**."
+      },
+      {
+        "title": "2. Диалоги: вопрос Present Perfect -> детали в Past Simple",
+        "content": "Типичный паттерн живой речи: *— Have you ever been to Paris? (Present Perfect) — Yes, I went there last summer with my family (Past Simple).*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Сравнительная таблица времен",
+        "headers": [
+          "Параметр",
+          "Present Perfect",
+          "Past Simple"
+        ],
+        "rows": [
+          [
+            "Фокус",
+            "Результат сейчас / опыт",
+            "Факт в прошлом / точное время"
+          ],
+          [
+            "Маркеры времени",
+            "ever, never, already, yet, just, recently",
+            "yesterday, last month, in 2020, 2 days ago, when"
+          ],
+          [
+            "Период времени",
+            "Незавершенный (today, this year)",
+            "Завершенный (yesterday, last year)"
+          ],
+          [
+            "Пример",
+            "I have lost my key (I can't enter now).",
+            "I lost my key yesterday (found it later)."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I have visited Spain twice, but I went to Madrid in 2022.",
+        "ru": "Я бывал в Испании дважды, но в Мадрид ездил в 2022 году.",
+        "note": "Опыт (Present Perfect) + факт с датой (Past Simple)"
+      }
+    ],
+    "commonMistakes": [
+      "Present Perfect с датой/yesterday: ❌ I have arrived yesterday -> ✅ I arrived yesterday.",
+      "Past Simple со словом never в значении опыта: лучше сказать *I have never tried this*."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Контраст: Present Perfect против Past Simple» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "63": {
+    "topicId": 63,
+    "topicName": "Present Perfect Continuous",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Present Perfect Continuous: Длительность действия (have/has been + V-ing)",
+    "summaryRu": "Present Perfect Continuous выражает действие, которое началось в прошлом и длится до сих пор (с предлогами FOR / SINCE), или только что завершилось с очевидным результатом.",
+    "sections": [
+      {
+        "title": "1. Формула и предлоги FOR / SINCE",
+        "content": "Формула: **have / has been + V-ing**. **FOR** указывает на длительность периода (*for two hours, for five years*). **SINCE** указывает на начальную точку отсчета (*since 9 AM, since Monday, since 2020*)."
+      },
+      {
+        "title": "2. Сравнение с Present Perfect Simple",
+        "content": "Present Perfect Continuous подчеркивает сам **процесс и длительность** (*I have been coding all morning*). Present Perfect Simple подчеркивает **факт и завершенный результат** (*I have written three functions*)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Present Perfect Continuous vs Simple",
+        "headers": [
+          "Время",
+          "Акцент",
+          "Формула",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "Present Perfect Continuous",
+            "Длительность процесса (Как долго?)",
+            "have/has been + V-ing",
+            "I have been waiting for two hours."
+          ],
+          [
+            "Present Perfect Simple",
+            "Результат / Количество (Сколько сделано?)",
+            "have/has + V3",
+            "I have read 50 pages today."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I have been working at this company since 2021.",
+        "ru": "Я работаю в этой компании с 2021 года (и продолжаю работать).",
+        "note": "have been working + since"
+      },
+      {
+        "en": "You look tired. — Yes, I have been running.",
+        "ru": "Ты выглядишь уставшим. — Да, я бегал.",
+        "note": "Очевидный результат процесса"
+      }
+    ],
+    "commonMistakes": [
+      "Использование Present Simple вместо Continuous со словом since: ❌ I work here since 2020 -> ✅ I have been working here since 2020.",
+      "Использование глаголов состояния в Continuous: ❌ I have been knowing him -> ✅ I have known him."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Present Perfect Continuous: Длительность действия (have/has been + V-ing)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "64": {
+    "topicId": 64,
+    "topicName": "Past Continuous vs Past Simple",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Past Continuous vs Past Simple: Фоновые действия и прерывания",
+    "summaryRu": "Past Continuous описывает длинное фоновое действие, которое происходило в определенный момент прошлого. Past Simple описывает краткое событие, которое прервало этот фон.",
+    "sections": [
+      {
+        "title": "1. Союзы When и While",
+        "content": "После **While** обычно ставится Past Continuous (*While I was sleeping...*). После **When** — краткое действие в Past Simple (*...when the alarm went off*)."
+      },
+      {
+        "title": "2. Одновременные длительные действия",
+        "content": "Два параллельных процесса в прошлом: *While I was cooking, my wife was setting the table.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Комбинация времен в прошлом",
+        "headers": [
+          "Тип действия",
+          "Время",
+          "Союз",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "Длинный фон (процесс)",
+            "Past Continuous",
+            "While / As",
+            "While we were driving to the airport..."
+          ],
+          [
+            "Краткое прерывание",
+            "Past Simple",
+            "When",
+            "...the car suddenly broke down."
+          ],
+          [
+            "Последовательность событий",
+            "Past Simple + Past Simple",
+            "First, then",
+            "He opened the door and walked inside."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I was watching TV when the lights went out.",
+        "ru": "Я смотрел телевизор, когда внезапно погас свет.",
+        "note": "Фон (was watching) + прерывание (went out)"
+      }
+    ],
+    "commonMistakes": [
+      "Past Continuous для последовательных действий: ❌ He was entering the room and was sitting down -> ✅ He entered the room and sat down."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Past Continuous vs Past Simple: Фоновые действия и прерывания» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "65": {
+    "topicId": 65,
+    "topicName": "Used to / Would (past habits)",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Привычки в прошлом: Used to и Would (Past habits)",
+    "summaryRu": "Конструкции USED TO и WOULD используются для выражения регулярных привычек и состояний в прошлом, которых больше нет в настоящем («раньше я делал...»).",
+    "sections": [
+      {
+        "title": "1. Used to для привычек и состояний",
+        "content": "Формула: **used to + V1**. Подходит и для повторяющихся действий (*I used to play tennis*), и для долговременных состояний (*I used to live in Paris, I used to have long hair*). Отрицание: *I didn't use to...*"
+      },
+      {
+        "title": "2. Would только для повторяющихся действий",
+        "content": "**Would + V1** используется ТОЛЬКО для повторяющихся действий в прошлом (*Every summer we would go to the beach*). С глаголами состояния (live, know, be, have) would НЕ употребляется!"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Used to vs Would",
+        "headers": [
+          "Конструкция",
+          "Повторяющиеся действия",
+          "Состояния (be, live, have)",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "used to + V1",
+            "Да (регулярно делал)",
+            "Да (раньше жил/был)",
+            "I used to live in London."
+          ],
+          [
+            "would + V1",
+            "Да (часто делал)",
+            "НЕТ (нельзя с live, be)",
+            "We would swim in the river every day."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I used to smoke, but I quit five years ago.",
+        "ru": "Раньше я курил, но бросил пять лет назад.",
+        "note": "Привычка в прошлом (used to)"
+      },
+      {
+        "en": "My grandmother would always bake cookies on Sundays.",
+        "ru": "Моя бабушка всегда пекла печенье по воскресеньям.",
+        "note": "Повторяющееся действие (would) "
+      }
+    ],
+    "commonMistakes": [
+      "Использование would с глаголами состояния: ❌ I would live in Rome -> ✅ I used to live in Rome.",
+      "Добавление -d в отрицании: ❌ didn't used to -> ✅ didn't use to."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Привычки в прошлом: Used to и Would (Past habits)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "66": {
+    "topicId": 66,
+    "topicName": "First Conditional (if + will)",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "First Conditional: Первый тип условных предложений (Реальное будущее)",
+    "summaryRu": "First Conditional выражает реальные, вероятные условия в будущем. Формула: If + Present Simple, will + V1.",
+    "sections": [
+      {
+        "title": "1. Золотое правило: НИКАКОГО WILL В ЧАСТИ С IF!",
+        "content": "В условной части (после IF или WHEN) будущее время передается через **Present Simple**, а WILL ставится только в главной части: *If it rains tomorrow, we will stay at home* (не If it will rain!)."
+      },
+      {
+        "title": "2. Союзы When, Unless, As soon as",
+        "content": "**Unless** = if not (если не): *Unless you hurry, we will miss the train* (= If you don't hurry). **As soon as** = как только: *I will call you as soon as I arrive*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Структура First Conditional",
+        "headers": [
+          "Условная часть (IF)",
+          "Главная часть (Результат)",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "If + Present Simple",
+            "will + V1 (Future Simple)",
+            "If you study hard, you will pass the exam."
+          ],
+          [
+            "Unless + Present Simple",
+            "will + V1",
+            "Unless you call, I won't know."
+          ],
+          [
+            "When + Present Simple",
+            "will + V1",
+            "When the meeting ends, I will text you."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "If we finish the sprint today, we will deploy tomorrow.",
+        "ru": "Если мы закончим спринт сегодня, мы задеплоим завтра.",
+        "note": "Реальное будущее"
+      },
+      {
+        "en": "I will send you the document as soon as it is ready.",
+        "ru": "Я отправлю тебе документ, как только он будет готов.",
+        "note": "As soon as + Present Simple"
+      }
+    ],
+    "commonMistakes": [
+      "Will после if: ❌ If you will come -> ✅ If you come.",
+      "Забывание -s для he/she/it в части if: ❌ If he come -> ✅ If he comes."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «First Conditional: Первый тип условных предложений (Реальное будущее)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "67": {
+    "topicId": 67,
+    "topicName": "Second Conditional (if + would)",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Second Conditional: Второй тип условных предложений (Воображаемое настоящее)",
+    "summaryRu": "Second Conditional описывает маловероятные, нереальные или воображаемые ситуации в настоящем/будущем («Если бы... то я бы...»). Формула: If + Past Simple, would + V1.",
+    "sections": [
+      {
+        "title": "1. Образование и формула",
+        "content": "Формула: **If + Past Simple, would + V1**. Например: *If I had a million dollars, I would travel around the world* (Но у меня нет миллиона — это мечта)."
+      },
+      {
+        "title": "2. Конструкция \"If I were you\" (Совет)",
+        "content": "В условных предложениях для всех лиц традиционно используется форма **WERE**: *If I were you, I would accept the job offer (На твоем месте я бы принял предложение).*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "First vs Second Conditional",
+        "headers": [
+          "Тип",
+          "Смысл",
+          "Формула",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "1st Conditional",
+            "Реальное будущее (50-90% вероятность)",
+            "If + Present Simple, will + V1",
+            "If I have time tomorrow, I will call you."
+          ],
+          [
+            "2nd Conditional",
+            "Воображаемое настоящее (мечта / совет)",
+            "If + Past Simple, would + V1",
+            "If I had more time, I would learn Spanish."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "If I had his phone number, I would call him right now.",
+        "ru": "Если бы у меня был его номер, я бы позвонил ему прямо сейчас.",
+        "note": "Воображаемая ситуация"
+      },
+      {
+        "en": "If I were you, I would take a few days off.",
+        "ru": "На твоем месте я бы взял пару дней отдыха.",
+        "note": "Совет (If I were you)"
+      }
+    ],
+    "commonMistakes": [
+      "Would в части с if: ❌ If I would know -> ✅ If I knew.",
+      "Использование will во втором типе: ❌ If I had money, I will buy -> ✅ I would buy."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Second Conditional: Второй тип условных предложений (Воображаемое настоящее)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "68": {
+    "topicId": 68,
+    "topicName": "Passive voice (present & past)",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Пассивный залог: Present & Past Passive (am/is/are/was/were + V3)",
+    "summaryRu": "Пассивный залог используется, когда важно само действие или его объект, а исполнитель неизвестен, очевиден или не имеет значения: The house was built in 1990.",
+    "sections": [
+      {
+        "title": "1. Образование пассивного залога",
+        "content": "Формула: **be (в нужном времени) + 3-я форма глагола (V3 / -ed)**. В Present Simple: *am / is / are + V3* (*English is spoken worldwide*). В Past Simple: *was / were + V3* (*The file was deleted yesterday*)."
+      },
+      {
+        "title": "2. Предлог BY для указания автора",
+        "content": "Если необходимо назвать автора действия, в конце ставится предлог **by**: *The novel was written by George Orwell*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Present vs Past Passive",
+        "headers": [
+          "Время",
+          "Активный залог",
+          "Пассивный залог",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Present Simple",
+            "They make these cars in Germany.",
+            "These cars are made in Germany.",
+            "Эти машины производятся в Германии."
+          ],
+          [
+            "Past Simple",
+            "Alexander Bell invented the telephone.",
+            "The telephone was invented by Bell.",
+            "Телефон был изобретен Беллом."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Millions of emails are sent every minute.",
+        "ru": "Миллионы писем отправляются каждую минуту.",
+        "note": "Present Passive (are sent)"
+      },
+      {
+        "en": "The system was updated last night.",
+        "ru": "Система была обновлена прошлой ночью.",
+        "note": "Past Passive (was updated)"
+      }
+    ],
+    "commonMistakes": [
+      "Пропуск глагола be в пассиве: ❌ The bridge built in 2000 -> ✅ The bridge was built in 2000.",
+      "Использование 2-й формы вместо 3-й: ❌ was wrote -> ✅ was written."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Пассивный залог: Present & Past Passive (am/is/are/was/were + V3)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "69": {
+    "topicId": 69,
+    "topicName": "Relative clauses (who/which/that)",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Определительные придаточные предложения: Relative clauses (who/which/that)",
+    "summaryRu": "Relative clauses соединяют два предложения и уточняют, о каком именно человеке, предмете или месте идет речь.",
+    "sections": [
+      {
+        "title": "1. Относительные местоимения",
+        "content": "**WHO** — о людях (*The man who called you*). **WHICH** — о предметах и животных (*The laptop which I bought*). **THAT** — универсально о людях и предметах в разговорной речи. **WHOSE** — чей/чья (*The girl whose car was stolen*). **WHERE** — где/куда (*The city where I was born*)."
+      },
+      {
+        "title": "2. Когда можно опускать who / which / that",
+        "content": "Если местоимение является дополнением (после него идет подлежащее + глагол), его можно спокойно опустить: *The movie (that) I watched yesterday was amazing.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Относительные местоимения",
+        "headers": [
+          "Местоимение",
+          "Относится к",
+          "Пример предложения",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "who",
+            "людям",
+            "The engineer who fixed the server is brilliant.",
+            "Инженер, который починил сервер, великолепен."
+          ],
+          [
+            "which",
+            "предметам / животным",
+            "This is the book which won the prize.",
+            "Это книга, которая выиграла премию."
+          ],
+          [
+            "that",
+            "людям и предметам",
+            "I like the music that you recommended.",
+            "Мне нравится музыка, которую ты порекомендовал."
+          ],
+          [
+            "whose",
+            "принадлежности (чей?)",
+            "A colleague whose laptop broke asked for help.",
+            "Коллега, чей ноутбук сломался, попросил о помощи."
+          ],
+          [
+            "where",
+            "местам (где)",
+            "This is the cafe where we met.",
+            "Это кафе, где мы познакомились."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The candidate who had the most experience got the job.",
+        "ru": "Кандидат, у которого было больше всего опыта, получил работу.",
+        "note": "who + о людях"
+      },
+      {
+        "en": "I lost the keys that you gave me yesterday.",
+        "ru": "Я потерял ключи, которые ты дал мне вчера.",
+        "note": "that + о предметах"
+      }
+    ],
+    "commonMistakes": [
+      "Использование what вместо that/which: ❌ The car what I bought -> ✅ The car that I bought.",
+      "Использование who для предметов: ❌ The phone who is on the desk -> ✅ The phone which is on the desk."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Определительные придаточные предложения: Relative clauses (who/which/that)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "70": {
+    "topicId": 70,
+    "topicName": "Reported speech (basic)",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Косвенная речь: Базовые правила согласования (Reported Speech)",
+    "summaryRu": "Когда мы передаем чужие слова (He said that...), времена сдвигаются на шаг назад в прошлое (Backshift of tenses): Present -> Past.",
+    "sections": [
+      {
+        "title": "1. Сдвиг времен (Backshift)",
+        "content": "Если вводный глагол стоит в прошедшем времени (*He said / She told me*): *Present Simple -> Past Simple* (*\"I work\" -> He said he worked*), *Present Continuous -> Past Continuous*, *will -> would*, *can -> could*."
+      },
+      {
+        "title": "2. Разница между SAY и TELL",
+        "content": "**SAY** употребляется без указания адресата (*He said that...*). **TELL** обязательно требует адресата (*He told ME that...* — без предлога to!)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Таблица сдвига времен",
+        "headers": [
+          "Прямая речь (Direct)",
+          "Косвенная речь (Reported)",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "Present Simple (I like)",
+            "Past Simple (liked)",
+            "He said he liked jazz."
+          ],
+          [
+            "Present Continuous (I am working)",
+            "Past Continuous (was working)",
+            "She said she was working."
+          ],
+          [
+            "will (I will call)",
+            "would (would call)",
+            "He said he would call."
+          ],
+          [
+            "can (I can help)",
+            "could (could help)",
+            "She said she could help."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Anna said that she was very busy.",
+        "ru": "Анна сказала, что она очень занята.",
+        "note": "is -> was"
+      },
+      {
+        "en": "He told me that he would arrive on Friday.",
+        "ru": "Он сказал мне, что приедет в пятницу.",
+        "note": "told me + would"
+      }
+    ],
+    "commonMistakes": [
+      "To после tell: ❌ He told to me -> ✅ He told me.",
+      "Забывание сдвига времени: ❌ He said he is busy -> ✅ He said he was busy."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Косвенная речь: Базовые правила согласования (Reported Speech)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "71": {
+    "topicId": 71,
+    "topicName": "Gerund vs Infinitive",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Герундий против Инфинитива: Gerund vs Infinitive (doing vs to do)",
+    "summaryRu": "После одних глаголов в английском ставится форма на -ing (герундий), а после других — инфинитив с частицей to (to do).",
+    "sections": [
+      {
+        "title": "1. Глаголы с герундием (-ing)",
+        "content": "После глаголов: **enjoy, avoid, mind, suggest, finish, keep, practice, admit, recommend, consider** + **V-ing** (*I enjoy reading, She suggested going for a walk*). А также после ВСЕХ предлогов: *interested in learning, good at coding*."
+      },
+      {
+        "title": "2. Глаголы с инфинитивом (to + V1)",
+        "content": "После глаголов: **decide, want, hope, promise, agree, refuse, plan, offer, need, afford** + **to V1** (*I decided to quit, She promised to help*)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Герундий vs Инфинитив",
+        "headers": [
+          "Группа",
+          "Ключевые глаголы",
+          "Пример предложения",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Герундий (-ing)",
+            "enjoy, avoid, finish, suggest, mind",
+            "I avoid driving in rush hour.",
+            "Я избегаю вождения в час пик."
+          ],
+          [
+            "Инфинитив (to + V)",
+            "decide, plan, hope, want, offer",
+            "We decided to launch the feature.",
+            "Мы решили запустить эту функцию."
+          ],
+          [
+            "После предлогов",
+            "in, on, at, about, without, before",
+            "He left without saying goodbye.",
+            "Он ушел, не попрощавшись."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I am looking forward to meeting you next week.",
+        "ru": "Я с нетерпением жду встречи с вами на следующей неделе.",
+        "note": "look forward to + -ing (to здесь предлог!)"
+      },
+      {
+        "en": "She refused to sign the contract.",
+        "ru": "Она отказалась подписывать контракт.",
+        "note": "refuse + to V1"
+      }
+    ],
+    "commonMistakes": [
+      "Инфинитив после enjoy: ❌ I enjoy to swim -> ✅ I enjoy swimming.",
+      "Инфинитив после предлогов: ❌ thank you for come -> ✅ thank you for coming."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Герундий против Инфинитива: Gerund vs Infinitive (doing vs to do)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "72": {
+    "topicId": 72,
+    "topicName": "Modal verbs (must/might/may)",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Модальные глаголы вероятности и обязанности (must/might/may)",
+    "summaryRu": "Модальные глаголы выражают степень уверенности: MUST (99% уверенность: «должно быть, точно»), MIGHT / MAY / COULD (30-50% вероятность: «возможно, может быть»), CAN'T (99% невозможность: «не может быть»).",
+    "sections": [
+      {
+        "title": "1. Степень уверенности в настоящем",
+        "content": "*He **must** be at the office (Он точно в офисе — горит свет)*. *He **might** be in a meeting (Возможно, он на встрече)*. *He **can't** be at home (Он точно не дома — я только что видел его машину здесь)*."
+      },
+      {
+        "title": "2. Must как строгая обязанность",
+        "content": "**Must** также выражает личную категорическую обязанность или закон: *You must wear a seatbelt.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Шкала модальной уверенности",
+        "headers": [
+          "Модальный глагол",
+          "Уверенность",
+          "Пример предложения",
+          "Смысл"
+        ],
+        "rows": [
+          [
+            "MUST",
+            "99% уверенность (+)",
+            "He has three cars, he must be rich.",
+            "Он точно богат."
+          ],
+          [
+            "MIGHT / MAY / COULD",
+            "40-50% возможность",
+            "It might rain later today.",
+            "Возможно, позже пойдет дождь."
+          ],
+          [
+            "CAN'T",
+            "99% невозможность (-)",
+            "That can't be true!",
+            "Это не может быть правдой!"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "You must be exhausted after such a long flight.",
+        "ru": "Ты, должно быть, очень устал после такого долгого перелета.",
+        "note": "Логический вывод (Must be)"
+      },
+      {
+        "en": "We might move to another city next year.",
+        "ru": "Возможно, в следующем году мы переедем в другой город.",
+        "note": "Вероятность (Might move)"
+      }
+    ],
+    "commonMistakes": [
+      "Использование must not для выражения \"вряд ли\": ❌ He must not be at home -> ✅ He can't be at home (mustn't означает строгий запрет!)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Модальные глаголы вероятности и обязанности (must/might/may)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "73": {
+    "topicId": 73,
+    "topicName": "Too / Enough",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Слова меры и степени: Too / Enough",
+    "summaryRu": "TOO означает избыток («слишком много / чересчур»). ENOUGH означает достаточную норму («достаточно»).",
+    "sections": [
+      {
+        "title": "1. Позиция в предложении",
+        "content": "**TOO** ставится ПЕРЕД прилагательным/наречием (*too expensive, too late*). **ENOUGH** ставится ПОСЛЕ прилагательного (*rich enough, fast enough*), но ПЕРЕД существительным (*enough money, enough time*)!"
+      },
+      {
+        "title": "2. Конструкция \"too... to\" и \"enough to\"",
+        "content": "*This car is **too expensive to buy** (Слишком дорогая, чтобы купить)*. *He is **strong enough to lift** this box (Достаточно силен, чтобы поднять)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Too vs Enough",
+        "headers": [
+          "Слово",
+          "Позиция",
+          "Пример",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "too + adj",
+            "перед прилагательным",
+            "This coffee is too hot.",
+            "Этот кофе слишком горячий."
+          ],
+          [
+            "adj + enough",
+            "ПОСЛЕ прилагательного",
+            "Is the water warm enough?",
+            "Вода достаточно теплая?"
+          ],
+          [
+            "enough + noun",
+            "ПЕРЕД существительным",
+            "We don't have enough budget.",
+            "У нас недостаточно бюджета."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "He is old enough to drive a car.",
+        "ru": "Он достаточно взрослый, чтобы водить машину.",
+        "note": "old enough (после)"
+      },
+      {
+        "en": "It is too late to change the decision.",
+        "ru": "Слишком поздно, чтобы менять решение.",
+        "note": "too late (перед)"
+      }
+    ],
+    "commonMistakes": [
+      "Enough перед прилагательным: ❌ enough warm -> ✅ warm enough.",
+      "Too с положительным оттенком: вместо too good лучше сказать *very good* или *so good*."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Слова меры и степени: Too / Enough» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "74": {
+    "topicId": 74,
+    "topicName": "So / Such",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Усилители So / Such (So good vs Such a good idea)",
+    "summaryRu": "SO и SUCH переводятся как «такой, настолько» и служат для сильного эмоционального усиления признака.",
+    "sections": [
+      {
+        "title": "1. Различие в синтаксисе",
+        "content": "**SO + прилагательное / наречие** (без существительного!): *She is **so smart**, He drives **so fast***. **SUCH + (a/an) + прилагательное + существительное**: *She is **such a smart person**, It was **such bad weather***."
+      },
+      {
+        "title": "2. Конструкция So... that / Such... that (Настолько... что)",
+        "content": "*The movie was **so interesting that** I watched it twice.* *It was **such a great day that** we went to the beach.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "So vs Such",
+        "headers": [
+          "Конструкция",
+          "Схема",
+          "Пример",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "SO",
+            "so + adjective / adverb",
+            "The task was so difficult.",
+            "Задача была настолько сложной."
+          ],
+          [
+            "SUCH A / AN",
+            "such a/an + adj + существительное (ед. ч.)",
+            "It was such a difficult task.",
+            "Это была такая сложная задача."
+          ],
+          [
+            "SUCH",
+            "such + adj + существительное (мн. ч. / неисч.)",
+            "They are such friendly people.",
+            "Они такие дружелюбные люди."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I was so tired that I fell asleep immediately.",
+        "ru": "Я так устал, что мгновенно уснул.",
+        "note": "so + tired + that"
+      },
+      {
+        "en": "We had such a wonderful time in Rome.",
+        "ru": "Мы так замечательно провели время в Риме.",
+        "note": "such a + wonderful time"
+      }
+    ],
+    "commonMistakes": [
+      "Such без существительного: ❌ He is such smart -> ✅ He is so smart.",
+      "So с существительным: ❌ so a good day -> ✅ such a good day."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Усилители So / Such (So good vs Such a good idea)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "75": {
+    "topicId": 75,
+    "topicName": "Definite article (the) — advanced uses",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Продвинутые правила артикля THE (География и уникальные группы)",
+    "summaryRu": "Продвинутые случаи употребления THE: географические объекты, музыкальные инструменты, группы людей и уникальные системы.",
+    "sections": [
+      {
+        "title": "1. География с артиклем THE",
+        "content": "С артиклем **THE**: реки (*the Thames*), моря и океаны (*the Atlantic*), горные цепи (*the Alps*), группы островов (*the Bahamas*), страны во мн. числе или со словами Kingdom/States/Republic (*the USA, the UK, the Netherlands*). БЕЗ артикля: одиночные горы (*Everest*), озера (*Lake Baikal*), города (*London*) и большинство стран (*Germany, France*)."
+      },
+      {
+        "title": "2. Музыкальные инструменты и группы",
+        "content": "*play **the** piano, play **the** guitar*. Группы людей: *the rich (богатые), the homeless (бездомные), the elderly (пожилые)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Сводка географических артиклей",
+        "headers": [
+          "С артиклем THE",
+          "БЕЗ артикля (Zero article)"
+        ],
+        "rows": [
+          [
+            "Океаны, моря, реки: the Pacific, the Nile",
+            "Одиночные озера: Lake Michigan"
+          ],
+          [
+            "Горные цепи (мн. ч.): the Himalayas, the Alps",
+            "Одиночные вершины: Mount Fuji, Everest"
+          ],
+          [
+            "Страны-федерации: the United States, the UK",
+            "Обычные страны: Spain, Japan, Canada"
+          ],
+          [
+            "Музыкальные инструменты: play the guitar",
+            "Виды спорта: play football, play tennis"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "She plays the violin in the national orchestra.",
+        "ru": "Она играет на скрипке в национальном оркестре.",
+        "note": "play the violin"
+      },
+      {
+        "en": "We are planning a trip across the United States.",
+        "ru": "Мы планируем поездку через Соединенные Штаты.",
+        "note": "the United States"
+      }
+    ],
+    "commonMistakes": [
+      "The перед обычными странами: ❌ the France -> ✅ France.",
+      "Пропуск the перед горными цепями: ❌ Alps -> ✅ the Alps."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Продвинутые правила артикля THE (География и уникальные группы)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "76": {
+    "topicId": 76,
+    "topicName": "Quantifiers (a few / a little / plenty of)",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Квантификаторы: A few / Few и A little / Little",
+    "summaryRu": "A FEW / A LITTLE означают «немного, но достаточно (позитивный оттенок)». FEW / LITTLE (без артикля \"a\") означают «мало, практически нет (негативный оттенок дефицита)».",
+    "sections": [
+      {
+        "title": "1. Исчисляемые vs Неисчисляемые",
+        "content": "**A few / few** — с исчисляемыми существительными во мн. числе (*friends, days, emails*). **A little / little** — с неисчисляемыми существительными (*money, time, patience*)."
+      },
+      {
+        "title": "2. Разница между \"A few\" и \"Few\"",
+        "content": "*I have **a few** friends (У меня есть несколько хороших друзей — мне хватает)*. *I have **few** friends (У меня мало друзей — я чувствую себя одиноко)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Таблица A few / Few / A little / Little",
+        "headers": [
+          "Значение",
+          "Исчисляемые (Countable)",
+          "Неисчисляемые (Uncountable)"
+        ],
+        "rows": [
+          [
+            "Немного, но достаточно (+)",
+            "a few (a few friends)",
+            "a little (a little time)"
+          ],
+          [
+            "Мало, не хватает (-)",
+            "few (few friends)",
+            "little (little time)"
+          ],
+          [
+            "Достаточно много",
+            "plenty of / a lot of",
+            "plenty of / a lot of"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I have a little time before the meeting, let's talk.",
+        "ru": "У меня есть немного времени перед встречей, давай поговорим.",
+        "note": "a little (достаточно для разговора)"
+      },
+      {
+        "en": "Unfortunately, very few people attended the conference.",
+        "ru": "К сожалению, очень мало людей посетило конференцию.",
+        "note": "few (недостаточно/мало)"
+      }
+    ],
+    "commonMistakes": [
+      "Few с неисчисляемыми: ❌ few time -> ✅ little time.",
+      "Путаница a little (позитивно) и little (критически мало)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Квантификаторы: A few / Few и A little / Little» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "77": {
+    "topicId": 77,
+    "topicName": "Linking words (however/although/despite)",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Слова-связки: Linking words (however/although/despite)",
+    "summaryRu": "Слова-связки повышают уровень речи: HOWEVER (однако), ALTHOUGH / EVEN THOUGH (хотя), DESPITE / IN SPITE OF (несмотря на).",
+    "sections": [
+      {
+        "title": "1. Синтаксис Although vs Despite",
+        "content": "**Although / Even though + подлежащее + глагол**: *Although it was raining, we went for a walk*. **Despite / In spite of + существительное / V-ing**: *Despite the rain, we went for a walk (не Despite of!).*"
+      },
+      {
+        "title": "2. Пунктуация с HOWEVER",
+        "content": "**However** обычно начинает новое предложение и выделяется запятой: *We faced technical issues. However, the launch was successful.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Слова-связки контраста",
+        "headers": [
+          "Связка",
+          "Грамматическая структура",
+          "Пример предложения"
+        ],
+        "rows": [
+          [
+            "Although / Even though",
+            "+ Clause (Подлежащее + Глагол)",
+            "Although he was tired, he finished the code."
+          ],
+          [
+            "Despite / In spite of",
+            "+ Noun / V-ing (Существительное/герундий)",
+            "Despite being tired, he finished the code."
+          ],
+          [
+            "However",
+            "В начале предложения с запятой",
+            "It was late. However, we continued working."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Despite the strict deadline, the team delivered a great product.",
+        "ru": "Несмотря на жесткий дедлайн, команда выпустила отличный продукт.",
+        "note": "Despite + существительное"
+      },
+      {
+        "en": "Although she was nervous, she gave a fantastic presentation.",
+        "ru": "Хотя она нервничала, она блестяще провела презентацию.",
+        "note": "Although + clause"
+      }
+    ],
+    "commonMistakes": [
+      "Despite of: ❌ Despite of the rain -> ✅ Despite the rain (или In spite of the rain).",
+      "Использование Although и But в одном предложении: ❌ Although it rained, but we went -> ✅ Although it rained, we went."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Слова-связки: Linking words (however/although/despite)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "78": {
+    "topicId": 78,
+    "topicName": "Tag questions",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Разделительные вопросы: Tag questions (\"isn't it?\", \"don't you?\")",
+    "summaryRu": "Разделительные вопросы («хвостики») переводятся как «не так ли? / правда?». Правило маятника: утвердительное предложение -> отрицательный хвостик; отрицательное предложение -> утвердительный хвостик.",
+    "sections": [
+      {
+        "title": "1. Формула построения хвостика",
+        "content": "В хвостик ставится вспомогательный глагол в противоположной форме + личное местоимение: *You are a developer, **aren't you**? She works here, **doesn't she**? You didn't call him, **did you**?*"
+      },
+      {
+        "title": "2. Особые исключения",
+        "content": "*I am right, **aren't I**? (не amn't I!). Let's go, **shall we**? Don't be late, **will you**?*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Примеры разделительных вопросов",
+        "headers": [
+          "Основная часть",
+          "Хвостик (Tag)",
+          "Полное предложение",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Утверждение (+)",
+            "Отрицательный (-)",
+            "You speak English, don't you?",
+            "Ты ведь говоришь по-английски, не так ли?"
+          ],
+          [
+            "Отрицание (-)",
+            "Утвердительный (+)",
+            "They haven't arrived yet, have they?",
+            "Они еще не приехали, правда?"
+          ],
+          [
+            "С модальным глаголом",
+            "Противоположный модальный",
+            "She can drive, can't she?",
+            "Она умеет водить, да?"
+          ],
+          [
+            "Исключение (I am)",
+            "aren't I?",
+            "I am early, aren't I?",
+            "Я рано, не так ли?"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The meeting was very productive, wasn't it?",
+        "ru": "Встреча была очень продуктивной, не так ли?",
+        "note": "was -> wasn't it?"
+      },
+      {
+        "en": "You won't forget to send the file, will you?",
+        "ru": "Ты ведь не забудешь отправить файл, правда?",
+        "note": "won't -> will you?"
+      }
+    ],
+    "commonMistakes": [
+      "Использование isn't it для всех предложений: ❌ You work here, isn't it? -> ✅ don't you?"
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Разделительные вопросы: Tag questions (\"isn't it?\", \"don't you?\")» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "79": {
+    "topicId": 79,
+    "topicName": "Education and studying",
+    "level": "B1",
+    "category": "Vocabulary",
+    "russianTitle": "Образование и учеба (Education and studying)",
+    "summaryRu": "Лексикон академической сферы: graduate from university, take/pass an exam, major in, tuition fees, scholarship.",
+    "sections": [
+      {
+        "title": "1. Pass vs Take an exam",
+        "content": "*Take an exam* — просто сдавать экзамен (писать работу). *Pass an exam* — успешно сдать (получить положительную оценку). *Fail an exam* — провалить."
+      },
+      {
+        "title": "2. Университетские термины",
+        "content": "*degree (диплом/степень), assignment (задание), deadline (срок сдачи), lecturer (преподаватель)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Академический словарь",
+        "headers": [
+          "Выражение",
+          "Перевод",
+          "Пример фразы"
+        ],
+        "rows": [
+          [
+            "graduate from university",
+            "окончить университет",
+            "She graduated from Harvard in 2020."
+          ],
+          [
+            "take / pass an exam",
+            "сдавать / успешно сдать экзамен",
+            "I took the test and passed with honors."
+          ],
+          [
+            "major in computer science",
+            "специализироваться в CS",
+            "He is majoring in software engineering."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "He won a full scholarship to study data science abroad.",
+        "ru": "Он выиграл полную стипендию на изучение науки о данных за рубежом.",
+        "note": "scholarship"
+      }
+    ],
+    "commonMistakes": [
+      "Graduate university без предлога from: ❌ graduated university -> ✅ graduated from university."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Образование и учеба (Education and studying)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "80": {
+    "topicId": 80,
+    "topicName": "Technology and the internet",
+    "level": "B1",
+    "category": "Vocabulary",
+    "russianTitle": "Технологии и интернет (Technology and the internet)",
+    "summaryRu": "Современный IT-словарь: artificial intelligence, cloud storage, cybersecurity, download/upload, bandwidth.",
+    "sections": [
+      {
+        "title": "1. Download vs Upload",
+        "content": "*Download* — скачивать из интернета на свое устройство. *Upload* — загружать с устройства на сервер/в облако."
+      },
+      {
+        "title": "2. Компьютерные фразовые глаголы",
+        "content": "*log in / out (входить/выходить из системы), back up (делать резервную копию), wipe (стирать данные)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "IT и веб-терминология",
+        "headers": [
+          "Термин",
+          "Перевод",
+          "Пример в контексте"
+        ],
+        "rows": [
+          [
+            "cloud computing",
+            "облачные вычисления",
+            "We migrated our backend to cloud computing."
+          ],
+          [
+            "cybersecurity threat",
+            "угроза кибербезопасности",
+            "Two-factor authentication protects against threats."
+          ],
+          [
+            "back up data",
+            "создавать резервную копию",
+            "Always back up your code before refactoring."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Make sure to back up your database before running migrations.",
+        "ru": "Обязательно сделайте резервную копию базы данных перед выполнением миграций.",
+        "note": "back up"
+      }
+    ],
+    "commonMistakes": [
+      "In the internet вместо on the internet: ❌ in the internet -> ✅ on the internet."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Технологии и интернет (Technology and the internet)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "81": {
+    "topicId": 81,
+    "topicName": "Environment and nature",
+    "level": "B1",
+    "category": "Vocabulary",
+    "russianTitle": "Экология и окружающая среда (Environment and nature)",
+    "summaryRu": "Экологическая лексика: climate change, renewable energy, carbon footprint, pollution, recycle.",
+    "sections": [
+      {
+        "title": "1. Ключевые термины экологии",
+        "content": "*global warming (глобальное потепление), solar/wind power (солнечная/ветровая энергия), eco-friendly (экологичный)*."
+      },
+      {
+        "title": "2. Защита природы",
+        "content": "*reduce waste (сокращать отходы), endangered species (исчезающие виды), sustainable living (устойчивый образ жизни)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Экологический глоссарий",
+        "headers": [
+          "Понятие",
+          "Перевод",
+          "Пример предложения"
+        ],
+        "rows": [
+          [
+            "renewable energy",
+            "возобновляемая энергия",
+            "Solar and wind are key sources of renewable energy."
+          ],
+          [
+            "carbon footprint",
+            "углеродный след",
+            "Using public transport reduces your carbon footprint."
+          ],
+          [
+            "recycle waste",
+            "перерабатывать отходы",
+            "We recycle plastic and paper in our office."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Investing in renewable energy is crucial for combating climate change.",
+        "ru": "Инвестиции в возобновляемую энергетику имеют решающее значение для борьбы с изменением климата.",
+        "note": "renewable energy"
+      }
+    ],
+    "commonMistakes": [
+      "Nature с артиклем the в общем значении: ❌ love the nature -> ✅ love nature."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Экология и окружающая среда (Environment and nature)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "82": {
+    "topicId": 82,
+    "topicName": "Feelings and emotions",
+    "level": "B1",
+    "category": "Vocabulary",
+    "russianTitle": "Чувства, эмоции и настроение (Feelings and emotions)",
+    "summaryRu": "Словарь эмоциональных состояний: anxious (тревожный), relieved (испытавший облегчение), overwhelmed (перегруженный), frustrated (разочарованный).",
+    "sections": [
+      {
+        "title": "1. Прилагательные на -ed и -ing",
+        "content": "**-ed** описывает то, что ЧУВСТВУЕТ человек (*I am bored, She is excited*). **-ing** описывает причину / свойство предмета (*The book is boring, The news is exciting*)."
+      },
+      {
+        "title": "2. Продвинутые эмоциональные состояния",
+        "content": "*thrilled (в восторге), exhausted (крайне уставший), grateful (благодарный)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Эмоции и состояния",
+        "headers": [
+          "Прилагательное",
+          "Перевод",
+          "Пример контекста"
+        ],
+        "rows": [
+          [
+            "relieved",
+            "испытавший облегчение",
+            "I felt so relieved when I heard the test results."
+          ],
+          [
+            "overwhelmed",
+            "перегруженный делами/эмоциями",
+            "He felt overwhelmed with all the sprint tasks."
+          ],
+          [
+            "frustrated",
+            "раздраженный неудачей",
+            "She was frustrated because the bug kept reappearing."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I was thrilled to receive the job offer from London.",
+        "ru": "Я был в полном восторге, получив предложение о работе из Лондона.",
+        "note": "thrilled"
+      }
+    ],
+    "commonMistakes": [
+      "I am boring вместо I am bored: ❌ I am boring -> означает \"я скучный человек\"! ✅ I am bored (мне скучно)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Чувства, эмоции и настроение (Feelings and emotions)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "83": {
+    "topicId": 83,
+    "topicName": "Crime and law",
+    "level": "B1",
+    "category": "Vocabulary",
+    "russianTitle": "Преступность и правосудие (Crime and law)",
+    "summaryRu": "Юридический и правовой словарь: commit a crime, witness, suspect, judge, jury, sentence, evidence.",
+    "sections": [
+      {
+        "title": "1. Субъекты и действия",
+        "content": "*commit a crime (совершить преступление), investigation (расследование), evidence (доказательства — неисчисляемое!), verdict (вердикт)*."
+      },
+      {
+        "title": "2. Виды правонарушений",
+        "content": "*theft / thief (кража / вор), fraud (мошенничество), burglary (ограбление со взломом)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Правовой глоссарий",
+        "headers": [
+          "Термин",
+          "Перевод",
+          "Пример фразы"
+        ],
+        "rows": [
+          [
+            "commit a crime",
+            "совершить преступление",
+            "The suspect denied committing any crime."
+          ],
+          [
+            "crucial evidence",
+            "ключевые доказательства",
+            "The police discovered crucial evidence on the laptop."
+          ],
+          [
+            "reach a verdict",
+            "вынести вердикт",
+            "The jury reached a unanimous guilty verdict."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The judge sentenced the hacker to three years in prison.",
+        "ru": "Судья приговорил хакера к трем годам тюремного заключения.",
+        "note": "sentenced to"
+      }
+    ],
+    "commonMistakes": [
+      "Evidences во множественном числе: ❌ many evidences -> ✅ a lot of evidence (неисчисляемое)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Преступность и правосудие (Crime and law)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "84": {
+    "topicId": 84,
+    "topicName": "Money and finance (basic)",
+    "level": "B1",
+    "category": "Vocabulary",
+    "russianTitle": "Деньги и личные финансы (Money and finance)",
+    "summaryRu": "Финансовый словарь: borrow vs lend, afford, invest in, mortgage, budget, interest rate.",
+    "sections": [
+      {
+        "title": "1. Borrow vs Lend",
+        "content": "**Borrow** — брать взаймы у кого-то (*Can I borrow your pen?*). **Lend** — одалживать кому-то свои деньги/вещи (*Can you lend me 20 dollars?*)."
+      },
+      {
+        "title": "2. Банковские термины",
+        "content": "*bank account (банковский счет), mortgage (ипотека [t немая!]), interest rate (процентная ставка), expense (расход)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Финансовые концепции",
+        "headers": [
+          "Глагол / Термин",
+          "Перевод",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "afford to buy",
+            "позволить себе купить",
+            "We cannot afford to waste company resources."
+          ],
+          [
+            "borrow from / lend to",
+            "взять у / одолжить кому-то",
+            "He borrowed $500 from the bank."
+          ],
+          [
+            "invest in stocks",
+            "инвестировать в акции",
+            "She invests 20% of her income in index funds."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "They took out a mortgage to buy their first family house.",
+        "ru": "Они взяли ипотеку, чтобы купить свой первый семейный дом.",
+        "note": "mortgage [ˈmɔːɡɪdʒ]"
+      }
+    ],
+    "commonMistakes": [
+      "Путаница borrow и lend: ❌ Lend me from you -> ✅ Can I borrow from you?"
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Деньги и личные финансы (Money and finance)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "85": {
+    "topicId": 85,
+    "topicName": "Expressing opinions (I think/believe)",
+    "level": "B1",
+    "category": "Speaking",
+    "russianTitle": "Выражение личного мнения: Expressing opinions (I think/believe/in my view)",
+    "summaryRu": "Формулы выражения точки зрения в беседах и на деловых встречах: In my opinion, From my perspective, As far as I am concerned.",
+    "sections": [
+      {
+        "title": "1. Вводные фразы мнения",
+        "content": "*In my view (На мой взгляд)*, *From my perspective (С моей точки зрения)*, *Personally, I believe that (Лично я считаю, что)*, *To be honest (Честно говоря)*."
+      },
+      {
+        "title": "2. Смягчение категоричности",
+        "content": "*It seems to me that (Мне кажется, что)*, *I tend to think that (Я склонен думать, что)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Фразы выражения мнения",
+        "headers": [
+          "Уровень формальности",
+          "Фраза",
+          "Пример предложения"
+        ],
+        "rows": [
+          [
+            "Разговорный",
+            "In my opinion, ...",
+            "In my opinion, this framework is easier to learn."
+          ],
+          [
+            "Деловой",
+            "From my perspective, ...",
+            "From my perspective, we should focus on stability."
+          ],
+          [
+            "Академический",
+            "It is widely believed that...",
+            "It is widely believed that remote work boosts output."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "As far as I am concerned, quality should never be compromised for speed.",
+        "ru": "Что касается меня, качеством никогда нельзя жертвовать ради скорости.",
+        "note": "As far as I am concerned"
+      }
+    ],
+    "commonMistakes": [
+      "According to me: ❌ According to me -> ✅ In my opinion (according to используется только о других источниках!)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Выражение личного мнения: Expressing opinions (I think/believe/in my view)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "86": {
+    "topicId": 86,
+    "topicName": "Agreeing and disagreeing",
+    "level": "B1",
+    "category": "Speaking",
+    "russianTitle": "Согласие и несогласие: Agreeing and disagreeing",
+    "summaryRu": "Дипломатичные формулы вежливой дискуссии: I couldn't agree more, That's a valid point, but..., I am afraid I disagree.",
+    "sections": [
+      {
+        "title": "1. Полное согласие",
+        "content": "*I totally agree with you (Полностью согласен)*, *I couldn't agree more (Не могу не согласиться)*, *Exactly! / Absolutely!*"
+      },
+      {
+        "title": "2. Вежливое частичное несогласие",
+        "content": "*You have a point, but... (В твоих словах есть смысл, но...)*, *I see what you mean, however... (Я понимаю, о чем ты, однако...)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Шкала согласия и несогласия",
+        "headers": [
+          "Позиция",
+          "Английская фраза",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "100% Согласие",
+            "I couldn't agree more.",
+            "Полностью согласен с вами."
+          ],
+          [
+            "Частичное согласие",
+            "That's a valid point, but we need to consider costs.",
+            "Это весомый довод, но нужно учесть затраты."
+          ],
+          [
+            "Вежливое несогласие",
+            "I am afraid I see it differently.",
+            "Боюсь, я смотрю на это иначе."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I see your point, but we don't have enough resources right now.",
+        "ru": "Я понимаю вашу точку зрения, но у нас сейчас недостаточно ресурсов.",
+        "note": "Вежливое возражение"
+      }
+    ],
+    "commonMistakes": [
+      "I am agree: ❌ I am agree -> ✅ I agree (agree — это глагол, а не прилагательное!)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Согласие и несогласие: Agreeing and disagreeing» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "87": {
+    "topicId": 87,
+    "topicName": "Making complaints",
+    "level": "B1",
+    "category": "Speaking",
+    "russianTitle": "Как подать жалобу или рекламацию: Making complaints",
+    "summaryRu": "Формулы вежливого выражения недовольства сервисом или товаром: I am writing to complain about..., There seems to be an issue with...",
+    "sections": [
+      {
+        "title": "1. Вежливый тон претензии",
+        "content": "Вместо агрессивного \"This is terrible\" используют: *I am afraid there is a problem with my order*, *I am not satisfied with the quality of service*."
+      },
+      {
+        "title": "2. Требование решения проблемы",
+        "content": "*I would appreciate a prompt refund / replacement (Буду признателен за оперативный возврат/замену).*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Фразы рекламации",
+        "headers": [
+          "Ситуация",
+          "Вежливая фраза жалобы",
+          "Ожидаемое решение"
+        ],
+        "rows": [
+          [
+            "Бракованный товар",
+            "The item arrived damaged.",
+            "I would like a replacement."
+          ],
+          [
+            "Задержка доставки",
+            "My delivery is three days overdue.",
+            "Could you check the status?"
+          ],
+          [
+            "Некорректный счет",
+            "There seems to be an overcharge on my bill.",
+            "Please issue a refund for the difference."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I am writing to express my dissatisfaction with the recent service outage.",
+        "ru": "Я пишу, чтобы выразить свое неудовлетворение недавним сбоем в обслуживании.",
+        "note": "Официальная жалоба"
+      }
+    ],
+    "commonMistakes": [
+      "Слишком эмоциональный тон: формулируйте проблему через факты и конструкции вежливости."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Как подать жалобу или рекламацию: Making complaints» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "88": {
+    "topicId": 88,
+    "topicName": "Telling a story / anecdote",
+    "level": "B1",
+    "category": "Speaking",
+    "russianTitle": "Как рассказать историю или анекдот: Telling a story / anecdote",
+    "summaryRu": "Приемы сторителлинга: завязка (It all started when...), кульминация (To my surprise...), развязка (In the end...).",
+    "sections": [
+      {
+        "title": "1. Структура живой истории",
+        "content": "1) **Hook / Введение**: *You won't believe what happened to me yesterday!* 2) **Background / Фон**: *I was walking through the station when...* 3) **Climax**: *Suddenly, out of nowhere...* 4) **Conclusion**: *To cut a long story short...*"
+      },
+      {
+        "title": "2. Привлечение внимания слушателя",
+        "content": "*Guess what? (Угадай что?)*, *The funny thing was that... (Самое забавное было в том, что...)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Фразы сторителлинга",
+        "headers": [
+          "Этап рассказа",
+          "Фраза",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "Завязка",
+            "You won't believe this, but...",
+            "You won't believe who I met today."
+          ],
+          [
+            "Поворот сюжета",
+            "All of a sudden / Out of the blue",
+            "Out of the blue, my phone rang."
+          ],
+          [
+            "Итог истории",
+            "To cut a long story short, ...",
+            "To cut a long story short, we got the contract!"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "To cut a long story short, we managed to fix the server before the client noticed.",
+        "ru": "Короче говоря, нам удалось починить сервер до того, как клиент заметил.",
+        "note": "To cut a long story short"
+      }
+    ],
+    "commonMistakes": [
+      "Монотонное повторение \"and then... and then\": используйте связки *meanwhile, suddenly, after a while*."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Как рассказать историю или анекдот: Telling a story / anecdote» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "89": {
+    "topicId": 89,
+    "topicName": "Giving advice",
+    "level": "B1",
+    "category": "Speaking",
+    "russianTitle": "Как дать совет: Giving advice (If I were you, You had better, Why don't you)",
+    "summaryRu": "Градации советов: дружеский совет (Why don't you / You should), совет эксперта (If I were in your shoes), строгое предупреждение (You had better).",
+    "sections": [
+      {
+        "title": "1. Конструкция \"You had better + V1\"",
+        "content": "**Had better + V1 (без to!)** выражает совет-предупреждение с риском негативных последствий: *You'd better leave now or you'll miss the train (Тебе лучше уйти прямо сейчас, иначе опоздаешь)*."
+      },
+      {
+        "title": "2. Мягкие советы",
+        "content": "*Have you considered taking a course?*, *It might be a good idea to consult a specialist.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Формулы советов",
+        "headers": [
+          "Степень настоятельности",
+          "Формула",
+          "Пример",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Мягкий совет",
+            "It might be worth + V-ing",
+            "It might be worth checking the logs.",
+            "Возможно, стоит проверить логи."
+          ],
+          [
+            "Дружеский совет",
+            "If I were you, I would...",
+            "If I were you, I would take the job.",
+            "На твоем месте я бы взял работу."
+          ],
+          [
+            "Строгий совет / Предостережение",
+            "You had better (You'd better) + V1",
+            "You'd better save your work right now.",
+            "Тебе лучше сохранить работу прямо сейчас."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "You had better double-check the configuration before deploying to production.",
+        "ru": "Тебе лучше дважды проверить конфигурацию перед деплоем в прод.",
+        "note": "had better + V1"
+      }
+    ],
+    "commonMistakes": [
+      "Частица to после had better: ❌ You had better to check -> ✅ You had better check."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Как дать совет: Giving advice (If I were you, You had better, Why don't you)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "11253": {
+    "topicId": 11253,
+    "topicName": "Phrasal verbs: communication & emotions (bring up, get along, break up)",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Фразовые глаголы общения и эмоций (bring up, get along, break up, count on)",
+    "summaryRu": "Продвинутые фразовые глаголы сферы отношений: get along with (ладить), bring up (поднимать тему/воспитывать), count on (рассчитывать на кого-то), let down (подводить).",
+    "sections": [
+      {
+        "title": "1. Топ глаголов B1",
+        "content": "*get along with (ладить с людьми), bring up a topic (поднять вопрос на встрече), count on someone (полагаться на кого-то), look up to (уважать/брать пример), figure out (разобраться/понять)*."
+      },
+      {
+        "title": "2. Разделяемые и неразделяемые глаголы",
+        "content": "Некоторые глаголы разделяются местоимением: *let me down (подвести меня), figure it out (разобраться в этом)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Фразовые глаголы отношений",
+        "headers": [
+          "Глагол",
+          "Значение",
+          "Пример предложения",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "get along with",
+            "ладить, иметь хорошие отношения",
+            "I get along very well with my colleagues.",
+            "Я отлично лажу со своими коллегами."
+          ],
+          [
+            "bring up",
+            "поднять тему, упомянуть вопрос",
+            "Don't bring up the budget issue during the call.",
+            "Не поднимай вопрос бюджета во время звонка."
+          ],
+          [
+            "count on",
+            "рассчитывать, полагаться на кого-то",
+            "You can always count on me for support.",
+            "Ты всегда можешь рассчитывать на мою поддержку."
+          ],
+          [
+            "figure out",
+            "разобраться, найти решение",
+            "We need to figure out why the app crashed.",
+            "Нам нужно понять, почему приложение упало."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I knew I could count on you to deliver on time.",
+        "ru": "Я знал, что могу рассчитывать на тебя в плане своевременной сдачи.",
+        "note": "count on"
+      }
+    ],
+    "commonMistakes": [
+      "Добавление лишнего предлога: ❌ count with you -> ✅ count on you."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Фразовые глаголы общения и эмоций (bring up, get along, break up, count on)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "11254": {
+    "topicId": 11254,
+    "topicName": "Used to vs Would vs Be used to (past habits and familiarity)",
+    "level": "B1",
+    "category": "Grammar",
+    "russianTitle": "Различия: Used to vs Would vs Be used to vs Get used to",
+    "summaryRu": "Фундаментальная разница между привычками в прошлом (Used to / Would) и состоянием привыкания в настоящем (Be used to / Get used to + V-ing).",
+    "sections": [
+      {
+        "title": "1. Used to vs Be used to",
+        "content": "**Used to + V1** = раньше делал в прошлом (*I used to live in Madrid*). **Be used to + V-ing** = привык к чему-то в настоящем (*I am used to waking up early*). **Get used to + V-ing** = процесс привыкания (*I am getting used to the new keyboard*)."
+      },
+      {
+        "title": "2. Форма после Be used to",
+        "content": "После *be used to* и *get used to* ВСЕГДА идет существительное или **герундий с -ing** (так как \"to\" здесь — предлог направления привычки)!"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Сравнительная матрица Used to",
+        "headers": [
+          "Конструкция",
+          "Значение",
+          "Форма глагола",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "used to + V1",
+            "Раньше делал в прошлом (сейчас нет)",
+            "Инфинитив (V1)",
+            "I used to drink coffee, but now I drink tea."
+          ],
+          [
+            "would + V1",
+            "Повторял действие в прошлом",
+            "Инфинитив (V1)",
+            "We would visit our grandparents every summer."
+          ],
+          [
+            "be used to + V-ing",
+            "Привык к чему-то в настоящем",
+            "Герундий (-ing) / Noun",
+            "I am used to working in a fast-paced environment."
+          ],
+          [
+            "get used to + V-ing",
+            "Привыкаю (процесс адаптации)",
+            "Герундий (-ing) / Noun",
+            "You will soon get used to driving on the left."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I am used to working remotely across different time zones.",
+        "ru": "Я привык работать удаленно в разных часовых поясах.",
+        "note": "be used to + working (-ing)"
+      },
+      {
+        "en": "It took me a month to get used to the new design.",
+        "ru": "Мне потребовался месяц, чтобы привыкнуть к новому дизайну.",
+        "note": "get used to + noun"
+      }
+    ],
+    "commonMistakes": [
+      "Инфинитив после be used to: ❌ I am used to wake up early -> ✅ I am used to waking up early.",
+      "Путаница used to (прошлое) и be used to (настоящая привычка)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Различия: Used to vs Would vs Be used to vs Get used to» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "11255": {
+    "topicId": 11255,
+    "topicName": "American vs British syntax (have got vs have, past simple vs present perfect)",
+    "level": "B1",
+    "category": "Speaking",
+    "russianTitle": "Различия в синтаксисе: American vs British syntax (have got, tenses, prepositions)",
+    "summaryRu": "Грамматические различия US и UK: глагол have got против have, употребление Present Perfect против Past Simple со словами just/already, и предлоги (at the weekend vs on the weekend).",
+    "sections": [
+      {
+        "title": "1. Have got vs Have",
+        "content": "В британском (UK) чаще говорят: *Have you got a car? I haven't got time*. В американском (US): *Do you have a car? I don't have time*."
+      },
+      {
+        "title": "2. Времена со словами Just, Already, Yet",
+        "content": "В UK со словами *just/already/yet* строго требуют **Present Perfect**: *I have just eaten*. В US допустим **Past Simple**: *I just ate* или *Did you do it yet?*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Синтаксис US vs UK",
+        "headers": [
+          "Сфера",
+          "British English (UK)",
+          "American English (US)"
+        ],
+        "rows": [
+          [
+            "Владение предметом",
+            "I have got a question. / Have you got...?",
+            "I have a question. / Do you have...?"
+          ],
+          [
+            "Слова just / already",
+            "I have just seen him. (Present Perfect)",
+            "I just saw him. (Past Simple)"
+          ],
+          [
+            "Выходные дни",
+            "at the weekend",
+            "on the weekend"
+          ],
+          [
+            "Коллективные существительные",
+            "The team ARE playing well. (мн. ч.)",
+            "The team IS playing well. (ед. ч.)"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "UK: I've just lost my keys. / US: I just lost my keys.",
+        "ru": "Я только что потерял ключи.",
+        "note": "Контраст времен US vs UK"
+      }
+    ],
+    "commonMistakes": [
+      "Смешивание стилей: старайтесь последовательно придерживаться американской или британской грамматической нормы в деловой переписке."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Различия в синтаксисе: American vs British syntax (have got, tenses, prepositions)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  }
+}

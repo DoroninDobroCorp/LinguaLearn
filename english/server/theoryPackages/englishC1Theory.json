@@ -1,0 +1,1468 @@
+{
+  "118": {
+    "russianTitle": "Продвинутая инверсия (Advanced inversion)",
+    "summaryRu": "Инверсия — изменение прямого порядка слов на обратный (вспомогательный глагол перед подлежащим) для усиления выразительности и драматизма в формальной и литературной речи.",
+    "sections": [
+      {
+        "title": "1. Инверсия после отрицательных и ограничительных наречий",
+        "content": "После выражений *Hardly, Barely, Scarcely, Never before, Under no circumstances, Little did...* глагол выносится перед подлежащим: *Hardly **had we arrived** when it started to rain*."
+      },
+      {
+        "title": "2. Инверсия после Only и Not only",
+        "content": "После *Only when, Only after, Not only... but also*: *Not only **did they win** the contract, but they also exceeded expectations*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Паттерны продвинутой инверсии",
+        "headers": [
+          "Маркер инверсии",
+          "Формула",
+          "Пример",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Hardly ... when",
+            "Hardly + had + S + V3 ... when",
+            "Hardly had I slept when phone rang.",
+            "Едва я уснул, как зазвонил телефон."
+          ],
+          [
+            "Under no circumstances",
+            "Under no circumstances + aux + S",
+            "Under no circumstances should you open it.",
+            "Ни при каких обстоятельствах не открывайте это."
+          ],
+          [
+            "Little did S know",
+            "Little + did + S + V1",
+            "Little did he know what awaited him.",
+            "Он даже не подозревал, что его ждет."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Seldom have I witnessed such dedication to craft.",
+        "ru": "Редко мне доводилось видеть такую преданность делу.",
+        "note": "Инверсия с Seldom"
+      },
+      {
+        "en": "Only after the audit did we realize the mistake.",
+        "ru": "Только после аудита мы осознали ошибку.",
+        "note": "Only after + инверсия"
+      }
+    ],
+    "commonMistakes": [
+      "Прямой порядок слов после отрицательного маркера: ❌ Seldom I have seen -> ✅ Seldom have I seen.",
+      "Забывание вспомогательного глагола: ❌ Under no circumstances you enter -> ✅ Under no circumstances should you enter."
+    ],
+    "tutorQuickPrompts": [
+      "Приведи 3 примера инверсии в деловой переписке",
+      "В чем разница между Hardly had I и No sooner had I?",
+      "Дай тест на трансформацию предложений с инверсией"
+    ],
+    "topicId": 118,
+    "topicName": "Advanced inversion",
+    "level": "C1",
+    "category": "Grammar"
+  },
+  "119": {
+    "russianTitle": "Сослагательное наклонение (Subjunctive mood)",
+    "summaryRu": "Subjunctive выражает пожелания, требования, рекомендации и гипотетические условия. В американском и формальном британском английском используется чистый инфинитив без частицы to.",
+    "sections": [
+      {
+        "title": "1. Mandative Subjunctive (Глаголы требования и важности)",
+        "content": "После глаголов *insist, recommend, suggest, demand* и прилагательных *it is essential/vital/crucial that* используется начальная форма глагола (базовый инфинитив без окончаний -s, -ed): *The manager insisted that he **be** present (не is/was)*. *We recommend that she **start** immediately (не starts)*."
+      },
+      {
+        "title": "2. Формульные выражения и сослагательное WERE",
+        "content": "Формулы: *God save the Queen, Be that as it may, Suffice it to say*. В нереальных условиях с if/wish традиционно используется were для всех лиц: *If I were you, I wish he were here*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Конструкции сослагательного наклонения",
+        "headers": [
+          "Тип",
+          "Триггер",
+          "Форма глагола",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "Demand/Suggest",
+            "suggest that / insist that",
+            "V1 (bare infinitive)",
+            "I suggest that he take a break."
+          ],
+          [
+            "Essential/Crucial",
+            "It is crucial that",
+            "V1 (bare infinitive)",
+            "It is crucial that she be informed."
+          ],
+          [
+            "Fixed idioms",
+            "Suffice it to say / So be it",
+            "застывшая форма",
+            "Be that as it may, we must proceed."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "It is essential that every team member be on time.",
+        "ru": "Крайне важно, чтобы каждый член команды был вовремя.",
+        "note": "Subjunctive (be вместо is)"
+      },
+      {
+        "en": "The doctor recommended that she avoid heavy lifting.",
+        "ru": "Врач порекомендовал, чтобы она избегала поднятия тяжестей.",
+        "note": "Subjunctive (avoid вместо avoids)"
+      }
+    ],
+    "commonMistakes": [
+      "Добавление -s в 3-м лице: ❌ I suggest that he goes -> ✅ I suggest that he go.",
+      "Использование was вместо were в формальном стиле: ❌ If I was you -> ✅ If I were you."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни Mandative Subjunctive на примерах",
+      "В чем разница между британским should do и американским subjunctive?",
+      "Дай 3 предложения на исправление ошибок"
+    ],
+    "topicId": 119,
+    "topicName": "Subjunctive mood",
+    "level": "C1",
+    "category": "Grammar"
+  },
+  "120": {
+    "russianTitle": "Эллипсис и субституция (Ellipsis and substitution)",
+    "summaryRu": "Эллипсис — намеренный пропуск слов, понятных из контекста. Субституция — замена повторяющихся слов местоимениями и словами-заменителями (one/ones, so, do so).",
+    "sections": [
+      {
+        "title": "1. Эллипсис (Пропуск слов)",
+        "content": "Исключение избыточных слов для краткости: *Are you coming? — (I am) Thinking about it*. В сложных предложениях: *She ordered coffee and (she ordered) a croissant*."
+      },
+      {
+        "title": "2. Субституция с so, not, one, do so",
+        "content": "*I hope so / I think not / I believe so*. Использование **one / ones** для существительных: *I don't like this shirt, give me the blue one*. Замена глагольных групп: *If you wish to apply, please do so online*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Инструменты экономии речи",
+        "headers": [
+          "Механизм",
+          "Инструмент",
+          "Пример",
+          "Пояснение"
+        ],
+        "rows": [
+          [
+            "Эллипсис подлежащего",
+            "Пропуск подлежащего/связки",
+            "Sounds good! (It sounds good)",
+            "Разговорная краткость"
+          ],
+          [
+            "Субституция глагола",
+            "do so / do it",
+            "He asked me to leave, and I did so.",
+            "Замена всей глагольной фразы"
+          ],
+          [
+            "Субституция мысли",
+            "think so / hope not",
+            "Will it rain? — I hope not.",
+            "Замена целого придаточного"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Would you like a cup of tea? — I'd love one, thank you.",
+        "ru": "Хотите чашку чая? — С удовольствием, спасибо.",
+        "note": "Субституция: one = cup of tea"
+      },
+      {
+        "en": "They promised to submit the report, and having done so, they left.",
+        "ru": "Они обещали сдать отчет, и сделав это, ушли.",
+        "note": "done so = submitted the report"
+      }
+    ],
+    "commonMistakes": [
+      "Повторение всей фразы целиком: ❌ Will they win? — I think they will win -> ✅ I think so.",
+      "Неправильное использование one во множественном числе: ❌ these one -> ✅ these ones."
+    ],
+    "tutorQuickPrompts": [
+      "Как сделать речь более лаконичной с помощью эллипсиса?",
+      "Объясни разницу между I hope so и I hope not",
+      "Дай упражнение на сокращение длинных предложений"
+    ],
+    "topicId": 120,
+    "topicName": "Ellipsis and substitution",
+    "level": "C1",
+    "category": "Grammar"
+  },
+  "121": {
+    "russianTitle": "Фронтинг и расщепленные предложения (Fronting and cleft sentences)",
+    "summaryRu": "Стилистические приемы выдвижения ключевой информации на первое место для создания эмфазы (акцента): It is X that... / What I really need is Y.",
+    "sections": [
+      {
+        "title": "1. It-cleft sentences",
+        "content": "Формула: **It + is/was + [фокус внимания] + that/who + остальное**: *It was John who made the discovery (Именно Джон сделал открытие)*."
+      },
+      {
+        "title": "2. Wh-cleft sentences и Фронтинг",
+        "content": "Формула: **What + S + V + is/was + [фокус]**: *What we need is more time*. Фронтинг — перенос дополнения или обстоятельства в начало: *In came the CEO without saying a word*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Виды эмфатических конструкций",
+        "headers": [
+          "Тип",
+          "Формула",
+          "Пример",
+          "Значение"
+        ],
+        "rows": [
+          [
+            "It-cleft",
+            "It is/was + X + that/who...",
+            "It was Sarah who solved the bug.",
+            "Именно Сара устранила ошибку."
+          ],
+          [
+            "What-cleft",
+            "What + S + V + is/was...",
+            "What surprised me was his reaction.",
+            "Что меня удивило, так это его реакция."
+          ],
+          [
+            "All-cleft",
+            "All + S + V + is/was...",
+            "All I want is honest feedback.",
+            "Всё, чего я хочу — честная обратная связь."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "It was the marketing strategy that drove our growth.",
+        "ru": "Именно маркетинговая стратегия обеспечила наш рост.",
+        "note": "It-cleft акцент"
+      },
+      {
+        "en": "What impressed the investors most was the retention rate.",
+        "ru": "Что впечатлило инвесторов больше всего, так это коэффициент удержания.",
+        "note": "Wh-cleft конструкция"
+      }
+    ],
+    "commonMistakes": [
+      "Использование which вместо that в It-cleft: ❌ It was money which mattered -> ✅ It was money that mattered.",
+      "Неправильное согласование времени: ❌ It is yesterday that he called -> ✅ It was yesterday that he called."
+    ],
+    "tutorQuickPrompts": [
+      "Преобразуй простое предложение в 3 вида cleft sentences",
+      "Когда фронтинг уместен в академическом письме?",
+      "Дай 3 примера с What surprised me was..."
+    ],
+    "topicId": 121,
+    "topicName": "Fronting and cleft sentences",
+    "level": "C1",
+    "category": "Grammar"
+  },
+  "122": {
+    "russianTitle": "Именные придаточные предложения (Nominal clauses)",
+    "summaryRu": "Придаточные предложения, выполняющие роль существительного (подлежащего, дополнения или именной части сказуемого), начинающиеся с that, whether/if, wh-слов.",
+    "sections": [
+      {
+        "title": "1. That-clauses и Wh-clauses",
+        "content": "В роли подлежащего или дополнения: *That he passed the bar exam surprised everyone (То, что он сдал экзамен, удивило всех)*. *I don't know where they relocated the headquarters*."
+      },
+      {
+        "title": "2. Придаточные с whether/if",
+        "content": "Выражают косвенный вопрос или альтернативу: *Whether we launch now or in autumn depends on funding*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Функции Nominal Clauses",
+        "headers": [
+          "Связующее слово",
+          "Синтаксическая роль",
+          "Пример",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "That-clause",
+            "Подлежащее",
+            "That she won the award is inspiring.",
+            "То, что она выиграла награду, вдохновляет."
+          ],
+          [
+            "Wh-clause",
+            "Прямое дополнение",
+            "We must analyze what went wrong.",
+            "Мы должны проанализировать то, что пошло не так."
+          ],
+          [
+            "Whether-clause",
+            "Предикатив",
+            "The question is whether we can scale.",
+            "Вопрос в том, сможем ли мы масштабироваться."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "What you decide today will shape the company's future.",
+        "ru": "То, что вы решите сегодня, определит будущее компании.",
+        "note": "Nominal wh-clause в роли подлежащего"
+      },
+      {
+        "en": "The fact that inflation is cooling gives hope.",
+        "ru": "Тот факт, что инфляция замедляется, дает надежду.",
+        "note": "Appositive that-clause"
+      }
+    ],
+    "commonMistakes": [
+      "Лишний вспомогательный глагол в роли косвенного вопроса: ❌ I know what do you want -> ✅ I know what you want.",
+      "Использование if в роли подлежащего: ❌ If he comes is uncertain -> ✅ Whether he comes is uncertain."
+    ],
+    "tutorQuickPrompts": [
+      "В каких позициях Nominal Clause не может начинаться с if?",
+      "Как избежать громоздких конструкций с That-clauses?",
+      "Дай 3 теста на трансформацию прямой речи в nominal clause"
+    ],
+    "topicId": 122,
+    "topicName": "Nominal clauses",
+    "level": "C1",
+    "category": "Grammar"
+  },
+  "123": {
+    "russianTitle": "Продвинутый пассивный залог (Advanced passive constructions)",
+    "summaryRu": "Безличные пассивные конструкции (It is said that... / S is believed to be...), пассив с модальными глаголами и герундием/инфинитивом.",
+    "sections": [
+      {
+        "title": "1. Безличный пассив (Reporting Passive)",
+        "content": "С глаголами мысли и речи (*say, believe, consider, report, allege*): **It is believed that S + V** или **S is believed to + Infinitive** (*The company is reported to have expanded into Asia*)."
+      },
+      {
+        "title": "2. Пассивный герундий и перфектный инфинитив",
+        "content": "*I hate being interrupted (Пассивный герундий)*. *He was accused of having been bribed (Перфектный пассивный герундий)*. *The project was supposed to have been finished yesterday*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Модели Reporting Passive",
+        "headers": [
+          "Модель",
+          "Формула",
+          "Пример",
+          "Значение"
+        ],
+        "rows": [
+          [
+            "Модель с It",
+            "It is + V3 (said/reported) + that...",
+            "It is said that he is brilliant.",
+            "Говорят, что он гениален."
+          ],
+          [
+            "Личная модель",
+            "S + be + V3 + to + V1",
+            "He is said to be brilliant.",
+            "Он, как говорят, гениален."
+          ],
+          [
+            "О прошлом",
+            "S + be + V3 + to have + V3",
+            "He is believed to have left Europe.",
+            "Считается, что он покинул Европу."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The CEO is rumored to be stepping down next month.",
+        "ru": "Ходят слухи, что генеральный директор уходит в отставку в следующем месяце.",
+        "note": "Личный пассив (is rumored to be...)"
+      },
+      {
+        "en": "The artifact is thought to have been crafted in ancient Greece.",
+        "ru": "Считается, что артефакт был создан в древней Греции.",
+        "note": "to have been crafted"
+      }
+    ],
+    "commonMistakes": [
+      "Использование настоящего инфинитива для событий прошлого: ❌ He is believed to steal it -> ✅ He is believed to have stolen it.",
+      "Пропуск частицы to в личной конструкции: ❌ He is said be rich -> ✅ He is said to be rich."
+    ],
+    "tutorQuickPrompts": [
+      "Преобразуй People say that he wrote the book в две пассивные формы",
+      "Как формируется Passive с глаголами восприятия (hear, see)?",
+      "Дай 3 примера Reporting Passive в финансовой аналитике"
+    ],
+    "topicId": 123,
+    "topicName": "Advanced passive constructions",
+    "level": "C1",
+    "category": "Grammar"
+  },
+  "124": {
+    "russianTitle": "Продвинутые смешанные условные (Mixed conditionals advanced)",
+    "summaryRu": "Комбинация условия и следствия из разных временных планов: прошлое условие влияет на настоящее/будущее, или постоянная черта характера определила прошлое действие.",
+    "sections": [
+      {
+        "title": "1. Past Condition -> Present Result (Type 3 + Type 2)",
+        "content": "Формула: **If + Had + V3, S + would/could + V1**: *If I had taken that job last year, I would live in Singapore today (Если бы я согласился тогда, я бы жил в Сингапуре сейчас)*."
+      },
+      {
+        "title": "2. Present State -> Past Result (Type 2 + Type 3)",
+        "content": "Формула: **If + Past Simple, S + would have + V3**: *If she were not so fluent in Japanese, she wouldn't have landed that contract (Если бы она не владела японским свободно [в принципе], она бы не получила тот контракт [тогда])*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Типы смешанных условных",
+        "headers": [
+          "Условие (If-clause)",
+          "Следствие (Main clause)",
+          "Временная связь",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "Past Perfect (had done)",
+            "would + V1",
+            "Прошлое -> Настоящее",
+            "If we had left earlier, we wouldn't be stuck in traffic."
+          ],
+          [
+            "Past Simple (were/did)",
+            "would have + V3",
+            "Постоянное -> Прошлое",
+            "If I were braver, I would have spoken up yesterday."
+          ],
+          [
+            "Инверсия (Had I known)",
+            "would + V1",
+            "Формальная инверсия",
+            "Had you booked earlier, you would be flying first class."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "If we had invested in Bitcoin in 2013, we would be millionaires today.",
+        "ru": "Если бы мы инвестировали в биткоин в 2013 году, сегодня мы были бы миллионерами.",
+        "note": "Past cause -> Present reality"
+      },
+      {
+        "en": "Had he not been so stubborn, they wouldn't have broken up.",
+        "ru": "Не будь он таким упрямым, они бы не расстались.",
+        "note": "Инвертированное условие"
+      }
+    ],
+    "commonMistakes": [
+      "Использование would в If-clause: ❌ If I would have invested -> ✅ If I had invested.",
+      "Смешивание времен без логической привязки (today/now/yesterday)."
+    ],
+    "tutorQuickPrompts": [
+      "Приведи пример Mixed Conditional с инверсией",
+      "Как отличить Mixed Conditional от классического Type 3?",
+      "Дай 3 предложения для перевода на смешанные условные"
+    ],
+    "topicId": 124,
+    "topicName": "Mixed conditionals (advanced)",
+    "level": "C1",
+    "category": "Grammar"
+  },
+  "125": {
+    "russianTitle": "Дискурсивные маркеры (Discourse markers)",
+    "summaryRu": "Слова и фразы, организующие логику рассуждения, управляющие ходом беседы и выражающие отношение говорящего: actually, in fact, frankly, on the other hand, consequently.",
+    "sections": [
+      {
+        "title": "1. Уточнение и контраргументы",
+        "content": "*Actually / In fact / As a matter of fact* — для опровержения заблуждений или введения неожиданного факта. *Mind you / Having said that* — для оговорки к ранее сказанному."
+      },
+      {
+        "title": "2. Структурирование аргументации",
+        "content": "*First and foremost, By the same token, That being said, All things considered, To put it another way*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Категории дискурсивных маркеров",
+        "headers": [
+          "Функция",
+          "Маркеры",
+          "Пример",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Уточнение факта",
+            "in fact, actually, strictly speaking",
+            "In fact, our profits grew by 20%.",
+            "Фактически, наша прибыль выросла на 20%."
+          ],
+          [
+            "Оговорка",
+            "having said that, mind you",
+            "He is strict. Having said that, he is fair.",
+            "Он строг. С другой стороны, он справедлив."
+          ],
+          [
+            "Итог / Вывод",
+            "all things considered, in summary",
+            "All things considered, the pilot was a success.",
+            "Взвесив всё, пилотный проект признан успешным."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The economy is slowing down; that being said, tech hiring remains robust.",
+        "ru": "Экономика замедляется; тем не менее, найм в IT остается устойчивым.",
+        "note": "that being said = тем не менее"
+      },
+      {
+        "en": "Strictly speaking, the warranty expired yesterday.",
+        "ru": "Строго говоря, гарантия истекла вчера.",
+        "note": "strictly speaking"
+      }
+    ],
+    "commonMistakes": [
+      "Чрезмерное нагромождение маркеров в одном абзаце.",
+      "Путаница actually (на самом деле) и currently (в настоящее время)."
+    ],
+    "tutorQuickPrompts": [
+      "В чем стилистическая разница между by the way и incidentally?",
+      "Как использовать that being said в деловой презентации?",
+      "Дай 5 продвинутых связок для эссе"
+    ],
+    "topicId": 125,
+    "topicName": "Discourse markers (actually/in fact/as a matter of fact)",
+    "level": "C1",
+    "category": "Grammar"
+  },
+  "126": {
+    "russianTitle": "Сложные именные группы (Complex noun phrases)",
+    "summaryRu": "Многоуровневые субстантивные конструкции с левыми и правыми модификаторами, характерные для академического, делового и публицистического стиля.",
+    "sections": [
+      {
+        "title": "1. Пре-модификация (Левые определения)",
+        "content": "Цепочки существительных-определений, составных прилагательных и причастий: *a state-of-the-art cloud-based enterprise solution*."
+      },
+      {
+        "title": "2. Пост-модификация (Правые определения)",
+        "content": "Причастные обороты, инфинитивные группы и предложные фразы: *the comprehensive report detailing the Q3 financial anomalies submitted by the external audit committee*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Структура сложной именной группы",
+        "headers": [
+          "Компонент",
+          "Позиция",
+          "Пример",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Compound adjective",
+            "Pre-modifier",
+            "a cutting-edge AI-driven platform",
+            "передовая платформа на базе ИИ"
+          ],
+          [
+            "Noun adjunct",
+            "Pre-modifier",
+            "supply chain risk management",
+            "управление рисками цепочек поставок"
+          ],
+          [
+            "Participle phrase",
+            "Post-modifier",
+            "the guidelines published by the regulator",
+            "руководство, опубликованное регулятором"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "We adopted a zero-tolerance cybersecurity risk prevention framework.",
+        "ru": "Мы внедрили структуру предотвращения рисков кибербезопасности с нулевой терпимостью.",
+        "note": "Complex noun phrase"
+      },
+      {
+        "en": "The data privacy regulations recently enacted by the European Parliament pose challenges.",
+        "ru": "Правила конфиденциальности данных, недавно принятые Европарламентом, создают вызовы.",
+        "note": "Post-modified noun phrase"
+      }
+    ],
+    "commonMistakes": [
+      "Окончание множественного числа у существительных-определений: ❌ cars factory -> ✅ car factory.",
+      "Дефисы в составных прилагательных после существительного: ❌ The strategy is well-known -> ✅ well known (без дефиса в позиции предикатива)."
+    ],
+    "tutorQuickPrompts": [
+      "Как упаковать длинное предложение в компактную именную группу?",
+      "Правила дефисов в compound adjectives",
+      "Дай 3 примера из заголовков Financial Times"
+    ],
+    "topicId": 126,
+    "topicName": "Complex noun phrases",
+    "level": "C1",
+    "category": "Grammar"
+  },
+  "127": {
+    "russianTitle": "Хеджирование и язык вежливости (Hedging and vague language)",
+    "summaryRu": "Смягчение категоричности высказываний, выражение осторожности и дипломатичности в научной речи и деловых переговорах: tend to, appear to, it seems plausible that.",
+    "sections": [
+      {
+        "title": "1. Модальные глаголы и лексические связки",
+        "content": "Вместо резкого *This proves that* используется *This would suggest that / These findings seem to indicate that*. Глаголы *tend to, appear to, assume, speculate*."
+      },
+      {
+        "title": "2. Квантификаторы и наречия неопределенности",
+        "content": "*Arguably, relatively, predominantly, to a certain extent, in some respects*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Инструменты академического хеджирования",
+        "headers": [
+          "Прямое утверждение",
+          "Хеджированный вариант (Дипломатичный)",
+          "Используемый инструмент"
+        ],
+        "rows": [
+          [
+            "The market will crash.",
+            "The market is prone to significant volatility.",
+            "Смягчающее прилагательное"
+          ],
+          [
+            "This method is flawed.",
+            "This approach may have certain limitations.",
+            "Модальный глагол + существительное"
+          ],
+          [
+            "Customers hate the update.",
+            "User feedback appears to be predominantly mixed.",
+            "appear to + наречие"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The preliminary data would seem to suggest a modest upward trend.",
+        "ru": "Предварительные данные, по-видимому, указывают на умеренный восходящий тренд.",
+        "note": "Двойной хеджинг (would seem to suggest)"
+      },
+      {
+        "en": "It is arguably one of the most consequential decisions of the decade.",
+        "ru": "Это, пожалуй, одно из самых значимых решений десятилетия.",
+        "note": "arguably = пожалуй/вероятно"
+      }
+    ],
+    "commonMistakes": [
+      "Излишняя категоричность в академических эссе (use of absolute words like always/never).",
+      "Чрезмерный хеджинг, делающий фразу бессмысленной."
+    ],
+    "tutorQuickPrompts": [
+      "Преобразуй 3 категоричных утверждения в дипломатичные фразы",
+      "Когда уместно слово arguably?",
+      "Как писать научное заключение с правильным уровнем осторожности?"
+    ],
+    "topicId": 127,
+    "topicName": "Hedging and vague language",
+    "level": "C1",
+    "category": "Grammar"
+  },
+  "11259": {
+    "russianTitle": "Отрицательная инверсия (Negative inversion)",
+    "summaryRu": "Инверсия с паттернами No sooner had... than, Not only... but also, Seldom have I, Not until... did.",
+    "sections": [
+      {
+        "title": "1. Паттерны с временем Past Perfect",
+        "content": "**No sooner had S + V3 than...** (Не успел я..., как...). **Scarcely / Hardly had S + V3 when...** (Едва..., как...). Обратите внимание: с No sooner используется **THAN**, а с Hardly/Scarcely — **WHEN**!"
+      },
+      {
+        "title": "2. Паттерны с Not until и Only when",
+        "content": "Инверсия происходит в главной части предложения: *Not until the sun rose **did we see** the damage*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Парные связки отрицательной инверсии",
+        "headers": [
+          "Конструкция",
+          "Вторая часть связки",
+          "Пример",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "No sooner had...",
+            "THAN",
+            "No sooner had I sat down than the bell rang.",
+            "Не успел я сесть, как прозвенел звонок."
+          ],
+          [
+            "Hardly / Scarcely had...",
+            "WHEN",
+            "Hardly had the meeting started when he left.",
+            "Едва встреча началась, как он ушел."
+          ],
+          [
+            "Not only did...",
+            "BUT ALSO",
+            "Not only did he apologize, but he also refunded us.",
+            "Он не только извинился, но и вернул деньги."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "No sooner had we launched the campaign than traffic surged.",
+        "ru": "Не успели мы запустить кампанию, как трафик резко вырос.",
+        "note": "No sooner ... than"
+      },
+      {
+        "en": "Not until late at night did they reach a consensus.",
+        "ru": "Лишь поздно ночью они пришли к консенсусу.",
+        "note": "Not until + инверсия"
+      }
+    ],
+    "commonMistakes": [
+      "Путаница than и when: ❌ No sooner had I arrived when -> ✅ No sooner had I arrived than.",
+      "Инверсия в придаточной части Not until: ❌ Not until did he arrive we left -> ✅ Not until he arrived did we leave."
+    ],
+    "tutorQuickPrompts": [
+      "В чем разница между No sooner than и Hardly when?",
+      "Как инвертировать предложение с Not only... but also?",
+      "Дай 3 теста на отрицательную инверсию"
+    ],
+    "topicId": 11259,
+    "topicName": "Negative inversion (Seldom have I, Not only... but also, No sooner had)",
+    "level": "C1",
+    "category": "Grammar"
+  },
+  "128": {
+    "topicId": 128,
+    "topicName": "Abstract concepts",
+    "level": "C1",
+    "category": "Vocabulary",
+    "russianTitle": "Абстрактные концепции и философия (Abstract concepts)",
+    "summaryRu": "Лексика для обсуждения экзистенциальных, философских и абстрактных идей (epistemology, duality, pragmatism, paradigm shift).",
+    "sections": [
+      {
+        "title": "1. Теоретический фундамент и применение",
+        "content": "Тема **«Абстрактные концепции и философия (Abstract concepts)»** на уровне **C1** требует глубокого понимания контекста, точности формулировок и языкового чутья. Анализируйте примеры и консультируйтесь с AI-репетитором."
+      },
+      {
+        "title": "2. Практические нюансы и стилистика",
+        "content": "Обращайте внимание на стилистический регистр, уместность употребления и типичные оттенки значений в британском и американском дискурсе."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Ключевые ориентиры и модели",
+        "headers": [
+          "Аспект",
+          "Характеристика",
+          "Пример",
+          "Контекст"
+        ],
+        "rows": [
+          [
+            "Высокий регистр",
+            "Формальный / Академический",
+            "Such assumptions remain largely unsubstantiated.",
+            "Научные дебаты"
+          ],
+          [
+            "Идиоматичность",
+            "Устойчивая коллокация",
+            "A foregone conclusion.",
+            "Аналитические выводы"
+          ],
+          [
+            "Риторический акцент",
+            "Эмфатическая конструкция",
+            "It is this nuance that defines the outcome.",
+            "Ораторская речь"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The findings substantiate the hypothesis put forward in the initial study.",
+        "ru": "Полученные результаты подтверждают гипотезу, выдвинутую в первоначальном исследовании.",
+        "note": "Академический глагол substantiate"
+      },
+      {
+        "en": "We must navigate these regulatory hurdles with utmost prudence.",
+        "ru": "Мы должны преодолеть эти регуляторные препятствия с предельной осмотрительностью.",
+        "note": "Стилистический оборот с utmost prudence"
+      }
+    ],
+    "commonMistakes": [
+      "Смешение регистров в одном предложении.",
+      "Буквальный перевод русских идиом."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни тонкости темы «Абстрактные концепции и философия (Abstract concepts)»",
+      "Приведи 3 примера из реальных публикаций",
+      "Дай сложное практическое задание"
+    ]
+  },
+  "129": {
+    "topicId": 129,
+    "topicName": "Academic vocabulary",
+    "level": "C1",
+    "category": "Vocabulary",
+    "russianTitle": "Академический словарь (Academic vocabulary)",
+    "summaryRu": "Слова из академического вокабуляра AWL (substantiate, correlate, extrapolate, preliminary, ubiquitous).",
+    "sections": [
+      {
+        "title": "1. Теоретический фундамент и применение",
+        "content": "Тема **«Академический словарь (Academic vocabulary)»** на уровне **C1** требует глубокого понимания контекста, точности формулировок и языкового чутья. Анализируйте примеры и консультируйтесь с AI-репетитором."
+      },
+      {
+        "title": "2. Практические нюансы и стилистика",
+        "content": "Обращайте внимание на стилистический регистр, уместность употребления и типичные оттенки значений в британском и американском дискурсе."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Ключевые ориентиры и модели",
+        "headers": [
+          "Аспект",
+          "Характеристика",
+          "Пример",
+          "Контекст"
+        ],
+        "rows": [
+          [
+            "Высокий регистр",
+            "Формальный / Академический",
+            "Such assumptions remain largely unsubstantiated.",
+            "Научные дебаты"
+          ],
+          [
+            "Идиоматичность",
+            "Устойчивая коллокация",
+            "A foregone conclusion.",
+            "Аналитические выводы"
+          ],
+          [
+            "Риторический акцент",
+            "Эмфатическая конструкция",
+            "It is this nuance that defines the outcome.",
+            "Ораторская речь"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The findings substantiate the hypothesis put forward in the initial study.",
+        "ru": "Полученные результаты подтверждают гипотезу, выдвинутую в первоначальном исследовании.",
+        "note": "Академический глагол substantiate"
+      },
+      {
+        "en": "We must navigate these regulatory hurdles with utmost prudence.",
+        "ru": "Мы должны преодолеть эти регуляторные препятствия с предельной осмотрительностью.",
+        "note": "Стилистический оборот с utmost prudence"
+      }
+    ],
+    "commonMistakes": [
+      "Смешение регистров в одном предложении.",
+      "Буквальный перевод русских идиом."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни тонкости темы «Академический словарь (Academic vocabulary)»",
+      "Приведи 3 примера из реальных публикаций",
+      "Дай сложное практическое задание"
+    ]
+  },
+  "130": {
+    "topicId": 130,
+    "topicName": "Advanced phrasal verbs",
+    "level": "C1",
+    "category": "Vocabulary",
+    "russianTitle": "Продвинутые фразовые глаголы (Advanced phrasal verbs)",
+    "summaryRu": "Сложные и многозначные фразовые глаголы (boil down to, cotton on, weed out, gloss over, factor in).",
+    "sections": [
+      {
+        "title": "1. Теоретический фундамент и применение",
+        "content": "Тема **«Продвинутые фразовые глаголы (Advanced phrasal verbs)»** на уровне **C1** требует глубокого понимания контекста, точности формулировок и языкового чутья. Анализируйте примеры и консультируйтесь с AI-репетитором."
+      },
+      {
+        "title": "2. Практические нюансы и стилистика",
+        "content": "Обращайте внимание на стилистический регистр, уместность употребления и типичные оттенки значений в британском и американском дискурсе."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Ключевые ориентиры и модели",
+        "headers": [
+          "Аспект",
+          "Характеристика",
+          "Пример",
+          "Контекст"
+        ],
+        "rows": [
+          [
+            "Высокий регистр",
+            "Формальный / Академический",
+            "Such assumptions remain largely unsubstantiated.",
+            "Научные дебаты"
+          ],
+          [
+            "Идиоматичность",
+            "Устойчивая коллокация",
+            "A foregone conclusion.",
+            "Аналитические выводы"
+          ],
+          [
+            "Риторический акцент",
+            "Эмфатическая конструкция",
+            "It is this nuance that defines the outcome.",
+            "Ораторская речь"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The findings substantiate the hypothesis put forward in the initial study.",
+        "ru": "Полученные результаты подтверждают гипотезу, выдвинутую в первоначальном исследовании.",
+        "note": "Академический глагол substantiate"
+      },
+      {
+        "en": "We must navigate these regulatory hurdles with utmost prudence.",
+        "ru": "Мы должны преодолеть эти регуляторные препятствия с предельной осмотрительностью.",
+        "note": "Стилистический оборот с utmost prudence"
+      }
+    ],
+    "commonMistakes": [
+      "Смешение регистров в одном предложении.",
+      "Буквальный перевод русских идиом."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни тонкости темы «Продвинутые фразовые глаголы (Advanced phrasal verbs)»",
+      "Приведи 3 примера из реальных публикаций",
+      "Дай сложное практическое задание"
+    ]
+  },
+  "131": {
+    "topicId": 131,
+    "topicName": "Formal and informal registers",
+    "level": "C1",
+    "category": "Vocabulary",
+    "russianTitle": "Формальный и неформальный регистры (Formal and informal registers)",
+    "summaryRu": "Синонимические ряды различных регистров: buy -> purchase, ask -> inquire, end -> terminate, help -> facilitate.",
+    "sections": [
+      {
+        "title": "1. Теоретический фундамент и применение",
+        "content": "Тема **«Формальный и неформальный регистры (Formal and informal registers)»** на уровне **C1** требует глубокого понимания контекста, точности формулировок и языкового чутья. Анализируйте примеры и консультируйтесь с AI-репетитором."
+      },
+      {
+        "title": "2. Практические нюансы и стилистика",
+        "content": "Обращайте внимание на стилистический регистр, уместность употребления и типичные оттенки значений в британском и американском дискурсе."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Ключевые ориентиры и модели",
+        "headers": [
+          "Аспект",
+          "Характеристика",
+          "Пример",
+          "Контекст"
+        ],
+        "rows": [
+          [
+            "Высокий регистр",
+            "Формальный / Академический",
+            "Such assumptions remain largely unsubstantiated.",
+            "Научные дебаты"
+          ],
+          [
+            "Идиоматичность",
+            "Устойчивая коллокация",
+            "A foregone conclusion.",
+            "Аналитические выводы"
+          ],
+          [
+            "Риторический акцент",
+            "Эмфатическая конструкция",
+            "It is this nuance that defines the outcome.",
+            "Ораторская речь"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The findings substantiate the hypothesis put forward in the initial study.",
+        "ru": "Полученные результаты подтверждают гипотезу, выдвинутую в первоначальном исследовании.",
+        "note": "Академический глагол substantiate"
+      },
+      {
+        "en": "We must navigate these regulatory hurdles with utmost prudence.",
+        "ru": "Мы должны преодолеть эти регуляторные препятствия с предельной осмотрительностью.",
+        "note": "Стилистический оборот с utmost prudence"
+      }
+    ],
+    "commonMistakes": [
+      "Смешение регистров в одном предложении.",
+      "Буквальный перевод русских идиом."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни тонкости темы «Формальный и неформальный регистры (Formal and informal registers)»",
+      "Приведи 3 примера из реальных публикаций",
+      "Дай сложное практическое задание"
+    ]
+  },
+  "132": {
+    "topicId": 132,
+    "topicName": "Word formation (prefixes/suffixes)",
+    "level": "C1",
+    "category": "Vocabulary",
+    "russianTitle": "Словообразование: префиксы и суффиксы (Word formation)",
+    "summaryRu": "Многоуровневое словообразование: unprecedented, disingenuous, counterproductive, insurmountable.",
+    "sections": [
+      {
+        "title": "1. Теоретический фундамент и применение",
+        "content": "Тема **«Словообразование: префиксы и суффиксы (Word formation)»** на уровне **C1** требует глубокого понимания контекста, точности формулировок и языкового чутья. Анализируйте примеры и консультируйтесь с AI-репетитором."
+      },
+      {
+        "title": "2. Практические нюансы и стилистика",
+        "content": "Обращайте внимание на стилистический регистр, уместность употребления и типичные оттенки значений в британском и американском дискурсе."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Ключевые ориентиры и модели",
+        "headers": [
+          "Аспект",
+          "Характеристика",
+          "Пример",
+          "Контекст"
+        ],
+        "rows": [
+          [
+            "Высокий регистр",
+            "Формальный / Академический",
+            "Such assumptions remain largely unsubstantiated.",
+            "Научные дебаты"
+          ],
+          [
+            "Идиоматичность",
+            "Устойчивая коллокация",
+            "A foregone conclusion.",
+            "Аналитические выводы"
+          ],
+          [
+            "Риторический акцент",
+            "Эмфатическая конструкция",
+            "It is this nuance that defines the outcome.",
+            "Ораторская речь"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The findings substantiate the hypothesis put forward in the initial study.",
+        "ru": "Полученные результаты подтверждают гипотезу, выдвинутую в первоначальном исследовании.",
+        "note": "Академический глагол substantiate"
+      },
+      {
+        "en": "We must navigate these regulatory hurdles with utmost prudence.",
+        "ru": "Мы должны преодолеть эти регуляторные препятствия с предельной осмотрительностью.",
+        "note": "Стилистический оборот с utmost prudence"
+      }
+    ],
+    "commonMistakes": [
+      "Смешение регистров в одном предложении.",
+      "Буквальный перевод русских идиом."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни тонкости темы «Словообразование: префиксы и суффиксы (Word formation)»",
+      "Приведи 3 примера из реальных публикаций",
+      "Дай сложное практическое задание"
+    ]
+  },
+  "133": {
+    "topicId": 133,
+    "topicName": "Business English",
+    "level": "C1",
+    "category": "Vocabulary",
+    "russianTitle": "Деловой английский и бизнес-стратегия (Business English)",
+    "summaryRu": "Лексика M&A, корпоративного управления, KPI, венчурного капитала и оптимизации процессов.",
+    "sections": [
+      {
+        "title": "1. Теоретический фундамент и применение",
+        "content": "Тема **«Деловой английский и бизнес-стратегия (Business English)»** на уровне **C1** требует глубокого понимания контекста, точности формулировок и языкового чутья. Анализируйте примеры и консультируйтесь с AI-репетитором."
+      },
+      {
+        "title": "2. Практические нюансы и стилистика",
+        "content": "Обращайте внимание на стилистический регистр, уместность употребления и типичные оттенки значений в британском и американском дискурсе."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Ключевые ориентиры и модели",
+        "headers": [
+          "Аспект",
+          "Характеристика",
+          "Пример",
+          "Контекст"
+        ],
+        "rows": [
+          [
+            "Высокий регистр",
+            "Формальный / Академический",
+            "Such assumptions remain largely unsubstantiated.",
+            "Научные дебаты"
+          ],
+          [
+            "Идиоматичность",
+            "Устойчивая коллокация",
+            "A foregone conclusion.",
+            "Аналитические выводы"
+          ],
+          [
+            "Риторический акцент",
+            "Эмфатическая конструкция",
+            "It is this nuance that defines the outcome.",
+            "Ораторская речь"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The findings substantiate the hypothesis put forward in the initial study.",
+        "ru": "Полученные результаты подтверждают гипотезу, выдвинутую в первоначальном исследовании.",
+        "note": "Академический глагол substantiate"
+      },
+      {
+        "en": "We must navigate these regulatory hurdles with utmost prudence.",
+        "ru": "Мы должны преодолеть эти регуляторные препятствия с предельной осмотрительностью.",
+        "note": "Стилистический оборот с utmost prudence"
+      }
+    ],
+    "commonMistakes": [
+      "Смешение регистров в одном предложении.",
+      "Буквальный перевод русских идиом."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни тонкости темы «Деловой английский и бизнес-стратегия (Business English)»",
+      "Приведи 3 примера из реальных публикаций",
+      "Дай сложное практическое задание"
+    ]
+  },
+  "134": {
+    "topicId": 134,
+    "topicName": "Nuanced opinion expression",
+    "level": "C1",
+    "category": "Speaking",
+    "russianTitle": "Тонкое выражение мнения (Nuanced opinion expression)",
+    "summaryRu": "Дипломатичное выражение точки зрения с полутонами (I am inclined to believe, I have certain reservations, with all due respect).",
+    "sections": [
+      {
+        "title": "1. Теоретический фундамент и применение",
+        "content": "Тема **«Тонкое выражение мнения (Nuanced opinion expression)»** на уровне **C1** требует глубокого понимания контекста, точности формулировок и языкового чутья. Анализируйте примеры и консультируйтесь с AI-репетитором."
+      },
+      {
+        "title": "2. Практические нюансы и стилистика",
+        "content": "Обращайте внимание на стилистический регистр, уместность употребления и типичные оттенки значений в британском и американском дискурсе."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Ключевые ориентиры и модели",
+        "headers": [
+          "Аспект",
+          "Характеристика",
+          "Пример",
+          "Контекст"
+        ],
+        "rows": [
+          [
+            "Высокий регистр",
+            "Формальный / Академический",
+            "Such assumptions remain largely unsubstantiated.",
+            "Научные дебаты"
+          ],
+          [
+            "Идиоматичность",
+            "Устойчивая коллокация",
+            "A foregone conclusion.",
+            "Аналитические выводы"
+          ],
+          [
+            "Риторический акцент",
+            "Эмфатическая конструкция",
+            "It is this nuance that defines the outcome.",
+            "Ораторская речь"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The findings substantiate the hypothesis put forward in the initial study.",
+        "ru": "Полученные результаты подтверждают гипотезу, выдвинутую в первоначальном исследовании.",
+        "note": "Академический глагол substantiate"
+      },
+      {
+        "en": "We must navigate these regulatory hurdles with utmost prudence.",
+        "ru": "Мы должны преодолеть эти регуляторные препятствия с предельной осмотрительностью.",
+        "note": "Стилистический оборот с utmost prudence"
+      }
+    ],
+    "commonMistakes": [
+      "Смешение регистров в одном предложении.",
+      "Буквальный перевод русских идиом."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни тонкости темы «Тонкое выражение мнения (Nuanced opinion expression)»",
+      "Приведи 3 примера из реальных публикаций",
+      "Дай сложное практическое задание"
+    ]
+  },
+  "135": {
+    "topicId": 135,
+    "topicName": "Academic presentations",
+    "level": "C1",
+    "category": "Speaking",
+    "russianTitle": "Академические презентации и доклады (Academic presentations)",
+    "summaryRu": "Фразы спикера для ведения доклада, переходов между слайдами, аргументации и ответов на сложные вопросы.",
+    "sections": [
+      {
+        "title": "1. Теоретический фундамент и применение",
+        "content": "Тема **«Академические презентации и доклады (Academic presentations)»** на уровне **C1** требует глубокого понимания контекста, точности формулировок и языкового чутья. Анализируйте примеры и консультируйтесь с AI-репетитором."
+      },
+      {
+        "title": "2. Практические нюансы и стилистика",
+        "content": "Обращайте внимание на стилистический регистр, уместность употребления и типичные оттенки значений в британском и американском дискурсе."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Ключевые ориентиры и модели",
+        "headers": [
+          "Аспект",
+          "Характеристика",
+          "Пример",
+          "Контекст"
+        ],
+        "rows": [
+          [
+            "Высокий регистр",
+            "Формальный / Академический",
+            "Such assumptions remain largely unsubstantiated.",
+            "Научные дебаты"
+          ],
+          [
+            "Идиоматичность",
+            "Устойчивая коллокация",
+            "A foregone conclusion.",
+            "Аналитические выводы"
+          ],
+          [
+            "Риторический акцент",
+            "Эмфатическая конструкция",
+            "It is this nuance that defines the outcome.",
+            "Ораторская речь"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The findings substantiate the hypothesis put forward in the initial study.",
+        "ru": "Полученные результаты подтверждают гипотезу, выдвинутую в первоначальном исследовании.",
+        "note": "Академический глагол substantiate"
+      },
+      {
+        "en": "We must navigate these regulatory hurdles with utmost prudence.",
+        "ru": "Мы должны преодолеть эти регуляторные препятствия с предельной осмотрительностью.",
+        "note": "Стилистический оборот с utmost prudence"
+      }
+    ],
+    "commonMistakes": [
+      "Смешение регистров в одном предложении.",
+      "Буквальный перевод русских идиом."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни тонкости темы «Академические презентации и доклады (Academic presentations)»",
+      "Приведи 3 примера из реальных публикаций",
+      "Дай сложное практическое задание"
+    ]
+  },
+  "136": {
+    "topicId": 136,
+    "topicName": "Negotiation language",
+    "level": "C1",
+    "category": "Speaking",
+    "russianTitle": "Язык переговоров и компромиссов (Negotiation language)",
+    "summaryRu": "Стратегии торга, формулирование встречных предложений, уступок и фиксации договоренностей (concession, leverage, deal-breaker).",
+    "sections": [
+      {
+        "title": "1. Теоретический фундамент и применение",
+        "content": "Тема **«Язык переговоров и компромиссов (Negotiation language)»** на уровне **C1** требует глубокого понимания контекста, точности формулировок и языкового чутья. Анализируйте примеры и консультируйтесь с AI-репетитором."
+      },
+      {
+        "title": "2. Практические нюансы и стилистика",
+        "content": "Обращайте внимание на стилистический регистр, уместность употребления и типичные оттенки значений в британском и американском дискурсе."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Ключевые ориентиры и модели",
+        "headers": [
+          "Аспект",
+          "Характеристика",
+          "Пример",
+          "Контекст"
+        ],
+        "rows": [
+          [
+            "Высокий регистр",
+            "Формальный / Академический",
+            "Such assumptions remain largely unsubstantiated.",
+            "Научные дебаты"
+          ],
+          [
+            "Идиоматичность",
+            "Устойчивая коллокация",
+            "A foregone conclusion.",
+            "Аналитические выводы"
+          ],
+          [
+            "Риторический акцент",
+            "Эмфатическая конструкция",
+            "It is this nuance that defines the outcome.",
+            "Ораторская речь"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The findings substantiate the hypothesis put forward in the initial study.",
+        "ru": "Полученные результаты подтверждают гипотезу, выдвинутую в первоначальном исследовании.",
+        "note": "Академический глагол substantiate"
+      },
+      {
+        "en": "We must navigate these regulatory hurdles with utmost prudence.",
+        "ru": "Мы должны преодолеть эти регуляторные препятствия с предельной осмотрительностью.",
+        "note": "Стилистический оборот с utmost prudence"
+      }
+    ],
+    "commonMistakes": [
+      "Смешение регистров в одном предложении.",
+      "Буквальный перевод русских идиом."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни тонкости темы «Язык переговоров и компромиссов (Negotiation language)»",
+      "Приведи 3 примера из реальных публикаций",
+      "Дай сложное практическое задание"
+    ]
+  },
+  "137": {
+    "topicId": 137,
+    "topicName": "Expressing irony and sarcasm",
+    "level": "C1",
+    "category": "Speaking",
+    "russianTitle": "Ирония, сарказм и подтекст (Expressing irony and sarcasm)",
+    "summaryRu": "Интонация, understatement, litotes (not bad at all) и языковые маркеры тонкого английского юмора.",
+    "sections": [
+      {
+        "title": "1. Теоретический фундамент и применение",
+        "content": "Тема **«Ирония, сарказм и подтекст (Expressing irony and sarcasm)»** на уровне **C1** требует глубокого понимания контекста, точности формулировок и языкового чутья. Анализируйте примеры и консультируйтесь с AI-репетитором."
+      },
+      {
+        "title": "2. Практические нюансы и стилистика",
+        "content": "Обращайте внимание на стилистический регистр, уместность употребления и типичные оттенки значений в британском и американском дискурсе."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Ключевые ориентиры и модели",
+        "headers": [
+          "Аспект",
+          "Характеристика",
+          "Пример",
+          "Контекст"
+        ],
+        "rows": [
+          [
+            "Высокий регистр",
+            "Формальный / Академический",
+            "Such assumptions remain largely unsubstantiated.",
+            "Научные дебаты"
+          ],
+          [
+            "Идиоматичность",
+            "Устойчивая коллокация",
+            "A foregone conclusion.",
+            "Аналитические выводы"
+          ],
+          [
+            "Риторический акцент",
+            "Эмфатическая конструкция",
+            "It is this nuance that defines the outcome.",
+            "Ораторская речь"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The findings substantiate the hypothesis put forward in the initial study.",
+        "ru": "Полученные результаты подтверждают гипотезу, выдвинутую в первоначальном исследовании.",
+        "note": "Академический глагол substantiate"
+      },
+      {
+        "en": "We must navigate these regulatory hurdles with utmost prudence.",
+        "ru": "Мы должны преодолеть эти регуляторные препятствия с предельной осмотрительностью.",
+        "note": "Стилистический оборот с utmost prudence"
+      }
+    ],
+    "commonMistakes": [
+      "Смешение регистров в одном предложении.",
+      "Буквальный перевод русских идиом."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни тонкости темы «Ирония, сарказм и подтекст (Expressing irony and sarcasm)»",
+      "Приведи 3 примера из реальных публикаций",
+      "Дай сложное практическое задание"
+    ]
+  }
+}

@@ -1,0 +1,2053 @@
+{
+  "1": {
+    "topicId": 1,
+    "topicName": "Verb \"to be\" (am/is/are)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Глагол \"to be\" в настоящем времени (am/is/are)",
+    "summaryRu": "Глагол to be (быть, являться, находиться) — основа английского языка. В английском предложение всегда требует глагола-связки («I am a student»).",
+    "sections": [
+      {
+        "title": "1. Три формы глагола to be",
+        "content": "В Present Simple глагол to be имеет три формы: **am** (только с I), **is** (с he, she, it) и **are** (с you, we, they). В разговорной речи используются сокращения: *I'm, he's, she's, it's, we're, you're, they're*."
+      },
+      {
+        "title": "2. Отрицания и вопросы",
+        "content": "Отрицание образуется добавлением частицы **not** после глагола: *is not = isn't, are not = aren't, I am not = I'm not*. Для вопроса to be выносится на первое место перед подлежащим: *Are you ready? Is he at home?*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Спряжение глагола to be",
+        "headers": [
+          "Лицо",
+          "Утверждение",
+          "Кратко",
+          "Отрицание",
+          "Вопрос"
+        ],
+        "rows": [
+          [
+            "I",
+            "I am",
+            "I'm",
+            "I'm not",
+            "Am I?"
+          ],
+          [
+            "You",
+            "You are",
+            "You're",
+            "You aren't",
+            "Are you?"
+          ],
+          [
+            "He / She / It",
+            "He is",
+            "He's",
+            "He isn't",
+            "Is he?"
+          ],
+          [
+            "We",
+            "We are",
+            "We're",
+            "We aren't",
+            "Are we?"
+          ],
+          [
+            "They",
+            "They are",
+            "They're",
+            "They aren't",
+            "Are they?"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I am a software engineer in Berlin.",
+        "ru": "Я инженер-программист в Берлине.",
+        "note": "Профессия (am a...)"
+      },
+      {
+        "en": "She is not at home right now.",
+        "ru": "Она сейчас не дома.",
+        "note": "Отрицание (is not)"
+      },
+      {
+        "en": "Are you ready for the presentation?",
+        "ru": "Ты готов к презентации?",
+        "note": "Вопрос (Are you...)"
+      }
+    ],
+    "commonMistakes": [
+      "Пропуск глагола to be: ❌ I doctor -> ✅ I am a doctor.",
+      "Путаница it's (it is) и its (чей?): ❌ Its cold -> ✅ It's cold."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Глагол \"to be\" в настоящем времени (am/is/are)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "2": {
+    "topicId": 2,
+    "topicName": "Present Simple (positive)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Present Simple: Утвердительные предложения",
+    "summaryRu": "Present Simple выражает постоянные факты, привычки, регулярные действия и расписания. Главное правило: для he/she/it к глаголу добавляется окончание -s или -es.",
+    "sections": [
+      {
+        "title": "1. Образование утверждений",
+        "content": "Для *I, you, we, they* используется начальная форма глагола (*I work, we live, they play*). Для *he, she, it* к глаголу добавляется окончание **-s / -es** (*he works, she watches*)."
+      },
+      {
+        "title": "2. Правила добавления окончаний -s, -es, -ies",
+        "content": "Если глагол оканчивается на *-ss, -sh, -ch, -x, -o*, добавляется **-es** (*goes, watches, washes, fixes*). Если на согласную + -y, буква y меняется на **-ies** (*study -> studies, fly -> flies*). Если гласная + y — просто -s (*play -> plays*)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Окончания в Present Simple",
+        "headers": [
+          "Тип глагола",
+          "Правило",
+          "Пример",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Обычный глагол",
+            "+s",
+            "work -> works, speak -> speaks",
+            "Он работает, она говорит"
+          ],
+          [
+            "На -ch, -sh, -ss, -x, -o",
+            "+es",
+            "watch -> watches, go -> goes",
+            "Он смотрит, она идет"
+          ],
+          [
+            "Согласная + -y",
+            "-y -> -ies",
+            "study -> studies, fly -> flies",
+            "Он учится, птица летает"
+          ],
+          [
+            "Гласная + -y",
+            "+s",
+            "play -> plays, buy -> buys",
+            "Он играет, она покупает"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I live in London and work remotely.",
+        "ru": "Я живу в Лондоне и работаю удаленно.",
+        "note": "Постоянный факт"
+      },
+      {
+        "en": "He drinks green tea every morning.",
+        "ru": "Он пьет зеленый чай каждое утро.",
+        "note": "Привычка (drinks)"
+      },
+      {
+        "en": "The train leaves at 8:15 AM.",
+        "ru": "Поезд отправляется в 8:15 утра.",
+        "note": "Расписание (leaves)"
+      }
+    ],
+    "commonMistakes": [
+      "Забывание окончания -s для he/she/it: ❌ He live in London -> ✅ He lives in London.",
+      "Лишнее окончание -s во множественном числе: ❌ They works -> ✅ They work."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Present Simple: Утвердительные предложения» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "3": {
+    "topicId": 3,
+    "topicName": "Present Simple (negative & questions)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Present Simple: Отрицания и вопросы",
+    "summaryRu": "Для отрицаний и вопросов привлекается вспомогательный глагол DO (I/you/we/they) или DOES (he/she/it). Смысловой глагол всегда возвращается в чистую начальную форму без -s!",
+    "sections": [
+      {
+        "title": "1. Отрицания с don't и doesn't",
+        "content": "Формула: **Подлежащее + don't / doesn't + Глагол (V1 без -s)**. Например: *I don't smoke. She doesn't like spicy food* (не doesn't likes!)."
+      },
+      {
+        "title": "2. Вопросы с Do и Does",
+        "content": "Формула: **(Вопрос. слово) + Do / Does + Подлежащее + Глагол (V1)?** Например: *Do you speak English? Where does she work?* Краткие ответы: *Yes, I do / No, I don't; Yes, he does / No, he doesn't*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Формулы отрицаний и вопросов",
+        "headers": [
+          "Тип",
+          "I / You / We / They",
+          "He / She / It"
+        ],
+        "rows": [
+          [
+            "Отрицание",
+            "I don't like coffee.",
+            "He doesn't like coffee."
+          ],
+          [
+            "Общий вопрос",
+            "Do you work here?",
+            "Does she work here?"
+          ],
+          [
+            "Краткий ответ (+)",
+            "Yes, I do.",
+            "Yes, she does."
+          ],
+          [
+            "Краткий ответ (-)",
+            "No, I don't.",
+            "No, she doesn't."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I don't drink coffee after 5 PM.",
+        "ru": "Я не пью кофе после 5 вечера.",
+        "note": "Отрицание don't"
+      },
+      {
+        "en": "Does he play tennis on weekends?",
+        "ru": "Он играет в теннис по выходным?",
+        "note": "Вопрос Does + play"
+      }
+    ],
+    "commonMistakes": [
+      "Двойное окончание -s: ❌ He doesn't likes tea -> ✅ He doesn't like tea.",
+      "Построение вопроса без вспомогательного do: ❌ You have a car? -> ✅ Do you have a car?"
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Present Simple: Отрицания и вопросы» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "4": {
+    "topicId": 4,
+    "topicName": "Articles (a/an/the)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Артикли в английском языке (a/an/the)",
+    "summaryRu": "A/AN — неопределенный артикль (один из многих, любой). THE — определенный артикль (конкретный предмет, известный собеседникам или уникальный в мире).",
+    "sections": [
+      {
+        "title": "1. Артикли A и AN",
+        "content": "Ставятся только перед исчисляемыми в единственном числе. **A** — перед согласным звуком (*a car, a house, a university [j]*), **AN** — перед гласным звуком (*an apple, an hour [h немая]*)."
+      },
+      {
+        "title": "2. Артикль THE и нулевой артикль",
+        "content": "**THE** ставится перед конкретными вещами (*the book on the table*), уникальными объектами (*the sun, the internet*) или при повторном упоминании. Без артикля говорят о вещах во множественном числе или неисчисляемых в общем смысле (*I like cats, Water is healthy*)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Выбор артикля",
+        "headers": [
+          "Артикль",
+          "Когда употребляется",
+          "Примеры"
+        ],
+        "rows": [
+          [
+            "a",
+            "Ед. ч., исчисляемое, согласный звук",
+            "a dog, a table, a uniform [j]"
+          ],
+          [
+            "an",
+            "Ед. ч., исчисляемое, гласный звук",
+            "an orange, an idea, an hour [aʊər]"
+          ],
+          [
+            "the",
+            "Конкретный предмет, уникальный объект",
+            "the door, the moon, the capital"
+          ],
+          [
+            "без артикля",
+            "Мн. ч. и неисчисляемые в общем",
+            "I love music. Dogs are loyal."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I bought a laptop yesterday. The laptop is very fast.",
+        "ru": "Вчера я купил ноутбук. Этот ноутбук очень быстрый.",
+        "note": "A -> THE при повторе"
+      },
+      {
+        "en": "He is an architect.",
+        "ru": "Он архитектор.",
+        "note": "Профессии всегда с a/an"
+      }
+    ],
+    "commonMistakes": [
+      "Ориентация на букву вместо звука: ❌ a hour -> ✅ an hour.",
+      "Пропуск a/an перед профессиями: ❌ I am teacher -> ✅ I am a teacher."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Артикли в английском языке (a/an/the)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "5": {
+    "topicId": 5,
+    "topicName": "Plural nouns (-s/-es)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Множественное число существительных (-s/-es)",
+    "summaryRu": "Множественное число образуется добавлением окончания -s или -es к существительному. Существуют важные орфографические правила и слова-исключения.",
+    "sections": [
+      {
+        "title": "1. Окончания -s, -es, -ies",
+        "content": "Обычно добавляется **-s** (*book -> books*). После шипящих (*-s, -ss, -sh, -ch, -x*) добавляется **-es** (*bus -> buses, box -> boxes*). После согласной + y пишется **-ies** (*city -> cities*)."
+      },
+      {
+        "title": "2. Слова на -f/-fe и исключения",
+        "content": "Слова на *-f / -fe* меняются на **-ves** (*life -> lives, knife -> knives*). Исключения без окончания -s: *child -> children, person -> people, man -> men, woman -> women, foot -> feet, tooth -> teeth, mouse -> mice*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Таблица множественного числа",
+        "headers": [
+          "Категория",
+          "Правило",
+          "Примеры"
+        ],
+        "rows": [
+          [
+            "Стандартные слова",
+            "+s",
+            "car -> cars, pen -> pens"
+          ],
+          [
+            "Шипящие окончания",
+            "+es",
+            "box -> boxes, match -> matches"
+          ],
+          [
+            "Согласная + -y",
+            "-y -> -ies",
+            "city -> cities, story -> stories"
+          ],
+          [
+            "Слова на -f / -fe",
+            "-f -> -ves",
+            "leaf -> leaves, knife -> knives"
+          ],
+          [
+            "Исключения (неправильные)",
+            "изменение корня",
+            "child -> children, person -> people"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "There are three boxes in the room.",
+        "ru": "В комнате стоят три коробки.",
+        "note": "Окончание -es"
+      },
+      {
+        "en": "The children are playing outside.",
+        "ru": "Дети играют на улице.",
+        "note": "Исключение child -> children"
+      }
+    ],
+    "commonMistakes": [
+      "Лишнее -s у исключений: ❌ childrens -> ✅ children, ❌ peoples -> ✅ people.",
+      "Забывание менять -f на -ves: ❌ knifes -> ✅ knives."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Множественное число существительных (-s/-es)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "6": {
+    "topicId": 6,
+    "topicName": "Subject pronouns (I/you/he/she/it/we/they)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Личные местоимения в роли подлежащего (I/you/he/she/it/we/they)",
+    "summaryRu": "Личные местоимения заменяют существительные в роли подлежащего и отвечают на вопрос «Кто?» или «Что?».",
+    "sections": [
+      {
+        "title": "1. Формы местоимений",
+        "content": "**I** (я — всегда с большой буквы!), **you** (ты / вы), **he** (он), **she** (она), **it** (оно/он/она для предметов и животных), **we** (мы), **they** (они)."
+      },
+      {
+        "title": "2. Местоимение IT",
+        "content": "Местоимение *it* заменяет любые неодушевленные предметы (*the laptop -> it*), явления природы и время (*It is 5 o'clock, It is raining*)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Личные местоимения",
+        "headers": [
+          "Число",
+          "Лицо",
+          "Местоимение",
+          "Перевод",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "Единственное",
+            "1-е лицо",
+            "I",
+            "я (всегда с большой)",
+            "I live in Prague."
+          ],
+          [
+            "Единственное",
+            "2-е лицо",
+            "you",
+            "ты",
+            "You are kind."
+          ],
+          [
+            "Единственное",
+            "3-е лицо",
+            "he / she / it",
+            "он / она / оно",
+            "He is busy. It is cold."
+          ],
+          [
+            "Множественное",
+            "1-е лицо",
+            "we",
+            "мы",
+            "We are ready."
+          ],
+          [
+            "Множественное",
+            "2-е лицо",
+            "you",
+            "вы",
+            "You know this."
+          ],
+          [
+            "Множественное",
+            "3-е лицо",
+            "they",
+            "они",
+            "They work here."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I live in Berlin.",
+        "ru": "Я живу в Берлине.",
+        "note": "I всегда с заглавной"
+      },
+      {
+        "en": "Where is the key? It is on the desk.",
+        "ru": "Где ключ? Он на столе.",
+        "note": "It для предметов"
+      }
+    ],
+    "commonMistakes": [
+      "Написание i со строчной буквы: ❌ i am -> ✅ I am.",
+      "Использование he/she для стола или телефона: ❌ The phone, she is ringing -> ✅ It is ringing."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Личные местоимения в роли подлежащего (I/you/he/she/it/we/they)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "7": {
+    "topicId": 7,
+    "topicName": "Possessive adjectives (my/your/his)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Притяжательные прилагательные (my/your/his/her/its/our/their)",
+    "summaryRu": "Притяжательные прилагательные указывают на принадлежность и всегда стоят перед существительным: my book, his car, our house.",
+    "sections": [
+      {
+        "title": "1. Формы притяжательных слов",
+        "content": "Каждому местоимению соответствует форма: *I -> my, you -> your, he -> his, she -> her, it -> its, we -> our, they -> their*."
+      },
+      {
+        "title": "2. Важное различие: its vs it's",
+        "content": "**its** (без апострофа) — это «его/её» (принадлежность предмету): *The cat drinks its milk*. **it's** (с апострофом) — это сокращение от *it is*!"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Притяжательные формы",
+        "headers": [
+          "Личное",
+          "Притяжательное",
+          "Перевод",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "I",
+            "my",
+            "мой, моя, мои",
+            "my laptop"
+          ],
+          [
+            "You",
+            "your",
+            "твой, ваш",
+            "your phone"
+          ],
+          [
+            "He",
+            "his",
+            "его (мужчины)",
+            "his coat"
+          ],
+          [
+            "She",
+            "her",
+            "её (женщины)",
+            "her car"
+          ],
+          [
+            "It",
+            "its",
+            "его/её (предмета)",
+            "its name"
+          ],
+          [
+            "We",
+            "our",
+            "наш, наша, наши",
+            "our home"
+          ],
+          [
+            "They",
+            "their",
+            "их",
+            "their team"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "What is your phone number?",
+        "ru": "Какой у тебя номер телефона?",
+        "note": "your + существительное"
+      },
+      {
+        "en": "Our company is growing rapidly.",
+        "ru": "Наша компания быстро растет.",
+        "note": "our + существительное"
+      }
+    ],
+    "commonMistakes": [
+      "Путаница your и you're: ❌ You're bag -> ✅ Your bag.",
+      "Путаница its и it's: ❌ The dog wagged it's tail -> ✅ its tail."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Притяжательные прилагательные (my/your/his/her/its/our/their)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "8": {
+    "topicId": 8,
+    "topicName": "Demonstratives (this/that/these/those)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Указательные местоимения (this/that/these/those)",
+    "summaryRu": "Указательные местоимения зависят от расстояния (близко / далеко) и числа (единственное / множественное).",
+    "sections": [
+      {
+        "title": "1. Выбор формы",
+        "content": "**THIS** — этот (близко, ед. ч.). **THAT** — тот (далеко, ед. ч.). **THESE** — эти (близко, мн. ч.). **THOSE** — те (далеко, мн. ч.)."
+      },
+      {
+        "title": "2. Использование по телефону",
+        "content": "По телефону о себе говорят: *Hello, this is Alex*. При вопросе о собеседнике: *Is that John?*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Сетка указательных местоимений",
+        "headers": [
+          "Расстояние",
+          "Единственное число",
+          "Множественное число"
+        ],
+        "rows": [
+          [
+            "Близко (HERE)",
+            "THIS (этот / эта / это)",
+            "THESE (эти)"
+          ],
+          [
+            "Далеко (THERE)",
+            "THAT (тот / та / то)",
+            "THOSE (те)"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "This is my new coffee cup.",
+        "ru": "Это моя новая кофейная чашка (в руках).",
+        "note": "This (близко, ед. ч.)"
+      },
+      {
+        "en": "Look at that building over there.",
+        "ru": "Посмотри на то здание вон там.",
+        "note": "That (далеко, ед. ч.)"
+      }
+    ],
+    "commonMistakes": [
+      "Путаница this и these в речи: this [ðɪs] кратко, these [ðiːz] долго.",
+      "Использование that со множественным числом: ❌ that cars -> ✅ those cars."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Указательные местоимения (this/that/these/those)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "9": {
+    "topicId": 9,
+    "topicName": "There is / There are",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Конструкция наличия: There is / There are",
+    "summaryRu": "Конструкция There is / There are используется, когда нужно сообщить о наличии или местонахождении чего-либо («В комнате есть...»).",
+    "sections": [
+      {
+        "title": "1. There is vs There are",
+        "content": "**There is** (There's) ставится перед единственным числом и неисчисляемыми существительными (*There is a cafe nearby, There is water*). **There are** — перед множественным числом (*There are two chairs*)."
+      },
+      {
+        "title": "2. Отрицания и вопросы",
+        "content": "Отрицание: **There isn't / There aren't**. Вопрос: **Is there...? / Are there...?**"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Формы There is / There are",
+        "headers": [
+          "Тип",
+          "Ед. число / Неисчисляемое",
+          "Множественное число"
+        ],
+        "rows": [
+          [
+            "Утверждение (+)",
+            "There is a park nearby.",
+            "There are two parks here."
+          ],
+          [
+            "Отрицание (-)",
+            "There isn't any milk left.",
+            "There aren't any tickets."
+          ],
+          [
+            "Вопрос (?)",
+            "Is there a bank near here?",
+            "Are there any questions?"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "There is a great restaurant around the corner.",
+        "ru": "За углом есть отличный ресторан.",
+        "note": "There is a..."
+      },
+      {
+        "en": "There are five people in the room.",
+        "ru": "В комнате пять человек.",
+        "note": "There are..."
+      }
+    ],
+    "commonMistakes": [
+      "Использование have вместо there is: ❌ In room has a table -> ✅ There is a table in the room.",
+      "Согласование по первому слову: ✅ There is a table and four chairs."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Конструкция наличия: There is / There are» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "10": {
+    "topicId": 10,
+    "topicName": "Imperatives (sit down, open)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Повелительное наклонение (Imperatives: sit down, open)",
+    "summaryRu": "Повелительное наклонение используется для команд, инструкций, указаний, вежливых просьб (please) и совместных действий (Let's).",
+    "sections": [
+      {
+        "title": "1. Образование команд и запретов",
+        "content": "Утверждение строится чистым инфинитивом без подлежащего и to: *Sit down! Open the window!* Отрицание (запрет) всегда начинается с **Don't**: *Don't touch that! Don't be late!*"
+      },
+      {
+        "title": "2. Вежливость и Let's",
+        "content": "Для вежливости добавляется **please**: *Please take a seat*. Для совместного действия («Давай / Давайте») используется **Let's + глагол**: *Let's start!*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Формы повелительного наклонения",
+        "headers": [
+          "Тип",
+          "Формула",
+          "Пример",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Инструкция",
+            "Глагол (V1)",
+            "Press this button.",
+            "Нажмите эту кнопку."
+          ],
+          [
+            "Вежливая просьба",
+            "Please + Глагол",
+            "Please take a seat.",
+            "Пожалуйста, присаживайтесь."
+          ],
+          [
+            "Запрет",
+            "Don't + Глагол",
+            "Don't worry about it.",
+            "Не переживай об этом."
+          ],
+          [
+            "Совместное действие",
+            "Let's + Глагол",
+            "Let's have lunch.",
+            "Давай пообедаем."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Turn left at the traffic light.",
+        "ru": "Поверните налево на светофоре.",
+        "note": "Указание"
+      },
+      {
+        "en": "Let's take a short break.",
+        "ru": "Давайте сделаем короткий перерыв.",
+        "note": "Let's"
+      }
+    ],
+    "commonMistakes": [
+      "Использование частицы to: ❌ To open the door -> ✅ Open the door.",
+      "Отрицание с no вместо don't: ❌ No speak -> ✅ Don't speak."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Повелительное наклонение (Imperatives: sit down, open)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "11": {
+    "topicId": 11,
+    "topicName": "Can / Can't (ability)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Модальный глагол Can / Can't (способность и возможность)",
+    "summaryRu": "Модальный глагол CAN выражает физическую или умственную способность («умею, могу»), а также просьбу или разрешение.",
+    "sections": [
+      {
+        "title": "1. Форма глагола CAN",
+        "content": "Глагол CAN не меняется по лицам (никаких -s для he/she/it!). После CAN всегда идет чистый инфинитив без частицы to: *I can swim, she can speak English*."
+      },
+      {
+        "title": "2. Отрицание и вопросы",
+        "content": "Отрицание: **cannot** (слитно!) или кратко **can't** [kɑːnt / kænt]. Вопрос: *Can you hear me? Can I help you?*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Формы глагола CAN",
+        "headers": [
+          "Форма",
+          "Схема",
+          "Пример",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "Утверждение",
+            "Подлежащее + can + V1",
+            "She can drive a car.",
+            "Она умеет водить машину."
+          ],
+          [
+            "Отрицание",
+            "Подлежащее + can't + V1",
+            "I can't swim very well.",
+            "Я не умею плавать."
+          ],
+          [
+            "Вопрос",
+            "Can + Подлежащее + V1?",
+            "Can you play tennis?",
+            "Ты умеешь играть в теннис?"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I can speak three languages.",
+        "ru": "Я говорю на трех языках.",
+        "note": "Умение"
+      },
+      {
+        "en": "Can you open the window, please?",
+        "ru": "Можешь открыть окно, пожалуйста?",
+        "note": "Просьба"
+      }
+    ],
+    "commonMistakes": [
+      "Добавление to после can: ❌ I can to swim -> ✅ I can swim.",
+      "Добавление -s: ❌ He cans drive -> ✅ He can drive."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Модальный глагол Can / Can't (способность и возможность)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "12": {
+    "topicId": 12,
+    "topicName": "Prepositions of place (in/on/at)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Предлоги места: IN, ON, AT",
+    "summaryRu": "Предлоги места показывают положение объекта: IN (внутри пространства/страны), ON (на поверхности/линии), AT (в конкретной точке/заведении).",
+    "sections": [
+      {
+        "title": "1. Разделение In, On, At",
+        "content": "**IN** — внутри закрытого пространства, в городе, стране (*in the room, in London*). **ON** — на плоской поверхности, на улице, в общественном транспорте (*on the table, on the bus*). **AT** — в конкретной точке назначения или функциональном месте (*at the bus stop, at home, at work*)."
+      },
+      {
+        "title": "2. Типичные устойчивые сочетания",
+        "content": "*at home, at school, at work, at the airport, on the plane, in the car*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Шпаргалка предлогов места",
+        "headers": [
+          "Предлог",
+          "Сфера применения",
+          "Примеры"
+        ],
+        "rows": [
+          [
+            "IN (внутри, объем)",
+            "Комнаты, здания, города, страны",
+            "in the kitchen, in Paris"
+          ],
+          [
+            "ON (поверхность, транспорт)",
+            "Поверхности, этажи, улицы, поезд/автобус",
+            "on the wall, on the train"
+          ],
+          [
+            "AT (точка, локация)",
+            "Конкретные места, мероприятия, события",
+            "at the door, at work, at school"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I am working at my desk in the office.",
+        "ru": "Я работаю за столом в офисе.",
+        "note": "At the desk, in the office"
+      },
+      {
+        "en": "The laptop is on the table.",
+        "ru": "Ноутбук лежит на столе.",
+        "note": "On (поверхность)"
+      }
+    ],
+    "commonMistakes": [
+      "In home вместо at home: ❌ in home -> ✅ at home.",
+      "In the bus вместо on the bus: ❌ in the bus -> ✅ on the bus."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Предлоги места: IN, ON, AT» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "13": {
+    "topicId": 13,
+    "topicName": "Prepositions of time (in/on/at)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Предлоги времени: IN, ON, AT",
+    "summaryRu": "Шпаргалка треугольника времени: AT (точное время/праздники), ON (дни и даты), IN (длительные периоды: месяцы, годы, века, времена года).",
+    "sections": [
+      {
+        "title": "1. Правило золотого треугольника",
+        "content": "**AT** для часов и точных моментов: *at 5 o'clock, at noon, at night*. **ON** для дней недели и конкретных дат: *on Monday, on May 15th, on my birthday*. **IN** для месяцев, годов, сезонов: *in July, in 2026, in summer, in the morning*."
+      },
+      {
+        "title": "2. Случаи без предлогов",
+        "content": "Предлоги времени НЕ ставятся перед словами **this, last, next, every**: *next Monday, this morning, every day*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Предлоги времени",
+        "headers": [
+          "Предлог",
+          "Временной масштаб",
+          "Примеры"
+        ],
+        "rows": [
+          [
+            "AT (точное время)",
+            "Часы, моменты, ночь",
+            "at 7:30, at midnight, at night"
+          ],
+          [
+            "ON (дни и даты)",
+            "Дни недели, календарные даты",
+            "on Friday, on 1st January"
+          ],
+          [
+            "IN (периоды)",
+            "Месяцы, годы, сезоны, части дня",
+            "in August, in 2026, in winter, in the evening"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "The meeting is on Thursday at 3 PM.",
+        "ru": "Встреча в четверг в 15:00.",
+        "note": "On + день, At + время"
+      },
+      {
+        "en": "I usually travel in August.",
+        "ru": "Я обычно путешествую в августе.",
+        "note": "In + месяц"
+      }
+    ],
+    "commonMistakes": [
+      "Предлог перед next/this: ❌ on next Friday -> ✅ next Friday.",
+      "In night вместо at night: ❌ in night -> ✅ at night."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Предлоги времени: IN, ON, AT» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "14": {
+    "topicId": 14,
+    "topicName": "Countable & uncountable nouns",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Исчисляемые и неисчисляемые существительные (Countable / Uncountable)",
+    "summaryRu": "Исчисляемые существительные можно посчитать поштучно (a cup, two cups). Неисчисляемые — вещества, жидкости, абстрактные понятия — не имеют множественного числа.",
+    "sections": [
+      {
+        "title": "1. Различия и признаки",
+        "content": "Исчисляемые (*apple, car*) употребляются с *a/an* и числительными. Неисчисляемые (*water, money, information, advice, bread*) не используются с *a/an* без слов-емкостей (*a bottle of water, a piece of advice*)."
+      },
+      {
+        "title": "2. Слова-ловушки для русскоязычных",
+        "content": "Слова *money (деньги), information (информация), advice (совет), news (новости), luggage (багаж), furniture (мебель)* в английском ВСЕГДА неисчисляемые в единственном числе!"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Исчисляемые vs Неисчисляемые",
+        "headers": [
+          "Параметр",
+          "Исчисляемые",
+          "Неисчисляемые"
+        ],
+        "rows": [
+          [
+            "Артикли",
+            "a / an / the",
+            "the / some (без a/an)"
+          ],
+          [
+            "Множественное число",
+            "Есть: cars, books",
+            "Нет: water, money, music"
+          ],
+          [
+            "Вопрос количества",
+            "How many? (How many apples?)",
+            "How much? (How much sugar?)"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Can I have some water, please?",
+        "ru": "Можно мне немного воды?",
+        "note": "Some + неисчисляемое"
+      },
+      {
+        "en": "She gave me some great advice.",
+        "ru": "Она дала мне отличный совет.",
+        "note": "Advice неисчисляемое"
+      }
+    ],
+    "commonMistakes": [
+      "Множественное число от неисчисляемых: ❌ advices, ❌ informations -> ✅ advice, information.",
+      "How much с исчисляемыми: ❌ How much apples? -> ✅ How many apples?"
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Исчисляемые и неисчисляемые существительные (Countable / Uncountable)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "15": {
+    "topicId": 15,
+    "topicName": "How much / How many",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Вопросы количества: How much / How many",
+    "summaryRu": "How many используется с исчисляемыми существительными во множественном числе («Сколько штук?»). How much — с неисчисляемыми существительными («Сколько объема/вещества?»), а также для цены («Сколько стоит?»).",
+    "sections": [
+      {
+        "title": "1. How many vs How much",
+        "content": "С исчисляемыми: *How many brothers do you have? How many emails did you send?* С неисчисляемыми: *How much time do we have? How much coffee do you drink?* Для вопроса цены: *How much is this ticket?*"
+      },
+      {
+        "title": "2. Краткие ответы",
+        "content": "В ответах: *A lot (много), Not many (немного штук), Not much (немного объема), A few / A little*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Выбор How much / How many",
+        "headers": [
+          "Конструкция",
+          "Тип существительного",
+          "Пример",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "How many",
+            "Исчисляемые во мн. ч.",
+            "How many languages do you speak?",
+            "На скольких языках ты говоришь?"
+          ],
+          [
+            "How much",
+            "Неисчисляемые",
+            "How much sugar do you want?",
+            "Сколько сахара ты хочешь?"
+          ],
+          [
+            "How much is...",
+            "Вопрос цены",
+            "How much is this shirt?",
+            "Сколько стоит эта рубашка?"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "How many people are coming to the event?",
+        "ru": "Сколько человек придет на мероприятие?",
+        "note": "How many + people"
+      },
+      {
+        "en": "How much money do you need for this project?",
+        "ru": "Сколько денег тебе нужно на этот проект?",
+        "note": "How much + money"
+      }
+    ],
+    "commonMistakes": [
+      "How many с неисчисляемыми: ❌ How many time? -> ✅ How much time?",
+      "How much со штучными предметами: ❌ How much chairs? -> ✅ How many chairs?"
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Вопросы количества: How much / How many» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "16": {
+    "topicId": 16,
+    "topicName": "Present Continuous (basic)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Present Continuous: Настоящее длительное время",
+    "summaryRu": "Present Continuous выражает действие, происходящее прямо сейчас, в момент речи (NOW / AT THE MOMENT). Формула: am/is/are + глагол с окончанием -ing.",
+    "sections": [
+      {
+        "title": "1. Образование Present Continuous",
+        "content": "Формула: **Подлежащее + am / is / are + V-ing**. Например: *I am reading a book. She is cooking dinner. They are playing football.*"
+      },
+      {
+        "title": "2. Глаголы состояния (Stative Verbs)",
+        "content": "Глаголы чувств, мыслей и владения (*like, love, know, understand, want, believe, need*) обычно НЕ употребляются в Continuous: *I know (не I am knowing)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Формулы Present Continuous",
+        "headers": [
+          "Тип предложения",
+          "Формула",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "Утверждение (+)",
+            "am / is / are + V-ing",
+            "She is writing an email right now."
+          ],
+          [
+            "Отрицание (-)",
+            "am / is / are + not + V-ing",
+            "They aren't watching TV."
+          ],
+          [
+            "Вопрос (?)",
+            "Am / Is / Are + подлежащее + V-ing?",
+            "Are you working today?"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I am learning English right now.",
+        "ru": "Я учу английский прямо сейчас.",
+        "note": "В момент речи"
+      },
+      {
+        "en": "Look! It is raining outside.",
+        "ru": "Смотри! На улице идет дождь.",
+        "note": "Процесс"
+      }
+    ],
+    "commonMistakes": [
+      "Пропуск глагола to be: ❌ I writing a letter -> ✅ I am writing a letter.",
+      "Использование глаголов чувств в Continuous: ❌ I am knowing -> ✅ I know."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Present Continuous: Настоящее длительное время» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "17": {
+    "topicId": 17,
+    "topicName": "Object pronouns (me/you/him/her)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Объектные местоимения (me/you/him/her/it/us/them)",
+    "summaryRu": "Объектные местоимения отвечают на вопросы косвенных падежей («кому?», «кого?», «с кем?») и стоят ПОСЛЕ глаголов или предлогов: call me, look at him.",
+    "sections": [
+      {
+        "title": "1. Формы объектных местоимений",
+        "content": "*I -> me, you -> you, he -> him, she -> her, it -> it, we -> us, they -> them*."
+      },
+      {
+        "title": "2. Позиция в предложении",
+        "content": "Подлежащее стоит ПЕРЕД глаголом, а объектное местоимение — ВСЕГДА ПОСЛЕ глагола или предлога: *He loves her. Listen to me.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Личные vs Объектные",
+        "headers": [
+          "Субъект (Кто?)",
+          "Объект (Кого? Кому?)",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "I",
+            "me",
+            "She called me."
+          ],
+          [
+            "You",
+            "you",
+            "I see you."
+          ],
+          [
+            "He",
+            "him",
+            "Give him the key."
+          ],
+          [
+            "She",
+            "her",
+            "I know her well."
+          ],
+          [
+            "We",
+            "us",
+            "Join us for lunch."
+          ],
+          [
+            "They",
+            "them",
+            "Ask them."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Can you help me, please?",
+        "ru": "Ты можешь мне помочь, пожалуйста?",
+        "note": "Help + me"
+      },
+      {
+        "en": "I will send them an email tomorrow.",
+        "ru": "Я отправлю им письмо завтра.",
+        "note": "Send + them"
+      }
+    ],
+    "commonMistakes": [
+      "Использование I вместо me после глагола: ❌ Call I -> ✅ Call me.",
+      "Использование he/she после предлогов: ❌ with he -> ✅ with him."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Объектные местоимения (me/you/him/her/it/us/them)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "18": {
+    "topicId": 18,
+    "topicName": "Adjective order (basic)",
+    "level": "A1",
+    "category": "Grammar",
+    "russianTitle": "Порядок прилагательных перед существительным (Adjective order)",
+    "summaryRu": "В английском прилагательные всегда стоят ПЕРЕД существительным (a red car, an interesting book) и не меняются по родам и числам.",
+    "sections": [
+      {
+        "title": "1. Базовый порядок описания",
+        "content": "Порядок: **Мнение (Opinion) -> Размер (Size) -> Возраст (Age) -> Цвет (Color) -> Происхождение (Origin) -> Материал (Material) + Существительное**."
+      },
+      {
+        "title": "2. Неизменяемость прилагательных",
+        "content": "Прилагательные в английском никогда не получают окончания -s: *two red cars* (не red**s** cars!)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Порядок прилагательных",
+        "headers": [
+          "Оценка",
+          "Размер",
+          "Цвет",
+          "Существительное"
+        ],
+        "rows": [
+          [
+            "a beautiful",
+            "small",
+            "black",
+            "cat"
+          ],
+          [
+            "a nice",
+            "big",
+            "blue",
+            "house"
+          ],
+          [
+            "a delicious",
+            "hot",
+            "Italian",
+            "pizza"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "She bought a beautiful Italian leather jacket.",
+        "ru": "Она купила красивую итальянскую кожаную куртку.",
+        "note": "Мнение -> Страна -> Материал"
+      }
+    ],
+    "commonMistakes": [
+      "Прилагательное после существительного: ❌ car red -> ✅ red car.",
+      "Добавление -s к прилагательному: ❌ interesting books -> ✅ interesting books."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Порядок прилагательных перед существительным (Adjective order)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "19": {
+    "topicId": 19,
+    "topicName": "Numbers and counting",
+    "level": "A1",
+    "category": "Vocabulary",
+    "russianTitle": "Числа и счет (Numbers and counting)",
+    "summaryRu": "Счет от 0 до 20, десятки (twenty, thirty, forty...) и составные числа с дефисом (twenty-five, ninety-nine).",
+    "sections": [
+      {
+        "title": "1. Суффиксы -teen и -ty",
+        "content": "Суффикс **-teen** означает подростковые числа с ударением на -teen (*fourteen, fifteen, sixteen*). Суффикс **-ty** — десятки с ударением на первый слог (*forty, fifty, sixty*)."
+      },
+      {
+        "title": "2. Сотни и тысячи",
+        "content": "Слова *hundred, thousand, million* не получают окончания -s, если перед ними стоит точное число: *two hundred (не two hundreds)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Числительные",
+        "headers": [
+          "1-10",
+          "11-20",
+          "Десятки (10-90)"
+        ],
+        "rows": [
+          [
+            "one, two, three",
+            "eleven, twelve, thirteen",
+            "ten, twenty, thirty"
+          ],
+          [
+            "four, five, six",
+            "fourteen, fifteen, sixteen",
+            "forty, fifty, sixty"
+          ],
+          [
+            "seven, eight, nine, ten",
+            "seventeen, eighteen, nineteen, twenty",
+            "seventy, eighty, ninety, one hundred"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I have twenty-five dollars in cash.",
+        "ru": "У меня двадцать пять долларов наличными.",
+        "note": "Дефис в составных числах"
+      }
+    ],
+    "commonMistakes": [
+      "Написание fourty вместо forty: ❌ fourty -> ✅ forty (без буквы u!)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Числа и счет (Numbers and counting)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "20": {
+    "topicId": 20,
+    "topicName": "Colors",
+    "level": "A1",
+    "category": "Vocabulary",
+    "russianTitle": "Цвета и оттенки (Colors)",
+    "summaryRu": "Базовые цвета и уточнения оттенков с префиксами light- (светло-), dark- (темно-) и bright- (ярко-).",
+    "sections": [
+      {
+        "title": "1. Оттенки",
+        "content": "*light-blue (голубой), dark-green (темно-зеленый), bright-yellow (ярко-желтый)*."
+      },
+      {
+        "title": "2. Позиция в предложении",
+        "content": "Цвет ставится перед существительным (*a red apple*) или после глагола to be (*The apple is red*)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Основные цвета",
+        "headers": [
+          "Цвет (En)",
+          "Транскрипция",
+          "Перевод"
+        ],
+        "rows": [
+          [
+            "red / blue / green",
+            "[red] / [bluː] / [ɡriːn]",
+            "красный / синий / зеленый"
+          ],
+          [
+            "yellow / orange / pink",
+            "[ˈjeləʊ] / [ˈɒrɪndʒ] / [pɪŋk]",
+            "желтый / оранжевый / розовый"
+          ],
+          [
+            "black / white / grey",
+            "[blæk] / [waɪt] / [ɡreɪ]",
+            "черный / белый / серый"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "She wore a dark-blue coat to the interview.",
+        "ru": "Она надела темно-синее пальто на собеседование.",
+        "note": "Оттенок цвета"
+      }
+    ],
+    "commonMistakes": [
+      "Множественное число цветов: ❌ blue eyes -> ✅ blue eyes (прилагательное не имеет -s)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Цвета и оттенки (Colors)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "21": {
+    "topicId": 21,
+    "topicName": "Family members",
+    "level": "A1",
+    "category": "Vocabulary",
+    "russianTitle": "Семья и родственники (Family members)",
+    "summaryRu": "Словарь семьи: parents (родители), siblings (братья и сестры), relatives (родственники).",
+    "sections": [
+      {
+        "title": "1. Родители vs Родственники",
+        "content": "*Parents* — это строго папа и мама. Все остальные родственники — это *relatives*. *Siblings* — родные братья и сестры."
+      },
+      {
+        "title": "2. Притяжательный падеж 's с членами семьи",
+        "content": "*my brother's car (машина моего брата), my parents' house (дом моих родителей — апостроф после s)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Члены семьи",
+        "headers": [
+          "Мужской род",
+          "Женский род",
+          "Общее понятие"
+        ],
+        "rows": [
+          [
+            "father (dad)",
+            "mother (mom)",
+            "parents (родители)"
+          ],
+          [
+            "son (сын)",
+            "daughter (дочь)",
+            "children (дети)"
+          ],
+          [
+            "brother (брат)",
+            "sister (сестра)",
+            "siblings (братья/сестры)"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I have two siblings: an older brother and a younger sister.",
+        "ru": "У меня двое братьев/сестер: старший брат и младшая сестра.",
+        "note": "Siblings"
+      }
+    ],
+    "commonMistakes": [
+      "Перевод parents как \"родственники\": ❌ My parents live far -> означает \"Мои родители\"."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Семья и родственники (Family members)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "22": {
+    "topicId": 22,
+    "topicName": "Days, months, seasons",
+    "level": "A1",
+    "category": "Vocabulary",
+    "russianTitle": "Дни недели, месяцы и времена года",
+    "summaryRu": "В английском языке дни недели и месяцы ВСЕГДА пишутся с заглавной буквы (Monday, August)!",
+    "sections": [
+      {
+        "title": "1. Предлоги с календарем",
+        "content": "С днями недели: **ON** (*on Monday*). С месяцами и сезонами: **IN** (*in July, in winter*)."
+      },
+      {
+        "title": "2. Выходные дни",
+        "content": "В Великобритании говорят: *at the weekend*. В США говорят: *on the weekend*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Календарь",
+        "headers": [
+          "Категория",
+          "Предлог",
+          "Примеры (всегда с большой буквы!)"
+        ],
+        "rows": [
+          [
+            "Дни недели",
+            "ON",
+            "on Monday, on Wednesday, on Friday"
+          ],
+          [
+            "Месяцы",
+            "IN",
+            "in January, in May, in October"
+          ],
+          [
+            "Времена года",
+            "IN",
+            "in spring, in summer, in autumn / fall"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Our lesson is on Wednesday at 6 PM.",
+        "ru": "Наш урок в среду в 18:00.",
+        "note": "On Wednesday"
+      }
+    ],
+    "commonMistakes": [
+      "Написание с маленькой буквы: ❌ on friday -> ✅ on Friday."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Дни недели, месяцы и времена года» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "23": {
+    "topicId": 23,
+    "topicName": "Basic food and drinks",
+    "level": "A1",
+    "category": "Vocabulary",
+    "russianTitle": "Базовая еда и напитки (Food & Drinks)",
+    "summaryRu": "Продукты питания, напитки и устойчивые выражения с глаголом HAVE (have breakfast, have a coffee).",
+    "sections": [
+      {
+        "title": "1. Приемы пищи",
+        "content": "С приемами пищи используется **have**: *have breakfast (завтракать), have lunch (обедать), have dinner (ужинать)*."
+      },
+      {
+        "title": "2. Заказ в кафе",
+        "content": "Вежливая просьба: *Can I have a cup of black coffee, please?*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Еда и напитки",
+        "headers": [
+          "Категория",
+          "Слова",
+          "Пример"
+        ],
+        "rows": [
+          [
+            "Напитки",
+            "water, coffee, tea, juice, milk",
+            "A cup of coffee, please."
+          ],
+          [
+            "Базовые продукты",
+            "bread, cheese, eggs, rice, meat, fish",
+            "I eat eggs for breakfast."
+          ],
+          [
+            "Фрукты/овощи",
+            "apple, banana, tomato, potato, salad",
+            "Fresh fruit and vegetables."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "I usually have cereal and coffee for breakfast.",
+        "ru": "Я обычно ем хлопья и пью кофе на завтрак.",
+        "note": "have breakfast"
+      }
+    ],
+    "commonMistakes": [
+      "Использование eat breakfast вместо have breakfast (have более естественно)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Базовая еда и напитки (Food & Drinks)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "24": {
+    "topicId": 24,
+    "topicName": "Clothes (basic)",
+    "level": "A1",
+    "category": "Vocabulary",
+    "russianTitle": "Одежда и обувь (Clothes)",
+    "summaryRu": "Словарь одежды и глаголы: wear (быть одетым в), put on (надевать). Слово clothes всегда во множественном числе!",
+    "sections": [
+      {
+        "title": "1. Wear vs Put on",
+        "content": "*Wear* — состояние (носить сейчас: *I am wearing a coat*). *Put on* — действие надевания (*Put on your shoes*)."
+      },
+      {
+        "title": "2. Парные предметы одежды",
+        "content": "Слова *jeans, trousers, pants, shorts, glasses* всегда во множественном числе (*a pair of jeans*)."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Гардероб",
+        "headers": [
+          "Тип",
+          "Слова",
+          "Особенность"
+        ],
+        "rows": [
+          [
+            "Верхняя одежда",
+            "jacket, coat, sweater, hoodie",
+            "a jacket"
+          ],
+          [
+            "Брюки/джинсы",
+            "jeans, trousers (UK) / pants (US)",
+            "Всегда во мн. ч. (a pair of jeans)"
+          ],
+          [
+            "Обувь",
+            "shoes, boots, sneakers (US) / trainers (UK)",
+            "a pair of shoes"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "He is wearing a black jacket and jeans.",
+        "ru": "На нем надета черная куртка и джинсы.",
+        "note": "Wear + одежда"
+      }
+    ],
+    "commonMistakes": [
+      "Слово clothes в единственном числе: ❌ This cloth is nice -> ✅ These clothes are nice."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Одежда и обувь (Clothes)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "25": {
+    "topicId": 25,
+    "topicName": "Parts of the body",
+    "level": "A1",
+    "category": "Vocabulary",
+    "russianTitle": "Части тела (Parts of the body)",
+    "summaryRu": "Анатомический словарь и способы сказать о симптомах: my head hurts, I have a headache.",
+    "sections": [
+      {
+        "title": "1. Неправильное множественное число",
+        "content": "*foot -> feet (стопы), tooth -> teeth (зубы)*."
+      },
+      {
+        "title": "2. Выражение боли",
+        "content": "*I have a headache (головная боль), I have a stomach ache (боль в животе), My back hurts (спина болит)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Части тела",
+        "headers": [
+          "Зона",
+          "Слова",
+          "Симптом"
+        ],
+        "rows": [
+          [
+            "Голова",
+            "head, hair, eyes, ears, nose, mouth, teeth",
+            "headache (головная боль)"
+          ],
+          [
+            "Конечности",
+            "arm, hand, finger, leg, foot, toe",
+            "foot -> feet"
+          ],
+          [
+            "Спина и живот",
+            "back, stomach, chest",
+            "backache (боль в спине)"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "My back hurts after sitting in front of the computer all day.",
+        "ru": "У меня болит спина после целого дня за компьютером.",
+        "note": "Симптом"
+      }
+    ],
+    "commonMistakes": [
+      "Множественное число foots: ❌ two foots -> ✅ two feet."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Части тела (Parts of the body)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "26": {
+    "topicId": 26,
+    "topicName": "Rooms and furniture",
+    "level": "A1",
+    "category": "Vocabulary",
+    "russianTitle": "Комнаты и мебель (Rooms and furniture)",
+    "summaryRu": "Комнаты (living room, bedroom, kitchen, bathroom) и мебель (desk, table, sofa, bed, wardrobe).",
+    "sections": [
+      {
+        "title": "1. Table vs Desk",
+        "content": "*Table* — обеденный или журнальный стол. *Desk* — рабочий/письменный стол для работы или учебы."
+      },
+      {
+        "title": "2. Конструкция There is в описании дома",
+        "content": "*There is a large wardrobe in the bedroom. There are two windows in the kitchen.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Дом и интерьер",
+        "headers": [
+          "Комната",
+          "Типичная мебель"
+        ],
+        "rows": [
+          [
+            "Kitchen (Кухня)",
+            "fridge, cooker / stove, sink, cupboard"
+          ],
+          [
+            "Living room (Гостиная)",
+            "sofa, armchair, TV, coffee table, bookshelf"
+          ],
+          [
+            "Bedroom (Спальня)",
+            "bed, wardrobe, nightstand, mirror"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "There is a comfortable sofa in the living room.",
+        "ru": "В гостиной стоит удобный диван.",
+        "note": "Мебель"
+      }
+    ],
+    "commonMistakes": [
+      "Путаница table (обеденный стол) и desk (рабочий стол)."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Комнаты и мебель (Rooms and furniture)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "27": {
+    "topicId": 27,
+    "topicName": "Greetings and introductions",
+    "level": "A1",
+    "category": "Speaking",
+    "russianTitle": "Приветствия и знакомство (Greetings and introductions)",
+    "summaryRu": "Формулы вежливости при первой встрече: Nice to meet you, How are you doing?, Pleased to meet you.",
+    "sections": [
+      {
+        "title": "1. Речевой этикет",
+        "content": "При первом знакомстве: *Nice to meet you*. Ответ: *Nice to meet you too*. При неформальной встрече: *How is it going? — Good, thanks!*"
+      },
+      {
+        "title": "2. Представление других людей",
+        "content": "*Alex, this is Sarah. Sarah, this is Alex.*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Речевые клише",
+        "headers": [
+          "Ситуация",
+          "Фраза",
+          "Ответ"
+        ],
+        "rows": [
+          [
+            "Знакомство",
+            "My name is Alex. Nice to meet you.",
+            "Nice to meet you too, Alex."
+          ],
+          [
+            "Как дела?",
+            "How are you? / How is it going?",
+            "I am doing well, thank you! And you?"
+          ],
+          [
+            "Прощание",
+            "Have a great day! / See you later!",
+            "Thanks, you too! Bye!"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Hello, my name is David. Nice to meet you.",
+        "ru": "Здравствуйте, меня зовут Дэвид. Приятно познакомиться.",
+        "note": "Знакомство"
+      }
+    ],
+    "commonMistakes": [
+      "Ответ на \"How do you do?\": традиционный ответ в деловом стиле — тоже \"How do you do?\"."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Приветствия и знакомство (Greetings and introductions)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "28": {
+    "topicId": 28,
+    "topicName": "Asking and telling the time",
+    "level": "A1",
+    "category": "Speaking",
+    "russianTitle": "Который час: Как спросить и назвать время",
+    "summaryRu": "Два способа назвать время: цифровой (five thirty) и традиционный (half past five, quarter to six).",
+    "sections": [
+      {
+        "title": "1. Предлоги past и to",
+        "content": "**past** — минуты после часа (до 30 мин): *quarter past three (3:15)*. **to** — минуты до следующего часа (после 30 мин): *quarter to four (3:45)*. **half past** — половина: *half past three (3:30)*."
+      },
+      {
+        "title": "2. Вопрос о времени",
+        "content": "*What time is it?* или *Do you have the time?*"
+      }
+    ],
+    "tables": [
+      {
+        "title": "Формулы времени",
+        "headers": [
+          "Время",
+          "Традиционный способ",
+          "Цифровой способ"
+        ],
+        "rows": [
+          [
+            "3:00",
+            "It is three o'clock.",
+            "three o'clock"
+          ],
+          [
+            "3:15",
+            "It is quarter past three.",
+            "three fifteen"
+          ],
+          [
+            "3:30",
+            "It is half past three.",
+            "three thirty"
+          ],
+          [
+            "3:45",
+            "It is quarter to four.",
+            "three forty-five"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "What time is it? — It is quarter to six.",
+        "ru": "Который час? — Без пятнадцати шесть.",
+        "note": "Quarter to"
+      }
+    ],
+    "commonMistakes": [
+      "Забывание It is: ❌ Time is three -> ✅ It is three o'clock."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Который час: Как спросить и назвать время» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "29": {
+    "topicId": 29,
+    "topicName": "Ordering food (basic)",
+    "level": "A1",
+    "category": "Speaking",
+    "russianTitle": "Заказ еды в ресторане и кафе (Ordering food)",
+    "summaryRu": "Вежливые формулы заказа: Can I have...? / I would like... / Could I get...? Никогда не говорите грубое \"I want\".",
+    "sections": [
+      {
+        "title": "1. Вежливый заказ",
+        "content": "*Can I have a cappuccino, please?* или *I'd like a chicken sandwich, please*."
+      },
+      {
+        "title": "2. Вопросы официанта",
+        "content": "*For here or to go? (Здесь или с собой?)*, *Are you ready to order? (Готовы заказать?)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Диалог в кафе",
+        "headers": [
+          "Официант / Бариста",
+          "Ваш ответ"
+        ],
+        "rows": [
+          [
+            "Are you ready to order?",
+            "Yes, can I have a latte, please?"
+          ],
+          [
+            "For here or to go / takeaway?",
+            "For here, please. / To go, please."
+          ],
+          [
+            "Anything else?",
+            "No, that's all, thank you. How much is that?"
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "Can I have the check / bill, please?",
+        "ru": "Можно мне счет, пожалуйста?",
+        "note": "Счет"
+      }
+    ],
+    "commonMistakes": [
+      "Использование \"I want\" при заказе: ❌ I want burger -> ✅ I would like a burger, please."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Заказ еды в ресторане и кафе (Ordering food)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  },
+  "30": {
+    "topicId": 30,
+    "topicName": "Describing people (basic)",
+    "level": "A1",
+    "category": "Speaking",
+    "russianTitle": "Описание внешности и характера людей (Describing people)",
+    "summaryRu": "Глагол BE используется для роста/телосложения (He is tall), глагол HAVE — для волос/глаз (She has blue eyes).",
+    "sections": [
+      {
+        "title": "1. BE vs HAVE в описании",
+        "content": "*He is tall and slim (BE)*. *He has short dark hair and brown eyes (HAVE)*."
+      },
+      {
+        "title": "2. Черты характера",
+        "content": "*kind (добрый), polite (вежливый), hard-working (трудолюбивый), reliable (надежный)*."
+      }
+    ],
+    "tables": [
+      {
+        "title": "Сетка описания",
+        "headers": [
+          "Параметр",
+          "Прилагательные",
+          "Пример фразы"
+        ],
+        "rows": [
+          [
+            "Рост и телосложение",
+            "tall, short, slim, athletic",
+            "He is tall and slim."
+          ],
+          [
+            "Волосы (hair)",
+            "long, short, blonde, dark, curly",
+            "She has long blonde hair."
+          ],
+          [
+            "Характер",
+            "kind, friendly, polite, smart, funny",
+            "He is very friendly and funny."
+          ]
+        ]
+      }
+    ],
+    "examples": [
+      {
+        "en": "He is a tall man with green eyes and brown hair.",
+        "ru": "Он высокий мужчина с зелеными глазами и каштановыми волосами.",
+        "note": "Полное описание"
+      }
+    ],
+    "commonMistakes": [
+      "Использование have для роста: ❌ He has tall -> ✅ He is tall."
+    ],
+    "tutorQuickPrompts": [
+      "Объясни правило «Описание внешности и характера людей (Describing people)» простыми словами с примерами",
+      "Приведи 3 частые ошибки русскоязычных студентов в этой теме",
+      "Дай мне 3 практических предложения для проверки знаний"
+    ]
+  }
+}
