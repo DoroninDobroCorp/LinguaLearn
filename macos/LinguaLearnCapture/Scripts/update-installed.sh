@@ -30,10 +30,7 @@ echo "Updating installed app at ${target_app} from ${source_app}..."
 /bin/mkdir -p "${HOME}/Applications"
 
 if [[ -d "${target_app}" ]]; then
-    timestamp="$(/bin/date -u +%Y%m%dT%H%M%SZ)"
-    backup_path="${target_app}.backup-${timestamp}"
-    /bin/mv "${target_app}" "${backup_path}"
-    echo "Backed up existing app to ${backup_path}"
+    /bin/rm -rf "${target_app}"
 fi
 
 /usr/bin/ditto "${source_app}" "${target_app}"

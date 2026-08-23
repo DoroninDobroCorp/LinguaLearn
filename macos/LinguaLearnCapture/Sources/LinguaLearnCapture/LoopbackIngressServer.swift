@@ -1,11 +1,18 @@
 import Foundation
 import LinguaLearnCaptureCore
-import Network
 
 enum LoopbackIngressError: LocalizedError {
     case invalidPort
+    case bindFailed
 
-    var errorDescription: String? { "Invalid loopback ingress port" }
+    var errorDescription: String? {
+        switch self {
+        case .invalidPort:
+            return "Invalid loopback ingress port"
+        case .bindFailed:
+            return "Failed to bind to loopback port"
+        }
+    }
 }
 
 final class LoopbackIngressServer {
@@ -31,7 +38,8 @@ final class LoopbackIngressServer {
     private let handler: Handler
     private let healthProvider: HealthProvider
     private let queue = DispatchQueue(label: "com.lingualearn.capture.loopback")
-    private var listener: NWListener?
+    private var serverFD: Int32 = -1
+    private var source: DispatchSourceRead?
 
     init(
         port: UInt16,
@@ -46,57 +54,105 @@ final class LoopbackIngressServer {
     }
 
     func start() throws {
-        guard let port = NWEndpoint.Port(rawValue: portNumber) else { throw LoopbackIngressError.invalidPort }
-        let parameters = NWParameters.tcp
-        parameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: port)
-        let listener = try NWListener(using: parameters)
-        listener.newConnectionHandler = { [weak self] connection in
-            self?.accept(connection)
+        guard portNumber > 0 else { throw LoopbackIngressError.invalidPort }
+
+        let fd = socket(AF_INET, SOCK_STREAM, 0)
+        guard fd >= 0 else { throw LoopbackIngressError.bindFailed }
+
+        var yes: Int32 = 1
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(MemoryLayout<Int32>.size))
+
+        // Set non-blocking on listener
+        let flags = fcntl(fd, F_GETFL, 0)
+        _ = fcntl(fd, F_SETFL, flags | O_NONBLOCK)
+
+        var sin = sockaddr_in()
+        sin.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        sin.sin_family = sa_family_t(AF_INET)
+        sin.sin_port = in_port_t(portNumber).bigEndian
+        inet_pton(AF_INET, "127.0.0.1", &sin.sin_addr)
+
+        var addr = sockaddr()
+        memcpy(&addr, &sin, Int(sin.sin_len))
+        let bindRes = withUnsafePointer(to: &addr) {
+            bind(fd, $0, socklen_t(sin.sin_len))
         }
-        listener.stateUpdateHandler = { _ in }
-        self.listener = listener
-        listener.start(queue: queue)
+
+        guard bindRes == 0, listen(fd, 32) == 0 else {
+            close(fd)
+            throw LoopbackIngressError.bindFailed
+        }
+
+        self.serverFD = fd
+        let readSource = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
+        readSource.setEventHandler { [weak self] in
+            self?.acceptConnections()
+        }
+        readSource.setCancelHandler {
+            if fd >= 0 {
+                close(fd)
+            }
+        }
+        readSource.resume()
+        self.source = readSource
+        NSLog("[LoopbackIngressServer] Listening on 127.0.0.1:%u", portNumber)
     }
 
     func stop() {
-        listener?.cancel()
-        listener = nil
+        if let src = source {
+            source = nil
+            src.cancel()
+        }
+        serverFD = -1
     }
 
-    deinit { stop() }
-
-    private func accept(_ connection: NWConnection) {
-        connection.start(queue: queue)
-        queue.asyncAfter(deadline: .now() + 2) {
-            connection.cancel()
-        }
-        receive(on: connection, accumulated: Data())
+    deinit {
+        stop()
     }
 
-    private func receive(on connection: NWConnection, accumulated: Data) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 65_536) { [weak self] data, _, isComplete, error in
-            guard let self else {
-                connection.cancel()
-                return
+    private func acceptConnections() {
+        guard serverFD >= 0 else { return }
+
+        while true {
+            var clientAddr = sockaddr()
+            var clientLen = socklen_t(MemoryLayout<sockaddr>.size)
+            let clientFD = accept(serverFD, &clientAddr, &clientLen)
+            if clientFD < 0 {
+                break // No more pending connections
             }
 
-            var buffer = accumulated
-            if let data { buffer.append(data) }
-            if buffer.count > 65_536 {
-                self.respond(connection, status: 413, reason: "Payload Too Large", body: #"{"accepted":false}"#)
-                return
-            }
-
-            if let request = self.parseCompleteRequest(buffer) {
-                self.route(request, on: connection)
-                return
-            }
-            if isComplete || error != nil {
-                self.respond(connection, status: 400, reason: "Bad Request", body: #"{"accepted":false}"#)
-                return
-            }
-            self.receive(on: connection, accumulated: buffer)
+            // Handle client connection
+            handleConnection(clientFD)
         }
+    }
+
+    private func handleConnection(_ fd: Int32) {
+        // Read available request data
+        var buffer = Data()
+        var chunk = [UInt8](repeating: 0, count: 8192)
+
+        // Give a short timeout for request read
+        var tv = timeval(tv_sec: 2, tv_usec: 0)
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+
+        while buffer.count < 65_536 {
+            let bytesRead = read(fd, &chunk, chunk.count)
+            if bytesRead <= 0 {
+                break
+            }
+            buffer.append(chunk, count: bytesRead)
+            if parseCompleteRequest(buffer) != nil {
+                break
+            }
+        }
+
+        if let request = parseCompleteRequest(buffer) {
+            route(request, fd: fd)
+        } else {
+            respond(fd: fd, status: 400, reason: "Bad Request", body: #"{"accepted":false}"#)
+        }
+        close(fd)
     }
 
     private struct HTTPRequest {
@@ -136,19 +192,19 @@ final class LoopbackIngressServer {
         return HTTPRequest(method: requestParts[0], path: requestParts[1], headers: headers, body: body)
     }
 
-    private func route(_ request: HTTPRequest, on connection: NWConnection) {
+    private func route(_ request: HTTPRequest, fd: Int32) {
         if request.method == "GET", request.path == "/health" {
             let data = try? PayloadCoding.makeEncoder().encode(healthProvider())
             let body = data.flatMap { String(data: $0, encoding: .utf8) } ?? #"{"ok":false}"#
-            respond(connection, status: 200, reason: "OK", body: body)
+            respond(fd: fd, status: 200, reason: "OK", body: body)
             return
         }
         guard request.method == "POST", request.path == "/capture" else {
-            respond(connection, status: 404, reason: "Not Found", body: #"{"accepted":false}"#)
+            respond(fd: fd, status: 404, reason: "Not Found", body: #"{"accepted":false}"#)
             return
         }
         guard request.headers["x-lingualearn-ingress-token"] == ingressToken else {
-            respond(connection, status: 401, reason: "Unauthorized", body: #"{"accepted":false}"#)
+            respond(fd: fd, status: 401, reason: "Unauthorized", body: #"{"accepted":false}"#)
             return
         }
 
@@ -157,24 +213,24 @@ final class LoopbackIngressServer {
             let result = handler(payload)
             switch result {
             case .queued:
-                respond(connection, status: 202, reason: "Accepted", body: #"{"accepted":true}"#)
+                respond(fd: fd, status: 202, reason: "Accepted", body: #"{"accepted":true}"#)
             case .duplicate:
-                respond(connection, status: 200, reason: "OK", body: #"{"accepted":true,"duplicate":true}"#)
+                respond(fd: fd, status: 200, reason: "OK", body: #"{"accepted":true,"duplicate":true}"#)
             case .filtered:
-                respond(connection, status: 200, reason: "OK", body: #"{"accepted":false,"filtered":true}"#)
+                respond(fd: fd, status: 200, reason: "OK", body: #"{"accepted":false,"filtered":true}"#)
             case .paused:
-                respond(connection, status: 503, reason: "Paused", body: #"{"accepted":false,"paused":true}"#)
+                respond(fd: fd, status: 503, reason: "Paused", body: #"{"accepted":false,"paused":true}"#)
             case .queueFull:
-                respond(connection, status: 503, reason: "Queue Full", body: #"{"accepted":false,"queueFull":true}"#)
+                respond(fd: fd, status: 503, reason: "Queue Full", body: #"{"accepted":false,"queueFull":true}"#)
             case .storageUnavailable:
-                respond(connection, status: 507, reason: "Insufficient Storage", body: #"{"accepted":false,"storageUnavailable":true}"#)
+                respond(fd: fd, status: 507, reason: "Insufficient Storage", body: #"{"accepted":false,"storageUnavailable":true}"#)
             }
         } catch {
-            respond(connection, status: 400, reason: "Bad Request", body: #"{"accepted":false}"#)
+            respond(fd: fd, status: 400, reason: "Bad Request", body: #"{"accepted":false}"#)
         }
     }
 
-    private func respond(_ connection: NWConnection, status: Int, reason: String, body: String) {
+    private func respond(fd: Int32, status: Int, reason: String, body: String) {
         let bodyData = Data(body.utf8)
         let headers = [
             "HTTP/1.1 \(status) \(reason)",
@@ -187,8 +243,9 @@ final class LoopbackIngressServer {
         ].joined(separator: "\r\n")
         var response = Data(headers.utf8)
         response.append(bodyData)
-        connection.send(content: response, completion: .contentProcessed { _ in
-            connection.cancel()
-        })
+        response.withUnsafeBytes { rawBuffer in
+            guard let ptr = rawBuffer.baseAddress else { return }
+            _ = write(fd, ptr, response.count)
+        }
     }
 }

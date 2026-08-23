@@ -184,6 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             updatePauseMenu()
         } catch {
+            NSLog("[LinguaLearn] reloadConfiguration error: %@", error.localizedDescription)
             hookInboxImporter?.stop()
             hookInboxImporter = nil
             coordinator = nil

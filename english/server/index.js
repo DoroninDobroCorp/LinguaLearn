@@ -304,7 +304,7 @@ seedCurriculum();
 const chatIdempotencyStore = createChatIdempotencyStore(db);
 const writingAnalysisService = createWritingAnalysisService({
   db,
-  analyzer: createGeminiWritingAnalyzer({ genAI, genAIs: genAIPool }),
+  analyzer: createGeminiWritingAnalyzer({ genAI, genAIs: genAIPool, apiKeys: geminiApiKeys }),
 });
 const deviceTokenService = createDeviceTokenService(db);
 const deviceAuth = createDeviceAuthMiddleware(db);

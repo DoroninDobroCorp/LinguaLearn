@@ -1293,15 +1293,29 @@ Schema constraints:
 export function createGeminiWritingAnalyzer({
   genAI,
   genAIs,
+  apiKeys,
   modelName = String(
     process.env.GEMINI_WRITING_MODEL || 'gemini-3.5-flash-lite'
   ).trim(),
   promptVersion = 'v1',
   circuitBreaker = null,
 }) {
-  const pool = Array.isArray(genAIs) && genAIs.length > 0
-    ? genAIs
-    : (Array.isArray(genAI) ? genAI : (genAI ? [genAI] : []));
+  const rawPool = Array.isArray(apiKeys) && apiKeys.length > 0
+    ? apiKeys.map((key, idx) => ({
+        key: typeof key === 'string' ? key : (key?.apiKey || key?.key || null),
+        genAI: Array.isArray(genAIs) ? genAIs[idx] : (genAI && typeof genAI.getGenerativeModel === 'function' ? genAI : null),
+      }))
+    : (Array.isArray(genAIs) && genAIs.length > 0
+        ? genAIs.map((g) => ({
+            key: typeof g === 'string' ? g : (g?.apiKey || g?.key || null),
+            genAI: (g && typeof g.getGenerativeModel === 'function') ? g : null,
+          }))
+        : (genAI ? [{
+            key: typeof genAI === 'string' ? genAI : (genAI?.apiKey || genAI?.key || null),
+            genAI: (genAI && typeof genAI.getGenerativeModel === 'function') ? genAI : null,
+          }] : []));
+
+  const pool = rawPool.filter((item) => item.key || item.genAI);
   let poolIndex = 0;
 
   return async ({ text, canonicalTopics }) => {
@@ -1328,19 +1342,71 @@ export function createGeminiWritingAnalyzer({
     let lastError = null;
 
     for (let attempt = 0; attempt < pool.length; attempt++) {
-      const currentGenAI = pool[(poolIndex + attempt) % pool.length];
+      const currentItem = pool[(poolIndex + attempt) % pool.length];
       try {
-        const model = currentGenAI.getGenerativeModel({
-          model: modelName,
-          generationConfig: {
-            responseMimeType: 'application/json',
-            responseSchema: ANALYSIS_SCHEMA,
-          },
-          systemInstruction,
-        });
+        let responseText = null;
+        const proxyBase = process.env.GEMINI_API_BASE_URL || 'http://127.0.0.1:58433';
 
-        const result = await model.generateContent(`Analyze this message:\n<message>\n${text}\n</message>`);
-        const responseText = result.response.text();
+        if (currentItem.key) {
+          try {
+            const endpoint = `${proxyBase}/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(currentItem.key)}`;
+            const fetchRes = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ role: 'user', parts: [{ text: `Analyze this message:\n<message>\n${text}\n</message>` }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                generationConfig: {
+                  responseMimeType: 'application/json',
+                  responseSchema: ANALYSIS_SCHEMA,
+                },
+              }),
+            });
+
+            if (fetchRes.ok) {
+              const data = await fetchRes.json();
+              responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+            } else {
+              const errJson = await fetchRes.json().catch(() => ({}));
+              const msg = errJson?.error?.message || `HTTP ${fetchRes.status} ${fetchRes.statusText}`;
+              const err = new Error(msg);
+              err.status = fetchRes.status;
+              err.statusCode = fetchRes.status;
+              if (fetchRes.status === 429) {
+                throw err;
+              }
+              if (!currentItem.genAI) {
+                throw err;
+              }
+            }
+          } catch (fetchErr) {
+            if (isRateLimitError(fetchErr)) {
+              throw fetchErr;
+            }
+            if (!currentItem.genAI && responseText === null) {
+              throw fetchErr;
+            }
+          }
+        }
+
+        if (responseText === null && currentItem.genAI) {
+          const model = currentItem.genAI.getGenerativeModel({
+            model: modelName,
+            generationConfig: {
+              responseMimeType: 'application/json',
+              responseSchema: ANALYSIS_SCHEMA,
+            },
+            systemInstruction,
+          });
+
+          const result = await model.generateContent(`Analyze this message:\n<message>\n${text}\n</message>`);
+          responseText = result.response.text();
+        }
+
+        if (!responseText) {
+          throw httpError(502, 'Gemini returned empty response for writing analysis.', 'INVALID_ANALYZER_JSON');
+        }
+
         let parsed;
         try {
           parsed = JSON.parse(responseText);
