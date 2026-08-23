@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Brain, RefreshCw, CheckCircle, XCircle, Award, 
   Layers, Infinity as InfinityIcon, Globe, Check, Search,
-  Zap, Clock, Sparkles, ArrowRight, Target, Volume2, HelpCircle
+  Zap, Clock, Sparkles, ArrowRight, Target, Volume2, HelpCircle,
+  Trophy, ListOrdered
 } from 'lucide-react';
+import ExamModal from './ExamModal';
 import { soundEngine, speakEnglish } from '../utils/soundEffects';
 import { 
   createVerbDrillQuestion, 
@@ -11,18 +13,6 @@ import {
   DRILL_TYPES, 
   DRILL_PRONOUN_MODES 
 } from '../utils/verbDrills';
-
-function parseExerciseTag(tag) {
-  if (!tag) return { rawTopicName: 'General Practice', topicLevel: 'B1' };
-  const match = tag.match(/^(.*?)(?:\s*\((A1|A2|B1|B2|C1|C2)\))?$/);
-  if (match) {
-    return {
-      rawTopicName: match[1].trim(),
-      topicLevel: match[2] || 'B1'
-    };
-  }
-  return { rawTopicName: tag, topicLevel: 'B1' };
-}
 
 function normalizeSentence(text) {
   if (!text) return '';
@@ -48,279 +38,358 @@ function checkGrammarAnswerMatch(userText, correctText, altAnswers = []) {
 }
 
 // ----------------------------------------------------
-// 1. AI GRAMMAR & VOCABULARY EXERCISES (GEMINI 3.5 FLASH LITE)
+// 1. CLASSIC QUIZ & AI-POWERED EXERCISES & EXAMS
 // ----------------------------------------------------
-function GrammarExercisesSection({ topics, maxLevel, onTopicUpdated }) {
-  const [loading, setLoading] = useState(false);
-  const [selectedTopic, setSelectedTopic] = useState('all');
-  const [selectedType, setSelectedType] = useState('all');
-  const [sessionMode, setSessionMode] = useState('ten');
-  
-  const [exerciseQueue, setExerciseQueue] = useState([]);
+function ClassicQuizSection({ allTopics = [], onTopicUpdated }) {
+  const [selectedLevel, setSelectedLevel] = useState('A1');
+  const [availableTopics, setAvailableTopics] = useState([]);
+  const [selectedTopicIds, setSelectedTopicIds] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showTopicSelector, setShowTopicSelector] = useState(false);
+
+  const [exercises, setExercises] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isRoundFinished, setIsRoundFinished] = useState(false);
-
-  const [userAnswer, setUserAnswer] = useState('');
-  const [selectedOption, setSelectedOption] = useState('');
-  const [showResult, setShowResult] = useState(false);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [userFillAnswer, setUserFillAnswer] = useState('');
+  const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
-  
-  const [roundStats, setRoundStats] = useState({ total: 0, correct: 0, streak: 0 });
-  const [overallStats, setOverallStats] = useState({ total: 0, correct: 0, streak: 0 });
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [error, setError] = useState('');
   const [scoreFeedback, setScoreFeedback] = useState('');
+  const [stats, setStats] = useState({ correct: 0, total: 0 });
 
-  const prefetchingRef = useRef(false);
+  // Exam Modal State
+  const [examModalConfig, setExamModalConfig] = useState({
+    isOpen: false,
+    level: 'A1',
+    examType: 'custom',
+    topicIds: []
+  });
 
-  const fetchExerciseBatch = async () => {
-    const response = await fetch('/english/api/exercises/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topicId: selectedTopic !== 'all' ? selectedTopic : undefined,
-        type: selectedType !== 'all' ? selectedType : undefined
-      })
+  // Filter topics for the selected level
+  useEffect(() => {
+    const levelTopics = allTopics.filter(t => t.level === selectedLevel);
+    setAvailableTopics(levelTopics);
+    if (levelTopics.length > 0) {
+      // Default to first 4 topics of the level
+      const initialIds = levelTopics.slice(0, 4).map(t => t.id);
+      setSelectedTopicIds(initialIds);
+    } else {
+      setSelectedTopicIds([]);
+    }
+  }, [selectedLevel, allTopics]);
+
+  const toggleTopic = (id) => {
+    setSelectedTopicIds(prev => {
+      const numId = Number(id);
+      if (prev.includes(numId)) {
+        const next = prev.filter(x => x !== numId);
+        return next.length > 0 ? next : prev; // keep at least 1
+      } else {
+        return [...prev, numId];
+      }
     });
-    const data = await response.json();
-    return data.exercises || (data.exercise ? [data.exercise] : []);
   };
 
-  const startNewBatch = async () => {
-    setLoading(true);
-    setShowResult(false);
-    setUserAnswer('');
-    setSelectedOption('');
-    setIsRoundFinished(false);
+  const handleSelectAll = () => {
+    setSelectedTopicIds(availableTopics.map(t => t.id));
+  };
+
+  const handleSelectFirstFour = () => {
+    setSelectedTopicIds(availableTopics.slice(0, 4).map(t => t.id));
+  };
+
+  const generateAiExercises = async () => {
+    if (selectedTopicIds.length === 0) return;
+    setIsGeneratingAi(true);
+    setError('');
+    setIsAnswered(false);
+    setSelectedOption(null);
+    setUserFillAnswer('');
     setScoreFeedback('');
-    setRoundStats({ total: 0, correct: 0, streak: overallStats.streak });
-    setCurrentIndex(0);
+    setStats({ correct: 0, total: 0 });
 
     try {
-      const newExercises = await fetchExerciseBatch();
-      if (newExercises.length > 0) {
-        setExerciseQueue(newExercises);
+      const res = await fetch('/english/api/exercises/generate-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          level: selectedLevel,
+          topicIds: selectedTopicIds,
+          count: 10
+        })
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.exercises) && data.exercises.length > 0) {
+        setExercises(data.exercises);
+        setCurrentIndex(0);
+        soundEngine.playVictory();
+      } else {
+        throw new Error(data.error || 'Не удалось сгенерировать упражнения');
       }
-    } catch (error) {
-      console.error('Error generating English exercise batch:', error);
+    } catch (err) {
+      console.error('Error generating exercises:', err);
+      setError(err.message || 'Ошибка генерации упражнений');
     } finally {
-      setLoading(false);
+      setIsGeneratingAi(false);
     }
   };
 
-  useEffect(() => {
-    startNewBatch();
-  }, [selectedTopic, selectedType]);
+  const currentEx = exercises[currentIndex] || null;
+  const isChoice = currentEx?.type === 'multiple-choice' || currentEx?.type === 'choice' || Boolean(currentEx?.options?.length);
+  const userAnswer = isChoice ? selectedOption : userFillAnswer.trim();
 
-  const currentExercise = exerciseQueue[currentIndex] || null;
-
-  // Background prefetch
-  useEffect(() => {
-    if (sessionMode === 'infinite' && exerciseQueue.length - currentIndex <= 2 && !prefetchingRef.current) {
-      prefetchingRef.current = true;
-      fetchExerciseBatch()
-        .then((newBatch) => {
-          if (newBatch && newBatch.length > 0) {
-            setExerciseQueue((prev) => [...prev, ...newBatch]);
-          }
-        })
-        .finally(() => {
-          prefetchingRef.current = false;
-        });
-    }
-  }, [currentIndex, exerciseQueue.length, sessionMode]);
-
-  const checkAnswer = async () => {
-    if (!currentExercise || showResult) return;
+  const handleCheck = async () => {
+    if (isAnswered || !currentEx || !userAnswer) return;
 
     let correct = false;
-    const submittedAnswer = currentExercise.type === 'multiple-choice' ? selectedOption : userAnswer;
-
-    if (currentExercise.type === 'multiple-choice') {
-      correct = submittedAnswer === currentExercise.correctAnswer;
+    if (isChoice) {
+      correct = (String(userAnswer || '').trim().toLowerCase() === String(currentEx.correctAnswer || '').trim().toLowerCase());
     } else {
       correct = checkGrammarAnswerMatch(
-        submittedAnswer, 
-        currentExercise.correctAnswer, 
-        currentExercise.alternativeAnswers || []
+        userAnswer,
+        currentEx.correctAnswer,
+        currentEx.alternativeAnswers || []
       );
     }
 
     setIsCorrect(correct);
-    setShowResult(true);
+    setIsAnswered(true);
+    setStats(prev => ({ correct: prev.correct + (correct ? 1 : 0), total: prev.total + 1 }));
 
     if (correct) soundEngine.playCorrect();
     else soundEngine.playWrong();
-
-    const newStreak = correct ? roundStats.streak + 1 : 0;
-    setRoundStats((prev) => ({
-      total: prev.total + 1,
-      correct: prev.correct + (correct ? 1 : 0),
-      streak: newStreak
-    }));
-    setOverallStats((prev) => ({
-      total: prev.total + 1,
-      correct: prev.correct + (correct ? 1 : 0),
-      streak: correct ? prev.streak + 1 : 0
-    }));
 
     try {
       const resp = await fetch('/english/api/topics/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topic: currentExercise.topic,
-          level: currentExercise.level || 'B1',
+          topic: currentEx.topic,
+          level: currentEx.level || selectedLevel,
           success: correct
         })
       });
       if (resp.ok) {
         const result = await resp.json();
-        if (result.feedback) {
-          setScoreFeedback(result.feedback);
-        }
+        if (result.feedback) setScoreFeedback(result.feedback);
         if (onTopicUpdated) onTopicUpdated();
       }
     } catch (err) {
-      console.error('Error updating English topic progress:', err);
+      console.error('Error updating progress:', err);
     }
   };
 
   const handleNext = () => {
-    if (sessionMode === 'ten' && currentIndex >= 9) {
-      setIsRoundFinished(true);
-      return;
-    }
-
-    if (currentIndex + 1 < exerciseQueue.length) {
-      setCurrentIndex((prev) => prev + 1);
-      setUserAnswer('');
-      setSelectedOption('');
-      setShowResult(false);
+    if (currentIndex + 1 < exercises.length) {
+      setCurrentIndex(i => i + 1);
+      setSelectedOption(null);
+      setUserFillAnswer('');
+      setIsAnswered(false);
       setIsCorrect(false);
       setScoreFeedback('');
     } else {
-      startNewBatch();
+      // Completed round
+      setExercises([]);
+      setCurrentIndex(0);
     }
   };
 
-  const parsed = currentExercise ? parseExerciseTag(currentExercise.tag || currentExercise.topic) : null;
+  const filteredTopics = availableTopics.filter(t => 
+    !searchQuery.trim() || 
+    t.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 space-y-6 border border-gray-100 animate-fadeIn">
-      {/* Controls Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-gray-100">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Topic Select */}
-          <select
-            value={selectedTopic}
-            onChange={(e) => setSelectedTopic(e.target.value)}
-            className="px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          >
-            <option value="all">🎯 All Grammar Topics</option>
-            {topics.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.level}: {t.name}
-              </option>
-            ))}
-          </select>
+    <div className="space-y-6">
+      {/* 1. TOPIC SELECTOR & EXAM LAUNCHER BAR */}
+      <div className="max-w-4xl mx-auto p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-purple-50 via-white to-pink-50 border-2 border-purple-200 shadow-xl space-y-4 animate-fadeIn">
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-2 rounded-xl bg-purple-600 text-white font-black text-sm flex items-center gap-1.5 shadow-sm">
+                <Brain className="h-4 w-4" />
+                <span>ИИ-Тренажер & Экзамены</span>
+              </span>
+              <span className="text-xs font-bold text-purple-700 bg-purple-100 px-3 py-1 rounded-full">
+                Выбрано тем: {selectedTopicIds.length}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Выберите любые темы курса для точечной тренировки или запуска официального экзамена от ИИ.
+            </p>
+          </div>
 
-          {/* Type Select */}
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            className="px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          >
-            <option value="all">⚡ All Question Types</option>
-            <option value="multiple-choice">Multiple Choice (1 of 4)</option>
-            <option value="fill-blank">Fill in the Blank</option>
-            <option value="sentence-correction">Error Correction</option>
-          </select>
+          <div className="flex items-center gap-2">
+            {/* Level Selector */}
+            <select
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-white border-2 border-purple-300 font-bold text-xs text-purple-900 shadow-sm"
+            >
+              {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map(lvl => (
+                <option key={lvl} value={lvl}>Уровень {lvl}</option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => setShowTopicSelector(!showTopicSelector)}
+              className="px-3.5 py-2 rounded-xl border-2 border-purple-300 bg-white text-purple-700 font-bold text-xs hover:bg-purple-50 transition-all flex items-center gap-1.5 shadow-sm"
+            >
+              <ListOrdered className="w-4 h-4" />
+              <span>{showTopicSelector ? 'Скрыть выбор тем ▲' : `Выбрать темы (${selectedTopicIds.length}) ▼`}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Mode Selector */}
-        <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-xl text-xs font-bold">
+        {/* Action Buttons Row */}
+        <div className="flex flex-wrap items-center gap-3 pt-1">
           <button
-            onClick={() => setSessionMode('ten')}
-            className={`px-3 py-1.5 rounded-lg transition-all ${
-              sessionMode === 'ten' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-            }`}
+            onClick={generateAiExercises}
+            disabled={isGeneratingAi || selectedTopicIds.length === 0}
+            className="flex-1 min-w-[200px] py-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            10 Questions
+            {isGeneratingAi ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin text-yellow-200" />
+                <span>Генерируем вопросы ИИ...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 text-yellow-300" />
+                <span>Сгенерировать 10 вопросов ИИ ⚡</span>
+              </>
+            )}
           </button>
+
           <button
-            onClick={() => setSessionMode('infinite')}
-            className={`px-3 py-1.5 rounded-lg transition-all ${
-              sessionMode === 'infinite' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-            }`}
+            onClick={() => setExamModalConfig({
+              isOpen: true,
+              level: selectedLevel,
+              examType: 'custom',
+              topicIds: selectedTopicIds
+            })}
+            disabled={selectedTopicIds.length === 0}
+            className="py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            Infinite ♾️
+            <Target className="w-4 h-4" />
+            <span>Свой экзамен (20 вопр.) 🎯</span>
+          </button>
+
+          <button
+            onClick={() => setExamModalConfig({
+              isOpen: true,
+              level: selectedLevel,
+              examType: 'level_mastery',
+              topicIds: []
+            })}
+            className="py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <Trophy className="w-4 h-4 text-yellow-200" />
+            <span>Аттестация {selectedLevel} (30 вопр.) 🏆</span>
           </button>
         </div>
+
+        {/* EXPANDABLE TOPIC SELECTOR */}
+        {showTopicSelector && (
+          <div className="pt-4 border-t border-purple-200 space-y-3 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск по темам уровня..."
+                className="w-full sm:w-72 px-3.5 py-2 rounded-xl border border-purple-300 text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+              />
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  onClick={handleSelectFirstFour}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-purple-100 text-purple-700 font-bold hover:bg-purple-200"
+                >
+                  Первые 4 темы
+                </button>
+                <button
+                  onClick={handleSelectAll}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-purple-100 text-purple-700 font-bold hover:bg-purple-200"
+                >
+                  Выбрать все ({availableTopics.length})
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-56 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-1">
+              {filteredTopics.map((t) => {
+                const isSelected = selectedTopicIds.includes(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => toggleTopic(t.id)}
+                    className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-2 text-xs font-semibold ${
+                      isSelected
+                        ? 'bg-purple-100 border-purple-500 text-purple-900 shadow-sm font-bold'
+                        : 'bg-white border-gray-200 text-gray-700 hover:border-purple-300'
+                    }`}
+                  >
+                    <span className="truncate">{t.name}</span>
+                    {isSelected && <Check className="w-4 h-4 text-purple-600 flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs font-bold">
+            {error}
+          </div>
+        )}
       </div>
 
-      {loading ? (
-        <div className="py-16 text-center space-y-3">
-          <RefreshCw className="h-8 w-8 text-purple-600 animate-spin mx-auto" />
-          <p className="text-sm font-medium text-gray-500">Generating AI exercises with Gemini 3.5 Flash Lite...</p>
-        </div>
-      ) : isRoundFinished ? (
-        <div className="py-12 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mx-auto text-2xl font-bold">
-            🏆
-          </div>
-          <h3 className="text-2xl font-extrabold text-gray-900">10-Question Round Complete!</h3>
-          <p className="text-base text-gray-600">
-            Score: <span className="font-bold text-purple-600">{roundStats.correct} / {roundStats.total}</span> ({Math.round((roundStats.correct / (roundStats.total || 1)) * 100)}%)
-          </p>
-          <button
-            onClick={startNewBatch}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all active:scale-95"
-          >
-            Start New Round 🚀
-          </button>
-        </div>
-      ) : currentExercise ? (
-        <div className="space-y-6">
-          {/* Progress & Badge */}
-          <div className="flex items-center justify-between text-xs font-bold text-gray-400">
-            <div className="flex items-center space-x-2">
-              <span className="px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
-                {parsed?.topicLevel || 'B1'}
+      {/* 2. ACTIVE EXERCISE QUESTION CARD */}
+      {currentEx && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-gray-100 space-y-6 animate-fadeIn">
+          {/* Header progress */}
+          <div className="flex items-center justify-between border-b border-gray-100 pb-4 text-xs font-bold text-gray-500">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-md bg-purple-100 text-purple-800">
+                {currentEx.level || selectedLevel}
               </span>
-              <span className="text-gray-700">{parsed?.rawTopicName}</span>
+              <span className="text-gray-800">{currentEx.topic}</span>
             </div>
-            <span>
-              {sessionMode === 'ten' ? `Question ${currentIndex + 1} of 10` : `Question ${currentIndex + 1}`}
-            </span>
+            <span>Вопрос {currentIndex + 1} из {exercises.length}</span>
           </div>
 
-          {/* Question Text */}
-          <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200/80 space-y-2">
+          {/* Question text */}
+          <div className="p-6 rounded-2xl bg-purple-50 border border-purple-200 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-purple-600">
-                {currentExercise.type === 'multiple-choice' ? 'Choose the correct answer:' : 'Fill in the correct form:'}
+              <span className="text-xs font-bold uppercase tracking-wider text-purple-700">
+                {isChoice ? 'Выберите правильный вариант:' : 'Заполните пропуск / введите форму:'}
               </span>
               <button
                 type="button"
-                onClick={() => speakEnglish(currentExercise.question)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-white transition-all"
-                title="Pronounce question"
+                onClick={() => speakEnglish(currentEx.question)}
+                className="p-1.5 rounded-lg bg-white text-purple-600 hover:bg-purple-100 shadow-sm"
+                title="Озвучить"
               >
                 <Volume2 className="h-4 w-4" />
               </button>
             </div>
             <p className="text-lg sm:text-xl font-bold text-gray-900 leading-relaxed whitespace-pre-line">
-              {currentExercise.question}
+              {currentEx.question}
             </p>
           </div>
 
-          {/* Interactive Answer Input */}
-          {currentExercise.type === 'multiple-choice' ? (
+          {/* Input Area */}
+          {isChoice ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {currentExercise.options?.map((opt, idx) => {
+              {currentEx.options?.map((opt, idx) => {
                 const isSelected = selectedOption === opt;
-                let btnStyle = 'bg-white border-gray-200 hover:border-purple-300 text-gray-800';
-                if (showResult) {
-                  if (opt === currentExercise.correctAnswer) {
+                let btnStyle = 'bg-white border-gray-200 hover:border-purple-400 text-gray-800';
+                if (isAnswered) {
+                  if (opt === currentEx.correctAnswer) {
                     btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold';
                   } else if (isSelected) {
                     btnStyle = 'bg-rose-50 border-rose-500 text-rose-900';
@@ -328,58 +397,46 @@ function GrammarExercisesSection({ topics, maxLevel, onTopicUpdated }) {
                     btnStyle = 'opacity-40 border-gray-200';
                   }
                 } else if (isSelected) {
-                  btnStyle = 'bg-purple-50 border-purple-600 text-purple-900 font-bold ring-2 ring-purple-400/30';
+                  btnStyle = 'bg-purple-50 border-purple-600 text-purple-900 font-bold ring-2 ring-purple-300';
                 }
 
                 return (
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => !showResult && setSelectedOption(opt)}
-                    disabled={showResult}
+                    onClick={() => !isAnswered && setSelectedOption(opt)}
+                    disabled={isAnswered}
                     className={`p-4 rounded-xl border-2 text-left font-medium text-sm sm:text-base transition-all flex items-center justify-between ${btnStyle}`}
                   >
                     <span>{opt}</span>
-                    {showResult && opt === currentExercise.correctAnswer && <Check className="h-5 w-5 text-emerald-600" />}
+                    {isAnswered && opt === currentEx.correctAnswer && <Check className="h-5 w-5 text-emerald-600" />}
                   </button>
                 );
               })}
             </div>
           ) : (
-            <div className="space-y-3">
-              <input
-                type="text"
-                value={userAnswer}
-                onChange={(e) => setUserAnswer(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && (!showResult ? checkAnswer() : handleNext())}
-                placeholder="Type your answer in English and press Enter..."
-                disabled={showResult}
-                className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-purple-600 focus:outline-none text-base font-semibold text-gray-900"
-              />
-            </div>
+            <input
+              type="text"
+              value={userFillAnswer}
+              onChange={(e) => setUserFillAnswer(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (!isAnswered ? handleCheck() : handleNext())}
+              placeholder="Введите ответ на английском..."
+              disabled={isAnswered}
+              className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-purple-600 text-base font-semibold outline-none"
+            />
           )}
 
-          {/* Explanation Box */}
-          {showResult && (
+          {/* Feedback & Explanation */}
+          {isAnswered && (
             <div className={`p-4 rounded-xl border space-y-1.5 animate-fadeIn ${
-              isCorrect ? 'bg-emerald-50/80 border-emerald-300' : 'bg-rose-50/80 border-rose-300'
+              isCorrect ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300'
             }`}>
-              <div className="flex items-center space-x-2 font-bold text-sm">
-                {isCorrect ? (
-                  <span className="text-emerald-700 flex items-center gap-1.5">
-                    <CheckCircle className="h-5 w-5 text-emerald-600" />
-                    Correct! Great job!
-                  </span>
-                ) : (
-                  <span className="text-rose-700 flex items-center gap-1.5">
-                    <XCircle className="h-5 w-5 text-rose-600" />
-                    Not quite. Correct answer: <span className="font-extrabold">{currentExercise.correctAnswer}</span>
-                  </span>
-                )}
-              </div>
-              {currentExercise.explanation && (
-                <p className="text-xs sm:text-sm text-gray-700 leading-relaxed pt-1">
-                  💡 {currentExercise.explanation}
+              <p className={`font-bold text-sm ${isCorrect ? 'text-emerald-800' : 'text-rose-800'}`}>
+                {isCorrect ? '✅ Верно! Отличный результат' : `❌ Правильный ответ: ${currentEx.correctAnswer}`}
+              </p>
+              {currentEx.explanation && (
+                <p className="text-xs sm:text-sm text-gray-700 pt-1 leading-relaxed">
+                  💡 {currentEx.explanation}
                 </p>
               )}
               {scoreFeedback && (
@@ -390,28 +447,42 @@ function GrammarExercisesSection({ topics, maxLevel, onTopicUpdated }) {
             </div>
           )}
 
-          {/* Footer Submit / Next Controls */}
+          {/* Controls */}
           <div className="flex justify-end pt-2">
-            {!showResult ? (
+            {!isAnswered ? (
               <button
-                onClick={checkAnswer}
-                disabled={currentExercise.type === 'multiple-choice' ? !selectedOption : !userAnswer.trim()}
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md transition-all active:scale-95 text-sm"
+                onClick={handleCheck}
+                disabled={!userAnswer}
+                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white font-bold rounded-xl shadow-md text-sm transition-all"
               >
-                Check Answer
+                Проверить ответ
               </button>
             ) : (
               <button
                 onClick={handleNext}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 text-sm flex items-center gap-2"
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl shadow-lg text-sm flex items-center gap-2"
               >
-                <span>{sessionMode === 'ten' && currentIndex >= 9 ? 'Finish Round 🏆' : 'Next Question'}</span>
+                <span>{currentIndex + 1 >= exercises.length ? 'Завершить раунд 🏆' : 'Следующий вопрос'}</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             )}
           </div>
         </div>
-      ) : null}
+      )}
+
+      {/* Exam Modal */}
+      {examModalConfig.isOpen && (
+        <ExamModal
+          isOpen={examModalConfig.isOpen}
+          level={examModalConfig.level}
+          examType={examModalConfig.examType}
+          topicIds={examModalConfig.topicIds}
+          onClose={() => setExamModalConfig(prev => ({ ...prev, isOpen: false }))}
+          onExamFinished={() => {
+            if (onTopicUpdated) onTopicUpdated();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -453,10 +524,6 @@ function SentenceTranslationExerciseSection({ topics, onTopicUpdated }) {
     }
   };
 
-  useEffect(() => {
-    fetchTranslations();
-  }, [selectedTopic]);
-
   const current = exercises[currentIndex] || null;
 
   const handleCheck = () => {
@@ -482,42 +549,54 @@ function SentenceTranslationExerciseSection({ topics, onTopicUpdated }) {
       setShowResult(false);
       setShowHint(false);
     } else {
-      fetchTranslations();
+      setExercises([]);
+      setCurrentIndex(0);
     }
   };
 
   return (
     <div className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 space-y-6 border border-gray-100 animate-fadeIn">
-      <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
         <div>
           <h3 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
             <Globe className="h-6 w-6 text-indigo-600" />
-            <span>Sentence Translation</span>
+            <span>Перевод предложений</span>
           </h3>
-          <p className="text-xs text-gray-500">Translate authentic sentences from Russian into English.</p>
+          <p className="text-xs text-gray-500">Переводите аутентичные предложения с русского на английский.</p>
         </div>
 
-        <select
-          value={selectedTopic}
-          onChange={(e) => setSelectedTopic(e.target.value)}
-          className="px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-800"
-        >
-          <option value="all">🎯 All Topics</option>
-          {topics.map((t) => (
-            <option key={t.id} value={t.id}>{t.level}: {t.name}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedTopic}
+            onChange={(e) => setSelectedTopic(e.target.value)}
+            className="px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800"
+          >
+            <option value="all">🎯 Все темы курса</option>
+            {topics.map((t) => (
+              <option key={t.id} value={t.id}>{t.level}: {t.name}</option>
+            ))}
+          </select>
+
+          <button
+            onClick={fetchTranslations}
+            disabled={loading}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1.5"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+            <span>{loading ? 'Генерируем...' : 'Сгенерировать ⚡'}</span>
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <div className="py-16 text-center space-y-3">
           <RefreshCw className="h-8 w-8 text-indigo-600 animate-spin mx-auto" />
-          <p className="text-sm font-medium text-gray-500">Preparing translation sentences...</p>
+          <p className="text-sm font-medium text-gray-500">Подготовка предложений для перевода...</p>
         </div>
       ) : current ? (
         <div className="space-y-6">
           <div className="p-6 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Translate to English:</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Переведите на английский:</span>
             <p className="text-lg sm:text-xl font-bold text-gray-900 leading-snug">
               {current.sourceSentence}
             </p>
@@ -576,20 +655,30 @@ function SentenceTranslationExerciseSection({ topics, onTopicUpdated }) {
                 disabled={!userTranslation.trim()}
                 className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl shadow-md text-sm"
               >
-                Check Translation
+                Проверить перевод
               </button>
             ) : (
               <button
                 onClick={handleNext}
                 className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg text-sm flex items-center gap-2"
               >
-                <span>Next Sentence</span>
+                <span>{currentIndex + 1 >= exercises.length ? 'Завершить раунд 🏆' : 'Следующее предложение'}</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             )}
           </div>
         </div>
-      ) : null}
+      ) : (
+        <div className="text-center py-12 space-y-3">
+          <div className="w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto text-2xl font-bold">
+            🌐
+          </div>
+          <h4 className="text-lg font-bold text-gray-800">Выберите тему и нажмите «Сгенерировать ⚡»</h4>
+          <p className="text-xs text-gray-500 max-w-sm mx-auto">
+            ИИ подготовит контекстные предложения для перевода на английский язык с проверкой синонимов.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -1294,7 +1383,6 @@ function VerbConjugationDrills() {
 export default function Exercises() {
   const [activeTab, setActiveTab] = useState('grammar');
   const [topics, setTopics] = useState([]);
-  const [maxLevel, setMaxLevel] = useState('B2');
 
   useEffect(() => {
     loadTopics();
@@ -1305,7 +1393,6 @@ export default function Exercises() {
       const response = await fetch('/english/api/curriculum');
       const data = await response.json();
       setTopics(data.topics || []);
-      if (data.maxLevel) setMaxLevel(data.maxLevel);
     } catch (error) {
       console.error('Error loading topics:', error);
     }
@@ -1377,7 +1464,7 @@ export default function Exercises() {
       </div>
 
       {activeTab === 'grammar' && (
-        <GrammarExercisesSection topics={topics} maxLevel={maxLevel} onTopicUpdated={loadTopics} />
+        <ClassicQuizSection allTopics={topics} onTopicUpdated={loadTopics} />
       )}
 
       {activeTab === 'translation' && (

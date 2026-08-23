@@ -2023,6 +2023,46 @@ app.post('/api/exercises/error-detective/verify', (req, res) => {
   }
 });
 
+// 4. Batch AI Exercises Generator for Selected Topics
+app.post('/api/exercises/generate-batch', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { level = 'A1', topicIds = [], count = 10 } = req.body || {};
+    const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
+
+    const exam = await generateExamQuestions({
+      db,
+      userId,
+      level,
+      examType: 'custom',
+      topicIds,
+      apiKey
+    });
+
+    const exercises = (exam.questions || []).slice(0, count).map((q) => ({
+      id: q.id,
+      topicId: q.topicId,
+      topic: q.topicName,
+      level: q.level || level,
+      type: q.type || 'multiple-choice',
+      question: q.question,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      alternativeAnswers: q.alternativeAnswers || [q.correctAnswer],
+      explanation: q.explanation || ''
+    }));
+
+    res.json({
+      success: true,
+      exercises,
+      topicsCount: topicIds.length
+    });
+  } catch (error) {
+    console.error('Error generating English exercises batch:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // API: Ручная установка прогресса темы (0%, 100% и Заморозка)
 app.post('/api/topics/:id/set-score', (req, res) => {
