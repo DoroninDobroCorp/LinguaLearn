@@ -27,6 +27,29 @@ export default function ExamModal({ level = 'A1', examType = 'milestone', topicI
 
   const SPANISH_SPECIAL_CHARS = ['á', 'é', 'í', 'ó', 'ú', 'ñ', '¿', '¡', 'Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ'];
 
+  const isAnswerCorrect = (userAns, correctAns, altAns = []) => {
+    if (!userAns || typeof userAns !== 'string' || !userAns.trim()) return false;
+    const clean = (str) =>
+      String(str || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[.,;:!?¡¿"'«»()—–\-_/\\]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const userClean = clean(userAns);
+    const correctClean = clean(correctAns);
+    if (userClean === correctClean) return true;
+
+    if (Array.isArray(altAns)) {
+      for (const alt of altAns) {
+        if (clean(alt) === userClean) return true;
+      }
+    }
+    return false;
+  };
+
   useEffect(() => {
     if (isOpen) {
       startExam();
@@ -431,21 +454,29 @@ export default function ExamModal({ level = 'A1', examType = 'milestone', topicI
                 {/* Horizontal Question Pills */}
                 <div className={`flex flex-wrap gap-1.5 p-2 rounded-xl border ${pillsContainerBg}`}>
                   {examData?.questions?.map((q, idx) => {
-                    const isAnswered = Boolean((userAnswers[q.id] || '').trim());
+                    const userAns = (userAnswers[q.id] || '').trim();
+                    const isAnswered = Boolean(userAns);
                     const isCurrent = idx === currentIndex;
+                    const correct = isAnswered && isAnswerCorrect(userAns, q.correctAnswer, q.alternativeAnswers);
+
+                    let pillClass = pillUnanswered;
+                    if (isCurrent) {
+                      pillClass = 'bg-fuchsia-500 text-white ring-2 ring-fuchsia-400 scale-110 shadow-md';
+                    } else if (isAnswered) {
+                      if (correct) {
+                        pillClass = 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/40';
+                      } else {
+                        pillClass = 'bg-rose-500/30 text-rose-300 border border-rose-500/50 hover:bg-rose-500/40';
+                      }
+                    }
+
                     return (
                       <button
                         key={q.id}
                         type="button"
                         onClick={() => setCurrentIndex(idx)}
-                        className={`w-7 h-7 rounded-lg text-xs font-bold transition-all flex items-center justify-center ${
-                          isCurrent
-                            ? 'bg-fuchsia-500 text-white ring-2 ring-fuchsia-400 scale-110 shadow-md'
-                            : isAnswered
-                            ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/40'
-                            : pillUnanswered
-                        }`}
-                        title={`Вопрос ${idx + 1}: ${q.topicName} ${isAnswered ? '(Отвечено)' : ''}`}
+                        className={`w-7 h-7 rounded-lg text-xs font-bold transition-all flex items-center justify-center ${pillClass}`}
+                        title={`Вопрос ${idx + 1}: ${q.topicName} ${isAnswered ? (correct ? '(Верно)' : '(Ошибка)') : '(Не отвечено)'}`}
                       >
                         {idx + 1}
                       </button>
