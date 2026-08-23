@@ -197,8 +197,8 @@ export async function generateExamQuestions({ db, profileId, level = 'A1', examT
 
   let questions = [];
   const proxyBase = process.env.GEMINI_API_BASE_URL || 'http://127.0.0.1:58433';
-  // NOTE: Model 2.5 is strictly for audio/speech generation. In text generation, the minimum model is 3.5 (gemini-3.7-flash, gemini-3.5-flash).
-  const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash'];
+  // NOTE: Model 2.5 is strictly for audio/speech generation. In text generation, the primary model is Gemini 3.5 Flash Lite with fallbacks to gemini-3.5-flash and gemini-3.7-flash.
+  const aiModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash'];
 
   async function generateAIBatch(batchTopics, count) {
     const topicsListStr = batchTopics.map((t, idx) => `${idx + 1}. [ID: ${t.id}] ${t.name} (${t.category}, Level: ${t.level})`).join('\n');
