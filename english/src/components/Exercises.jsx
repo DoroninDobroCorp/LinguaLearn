@@ -1,8 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Brain, RefreshCw, CheckCircle, XCircle, Award, 
-  Layers, Infinity as InfinityIcon, Globe, Check, Search
+  Layers, Infinity as InfinityIcon, Globe, Check, Search,
+  Zap, Clock, Sparkles, ArrowRight, Target, Volume2, HelpCircle
 } from 'lucide-react';
+import { soundEngine, speakEnglish } from '../utils/soundEffects';
+import { 
+  createVerbDrillQuestion, 
+  isVerbDrillAnswerCorrect, 
+  DRILL_TYPES, 
+  DRILL_PRONOUN_MODES 
+} from '../utils/verbDrills';
 
 function parseExerciseTag(tag) {
   if (!tag) return { rawTopicName: 'General Practice', topicLevel: 'B1' };
@@ -20,7 +28,7 @@ function normalizeSentence(text) {
   if (!text) return '';
   return text
     .toLowerCase()
-    .replace(/[¿?¡!.,;:«»"']/g, '')
+    .replace(/[.,;:!?¡¿"'«»()—–\-_/\\]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -40,7 +48,7 @@ function checkGrammarAnswerMatch(userText, correctText, altAnswers = []) {
 }
 
 // ----------------------------------------------------
-// 1. AI GRAMMAR & VOCABULARY EXERCISES (GEMINI 3.7 FLASH)
+// 1. AI GRAMMAR & VOCABULARY EXERCISES (GEMINI 3.5 FLASH LITE)
 // ----------------------------------------------------
 function GrammarExercisesSection({ topics, maxLevel, onTopicUpdated }) {
   const [loading, setLoading] = useState(false);
@@ -98,1091 +106,910 @@ function GrammarExercisesSection({ topics, maxLevel, onTopicUpdated }) {
     }
   };
 
+  useEffect(() => {
+    startNewBatch();
+  }, [selectedTopic, selectedType]);
+
+  const currentExercise = exerciseQueue[currentIndex] || null;
+
+  // Background prefetch
+  useEffect(() => {
+    if (sessionMode === 'infinite' && exerciseQueue.length - currentIndex <= 2 && !prefetchingRef.current) {
+      prefetchingRef.current = true;
+      fetchExerciseBatch()
+        .then((newBatch) => {
+          if (newBatch && newBatch.length > 0) {
+            setExerciseQueue((prev) => [...prev, ...newBatch]);
+          }
+        })
+        .finally(() => {
+          prefetchingRef.current = false;
+        });
+    }
+  }, [currentIndex, exerciseQueue.length, sessionMode]);
+
   const checkAnswer = async () => {
-    const currentExercise = exerciseQueue[currentIndex];
     if (!currentExercise || showResult) return;
 
-    let answerToCheck = '';
+    let correct = false;
+    const submittedAnswer = currentExercise.type === 'multiple-choice' ? selectedOption : userAnswer;
+
     if (currentExercise.type === 'multiple-choice') {
-      answerToCheck = selectedOption;
+      correct = submittedAnswer === currentExercise.correctAnswer;
     } else {
-      answerToCheck = userAnswer.trim();
+      correct = checkGrammarAnswerMatch(
+        submittedAnswer, 
+        currentExercise.correctAnswer, 
+        currentExercise.alternativeAnswers || []
+      );
     }
-
-    if (!answerToCheck) return;
-
-    const correct = checkGrammarAnswerMatch(
-      answerToCheck,
-      currentExercise.correctAnswer,
-      currentExercise.alternativeAnswers
-    );
 
     setIsCorrect(correct);
     setShowResult(true);
 
-    const newStreak = correct ? overallStats.streak + 1 : 0;
-    setRoundStats(prev => ({
+    if (correct) soundEngine.playCorrect();
+    else soundEngine.playWrong();
+
+    const newStreak = correct ? roundStats.streak + 1 : 0;
+    setRoundStats((prev) => ({
       total: prev.total + 1,
       correct: prev.correct + (correct ? 1 : 0),
       streak: newStreak
     }));
-
-    setOverallStats(prev => ({
+    setOverallStats((prev) => ({
       total: prev.total + 1,
       correct: prev.correct + (correct ? 1 : 0),
-      streak: newStreak
+      streak: correct ? prev.streak + 1 : 0
     }));
-
-    const { rawTopicName, topicLevel } = parseExerciseTag(currentExercise.topic);
-    const targetTopicId = currentExercise.topicId || (selectedTopic !== 'all' ? selectedTopic : undefined);
 
     try {
-      await fetch('/english/api/topics/update', {
+      const resp = await fetch('/english/api/topics/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topicId: targetTopicId,
-          topic: rawTopicName,
-          category: 'Practice',
-          level: topicLevel || currentExercise.level,
+          topic: currentExercise.topic,
+          level: currentExercise.level || 'B1',
           success: correct
         })
       });
-      if (typeof onTopicUpdated === 'function') {
-        onTopicUpdated();
-      }
-    } catch (error) {
-      console.error('Error updating topic progress:', error);
-    }
-
-    if (sessionMode === 'endless' && currentIndex >= exerciseQueue.length - 3 && !prefetchingRef.current) {
-      prefetchingRef.current = true;
-      fetchExerciseBatch().then(extra => {
-        if (extra && extra.length > 0) {
-          setExerciseQueue(prev => [...prev, ...extra]);
+      if (resp.ok) {
+        const result = await resp.json();
+        if (result.feedback) {
+          setScoreFeedback(result.feedback);
         }
-      }).catch(err => console.warn('Prefetch error:', err)).finally(() => {
-        prefetchingRef.current = false;
-      });
-    }
-  };
-
-  const handleSetTopicScore = async (score) => {
-    let targetId = selectedTopic !== 'all' ? selectedTopic : null;
-    if (!targetId && exerciseQueue.length > 0) {
-      targetId = exerciseQueue[0].topicId;
-      if (!targetId) {
-        const rawTag = parseExerciseTag(exerciseQueue[0].topic).rawTopicName;
-        const match = topics.find(t => t.name.toLowerCase() === rawTag.toLowerCase());
-        if (match) targetId = match.id;
-      }
-    }
-    if (!targetId) return;
-
-    try {
-      await fetch(`/english/api/topics/${targetId}/set-score`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ score })
-      });
-      setScoreFeedback(score === 100 ? 'Topic marked as 100% ✅' : 'Topic marked as 0% ⭕');
-      if (typeof onTopicUpdated === 'function') {
-        onTopicUpdated();
+        if (onTopicUpdated) onTopicUpdated();
       }
     } catch (err) {
-      console.error('Error updating score:', err);
+      console.error('Error updating English topic progress:', err);
     }
   };
 
-  const nextExercise = () => {
-    setUserAnswer('');
-    setSelectedOption('');
-    setShowResult(false);
-    setIsCorrect(false);
-
+  const handleNext = () => {
     if (sessionMode === 'ten' && currentIndex >= 9) {
       setIsRoundFinished(true);
       return;
     }
 
     if (currentIndex + 1 < exerciseQueue.length) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev) => prev + 1);
+      setUserAnswer('');
+      setSelectedOption('');
+      setShowResult(false);
+      setIsCorrect(false);
+      setScoreFeedback('');
     } else {
       startNewBatch();
     }
   };
 
-  const currentExercise = exerciseQueue[currentIndex];
-  const roundAccuracy = roundStats.total === 0 ? 0 : Math.round((roundStats.correct / roundStats.total) * 100);
-  const currentStep = sessionMode === 'ten' ? Math.min(10, currentIndex + 1) : currentIndex + 1;
-  const progressPercent = sessionMode === 'ten' ? (currentStep / 10) * 100 : 100;
+  const parsed = currentExercise ? parseExerciseTag(currentExercise.tag || currentExercise.topic) : null;
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center">
-              <Brain className="h-8 w-8 mr-3 text-indigo-600" />
-              AI Grammar & Vocabulary Exercises
-            </h2>
-            <p className="text-gray-600 mt-2 text-sm sm:text-base">
-              Practice 10-task nuanced English exercises based on your curriculum (up to {maxLevel})
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-3 md:flex md:space-x-4">
-            <div className="bg-indigo-100 rounded-xl p-3 md:p-4 text-center">
-              <p className="text-xs md:text-sm text-indigo-600 font-semibold">Completed</p>
-              <p className="text-xl md:text-2xl font-bold text-indigo-950">{overallStats.total}</p>
-            </div>
-            <div className="bg-green-100 rounded-xl p-3 md:p-4 text-center">
-              <p className="text-xs md:text-sm text-green-600 font-semibold">Correct</p>
-              <p className="text-xl md:text-2xl font-bold text-green-950">{overallStats.correct}</p>
-            </div>
-            <div className="bg-orange-100 rounded-xl p-3 md:p-4 text-center">
-              <p className="text-xs md:text-sm text-orange-600 font-semibold">Streak</p>
-              <p className="text-xl md:text-2xl font-bold text-orange-950">🔥 {overallStats.streak}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters with visible percentage */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Topic</label>
-            <select
-              value={selectedTopic}
-              onChange={(e) => setSelectedTopic(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl focus:border-indigo-500 focus:outline-none font-medium text-sm"
-            >
-              <option value="all">🎲 Random Topic</option>
-              {topics.map((topic) => (
-                <option key={topic.id} value={topic.id}>
-                  {Boolean(topic.is_locked) ? '🔒 ' : ''}{topic.name} ({topic.level}) — {Math.round(topic.score || 0)}%
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Type</label>
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl focus:border-indigo-500 focus:outline-none font-medium text-sm"
-            >
-              <option value="all">🎲 All Types (Mix)</option>
-              <option value="multiple-choice">📝 Multiple Choice</option>
-              <option value="fill-blank">✍️ Fill in the Blank</option>
-              <option value="open">💭 Open Answer</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Session Mode</label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setSessionMode('ten')}
-                className={`px-3 py-3 rounded-xl border-2 font-bold transition-all text-xs flex items-center justify-center gap-1.5 ${
-                  sessionMode === 'ten'
-                    ? 'bg-indigo-600 border-indigo-700 text-white shadow-md'
-                    : 'bg-white border-indigo-200 text-gray-700 hover:border-indigo-400'
-                }`}
-              >
-                <Layers className="h-4 w-4" />
-                <span>10 Tasks</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSessionMode('endless')}
-                className={`px-3 py-3 rounded-xl border-2 font-bold transition-all text-xs flex items-center justify-center gap-1.5 ${
-                  sessionMode === 'endless'
-                    ? 'bg-purple-600 border-purple-700 text-white shadow-md'
-                    : 'bg-white border-purple-200 text-gray-700 hover:border-purple-400'
-                }`}
-              >
-                <InfinityIcon className="h-4 w-4" />
-                <span>Endless</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {(!currentExercise || isRoundFinished) && (
-          <button
-            onClick={startNewBatch}
-            disabled={loading}
-            className="w-full px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 font-bold text-lg flex items-center justify-center space-x-3 transition-all shadow-md hover:shadow-lg"
+    <div className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 space-y-6 border border-gray-100 animate-fadeIn">
+      {/* Controls Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-gray-100">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Topic Select */}
+          <select
+            value={selectedTopic}
+            onChange={(e) => setSelectedTopic(e.target.value)}
+            className="px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
-            {loading ? (
-              <>
-                <RefreshCw className="h-6 w-6 animate-spin" />
-                <span>Generating 10 nuanced exercises with Gemini 3.7 Flash...</span>
-              </>
-            ) : (
-              <>
-                <Brain className="h-6 w-6" />
-                <span>{isRoundFinished ? '🔄 Start New 10-Task Round' : '🚀 Start Workout (10 Tasks)'}</span>
-              </>
-            )}
+            <option value="all">🎯 All Grammar Topics</option>
+            {topics.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.level}: {t.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Type Select */}
+          <select
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value)}
+            className="px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="all">⚡ All Question Types</option>
+            <option value="multiple-choice">Multiple Choice (1 of 4)</option>
+            <option value="fill-blank">Fill in the Blank</option>
+            <option value="sentence-correction">Error Correction</option>
+          </select>
+        </div>
+
+        {/* Mode Selector */}
+        <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-xl text-xs font-bold">
+          <button
+            onClick={() => setSessionMode('ten')}
+            className={`px-3 py-1.5 rounded-lg transition-all ${
+              sessionMode === 'ten' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            10 Questions
           </button>
-        )}
+          <button
+            onClick={() => setSessionMode('infinite')}
+            className={`px-3 py-1.5 rounded-lg transition-all ${
+              sessionMode === 'infinite' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Infinite ♾️
+          </button>
+        </div>
       </div>
 
-      {/* Round Finished Screen */}
-      {isRoundFinished && (
-        <div className="bg-gradient-to-r from-indigo-100 to-purple-100 border-4 border-indigo-400 rounded-2xl p-6 md:p-10 shadow-2xl text-center space-y-6 animate-fade-in">
-          <div className="inline-flex p-4 bg-indigo-600 text-white rounded-full shadow-lg">
-            <Award className="h-12 w-12" />
-          </div>
-          <div>
-            <h3 className="text-3xl font-black text-gray-900">10-Task Round Complete! 🎉</h3>
-            <p className="text-gray-700 mt-2 text-lg">You have successfully practiced diverse nuances of this grammar rule.</p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-200">
-              <p className="text-xs text-gray-500 font-bold uppercase">Correct</p>
-              <p className="text-2xl font-black text-green-600">{roundStats.correct} / 10</p>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-200">
-              <p className="text-xs text-gray-500 font-bold uppercase">Accuracy</p>
-              <p className="text-2xl font-black text-indigo-700">{roundAccuracy}%</p>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-200">
-              <p className="text-xs text-gray-500 font-bold uppercase">Streak</p>
-              <p className="text-2xl font-black text-orange-600">🔥 {overallStats.streak}</p>
-            </div>
-          </div>
-
-          {/* Manual Topic Score Controls on Round Summary */}
-          <div className="pt-2 space-y-3">
-            <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Rate this topic:</p>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => handleSetTopicScore(100)}
-                className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-              >
-                <CheckCircle className="h-4 w-4" />
-                <span>Mark Topic as 100%</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleSetTopicScore(0)}
-                className="px-4 py-2.5 bg-white border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-bold rounded-xl text-sm transition-all shadow-sm flex items-center gap-2"
-              >
-                <span>⭕ Mark Topic as 0%</span>
-              </button>
-            </div>
-
-            {scoreFeedback && (
-              <p className="text-sm font-bold text-indigo-900 bg-white/90 py-1.5 px-4 rounded-lg inline-block border border-indigo-300 shadow-sm animate-fade-in">
-                {scoreFeedback}
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-2">
-            <button
-              onClick={startNewBatch}
-              disabled={loading}
-              className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2"
-            >
-              <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-              <span>More 10 Tasks on This Topic</span>
-            </button>
-            <button
-              onClick={() => { setSelectedTopic('all'); startNewBatch(); }}
-              disabled={loading}
-              className="px-6 py-3.5 bg-white border-2 border-indigo-300 text-indigo-900 font-bold rounded-xl shadow-sm hover:bg-indigo-50 transition-all flex items-center justify-center space-x-2"
-            >
-              <span>🎲 Try Another Topic</span>
-            </button>
-          </div>
+      {loading ? (
+        <div className="py-16 text-center space-y-3">
+          <RefreshCw className="h-8 w-8 text-purple-600 animate-spin mx-auto" />
+          <p className="text-sm font-medium text-gray-500">Generating AI exercises with Gemini 3.5 Flash Lite...</p>
         </div>
-      )}
-
-      {/* Active Exercise Card */}
-      {currentExercise && !isRoundFinished && (
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-4 border-indigo-300 rounded-2xl p-5 md:p-8 shadow-2xl space-y-5">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm font-bold text-indigo-950">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 bg-indigo-600 text-white rounded-lg text-xs">
-                  {sessionMode === 'ten' ? `Task ${currentStep} of 10` : `Task #${currentStep}`}
-                </span>
-                {sessionMode === 'endless' && (
-                  <span className="text-xs text-purple-700 font-semibold flex items-center gap-1">
-                    <InfinityIcon className="h-3.5 w-3.5" /> Endless Mode
-                  </span>
-                )}
-              </div>
-              <span className="text-xs font-semibold text-indigo-700">
-                Round: {roundStats.correct} correct
+      ) : isRoundFinished ? (
+        <div className="py-12 text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mx-auto text-2xl font-bold">
+            🏆
+          </div>
+          <h3 className="text-2xl font-extrabold text-gray-900">10-Question Round Complete!</h3>
+          <p className="text-base text-gray-600">
+            Score: <span className="font-bold text-purple-600">{roundStats.correct} / {roundStats.total}</span> ({Math.round((roundStats.correct / (roundStats.total || 1)) * 100)}%)
+          </p>
+          <button
+            onClick={startNewBatch}
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all active:scale-95"
+          >
+            Start New Round 🚀
+          </button>
+        </div>
+      ) : currentExercise ? (
+        <div className="space-y-6">
+          {/* Progress & Badge */}
+          <div className="flex items-center justify-between text-xs font-bold text-gray-400">
+            <div className="flex items-center space-x-2">
+              <span className="px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                {parsed?.topicLevel || 'B1'}
               </span>
+              <span className="text-gray-700">{parsed?.rawTopicName}</span>
             </div>
-
-            {sessionMode === 'ten' && (
-              <div className="w-full bg-indigo-200 rounded-full h-2 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-indigo-600 to-purple-500 transition-all duration-500 rounded-full"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            )}
+            <span>
+              {sessionMode === 'ten' ? `Question ${currentIndex + 1} of 10` : `Question ${currentIndex + 1}`}
+            </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1 bg-indigo-300 text-indigo-900 rounded-full text-xs font-bold">
-              {currentExercise.type === 'multiple-choice' ? '📝 Quiz' : 
-               currentExercise.type === 'fill-blank' ? '✍️ Fill-in' : '💭 Open'}
-            </span>
-            <span className="px-3 py-1 bg-pink-300 text-pink-900 rounded-full text-xs font-bold">
-              {currentExercise.level}
-            </span>
-            <span className="px-3 py-1 bg-purple-300 text-purple-900 rounded-full text-xs font-bold">
-              {currentExercise.topic}
-            </span>
-            {currentExercise.sourceLabel && (
-              <span className="px-3 py-1 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-full text-xs font-bold">
-                📚 {currentExercise.sourceLabel}
+          {/* Question Text */}
+          <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200/80 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-purple-600">
+                {currentExercise.type === 'multiple-choice' ? 'Choose the correct answer:' : 'Fill in the correct form:'}
               </span>
-            )}
-            {currentExercise.targetWord && (
-              <span className="px-3 py-1 bg-amber-100 border border-amber-300 text-amber-900 rounded-full text-xs font-bold">
-                🎯 Word: {currentExercise.targetWord}
-              </span>
-            )}
-          </div>
-          
-          <div className="bg-white rounded-xl p-4 sm:p-6 border-2 border-indigo-200">
-            <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-relaxed">
+              <button
+                type="button"
+                onClick={() => speakEnglish(currentExercise.question)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-white transition-all"
+                title="Pronounce question"
+              >
+                <Volume2 className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-lg sm:text-xl font-bold text-gray-900 leading-relaxed whitespace-pre-line">
               {currentExercise.question}
             </p>
           </div>
-          
-          {currentExercise.type === 'multiple-choice' && !showResult && (
-            <div className="space-y-3">
-              {currentExercise.options.map((option, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedOption(option)}
-                  className={`w-full text-left px-4 py-3 sm:px-6 sm:py-4 rounded-xl transition-all text-base sm:text-lg font-medium border-2 sm:border-3 ${
-                    selectedOption === option
-                      ? 'bg-indigo-300 border-indigo-600 text-indigo-900 scale-[1.02] shadow-md'
-                      : 'bg-white border-indigo-300 hover:border-indigo-500 text-gray-800 hover:scale-[1.01]'
-                  }`}
-                >
-                  <span className="font-bold mr-2 sm:mr-3 text-lg sm:text-xl">{String.fromCharCode(65 + idx)}.</span>
-                  {option}
-                </button>
-              ))}
+
+          {/* Interactive Answer Input */}
+          {currentExercise.type === 'multiple-choice' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {currentExercise.options?.map((opt, idx) => {
+                const isSelected = selectedOption === opt;
+                let btnStyle = 'bg-white border-gray-200 hover:border-purple-300 text-gray-800';
+                if (showResult) {
+                  if (opt === currentExercise.correctAnswer) {
+                    btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold';
+                  } else if (isSelected) {
+                    btnStyle = 'bg-rose-50 border-rose-500 text-rose-900';
+                  } else {
+                    btnStyle = 'opacity-40 border-gray-200';
+                  }
+                } else if (isSelected) {
+                  btnStyle = 'bg-purple-50 border-purple-600 text-purple-900 font-bold ring-2 ring-purple-400/30';
+                }
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => !showResult && setSelectedOption(opt)}
+                    disabled={showResult}
+                    className={`p-4 rounded-xl border-2 text-left font-medium text-sm sm:text-base transition-all flex items-center justify-between ${btnStyle}`}
+                  >
+                    <span>{opt}</span>
+                    {showResult && opt === currentExercise.correctAnswer && <Check className="h-5 w-5 text-emerald-600" />}
+                  </button>
+                );
+              })}
             </div>
-          )}
-          
-          {currentExercise.type === 'multiple-choice' && showResult && (
+          ) : (
             <div className="space-y-3">
-              {currentExercise.options.map((option, idx) => (
-                <div
-                  key={idx}
-                  className={`w-full text-left px-4 py-3 sm:px-6 sm:py-4 rounded-xl text-base sm:text-lg font-medium border-2 sm:border-3 ${
-                    option.toLowerCase() === currentExercise.correctAnswer.toLowerCase()
-                      ? 'bg-green-200 border-green-600 text-green-900'
-                      : option === selectedOption
-                      ? 'bg-red-200 border-red-600 text-red-900'
-                      : 'bg-gray-100 border-gray-300 text-gray-600'
-                  }`}
-                >
-                  <span className="font-bold mr-2 sm:mr-3 text-lg sm:text-xl">{String.fromCharCode(65 + idx)}.</span>
-                  {option}
-                  {option.toLowerCase() === currentExercise.correctAnswer.toLowerCase() && (
-                    <CheckCircle className="inline ml-2 h-5 w-5 text-green-700 align-middle" />
-                  )}
-                  {option === selectedOption && option.toLowerCase() !== currentExercise.correctAnswer.toLowerCase() && (
-                    <XCircle className="inline ml-2 h-5 w-5 text-red-700 align-middle" />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {(currentExercise.type === 'fill-blank' || currentExercise.type === 'open') && (
-            <div>
               <input
                 type="text"
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && !showResult && checkAnswer()}
+                onKeyDown={(e) => e.key === 'Enter' && (!showResult ? checkAnswer() : handleNext())}
+                placeholder="Type your answer in English and press Enter..."
                 disabled={showResult}
-                placeholder="Type your answer here..."
-                className={`w-full px-4 py-3 sm:px-6 sm:py-4 rounded-xl border-2 sm:border-3 text-base sm:text-lg font-medium ${
-                  showResult
-                    ? isCorrect
-                      ? 'bg-green-100 border-green-600 text-green-900'
-                      : 'bg-red-100 border-red-600 text-red-900'
-                    : 'border-indigo-400 focus:border-indigo-600 focus:outline-none bg-white'
-                }`}
+                className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-purple-600 focus:outline-none text-base font-semibold text-gray-900"
               />
             </div>
           )}
-          
-          {!showResult ? (
-            <button
-              onClick={checkAnswer}
-              disabled={
-                (currentExercise.type === 'multiple-choice' && !selectedOption) ||
-                ((currentExercise.type === 'fill-blank' || currentExercise.type === 'open') && !userAnswer.trim())
-              }
-              className="w-full px-6 py-3.5 sm:px-8 sm:py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 font-bold text-lg sm:text-xl transition-all shadow-md hover:shadow-lg"
-            >
-              ✓ Check Answer
-            </button>
-          ) : (
-            <div className="space-y-4">
-              <div className={`p-4 sm:p-6 rounded-xl border-2 sm:border-3 ${
-                isCorrect
-                  ? 'bg-green-100 border-green-500 text-green-900'
-                  : 'bg-orange-100 border-orange-500 text-orange-900'
-              }`}>
-                <div className="flex items-center space-x-3">
-                  {isCorrect ? (
-                    <>
-                      <CheckCircle className="h-8 w-8 sm:h-10 sm:w-10 text-green-600" />
-                      <div>
-                        <p className="text-xl sm:text-2xl font-bold">Correct! 🎉</p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-8 w-8 sm:h-10 sm:w-10 text-orange-600" />
-                      <div>
-                        <p className="text-xl sm:text-2xl font-bold">Not quite right</p>
-                        <p className="text-sm sm:text-lg">
-                          The correct answer is: <span className="font-bold underline">{currentExercise.correctAnswer}</span>
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </div>
 
-                <div className="bg-white/80 p-3 rounded-lg border border-indigo-200 mt-2 space-y-1">
-                  {Array.isArray(currentExercise.alternativeAnswers) && currentExercise.alternativeAnswers.length > 0 && (
-                    <p className="text-xs text-gray-700 font-semibold">
-                      Also acceptable: <span className="font-bold text-indigo-950">{currentExercise.alternativeAnswers.join(' / ')}</span>
-                    </p>
-                  )}
-                  {currentExercise.explanation && (
-                    <p className="text-sm sm:text-base font-medium text-gray-800">{currentExercise.explanation}</p>
-                  )}
-                </div>
+          {/* Explanation Box */}
+          {showResult && (
+            <div className={`p-4 rounded-xl border space-y-1.5 animate-fadeIn ${
+              isCorrect ? 'bg-emerald-50/80 border-emerald-300' : 'bg-rose-50/80 border-rose-300'
+            }`}>
+              <div className="flex items-center space-x-2 font-bold text-sm">
+                {isCorrect ? (
+                  <span className="text-emerald-700 flex items-center gap-1.5">
+                    <CheckCircle className="h-5 w-5 text-emerald-600" />
+                    Correct! Great job!
+                  </span>
+                ) : (
+                  <span className="text-rose-700 flex items-center gap-1.5">
+                    <XCircle className="h-5 w-5 text-rose-600" />
+                    Not quite. Correct answer: <span className="font-extrabold">{currentExercise.correctAnswer}</span>
+                  </span>
+                )}
               </div>
-              
-              <button
-                onClick={nextExercise}
-                className="w-full px-6 py-3.5 sm:px-8 sm:py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg font-bold text-lg sm:text-xl flex items-center justify-center space-x-2"
-              >
-                <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6" />
-                <span>{sessionMode === 'ten' && currentIndex >= 9 ? '🏆 Finish Round (10/10)' : 'Next Task →'}</span>
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ----------------------------------------------------
-// 2. FULL SENTENCE TRANSLATION MODE COMPONENT (LAST TAB IN ENGLISH)
-// ----------------------------------------------------
-function SentenceTranslationExerciseSection({ topics, onTopicUpdated }) {
-  const [selectedTopicIds, setSelectedTopicIds] = useState([]);
-  const [sessionMode, setSessionMode] = useState('ten'); // 'ten' | 'endless'
-  const [loading, setLoading] = useState(false);
-  const [exerciseQueue, setExerciseQueue] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isRoundFinished, setIsRoundFinished] = useState(false);
-
-  const [userTranslation, setUserTranslation] = useState('');
-  const [showResult, setShowResult] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
-
-  const [roundStats, setRoundStats] = useState({ total: 0, correct: 0, streak: 0 });
-  const [overallStats, setOverallStats] = useState({ total: 0, correct: 0, streak: 0 });
-  const [scoreFeedback, setScoreFeedback] = useState('');
-  
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterLevel, setFilterLevel] = useState('all');
-
-  const prefetchingRef = useRef(false);
-
-  const toggleTopicSelection = (topicId) => {
-    setSelectedTopicIds(prev => 
-      prev.includes(topicId) 
-        ? prev.filter(id => id !== topicId) 
-        : [...prev, topicId]
-    );
-  };
-
-  const selectRandomTopics = () => {
-    if (topics.length === 0) return;
-    const shuffled = [...topics].sort(() => 0.5 - Math.random());
-    setSelectedTopicIds(shuffled.slice(0, 3).map(t => t.id));
-  };
-
-  const fetchTranslationBatch = async () => {
-    const response = await fetch('/english/api/exercises/generate-translation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topicIds: selectedTopicIds.length > 0 ? selectedTopicIds : undefined
-      })
-    });
-    const data = await response.json();
-    return data.exercises || [];
-  };
-
-  const startNewBatch = async () => {
-    setLoading(true);
-    setShowResult(false);
-    setUserTranslation('');
-    setIsRoundFinished(false);
-    setScoreFeedback('');
-    setRoundStats({ total: 0, correct: 0, streak: overallStats.streak });
-    setCurrentIndex(0);
-
-    try {
-      const newExercises = await fetchTranslationBatch();
-      if (newExercises.length > 0) {
-        setExerciseQueue(newExercises);
-      }
-    } catch (error) {
-      console.error('Error generating English translation batch:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkAnswer = async () => {
-    const current = exerciseQueue[currentIndex];
-    if (!current || showResult || !userTranslation.trim()) return;
-
-    const correct = checkGrammarAnswerMatch(userTranslation, current.targetSentence, current.alternativeAnswers);
-    setIsCorrect(correct);
-    setShowResult(true);
-
-    const newStreak = correct ? overallStats.streak + 1 : 0;
-    setRoundStats(prev => ({
-      total: prev.total + 1,
-      correct: prev.correct + (correct ? 1 : 0),
-      streak: newStreak
-    }));
-
-    setOverallStats(prev => ({
-      total: prev.total + 1,
-      correct: prev.correct + (correct ? 1 : 0),
-      streak: newStreak
-    }));
-
-    // Record progress for selected topics
-    const targetIds = selectedTopicIds.length > 0 ? selectedTopicIds : [];
-    try {
-      if (targetIds.length > 0) {
-        for (const tid of targetIds) {
-          await fetch('/english/api/topics/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              topicId: tid,
-              success: correct
-            })
-          });
-        }
-      } else if (current.testedGrammar) {
-        await fetch('/english/api/topics/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topic: current.testedGrammar,
-            success: correct
-          })
-        });
-      }
-      if (typeof onTopicUpdated === 'function') {
-        onTopicUpdated();
-      }
-    } catch (err) {
-      console.error('Error updating translation topic score:', err);
-    }
-
-    if (sessionMode === 'endless' && currentIndex >= exerciseQueue.length - 3 && !prefetchingRef.current) {
-      prefetchingRef.current = true;
-      fetchTranslationBatch().then(extra => {
-        if (extra && extra.length > 0) {
-          setExerciseQueue(prev => [...prev, ...extra]);
-        }
-      }).catch(err => console.warn('Prefetch error:', err)).finally(() => {
-        prefetchingRef.current = false;
-      });
-    }
-  };
-
-  const handleSetTopicScore = async (score) => {
-    const targetIds = selectedTopicIds.length > 0 ? selectedTopicIds : [];
-    if (targetIds.length === 0) return;
-
-    try {
-      for (const id of targetIds) {
-        await fetch(`/english/api/topics/${id}/set-score`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ score })
-        });
-      }
-      setScoreFeedback(score === 100 ? 'Selected topics marked as 100% ✅' : 'Selected topics marked as 0% ⭕');
-      if (typeof onTopicUpdated === 'function') {
-        onTopicUpdated();
-      }
-    } catch (err) {
-      console.error('Error updating score:', err);
-    }
-  };
-
-  const nextExercise = () => {
-    setUserTranslation('');
-    setShowResult(false);
-    setIsCorrect(false);
-
-    if (sessionMode === 'ten' && currentIndex >= 9) {
-      setIsRoundFinished(true);
-      return;
-    }
-
-    if (currentIndex + 1 < exerciseQueue.length) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      startNewBatch();
-    }
-  };
-
-  const current = exerciseQueue[currentIndex];
-  const roundAccuracy = roundStats.total === 0 ? 0 : Math.round((roundStats.correct / roundStats.total) * 100);
-  const currentStep = sessionMode === 'ten' ? Math.min(10, currentIndex + 1) : currentIndex + 1;
-  const progressPercent = sessionMode === 'ten' ? (currentStep / 10) * 100 : 100;
-
-  const filteredTopics = topics.filter(t => {
-    const matchesSearch = !searchQuery || t.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesLevel = filterLevel === 'all' || t.level === filterLevel;
-    return matchesSearch && matchesLevel;
-  });
-
-  return (
-    <div className="space-y-6">
-      {/* Translation Config Header */}
-      <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center">
-              <Globe className="h-8 w-8 mr-3 text-indigo-600" />
-              Full Sentence Translation Mode
-            </h2>
-            <p className="text-gray-600 mt-2 text-sm sm:text-base">
-              Translate whole meaningful sentences composed from your <span className="font-semibold text-indigo-700">mastered vocabulary</span> across chosen grammar topics.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 md:flex md:space-x-4">
-            <div className="bg-indigo-100 rounded-xl p-3 md:p-4 text-center">
-              <p className="text-xs md:text-sm text-indigo-700 font-semibold">Completed</p>
-              <p className="text-xl md:text-2xl font-bold text-indigo-950">{overallStats.total}</p>
-            </div>
-            <div className="bg-green-100 rounded-xl p-3 md:p-4 text-center">
-              <p className="text-xs md:text-sm text-green-700 font-semibold">Correct</p>
-              <p className="text-xl md:text-2xl font-bold text-green-950">{overallStats.correct}</p>
-            </div>
-            <div className="bg-orange-100 rounded-xl p-3 md:p-4 text-center">
-              <p className="text-xs md:text-sm text-orange-700 font-semibold">Streak</p>
-              <p className="text-xl md:text-2xl font-bold text-orange-950">🔥 {overallStats.streak}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Topic Multi-Selection */}
-        <div className="space-y-4 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <label className="block text-sm font-semibold text-gray-700">
-              Grammar Topics for Practice ({selectedTopicIds.length > 0 ? `${selectedTopicIds.length} selected` : 'Random / All'}):
-            </label>
-            <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={selectRandomTopics}
-                className="px-2.5 py-1 text-xs font-semibold bg-indigo-100 text-indigo-800 rounded-lg hover:bg-indigo-200 transition-colors"
-              >
-                🎲 Random 3 Topics
-              </button>
-              {selectedTopicIds.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedTopicIds([])}
-                  className="px-2.5 py-1 text-xs font-semibold bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Clear All
-                </button>
+              {currentExercise.explanation && (
+                <p className="text-xs sm:text-sm text-gray-700 leading-relaxed pt-1">
+                  💡 {currentExercise.explanation}
+                </p>
               )}
-            </div>
-          </div>
-
-          {/* Search and Level Filters for Topics */}
-          <div className="flex flex-wrap gap-2 items-center">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search topics..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-            <div className="flex items-center gap-1 overflow-x-auto">
-              {['all', 'A1', 'A2', 'B1', 'B2'].map(lvl => (
-                <button
-                  key={lvl}
-                  type="button"
-                  onClick={() => setFilterLevel(lvl)}
-                  className={`px-2 py-1 rounded text-xs font-bold transition-all ${
-                    filterLevel === lvl
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {lvl.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-3 bg-gray-50 border-2 border-gray-200 rounded-xl">
-            {filteredTopics.map((topic) => {
-              const isSelected = selectedTopicIds.includes(topic.id);
-              const score = Math.round(topic.score || 0);
-              const isLocked = Boolean(topic.is_locked);
-              return (
-                <button
-                  key={topic.id}
-                  type="button"
-                  onClick={() => toggleTopicSelection(topic.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${
-                    isSelected
-                      ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-400'
-                      : 'bg-white border border-gray-300 text-gray-800 hover:border-indigo-400 hover:bg-indigo-50/50'
-                  }`}
-                >
-                  {isSelected && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
-                  <span className="flex items-center gap-1">
-                    {isLocked ? <span>🔒</span> : null}
-                    <span>{topic.name}</span>
-                    <span className="text-[10px] opacity-75">({topic.level})</span>
-                  </span>
-
-                  {/* Direct Visible Percentage Badge */}
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
-                    isSelected
-                      ? 'bg-indigo-800 text-indigo-100'
-                      : score >= 80 
-                      ? 'bg-green-100 text-green-800' 
-                      : score > 0 
-                      ? 'bg-yellow-100 text-yellow-800' 
-                      : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {score}%
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center justify-between pt-2">
-            <span className="text-sm font-semibold text-gray-700">Session Mode:</span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setSessionMode('ten')}
-                className={`px-3 py-1.5 rounded-xl border-2 font-bold transition-all text-xs flex items-center gap-1.5 ${
-                  sessionMode === 'ten'
-                    ? 'bg-indigo-600 border-indigo-700 text-white shadow-sm'
-                    : 'bg-white border-gray-300 text-gray-700 hover:border-indigo-400'
-                }`}
-              >
-                <Layers className="h-4 w-4" />
-                <span>10 Tasks</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSessionMode('endless')}
-                className={`px-3 py-1.5 rounded-xl border-2 font-bold transition-all text-xs flex items-center gap-1.5 ${
-                  sessionMode === 'endless'
-                    ? 'bg-purple-600 border-purple-700 text-white shadow-md'
-                    : 'bg-white border-gray-300 text-gray-700 hover:border-purple-400'
-                }`}
-              >
-                <InfinityIcon className="h-4 w-4" />
-                <span>Endless</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {(!current || isRoundFinished) && (
-          <button
-            onClick={startNewBatch}
-            disabled={loading}
-            className="w-full px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 font-bold text-lg flex items-center justify-center space-x-3 transition-all shadow-md hover:shadow-lg"
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="h-6 w-6 animate-spin" />
-                <span>Generating 10 sentences with Gemini 3.7 Flash...</span>
-              </>
-            ) : (
-              <>
-                <Globe className="h-6 w-6" />
-                <span>{isRoundFinished ? '🔄 Start New 10-Sentence Round' : '🚀 Start Sentence Translation (Batch of 10)'}</span>
-              </>
-            )}
-          </button>
-        )}
-      </div>
-
-      {/* Round Finished Screen */}
-      {isRoundFinished && (
-        <div className="bg-gradient-to-r from-indigo-100 to-purple-100 border-4 border-indigo-400 rounded-2xl p-6 md:p-10 shadow-2xl text-center space-y-6 animate-fade-in">
-          <div className="inline-flex p-4 bg-indigo-600 text-white rounded-full shadow-lg">
-            <Award className="h-12 w-12" />
-          </div>
-          <div>
-            <h3 className="text-3xl font-black text-gray-900">10-Sentence Translation Round Complete! 🎉</h3>
-            <p className="text-gray-700 mt-2 text-lg">You have translated complete sentences applying your target grammar and vocabulary.</p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-200">
-              <p className="text-xs text-gray-500 font-bold uppercase">Correct</p>
-              <p className="text-2xl font-black text-indigo-600">{roundStats.correct} / 10</p>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-200">
-              <p className="text-xs text-gray-500 font-bold uppercase">Accuracy</p>
-              <p className="text-2xl font-black text-purple-700">{roundAccuracy}%</p>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-indigo-200">
-              <p className="text-xs text-gray-500 font-bold uppercase">Streak</p>
-              <p className="text-2xl font-black text-orange-600">🔥 {overallStats.streak}</p>
-            </div>
-          </div>
-
-          {/* Manual Topic Score Controls on Translation Round Summary */}
-          {selectedTopicIds.length > 0 && (
-            <div className="pt-2 space-y-3">
-              <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Rate selected topics:</p>
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleSetTopicScore(100)}
-                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-                >
-                  <CheckCircle className="h-4 w-4" />
-                  <span>Mark Topics as 100%</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSetTopicScore(0)}
-                  className="px-4 py-2.5 bg-white border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-bold rounded-xl text-sm transition-all shadow-sm flex items-center gap-2"
-                >
-                  <span>⭕ Mark Topics as 0%</span>
-                </button>
-              </div>
-
               {scoreFeedback && (
-                <p className="text-sm font-bold text-indigo-900 bg-white/90 py-1.5 px-4 rounded-lg inline-block border border-indigo-300 shadow-sm animate-fade-in">
-                  {scoreFeedback}
+                <p className="text-xs font-semibold text-purple-700 pt-1">
+                  📈 {scoreFeedback}
                 </p>
               )}
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-2">
-            <button
-              onClick={startNewBatch}
-              disabled={loading}
-              className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2"
-            >
-              <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-              <span>More 10 Sentences</span>
-            </button>
-            <button
-              onClick={() => { selectRandomTopics(); startNewBatch(); }}
-              disabled={loading}
-              className="px-6 py-3.5 bg-white border-2 border-indigo-300 text-indigo-900 font-bold rounded-xl shadow-sm hover:bg-indigo-50 transition-all flex items-center justify-center space-x-2"
-            >
-              <span>🎲 Change Topics & Continue</span>
-            </button>
+          {/* Footer Submit / Next Controls */}
+          <div className="flex justify-end pt-2">
+            {!showResult ? (
+              <button
+                onClick={checkAnswer}
+                disabled={currentExercise.type === 'multiple-choice' ? !selectedOption : !userAnswer.trim()}
+                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md transition-all active:scale-95 text-sm"
+              >
+                Check Answer
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 text-sm flex items-center gap-2"
+              >
+                <span>{sessionMode === 'ten' && currentIndex >= 9 ? 'Finish Round 🏆' : 'Next Question'}</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
-      )}
+      ) : null}
+    </div>
+  );
+}
 
-      {/* Active Translation Exercise Card */}
-      {current && !isRoundFinished && (
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 md:border-4 border-indigo-300 rounded-2xl p-5 md:p-8 shadow-2xl space-y-5">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm font-bold text-indigo-950">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 bg-indigo-600 text-white rounded-lg text-xs">
-                  {sessionMode === 'ten' ? `Sentence ${currentStep} of 10` : `Sentence #${currentStep}`}
-                </span>
-                {sessionMode === 'endless' && (
-                  <span className="text-xs text-purple-700 font-semibold flex items-center gap-1">
-                    <InfinityIcon className="h-3.5 w-3.5" /> Endless Mode
-                  </span>
-                )}
-              </div>
-              <span className="text-xs font-semibold text-indigo-700">
-                Round: {roundStats.correct} correct
-              </span>
-            </div>
+// ----------------------------------------------------
+// 2. SENTENCE TRANSLATION (RUSSIAN -> ENGLISH)
+// ----------------------------------------------------
+function SentenceTranslationExerciseSection({ topics, onTopicUpdated }) {
+  const [loading, setLoading] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState('all');
+  const [exercises, setExercises] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [userTranslation, setUserTranslation] = useState('');
+  const [showResult, setShowResult] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [showHint, setShowHint] = useState(false);
 
-            {sessionMode === 'ten' && (
-              <div className="w-full bg-indigo-200 rounded-full h-2 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-indigo-600 to-purple-500 transition-all duration-500 rounded-full"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            )}
-          </div>
+  const fetchTranslations = async () => {
+    setLoading(true);
+    setShowResult(false);
+    setUserTranslation('');
+    setShowHint(false);
+    setCurrentIndex(0);
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1 bg-indigo-200 text-indigo-950 rounded-full text-xs font-bold flex items-center gap-1">
-              <Globe className="h-3 w-3" /> English Translation
-            </span>
-            {current.testedGrammar && (
-              <span className="px-3 py-1 bg-purple-200 text-purple-950 rounded-full text-xs font-bold">
-                📝 {current.testedGrammar}
-              </span>
-            )}
-            {current.sourceLabel && (
-              <span className="px-3 py-1 bg-green-100 border border-green-300 text-green-900 rounded-full text-xs font-bold">
-                📚 {current.sourceLabel}
-              </span>
-            )}
-            {Array.isArray(current.usedVocabulary) && current.usedVocabulary.length > 0 && (
-              <span className="px-3 py-1 bg-amber-100 border border-amber-300 text-amber-900 rounded-full text-xs font-bold">
-                🎯 Words: {current.usedVocabulary.join(', ')}
-              </span>
-            )}
-          </div>
+    try {
+      const res = await fetch('/english/api/exercises/generate-translation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topicId: selectedTopic !== 'all' ? selectedTopic : undefined
+        })
+      });
+      const data = await res.json();
+      setExercises(data.exercises || []);
+    } catch (err) {
+      console.error('Error generating translations:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-          <div className="bg-white rounded-xl p-5 md:p-6 border-2 border-indigo-200 shadow-sm">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Translate to English:</p>
-            <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-snug">
+  useEffect(() => {
+    fetchTranslations();
+  }, [selectedTopic]);
+
+  const current = exercises[currentIndex] || null;
+
+  const handleCheck = () => {
+    if (!current || showResult || !userTranslation.trim()) return;
+
+    const match = checkGrammarAnswerMatch(
+      userTranslation,
+      current.targetSentence,
+      current.alternativeTranslations || []
+    );
+
+    setIsCorrect(match);
+    setShowResult(true);
+
+    if (match) soundEngine.playCorrect();
+    else soundEngine.playWrong();
+  };
+
+  const handleNext = () => {
+    if (currentIndex + 1 < exercises.length) {
+      setCurrentIndex((prev) => prev + 1);
+      setUserTranslation('');
+      setShowResult(false);
+      setShowHint(false);
+    } else {
+      fetchTranslations();
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 space-y-6 border border-gray-100 animate-fadeIn">
+      <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+        <div>
+          <h3 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+            <Globe className="h-6 w-6 text-indigo-600" />
+            <span>Sentence Translation</span>
+          </h3>
+          <p className="text-xs text-gray-500">Translate authentic sentences from Russian into English.</p>
+        </div>
+
+        <select
+          value={selectedTopic}
+          onChange={(e) => setSelectedTopic(e.target.value)}
+          className="px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-800"
+        >
+          <option value="all">🎯 All Topics</option>
+          {topics.map((t) => (
+            <option key={t.id} value={t.id}>{t.level}: {t.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="py-16 text-center space-y-3">
+          <RefreshCw className="h-8 w-8 text-indigo-600 animate-spin mx-auto" />
+          <p className="text-sm font-medium text-gray-500">Preparing translation sentences...</p>
+        </div>
+      ) : current ? (
+        <div className="space-y-6">
+          <div className="p-6 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 space-y-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Translate to English:</span>
+            <p className="text-lg sm:text-xl font-bold text-gray-900 leading-snug">
               {current.sourceSentence}
             </p>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <textarea
-              rows={2}
+              rows="3"
               value={userTranslation}
               onChange={(e) => setUserTranslation(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  showResult ? nextExercise() : checkAnswer();
-                }
-              }}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), !showResult ? handleCheck() : handleNext())}
+              placeholder="Type your translation in English..."
               disabled={showResult}
-              placeholder="Type your complete English translation..."
-              className={`w-full px-4 py-3 sm:px-5 sm:py-4 rounded-xl border-2 sm:border-3 text-lg font-medium resize-none ${
-                showResult
-                  ? isCorrect
-                    ? 'bg-green-100 border-green-600 text-green-950'
-                    : 'bg-red-100 border-red-600 text-red-950'
-                  : 'border-indigo-400 focus:border-indigo-600 focus:outline-none bg-white'
-              }`}
+              className="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-indigo-600 focus:outline-none text-base font-semibold"
             />
+            {current.hint && (
+              <button
+                type="button"
+                onClick={() => setShowHint(!showHint)}
+                className="text-xs font-semibold text-indigo-600 hover:underline flex items-center gap-1"
+              >
+                <HelpCircle className="h-3.5 w-3.5" />
+                <span>{showHint ? `Подсказка: ${current.hint}` : 'Показать грамматическую подсказку'}</span>
+              </button>
+            )}
           </div>
 
-          {!showResult ? (
-            <button
-              onClick={checkAnswer}
-              disabled={!userTranslation.trim()}
-              className="w-full px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-xl transition-all shadow-md hover:shadow-lg"
-            >
-              ✓ Check Translation
-            </button>
-          ) : (
-            <div className="space-y-4 animate-fade-in">
-              <div className={`p-5 rounded-xl border-2 sm:border-3 space-y-3 ${
-                isCorrect
-                  ? 'bg-green-100 border-green-500 text-green-950'
-                  : 'bg-orange-100 border-orange-500 text-orange-900'
-              }`}>
-                <div className="flex items-center space-x-3">
-                  {isCorrect ? (
-                    <>
-                      <CheckCircle className="h-8 w-8 text-green-600 flex-shrink-0" />
-                      <div>
-                        <p className="text-xl sm:text-2xl font-bold">Great job! Translation is correct 🎉</p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-8 w-8 text-orange-600 flex-shrink-0" />
-                      <div>
-                        <p className="text-xl sm:text-2xl font-bold">Not quite accurate</p>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div className="bg-white/80 p-4 rounded-xl space-y-2 border border-indigo-200/80 text-gray-900">
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase">Target Translation:</p>
-                    <p className="text-lg font-extrabold text-indigo-950">{current.targetSentence}</p>
-                  </div>
-
-                  {Array.isArray(current.alternativeAnswers) && current.alternativeAnswers.length > 0 && (
-                    <div>
-                      <p className="text-xs font-bold text-gray-500 uppercase">Also acceptable:</p>
-                      <p className="text-sm font-semibold text-gray-800">{current.alternativeAnswers.join(' / ')}</p>
-                    </div>
-                  )}
-
-                  {current.explanation && (
-                    <div className="pt-2 border-t border-gray-200">
-                      <p className="text-xs font-bold text-gray-500 uppercase">Grammar & Syntax Breakdown:</p>
-                      <p className="text-sm font-medium text-gray-800 leading-relaxed mt-0.5">{current.explanation}</p>
-                    </div>
-                  )}
-                </div>
+          {showResult && (
+            <div className={`p-4 rounded-xl border space-y-2 animate-fadeIn ${
+              isCorrect ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300'
+            }`}>
+              <div className="flex items-center justify-between">
+                <span className={`font-bold text-sm ${isCorrect ? 'text-emerald-800' : 'text-rose-800'}`}>
+                  {isCorrect ? '✅ Верно! Отличный перевод' : '❌ Эталонный вариант перевода:'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => speakEnglish(current.targetSentence)}
+                  className="p-1 rounded bg-white text-gray-700 hover:text-indigo-600 shadow-sm"
+                  title="Озвучить на английском"
+                >
+                  <Volume2 className="h-4 w-4" />
+                </button>
               </div>
-
-              <button
-                onClick={nextExercise}
-                className="w-full px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-bold text-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center space-x-2"
-              >
-                <RefreshCw className="h-5 w-5" />
-                <span>{sessionMode === 'ten' && currentIndex >= 9 ? '🏆 Finish Round (10/10)' : 'Next Sentence →'}</span>
-              </button>
+              <p className="text-base font-bold text-gray-900">{current.targetSentence}</p>
+              {current.explanation && (
+                <p className="text-xs text-gray-600 pt-1">💡 {current.explanation}</p>
+              )}
             </div>
           )}
+
+          <div className="flex justify-end">
+            {!showResult ? (
+              <button
+                onClick={handleCheck}
+                disabled={!userTranslation.trim()}
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl shadow-md text-sm"
+              >
+                Check Translation
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg text-sm flex items-center gap-2"
+              >
+                <span>Next Sentence</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// 3. WORD TILES (CONSTRUCTOR DE FRASES)
+// ----------------------------------------------------
+function WordTilesSection() {
+  const [items, setItems] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedTiles, setSelectedTiles] = useState([]);
+  const [availableTiles, setAvailableTiles] = useState([]);
+  const [showHint, setShowHint] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchItems = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/english/api/exercises/word-tiles');
+      if (res.ok) {
+        const data = await res.json();
+        const list = data.items || [];
+        setItems(list);
+        if (list.length > 0) loadQuestion(list[0]);
+      }
+    } catch (err) {
+      console.error('Error fetching word tiles:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadQuestion = (item) => {
+    const shuffled = [...item.tiles].map((tText, idx) => ({ id: `${idx}_${tText}`, text: tText })).sort(() => 0.5 - Math.random());
+    setAvailableTiles(shuffled);
+    setSelectedTiles([]);
+    setShowHint(false);
+    setIsSubmitted(false);
+    setIsCorrect(false);
+  };
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const currentItem = items[currentIndex];
+
+  const handleTileClick = (tile) => {
+    if (isSubmitted) return;
+    soundEngine.playTileClick();
+    setAvailableTiles(prev => prev.filter(t => t.id !== tile.id));
+    setSelectedTiles(prev => [...prev, tile]);
+  };
+
+  const handleRemoveTile = (tile) => {
+    if (isSubmitted) return;
+    soundEngine.playTileClick();
+    setSelectedTiles(prev => prev.filter(t => t.id !== tile.id));
+    setAvailableTiles(prev => [...prev, tile]);
+  };
+
+  const handleVerify = async () => {
+    if (isSubmitted || selectedTiles.length === 0 || !currentItem) return;
+    const userSentence = selectedTiles.map(t => t.text).join(' ');
+
+    try {
+      const res = await fetch('/english/api/exercises/word-tiles/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId: currentItem.id, userSentence })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setIsSubmitted(true);
+        setIsCorrect(data.isCorrect);
+        if (data.isCorrect) soundEngine.playCorrect();
+        else soundEngine.playWrong();
+      }
+    } catch (err) {
+      console.error('Error verifying word tiles:', err);
+    }
+  };
+
+  const handleNext = () => {
+    const nextIdx = (currentIndex + 1) % items.length;
+    setCurrentIndex(nextIdx);
+    loadQuestion(items[nextIdx]);
+  };
+
+  if (loading || !currentItem) {
+    return <div className="p-8 text-center text-gray-500">Загрузка конструктора предложений...</div>;
+  }
+
+  return (
+    <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-gray-100 space-y-6 animate-fadeIn">
+      <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+        <div>
+          <span className="text-xs font-bold bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full">
+            {currentItem.level}
+          </span>
+          <h3 className="text-xl font-extrabold text-gray-900 mt-1 flex items-center gap-2">
+            <span>🧩 Word Tiles (Конструктор фраз)</span>
+          </h3>
+          <p className="text-xs text-gray-500">Соберите предложение на английском из перемешанных карточек-слов.</p>
+        </div>
+        <span className="text-sm font-bold text-purple-600">{currentIndex + 1} / {items.length}</span>
+      </div>
+
+      <div className="p-6 rounded-2xl bg-purple-50 border border-purple-200 space-y-1">
+        <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Переведите на английский:</span>
+        <p className="text-lg font-bold text-gray-900 leading-snug">{currentItem.prompt}</p>
+      </div>
+
+      {/* Selected Workspace */}
+      <div className="min-h-[100px] p-4 rounded-2xl border-2 border-dashed border-purple-300 bg-gray-50 flex flex-wrap items-center gap-2">
+        {selectedTiles.length === 0 ? (
+          <span className="text-sm text-gray-400 font-medium">Нажимайте на слова внизу, чтобы составить фразу...</span>
+        ) : (
+          selectedTiles.map((tile) => (
+            <button
+              key={tile.id}
+              onClick={() => handleRemoveTile(tile)}
+              disabled={isSubmitted}
+              className="px-3.5 py-2 rounded-xl bg-purple-600 text-white font-bold text-sm shadow-md hover:bg-purple-700 active:scale-95 transition-all"
+            >
+              {tile.text}
+            </button>
+          ))
+        )}
+      </div>
+
+      {/* Available Tiles */}
+      <div className="flex flex-wrap gap-2 pt-2">
+        {availableTiles.map((tile) => (
+          <button
+            key={tile.id}
+            onClick={() => handleTileClick(tile)}
+            disabled={isSubmitted}
+            className="px-3.5 py-2 rounded-xl bg-white border-2 border-gray-200 hover:border-purple-400 text-gray-800 font-semibold text-sm shadow-sm active:scale-95 transition-all"
+          >
+            {tile.text}
+          </button>
+        ))}
+      </div>
+
+      {isSubmitted && (
+        <div className={`p-4 rounded-xl border space-y-2 animate-fadeIn ${
+          isCorrect ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className={`font-bold text-sm ${isCorrect ? 'text-emerald-800' : 'text-rose-800'}`}>
+              {isCorrect ? '✅ Отлично! Предложение собрано верно' : '❌ Правильный вариант:'}
+            </span>
+            <button
+              type="button"
+              onClick={() => speakEnglish(currentItem.correctSentence)}
+              className="p-1 rounded bg-white text-gray-700 hover:text-purple-600 shadow-sm"
+              title="Озвучить"
+            >
+              <Volume2 className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="text-base font-bold text-gray-900">{currentItem.correctSentence}</p>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between pt-2">
+        {currentItem.hint ? (
+          <button
+            type="button"
+            onClick={() => setShowHint(!showHint)}
+            className="text-xs font-semibold text-purple-600 hover:underline"
+          >
+            {showHint ? `💡 ${currentItem.hint}` : 'Показать подсказку'}
+          </button>
+        ) : <div />}
+
+        {!isSubmitted ? (
+          <button
+            onClick={handleVerify}
+            disabled={selectedTiles.length === 0}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white font-bold rounded-xl shadow-md text-sm"
+          >
+            Проверить сборку
+          </button>
+        ) : (
+          <button
+            onClick={handleNext}
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl shadow-lg text-sm flex items-center gap-2"
+          >
+            <span>Следующая фраза</span>
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// 4. SPEED MATCH BLITZ
+// ----------------------------------------------------
+function SpeedMatchSection() {
+  const [pairs, setPairs] = useState([]);
+  const [enCards, setEnCards] = useState([]);
+  const [ruCards, setRuCards] = useState([]);
+  const [selectedEn, setSelectedEn] = useState(null);
+  const [selectedRu, setSelectedRu] = useState(null);
+  const [matchedIds, setMatchedIds] = useState(new Set());
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [combo, setCombo] = useState(1);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [score, setScore] = useState(0);
+
+  const startRound = async () => {
+    try {
+      const res = await fetch('/english/api/exercises/speed-match');
+      if (res.ok) {
+        const data = await res.json();
+        const rawPairs = data.pairs || [];
+        setPairs(rawPairs);
+
+        const enList = rawPairs.map((p, i) => ({ id: i, text: p.left })).sort(() => 0.5 - Math.random());
+        const ruList = rawPairs.map((p, i) => ({ id: i, text: p.right })).sort(() => 0.5 - Math.random());
+
+        setEnCards(enList);
+        setRuCards(ruList);
+        setMatchedIds(new Set());
+        setSelectedEn(null);
+        setSelectedRu(null);
+        setTimeLeft(30);
+        setCombo(1);
+        setScore(0);
+        setIsPlaying(true);
+        setIsGameOver(false);
+      }
+    } catch (err) {
+      console.error('Error starting speed match:', err);
+    }
+  };
+
+  useEffect(() => {
+    let timer;
+    if (isPlaying && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft(tVal => {
+          if (tVal <= 1) {
+            setIsPlaying(false);
+            setIsGameOver(true);
+            soundEngine.playWrong();
+            return 0;
+          }
+          return tVal - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isPlaying, timeLeft]);
+
+  const handleCardClick = (type, card) => {
+    if (!isPlaying || matchedIds.has(card.id)) return;
+    soundEngine.playTileClick();
+
+    if (type === 'en') {
+      if (selectedRu) {
+        if (selectedRu.id === card.id) {
+          soundEngine.playCombo(combo);
+          const nextMatched = new Set(matchedIds);
+          nextMatched.add(card.id);
+          setMatchedIds(nextMatched);
+          setScore(s => s + (10 * combo));
+          setCombo(c => c + 1);
+          setSelectedEn(null);
+          setSelectedRu(null);
+
+          if (nextMatched.size === pairs.length) {
+            setIsPlaying(false);
+            setIsGameOver(true);
+            soundEngine.playVictory();
+          }
+        } else {
+          soundEngine.playWrong();
+          setCombo(1);
+          setSelectedEn(null);
+          setSelectedRu(null);
+        }
+      } else {
+        setSelectedEn(card);
+      }
+    } else {
+      if (selectedEn) {
+        if (selectedEn.id === card.id) {
+          soundEngine.playCombo(combo);
+          const nextMatched = new Set(matchedIds);
+          nextMatched.add(card.id);
+          setMatchedIds(nextMatched);
+          setScore(s => s + (10 * combo));
+          setCombo(c => c + 1);
+          setSelectedEn(null);
+          setSelectedRu(null);
+
+          if (nextMatched.size === pairs.length) {
+            setIsPlaying(false);
+            setIsGameOver(true);
+            soundEngine.playVictory();
+          }
+        } else {
+          soundEngine.playWrong();
+          setCombo(1);
+          setSelectedEn(null);
+          setSelectedRu(null);
+        }
+      } else {
+        setSelectedRu(card);
+      }
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-gray-100 animate-fadeIn">
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+        <div>
+          <h3 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+            <Zap className="w-6 h-6 text-amber-500" />
+            Speed Match Blitz
+          </h3>
+          <p className="text-xs text-gray-500">Сопоставляйте пары слов до истечения 30 секунд.</p>
+        </div>
+
+        {isPlaying && (
+          <div className="flex items-center space-x-4">
+            <div className="px-3 py-1 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-extrabold text-sm rounded-full shadow animate-pulse">
+              Combo x{combo} 🔥
+            </div>
+            <div className="flex items-center space-x-1.5 font-mono text-lg font-bold text-purple-600">
+              <Clock className="w-5 h-5" />
+              <span>{timeLeft}s</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {!isPlaying && !isGameOver && (
+        <div className="text-center py-12 space-y-4">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center mx-auto text-4xl shadow-xl">
+            ⚡
+          </div>
+          <h4 className="text-2xl font-extrabold text-gray-900">Готовы к спринту на скорость?</h4>
+          <p className="text-sm text-gray-600 max-w-md mx-auto">
+            У вас есть 30 секунд, чтобы найти все 6 пар. Держите комбо для максимального счета!
+          </p>
+          <button
+            onClick={startRound}
+            className="px-8 py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-extrabold text-base rounded-2xl shadow-xl transition-transform active:scale-95"
+          >
+            Начать раунд 🚀
+          </button>
+        </div>
+      )}
+
+      {isPlaying && (
+        <div className="grid grid-cols-2 gap-4 sm:gap-6 my-6">
+          <div className="space-y-3">
+            <div className="text-xs font-bold uppercase tracking-wider text-purple-600 text-center">🇬🇧 English</div>
+            {enCards.map((card) => {
+              const isMatched = matchedIds.has(card.id);
+              const isSelected = selectedEn?.id === card.id;
+              if (isMatched) return <div key={card.id} className="h-14 opacity-0 pointer-events-none" />;
+
+              return (
+                <button
+                  key={card.id}
+                  onClick={() => handleCardClick('en', card)}
+                  className={`w-full h-14 px-4 rounded-2xl font-bold text-sm sm:text-base border-2 shadow-sm transition-all flex items-center justify-center text-center ${
+                    isSelected ? 'bg-purple-600 text-white border-purple-600 scale-105' : 'bg-white border-gray-200 text-gray-800 hover:border-purple-400'
+                  }`}
+                >
+                  {card.text}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="space-y-3">
+            <div className="text-xs font-bold uppercase tracking-wider text-indigo-600 text-center">🇷🇺 Русский</div>
+            {ruCards.map((card) => {
+              const isMatched = matchedIds.has(card.id);
+              const isSelected = selectedRu?.id === card.id;
+              if (isMatched) return <div key={card.id} className="h-14 opacity-0 pointer-events-none" />;
+
+              return (
+                <button
+                  key={card.id}
+                  onClick={() => handleCardClick('ru', card)}
+                  className={`w-full h-14 px-4 rounded-2xl font-bold text-sm sm:text-base border-2 shadow-sm transition-all flex items-center justify-center text-center ${
+                    isSelected ? 'bg-indigo-600 text-white border-indigo-600 scale-105' : 'bg-white border-gray-200 text-gray-800 hover:border-indigo-400'
+                  }`}
+                >
+                  {card.text}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {isGameOver && (
+        <div className="text-center py-8 space-y-4 animate-fadeIn">
+          <h4 className="text-2xl font-black text-gray-900">Раунд завершен!</h4>
+          <p className="text-lg font-bold text-purple-600">Набрано очков: {score}</p>
+          <button
+            onClick={startRound}
+            className="px-6 py-3 bg-purple-600 text-white font-bold rounded-xl shadow-md"
+          >
+            Сыграть еще раз 🔄
+          </button>
         </div>
       )}
     </div>
@@ -1190,10 +1017,281 @@ function SentenceTranslationExerciseSection({ topics, onTopicUpdated }) {
 }
 
 // ----------------------------------------------------
-// 3. MAIN EXERCISES CONTAINER COMPONENT (ENGLISH)
-// Order of tabs: 1. Grammar Tests, 2. Sentence Translation
+// 5. ERROR DETECTIVE (GRAMMAR ERROR CORRECTION)
 // ----------------------------------------------------
-function Exercises() {
+function ErrorDetectiveSection() {
+  const [items, setItems] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedFix, setSelectedFix] = useState(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [ruleExplanation, setRuleExplanation] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const fetchItems = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/english/api/exercises/error-detective');
+      if (res.ok) {
+        const data = await res.json();
+        setItems(data.items || []);
+      }
+    } catch (err) {
+      console.error('Error fetching error detective:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const currentItem = items[currentIndex];
+
+  const handleSelectOption = async (option) => {
+    if (isSubmitted || !currentItem) return;
+    setSelectedFix(option);
+    soundEngine.playTileClick();
+
+    try {
+      const res = await fetch('/english/api/exercises/error-detective/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId: currentItem.id, chosenOption: option })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setIsSubmitted(true);
+        setRuleExplanation(data.ruleExplanation);
+        if (data.isCorrect) soundEngine.playCorrect();
+        else soundEngine.playWrong();
+      }
+    } catch (err) {
+      console.error('Error verifying error detective:', err);
+    }
+  };
+
+  const handleNext = () => {
+    const nextIdx = (currentIndex + 1) % items.length;
+    setCurrentIndex(nextIdx);
+    setSelectedFix(null);
+    setIsSubmitted(false);
+    setRuleExplanation('');
+  };
+
+  if (loading || !currentItem) {
+    return <div className="p-8 text-center text-gray-500">Загрузка детектора ошибок...</div>;
+  }
+
+  return (
+    <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-gray-100 space-y-6 animate-fadeIn">
+      <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+        <div>
+          <span className="text-xs font-bold bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full">
+            {currentItem.level}
+          </span>
+          <h3 className="text-xl font-extrabold text-gray-900 mt-1">
+            🔍 Детектив грамматических ошибок
+          </h3>
+          <p className="text-xs text-gray-500">Найдите и выберите правильное исправление ошибки в предложении.</p>
+        </div>
+        <span className="text-sm font-bold text-purple-600">{currentIndex + 1} / {items.length}</span>
+      </div>
+
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200">
+        <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Предложение с ошибкой:</span>
+        <p className="text-lg font-semibold text-gray-900 leading-relaxed mt-1">
+          {currentItem.sentence}
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+          Какой вариант исправления правильный?
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {currentItem.options.map((opt, idx) => {
+            let btnStyle = 'bg-white border-gray-200 hover:border-purple-400 text-gray-800';
+            if (isSubmitted) {
+              if (opt === currentItem.correctWord) {
+                btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold';
+              } else if (opt === selectedFix) {
+                btnStyle = 'bg-rose-50 border-rose-500 text-rose-900';
+              } else {
+                btnStyle = 'opacity-40 border-gray-200';
+              }
+            }
+
+            return (
+              <button
+                key={idx}
+                onClick={() => handleSelectOption(opt)}
+                disabled={isSubmitted}
+                className={`p-4 text-left rounded-xl border-2 font-semibold text-sm transition-all shadow-sm ${btnStyle}`}
+              >
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {isSubmitted && (
+        <div className="p-5 rounded-2xl bg-purple-50 border border-purple-200 space-y-1 animate-fadeIn">
+          <div className="font-bold text-sm text-purple-900 flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-purple-600" />
+            Объяснение правила:
+          </div>
+          <p className="text-sm text-gray-700 leading-relaxed">{ruleExplanation}</p>
+        </div>
+      )}
+
+      {isSubmitted && (
+        <div className="flex justify-end pt-2">
+          <button
+            onClick={handleNext}
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl shadow-lg text-sm flex items-center gap-2"
+          >
+            <span>Следующее задание</span>
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// 6. VERB DRILLS (IRREGULAR & TENSES TRAINER)
+// ----------------------------------------------------
+function VerbConjugationDrills() {
+  const [drillType, setDrillType] = useState('past_simple');
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [answer, setAnswer] = useState('');
+  const [showResult, setShowResult] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [stats, setStats] = useState({ correct: 0, completed: 0 });
+
+  const loadQuestion = () => {
+    setCurrentQuestion(createVerbDrillQuestion(drillType));
+    setAnswer('');
+    setShowResult(false);
+    setIsCorrect(false);
+  };
+
+  useEffect(() => {
+    loadQuestion();
+  }, [drillType]);
+
+  const handleCheck = () => {
+    if (!currentQuestion || showResult || !answer.trim()) return;
+    const correct = isVerbDrillAnswerCorrect(answer, currentQuestion.correctAnswer);
+    setIsCorrect(correct);
+    setShowResult(true);
+    setStats(prev => ({
+      correct: prev.correct + (correct ? 1 : 0),
+      completed: prev.completed + 1
+    }));
+
+    if (correct) soundEngine.playCorrect();
+    else soundEngine.playWrong();
+  };
+
+  return (
+    <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-gray-100 space-y-6 animate-fadeIn">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-4">
+        <div>
+          <h3 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+            <Target className="w-6 h-6 text-purple-600" />
+            <span>Тренажер глагольных форм и времен</span>
+          </h3>
+          <p className="text-xs text-gray-500">Отработка 2-й и 3-й форм неправильных глаголов, окончаний -s и -ing.</p>
+        </div>
+
+        <select
+          value={drillType}
+          onChange={(e) => setDrillType(e.target.value)}
+          className="px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-800"
+        >
+          {Object.entries(DRILL_TYPES).map(([id, info]) => (
+            <option key={id} value={id}>{info.title}</option>
+          ))}
+        </select>
+      </div>
+
+      {currentQuestion && (
+        <div className="space-y-6">
+          <div className="p-6 rounded-2xl bg-purple-50 border border-purple-200 space-y-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Вопрос:</span>
+            <p className="text-lg sm:text-xl font-bold text-gray-900">{currentQuestion.prompt}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {currentQuestion.options.map((opt, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  if (!showResult) {
+                    setAnswer(opt);
+                    const correct = isVerbDrillAnswerCorrect(opt, currentQuestion.correctAnswer);
+                    setIsCorrect(correct);
+                    setShowResult(true);
+                    setStats(prev => ({ correct: prev.correct + (correct ? 1 : 0), completed: prev.completed + 1 }));
+                    if (correct) soundEngine.playCorrect();
+                    else soundEngine.playWrong();
+                  }
+                }}
+                disabled={showResult}
+                className={`p-4 rounded-xl border-2 font-bold text-base transition-all ${
+                  showResult
+                    ? isVerbDrillAnswerCorrect(opt, currentQuestion.correctAnswer)
+                      ? 'bg-emerald-50 border-emerald-500 text-emerald-900'
+                      : opt === answer
+                      ? 'bg-rose-50 border-rose-500 text-rose-900'
+                      : 'opacity-40 border-gray-200'
+                    : 'bg-white border-gray-200 hover:border-purple-400 text-gray-800'
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+
+          {showResult && (
+            <div className={`p-4 rounded-xl border space-y-1 animate-fadeIn ${
+              isCorrect ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300'
+            }`}>
+              <p className="font-bold text-sm text-gray-900">
+                {isCorrect ? '✅ Правильно!' : `❌ Правильный ответ: ${currentQuestion.correctAnswer}`}
+              </p>
+              <p className="text-xs text-gray-600">{currentQuestion.explanation}</p>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs font-bold text-gray-400">
+              Счет: {stats.correct} / {stats.completed}
+            </span>
+
+            <button
+              onClick={loadQuestion}
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-md text-sm flex items-center gap-2"
+            >
+              <span>Следующий глагол</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// MAIN EXERCISES CONTAINER COMPONENT (ALL 6 MODES)
+// ----------------------------------------------------
+export default function Exercises() {
   const [activeTab, setActiveTab] = useState('grammar');
   const [topics, setTopics] = useState([]);
   const [maxLevel, setMaxLevel] = useState('B2');
@@ -1215,30 +1313,66 @@ function Exercises() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Mode Selector Tabs in requested order: 1. Grammar Tests, 2. Sentence Translation */}
-      <div className="bg-white p-2 rounded-2xl shadow-md flex flex-wrap sm:flex-nowrap gap-2 border-2 border-gray-100">
+      {/* 6 Full Gamified Mode Selector Tabs */}
+      <div className="bg-white p-2 rounded-2xl shadow-md grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 border-2 border-gray-100 text-xs sm:text-sm">
         <button
           onClick={() => setActiveTab('grammar')}
-          className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all ${
-            activeTab === 'grammar'
-              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
-              : 'text-gray-600 hover:bg-gray-100'
+          className={`py-2.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all ${
+            activeTab === 'grammar' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
-          <Brain className="h-5 w-5" />
-          <span>🧠 Grammar Tests</span>
+          <Brain className="h-4 w-4" />
+          <span>Грамматика</span>
         </button>
 
         <button
           onClick={() => setActiveTab('translation')}
-          className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all ${
-            activeTab === 'translation'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
-              : 'text-gray-600 hover:bg-gray-100'
+          className={`py-2.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all ${
+            activeTab === 'translation' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
           }`}
         >
-          <Globe className="h-5 w-5" />
-          <span>🌐 Sentence Translation</span>
+          <Globe className="h-4 w-4" />
+          <span>Перевод</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('word-tiles')}
+          className={`py-2.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all ${
+            activeTab === 'word-tiles' ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Layers className="h-4 w-4" />
+          <span>Конструктор</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('speed-match')}
+          className={`py-2.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all ${
+            activeTab === 'speed-match' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Zap className="h-4 w-4" />
+          <span>Спринт</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('detective')}
+          className={`py-2.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all ${
+            activeTab === 'detective' ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Search className="h-4 w-4" />
+          <span>Детектив</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('verbs')}
+          className={`py-2.5 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all ${
+            activeTab === 'verbs' ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Target className="h-4 w-4" />
+          <span>Глаголы</span>
         </button>
       </div>
 
@@ -1249,8 +1383,22 @@ function Exercises() {
       {activeTab === 'translation' && (
         <SentenceTranslationExerciseSection topics={topics} onTopicUpdated={loadTopics} />
       )}
+
+      {activeTab === 'word-tiles' && (
+        <WordTilesSection />
+      )}
+
+      {activeTab === 'speed-match' && (
+        <SpeedMatchSection />
+      )}
+
+      {activeTab === 'detective' && (
+        <ErrorDetectiveSection />
+      )}
+
+      {activeTab === 'verbs' && (
+        <VerbConjugationDrills />
+      )}
     </div>
   );
 }
-
-export default Exercises;

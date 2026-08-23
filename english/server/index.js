@@ -2,6 +2,7 @@ import { getExamsStatus, generateExamQuestions, submitExamResult, ensureCurricul
 import { getGrammarTheoryGuide } from './grammarTheoryData.js';
 import { getFrequencyCatalogs, generateDecksForProfile } from './frequencyData.js';
 import { generateEnglishExercise } from './grammarExerciseEngine.js';
+import { getWordTilesBatch, verifyWordTiles, getSpeedMatchItems, getErrorDetectiveBatch, verifyErrorDetective } from './gameExercises.js';
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -1953,6 +1954,72 @@ Respond ONLY with valid JSON matching this exact schema:
   } catch (error) {
     console.error('Error in /api/exercises/generate-translation:', error);
     return res.status(500).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// 🎮 GAME & TACTILE EXERCISES API
+// ==========================================
+
+// 1. Word Tiles (Sentence Constructor)
+app.get('/api/exercises/word-tiles', (req, res) => {
+  try {
+    const level = req.query.level || null;
+    const items = getWordTilesBatch(level);
+    res.json({ items });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/exercises/word-tiles/verify', (req, res) => {
+  try {
+    const { itemId, userSentence } = req.body || {};
+    const result = verifyWordTiles(itemId, userSentence);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. Speed Match (Rapid Translation Pairs)
+app.get('/api/exercises/speed-match', (req, res) => {
+  try {
+    const count = Number(req.query.count) || 6;
+    const pairs = getSpeedMatchItems(count);
+    res.json({ pairs });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/exercises/speed-match/finish', (req, res) => {
+  try {
+    const { score, timeSeconds, pairsMatched } = req.body || {};
+    res.json({ success: true, score, timeSeconds, pairsMatched });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Error Detective (Grammar Error Correction)
+app.get('/api/exercises/error-detective', (req, res) => {
+  try {
+    const level = req.query.level || null;
+    const items = getErrorDetectiveBatch(level);
+    res.json({ items });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/exercises/error-detective/verify', (req, res) => {
+  try {
+    const { itemId, chosenOption } = req.body || {};
+    const result = verifyErrorDetective(itemId, chosenOption);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

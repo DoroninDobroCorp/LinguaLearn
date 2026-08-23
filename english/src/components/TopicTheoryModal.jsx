@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, BookOpen, Bot, Sparkles, Send, Volume2, CheckCircle2, 
   AlertTriangle, Lightbulb, ChevronRight, Loader2, ArrowRight,
-  RotateCcw, Copy, Check
+  RotateCcw, Copy, Check, Target, Zap
 } from 'lucide-react';
 
 import { useTheme } from '../contexts/ThemeContext';
+import { speakEnglish, soundEngine } from '../utils/soundEffects';
 
 // Simple markdown formatter helper for AI chat messages
 function FormattedMessage({ content }) {
@@ -66,6 +67,37 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
   const [inputText, setInputText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const chatBottomRef = useRef(null);
+
+  // Practice & Quiz State
+  const [practiceExercise, setPracticeExercise] = useState(null);
+  const [loadingPractice, setLoadingPractice] = useState(false);
+  const [selectedPracticeOption, setSelectedPracticeOption] = useState('');
+  const [practiceAnswer, setPracticeAnswer] = useState('');
+  const [showPracticeResult, setShowPracticeResult] = useState(false);
+  const [isPracticeCorrect, setIsPracticeCorrect] = useState(false);
+
+  const fetchPracticeExercise = async () => {
+    setLoadingPractice(true);
+    setShowPracticeResult(false);
+    setSelectedPracticeOption('');
+    setPracticeAnswer('');
+    try {
+      const res = await fetch('/english/api/exercises/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topicId })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const ex = (data.exercises && data.exercises[0]) || data.exercise;
+        setPracticeExercise(ex);
+      }
+    } catch (err) {
+      console.error('Error fetching practice exercise:', err);
+    } finally {
+      setLoadingPractice(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen && topicId) {
@@ -197,8 +229,8 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
         </div>
 
         {/* Tab Navigation */}
-        <div className={`flex items-center justify-between border-b ${borderCol} px-4 sm:px-6 bg-slate-800/30 flex-shrink-0`}>
-          <div className="flex">
+        <div className={`flex items-center justify-between border-b ${borderCol} px-4 sm:px-6 bg-slate-800/30 flex-shrink-0 flex-wrap gap-2`}>
+          <div className="flex flex-wrap">
             <button
               onClick={() => setActiveTab('theory')}
               className={`flex items-center space-x-2 py-3 px-4 text-sm font-semibold border-b-2 transition-all ${
@@ -208,7 +240,22 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
               }`}
             >
               <BookOpen className="h-4 w-4" />
-              <span>Теория и Правила</span>
+              <span>1. Теория и Правила</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('practice');
+                if (!practiceExercise) fetchPracticeExercise();
+              }}
+              className={`flex items-center space-x-2 py-3 px-4 text-sm font-semibold border-b-2 transition-all ${
+                activeTab === 'practice'
+                  ? 'border-indigo-500 text-indigo-400'
+                  : 'border-transparent text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              <Target className="h-4 w-4" />
+              <span>2. Практика и Квиз</span>
             </button>
 
             <button
@@ -220,7 +267,7 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
               }`}
             >
               <Bot className="h-4 w-4" />
-              <span>AI-Репетитор (Чат)</span>
+              <span>3. AI-Репетитор</span>
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
@@ -424,6 +471,131 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
                 </div>
               )}
 
+            </div>
+          ) : activeTab === 'practice' ? (
+            /* INTERACTIVE PRACTICE & QUIZ TAB */
+            <div className="space-y-6 animate-fade-in">
+              {loadingPractice ? (
+                <div className="flex flex-col items-center justify-center py-16 space-y-3">
+                  <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
+                  <p className="text-sm text-gray-400 font-medium">Генерация практического задания по теме...</p>
+                </div>
+              ) : practiceExercise ? (
+                <div className="p-5 sm:p-6 rounded-2xl bg-slate-900/60 border border-slate-700/80 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
+                      Практика по теме: {theoryData?.russianTitle || topicName}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => speakEnglish(practiceExercise.question)}
+                      className="p-1.5 rounded-lg bg-slate-800 text-gray-300 hover:text-white hover:bg-indigo-600 transition-all"
+                      title="Озвучить"
+                    >
+                      <Volume2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <p className="text-lg sm:text-xl font-bold text-gray-100 leading-relaxed whitespace-pre-line">
+                    {practiceExercise.question}
+                  </p>
+
+                  {/* Multiple Choice or Text Input */}
+                  {practiceExercise.type === 'multiple-choice' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {practiceExercise.options?.map((opt, idx) => {
+                        const isSelected = selectedPracticeOption === opt;
+                        let btnStyle = 'bg-slate-800/80 border-slate-700 text-gray-200 hover:border-indigo-500';
+                        if (showPracticeResult) {
+                          if (opt === practiceExercise.correctAnswer) {
+                            btnStyle = 'bg-emerald-950/60 border-emerald-500 text-emerald-300 font-bold';
+                          } else if (isSelected) {
+                            btnStyle = 'bg-rose-950/60 border-rose-500 text-rose-300';
+                          } else {
+                            btnStyle = 'opacity-40 border-slate-800';
+                          }
+                        } else if (isSelected) {
+                          btnStyle = 'bg-indigo-900/40 border-indigo-500 text-indigo-200 font-bold';
+                        }
+
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => !showPracticeResult && setSelectedPracticeOption(opt)}
+                            disabled={showPracticeResult}
+                            className={`p-3.5 rounded-xl border-2 text-left font-medium text-sm transition-all ${btnStyle}`}
+                          >
+                            {opt}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={practiceAnswer}
+                      onChange={(e) => setPracticeAnswer(e.target.value)}
+                      placeholder="Введите ответ на английском..."
+                      disabled={showPracticeResult}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-800 border-2 border-slate-700 focus:border-indigo-500 text-white font-semibold text-base outline-none"
+                    />
+                  )}
+
+                  {/* Result & Explanation */}
+                  {showPracticeResult && (
+                    <div className={`p-4 rounded-xl border space-y-1.5 animate-fade-in ${
+                      isPracticeCorrect ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-rose-950/30 border-rose-500/40'
+                    }`}>
+                      <p className={`font-bold text-sm ${isPracticeCorrect ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {isPracticeCorrect ? '✅ Верно! Отличный результат' : `❌ Правильный ответ: ${practiceExercise.correctAnswer}`}
+                      </p>
+                      {practiceExercise.explanation && (
+                        <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
+                          💡 {practiceExercise.explanation}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex justify-end pt-2">
+                    {!showPracticeResult ? (
+                      <button
+                        onClick={() => {
+                          const ans = practiceExercise.type === 'multiple-choice' ? selectedPracticeOption : practiceAnswer;
+                          if (!ans.trim()) return;
+                          const correct = (ans.trim().toLowerCase() === String(practiceExercise.correctAnswer || '').trim().toLowerCase());
+                          setIsPracticeCorrect(correct);
+                          setShowPracticeResult(true);
+                          if (correct) soundEngine.playCorrect();
+                          else soundEngine.playWrong();
+                        }}
+                        disabled={practiceExercise.type === 'multiple-choice' ? !selectedPracticeOption : !practiceAnswer.trim()}
+                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl shadow-md text-sm transition-all active:scale-95"
+                      >
+                        Проверить ответ
+                      </button>
+                    ) : (
+                      <button
+                        onClick={fetchPracticeExercise}
+                        className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg text-sm transition-all active:scale-95 flex items-center gap-2"
+                      >
+                        <span>Следующее задание</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <button
+                    onClick={fetchPracticeExercise}
+                    className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg"
+                  >
+                    Запустить практику 🚀
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             /* AI TUTOR CHAT TAB */

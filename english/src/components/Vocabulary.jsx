@@ -19,8 +19,13 @@ import {
   TrendingUp,
   Undo2,
   X,
+  Volume2,
+  Keyboard,
+  Zap,
 } from 'lucide-react';
 import { buildVocabularyRound, restoreVocabularyRound } from '../utils/vocabularyRounds';
+import { speakEnglish, soundEngine } from '../utils/soundEffects';
+import { scoreTypedAnswer } from '../utils/answerMatching';
 
 const STATIC_MODES = {
   due: 'Due now',
@@ -77,12 +82,30 @@ function Vocabulary() {
   const learnedMutationIdsRef = useRef(new Set());
   const studySessionSaveChainRef = useRef(Promise.resolve());
 
+  const [practiceStyle, setPracticeStyle] = useState('flip'); // 'flip' | 'typing' | 'quiz'
+  const [practiceDirection, setPracticeDirection] = useState('en_to_ru'); // 'en_to_ru' | 'ru_to_en'
+  const [typedInput, setTypedInput] = useState('');
+  const [typedResult, setTypedResult] = useState(null);
+  const [selectedQuizOption, setSelectedQuizOption] = useState(null);
+
   const activeWords = useMemo(() => words.filter((word) => !word.learned_permanently_at), [words]);
   const favoriteWords = useMemo(() => activeWords.filter((word) => Boolean(word.is_favorite)), [activeWords]);
   const learnedWords = useMemo(() => words.filter((word) => Boolean(word.learned_permanently_at)), [words]);
   const mastered = useMemo(() => activeWords.filter((word) => Number(word.level) >= 5).length, [activeWords]);
   const currentWord = studyQueue[0] || null;
   const completed = Math.max(0, roundTotal - studyQueue.length);
+
+  const quizOptions = useMemo(() => {
+    if (!currentWord || words.length < 2) return [];
+    const isEnToRu = practiceDirection === 'en_to_ru';
+    const correctTarget = isEnToRu ? currentWord.translation : currentWord.word;
+    const others = words
+      .filter((w) => w.id !== currentWord.id)
+      .map((w) => (isEnToRu ? w.translation : w.word))
+      .filter((t) => t && t !== correctTarget);
+    const shuffledOthers = [...new Set(others)].sort(() => 0.5 - Math.random()).slice(0, 3);
+    return [...new Set([correctTarget, ...shuffledOthers])].sort(() => 0.5 - Math.random());
+  }, [currentWord, words, practiceDirection]);
 
   const apiMutation = async (url, options = {}) => {
     const response = await fetch(url, options);
@@ -913,22 +936,229 @@ function Vocabulary() {
             </div>
           </div>
 
-          <div
-            onClick={() => setShowTranslation((v) => !v)}
-            className="bg-gradient-to-br from-indigo-50/70 to-purple-50/70 rounded-2xl p-12 min-h-[260px] flex flex-col items-center justify-center cursor-pointer border-2 border-indigo-200 hover:border-indigo-300 transition-colors select-none text-center"
-          >
-            <p className="text-4xl sm:text-5xl font-bold text-indigo-950 mb-6">{currentWord.word}</p>
-            {showTranslation ? (
-              <div className="animate-fade-in">
-                <p className="text-2xl sm:text-3xl font-semibold text-purple-900">{currentWord.translation}</p>
-                {currentWord.example && (
-                  <p className="text-base text-slate-600 italic mt-3 max-w-lg">“{currentWord.example}”</p>
+          {/* Mode & Direction Selector Toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200 mb-5">
+            <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-slate-200 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => { setPracticeStyle('flip'); setShowTranslation(false); setTypedResult(null); }}
+                className={`px-3 py-1.5 rounded-md transition-all ${
+                  practiceStyle === 'flip' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                🎴 Карточки
+              </button>
+              <button
+                type="button"
+                onClick={() => { setPracticeStyle('typing'); setShowTranslation(false); setTypedInput(''); setTypedResult(null); }}
+                className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-1 ${
+                  practiceStyle === 'typing' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Keyboard className="h-3.5 w-3.5" />
+                <span>Ввод слова</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setPracticeStyle('quiz'); setShowTranslation(false); setSelectedQuizOption(null); }}
+                className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-1 ${
+                  practiceStyle === 'quiz' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Zap className="h-3.5 w-3.5" />
+                <span>Тест 1 из 4</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => { setPracticeDirection('en_to_ru'); setShowTranslation(false); setTypedResult(null); }}
+                className={`px-2.5 py-1.5 rounded-lg border transition-all ${
+                  practiceDirection === 'en_to_ru'
+                    ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                    : 'bg-white border-slate-200 text-slate-600'
+                }`}
+              >
+                🇬🇧 EN → 🇷🇺 RU
+              </button>
+              <button
+                type="button"
+                onClick={() => { setPracticeDirection('ru_to_en'); setShowTranslation(false); setTypedResult(null); }}
+                className={`px-2.5 py-1.5 rounded-lg border transition-all ${
+                  practiceDirection === 'ru_to_en'
+                    ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                    : 'bg-white border-slate-200 text-slate-600'
+                }`}
+              >
+                🇷🇺 RU → 🇬🇧 EN
+              </button>
+            </div>
+          </div>
+
+          {/* Interactive Study Card */}
+          {practiceStyle === 'flip' ? (
+            <div
+              onClick={() => setShowTranslation((v) => !v)}
+              className="bg-gradient-to-br from-indigo-50/70 to-purple-50/70 rounded-2xl p-10 min-h-[240px] flex flex-col items-center justify-center cursor-pointer border-2 border-indigo-200 hover:border-indigo-300 transition-colors select-none text-center relative"
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  speakEnglish(currentWord.word);
+                }}
+                className="absolute top-4 right-4 p-2 rounded-xl bg-white/80 hover:bg-white text-indigo-600 shadow-sm transition-all"
+                title="Озвучить"
+              >
+                <Volume2 className="h-5 w-5" />
+              </button>
+              <p className="text-4xl sm:text-5xl font-bold text-indigo-950 mb-4">
+                {practiceDirection === 'en_to_ru' ? currentWord.word : currentWord.translation}
+              </p>
+              {showTranslation ? (
+                <div className="animate-fade-in space-y-2">
+                  <p className="text-2xl sm:text-3xl font-semibold text-purple-900">
+                    {practiceDirection === 'en_to_ru' ? currentWord.translation : currentWord.word}
+                  </p>
+                  {currentWord.example && (
+                    <p className="text-base text-slate-600 italic mt-2 max-w-lg">“{currentWord.example}”</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 font-medium">Нажмите на карточку, чтобы перевернуть</p>
+              )}
+            </div>
+          ) : practiceStyle === 'typing' ? (
+            <div className="bg-gradient-to-br from-indigo-50/70 to-purple-50/70 rounded-2xl p-8 min-h-[240px] flex flex-col items-center justify-center border-2 border-indigo-200 text-center space-y-4 relative">
+              <button
+                type="button"
+                onClick={() => speakEnglish(currentWord.word)}
+                className="absolute top-4 right-4 p-2 rounded-xl bg-white/80 hover:bg-white text-indigo-600 shadow-sm"
+                title="Озвучить"
+              >
+                <Volume2 className="h-5 w-5" />
+              </button>
+
+              <div className="space-y-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Напишите перевод:</span>
+                <p className="text-3xl sm:text-4xl font-bold text-indigo-950">
+                  {practiceDirection === 'en_to_ru' ? currentWord.word : currentWord.translation}
+                </p>
+              </div>
+
+              <div className="w-full max-w-md space-y-2">
+                <input
+                  type="text"
+                  value={typedInput}
+                  onChange={(e) => setTypedInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const expected = practiceDirection === 'en_to_ru' ? currentWord.translation : currentWord.word;
+                      const res = scoreTypedAnswer(typedInput, expected);
+                      setTypedResult(res);
+                      setShowTranslation(true);
+                      if (res.status === 'correct' || res.status === 'close') soundEngine.playCorrect();
+                      else soundEngine.playWrong();
+                    }
+                  }}
+                  placeholder={practiceDirection === 'en_to_ru' ? 'Введите перевод на русском...' : 'Type in English...'}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-indigo-300 focus:border-indigo-600 text-center font-bold text-lg outline-none bg-white"
+                />
+
+                {!typedResult && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const expected = practiceDirection === 'en_to_ru' ? currentWord.translation : currentWord.word;
+                      const res = scoreTypedAnswer(typedInput, expected);
+                      setTypedResult(res);
+                      setShowTranslation(true);
+                      if (res.status === 'correct' || res.status === 'close') soundEngine.playCorrect();
+                      else soundEngine.playWrong();
+                    }}
+                    disabled={!typedInput.trim()}
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl text-sm transition-all"
+                  >
+                    Проверить ответ ↵
+                  </button>
                 )}
               </div>
-            ) : (
-              <p className="text-sm text-slate-500 font-medium">Click card to reveal translation</p>
-            )}
-          </div>
+
+              {typedResult && (
+                <div className={`p-3 rounded-xl border text-sm font-bold animate-fade-in ${
+                  typedResult.status === 'correct'
+                    ? 'bg-emerald-50 border-emerald-400 text-emerald-800'
+                    : typedResult.status === 'close'
+                    ? 'bg-amber-50 border-amber-400 text-amber-800'
+                    : 'bg-rose-50 border-rose-400 text-rose-800'
+                }`}>
+                  {typedResult.status === 'correct' ? (
+                    <span>✅ Идеально верно!</span>
+                  ) : typedResult.status === 'close' ? (
+                    <span>⚠️ Почти точно (опечатка). Правильно: {practiceDirection === 'en_to_ru' ? currentWord.translation : currentWord.word}</span>
+                  ) : (
+                    <span>❌ Правильный ответ: {practiceDirection === 'en_to_ru' ? currentWord.translation : currentWord.word}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Quiz Mode (1 of 4) */
+            <div className="bg-gradient-to-br from-indigo-50/70 to-purple-50/70 rounded-2xl p-8 min-h-[240px] flex flex-col items-center justify-center border-2 border-indigo-200 text-center space-y-5 relative">
+              <button
+                type="button"
+                onClick={() => speakEnglish(currentWord.word)}
+                className="absolute top-4 right-4 p-2 rounded-xl bg-white/80 hover:bg-white text-indigo-600 shadow-sm"
+                title="Озвучить"
+              >
+                <Volume2 className="h-5 w-5" />
+              </button>
+
+              <div className="space-y-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Выберите правильный перевод:</span>
+                <p className="text-3xl sm:text-4xl font-bold text-indigo-950">
+                  {practiceDirection === 'en_to_ru' ? currentWord.word : currentWord.translation}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
+                {quizOptions.map((opt, idx) => {
+                  const correctTarget = practiceDirection === 'en_to_ru' ? currentWord.translation : currentWord.word;
+                  const isSelected = selectedQuizOption === opt;
+                  let optStyle = 'bg-white border-slate-200 hover:border-indigo-400 text-slate-800';
+
+                  if (selectedQuizOption) {
+                    if (opt === correctTarget) {
+                      optStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold';
+                    } else if (isSelected) {
+                      optStyle = 'bg-rose-50 border-rose-500 text-rose-900';
+                    } else {
+                      optStyle = 'opacity-40 border-slate-200';
+                    }
+                  }
+
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        if (selectedQuizOption) return;
+                        setSelectedQuizOption(opt);
+                        setShowTranslation(true);
+                        if (opt === correctTarget) soundEngine.playCorrect();
+                        else soundEngine.playWrong();
+                      }}
+                      disabled={Boolean(selectedQuizOption)}
+                      className={`p-3.5 rounded-xl border-2 font-semibold text-sm transition-all shadow-sm ${optStyle}`}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {showTranslation && (
             <div className="space-y-4 mt-6 animate-fade-in">
