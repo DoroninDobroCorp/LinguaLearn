@@ -127,23 +127,29 @@ final class LoopbackIngressServer {
     }
 
     private func handleConnection(_ fd: Int32) {
-        // Read available request data
         var buffer = Data()
         var chunk = [UInt8](repeating: 0, count: 8192)
 
-        // Give a short timeout for request read
         var tv = timeval(tv_sec: 2, tv_usec: 0)
         setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
         setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+
+        // Ensure socket is in blocking mode with timeout
+        let flags = fcntl(fd, F_GETFL, 0)
+        if flags >= 0 {
+            _ = fcntl(fd, F_SETFL, flags & ~O_NONBLOCK)
+        }
 
         while buffer.count < 65_536 {
             let bytesRead = read(fd, &chunk, chunk.count)
             if bytesRead <= 0 {
                 break
             }
-            buffer.append(chunk, count: bytesRead)
-            if parseCompleteRequest(buffer) != nil {
-                break
+            buffer.append(contentsOf: chunk[0..<bytesRead])
+            if let req = parseCompleteRequest(buffer) {
+                route(req, fd: fd)
+                close(fd)
+                return
             }
         }
 
@@ -170,7 +176,7 @@ final class LoopbackIngressServer {
         let lines = headerText.components(separatedBy: "\r\n")
         guard let requestLine = lines.first else { return nil }
         let requestParts = requestLine.split(separator: " ", maxSplits: 2).map(String.init)
-        guard requestParts.count == 3 else { return nil }
+        guard requestParts.count >= 2 else { return nil }
 
         var headers: [String: String] = [:]
         for line in lines.dropFirst() {
@@ -187,9 +193,9 @@ final class LoopbackIngressServer {
             contentLength = 0
         }
         let bodyStart = headerRange.upperBound
-        guard bodyStart <= data.count, contentLength <= data.count - bodyStart else { return nil }
-        let body = data.subdata(in: bodyStart..<(bodyStart + contentLength))
-        return HTTPRequest(method: requestParts[0], path: requestParts[1], headers: headers, body: body)
+        guard data.count >= bodyStart + contentLength else { return nil }
+        let body = Data(data[bodyStart..<(bodyStart + contentLength)])
+        return HTTPRequest(method: requestParts[0].uppercased(), path: requestParts[1], headers: headers, body: body)
     }
 
     private func route(_ request: HTTPRequest, fd: Int32) {
@@ -226,6 +232,8 @@ final class LoopbackIngressServer {
                 respond(fd: fd, status: 507, reason: "Insufficient Storage", body: #"{"accepted":false,"storageUnavailable":true}"#)
             }
         } catch {
+            let bodyStr = String(data: request.body, encoding: .utf8) ?? ""
+            NSLog("[LoopbackIngressServer] Decode error: %@ (body: %@)", error.localizedDescription, bodyStr)
             respond(fd: fd, status: 400, reason: "Bad Request", body: #"{"accepted":false}"#)
         }
     }
