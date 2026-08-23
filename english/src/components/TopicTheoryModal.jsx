@@ -251,12 +251,12 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
             <div className="space-y-6 animate-fade-in">
               
               {/* Summary Banner */}
-              {theoryData?.summary && (
+              {(theoryData?.summaryRu || theoryData?.summary) && (
                 <div className="p-4 rounded-xl bg-gradient-to-r from-fuchsia-500/10 via-purple-500/10 to-transparent border border-fuchsia-500/30">
                   <div className="flex items-start space-x-3">
                     <Lightbulb className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
                     <p className="text-sm sm:text-base leading-relaxed font-medium">
-                      {theoryData.summary}
+                      {theoryData.summaryRu || theoryData.summary}
                     </p>
                   </div>
                 </div>
@@ -272,6 +272,41 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
                 </div>
               )}
 
+              {/* Root Tables if any */}
+              {theoryData?.tables?.length > 0 && (
+                <div className={`p-4 sm:p-5 rounded-xl border ${cardBg} space-y-3`}>
+                  {theoryData.tables.map((table, tIdx) => (
+                    <div key={tIdx} className="space-y-2">
+                      {table.title && (
+                        <h4 className="text-sm font-bold text-sky-400">📊 {table.title}</h4>
+                      )}
+                      <div className="overflow-x-auto rounded-lg border border-slate-700/60">
+                        <table className="w-full text-left text-xs sm:text-sm">
+                          <thead className="bg-slate-800 text-gray-200 uppercase font-semibold">
+                            <tr>
+                              {table.headers?.map((h, hIdx) => (
+                                <th key={hIdx} className="px-3 sm:px-4 py-2.5">{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-700/60 bg-slate-900/50">
+                            {table.rows?.map((row, rIdx) => (
+                              <tr key={rIdx} className="hover:bg-slate-800/40">
+                                {row.map((cell, cIdx) => (
+                                  <td key={cIdx} className={`px-3 sm:px-4 py-2.5 font-medium ${cIdx === 0 ? 'text-sky-300 font-bold' : ''}`}>
+                                    {cell}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Detailed Sections */}
               {theoryData?.sections?.map((sec, idx) => (
                 <div key={idx} className={`p-4 sm:p-5 rounded-xl border ${cardBg} space-y-4`}>
@@ -283,7 +318,7 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
                     {sec.content}
                   </div>
 
-                  {/* Tables if any */}
+                  {/* Section Tables if any */}
                   {sec.tables?.map((table, tIdx) => (
                     <div key={tIdx} className="overflow-x-auto rounded-lg border border-slate-700/60 mt-3">
                       <table className="w-full text-left text-xs sm:text-sm">
@@ -331,44 +366,60 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
               {theoryData?.examples?.length > 0 && (
                 <div className={`p-4 sm:p-5 rounded-xl border ${cardBg} space-y-3`}>
                   <h3 className="text-base sm:text-lg font-bold text-emerald-400 flex items-center space-x-2">
+                    <Sparkles className="h-5 w-5 text-emerald-400" />
                     <span>Примеры предложений с озвучкой</span>
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {theoryData.examples.map((ex, idx) => (
-                      <div key={idx} className="p-3 rounded-lg bg-slate-900/60 border border-slate-700/60 flex items-start justify-between space-x-2">
-                        <div className="space-y-1">
-                          <p className="font-bold text-sm text-gray-100">{ex.es}</p>
-                          <p className="text-xs text-gray-400">{ex.ru}</p>
-                          {ex.note && <p className="text-[11px] text-fuchsia-400 italic">💡 {ex.note}</p>}
+                    {theoryData.examples.map((ex, idx) => {
+                      const textToPronounce = ex.en || ex.es || ex.text || '';
+                      return (
+                        <div key={idx} className="p-3.5 rounded-lg bg-slate-900/60 border border-slate-700/60 flex items-start justify-between space-x-2 hover:border-sky-500/30 transition-all">
+                          <div className="space-y-1">
+                            <p className="font-bold text-sm text-sky-300 leading-snug">{textToPronounce}</p>
+                            <p className="text-xs text-gray-300">{ex.ru || ex.translation}</p>
+                            {ex.note && <p className="text-[11px] text-fuchsia-400 italic">💡 {ex.note}</p>}
+                          </div>
+                          {textToPronounce && (
+                            <button
+                              type="button"
+                              onClick={() => handleSpeak(textToPronounce)}
+                              className="p-1.5 rounded-lg bg-slate-800 text-gray-300 hover:text-white hover:bg-sky-600 transition-all flex-shrink-0"
+                              title="Озвучить на английском"
+                            >
+                              <Volume2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
-                        <button
-                          onClick={() => handleSpeak(ex.es)}
-                          className="p-1.5 rounded-lg bg-slate-800 text-gray-300 hover:text-white hover:bg-fuchsia-600 transition-all flex-shrink-0"
-                          title="Озвучить"
-                        >
-                          <Volume2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               {/* Common Mistakes */}
               {theoryData?.commonMistakes?.length > 0 && (
-                <div className={`p-4 sm:p-5 rounded-xl border border-red-500/30 bg-red-950/20 space-y-3`}>
+                <div className={`p-4 sm:p-5 rounded-xl border border-rose-500/30 bg-rose-950/20 space-y-3`}>
                   <h3 className="text-base sm:text-lg font-bold text-rose-400 flex items-center space-x-2">
                     <AlertTriangle className="h-5 w-5 text-rose-500" />
                     <span>Типичные ошибки студентов</span>
                   </h3>
                   <div className="space-y-2.5">
-                    {theoryData.commonMistakes.map((m, idx) => (
-                      <div key={idx} className="p-3 rounded-lg bg-slate-900/70 border border-red-500/20 text-xs sm:text-sm space-y-1">
-                        <p className="text-rose-400 line-through font-medium">❌ {m.wrong}</p>
-                        <p className="text-emerald-400 font-bold">✅ {m.right}</p>
-                        <p className="text-gray-300 text-xs">{m.explanation}</p>
-                      </div>
-                    ))}
+                    {theoryData.commonMistakes.map((m, idx) => {
+                      if (typeof m === 'string') {
+                        return (
+                          <div key={idx} className="p-3 rounded-lg bg-slate-900/70 border border-rose-500/20 text-xs sm:text-sm text-gray-200 leading-relaxed font-medium">
+                            {m}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div key={idx} className="p-3 rounded-lg bg-slate-900/70 border border-rose-500/20 text-xs sm:text-sm space-y-1">
+                          {m.wrong && <p className="text-rose-400 line-through font-medium">❌ {m.wrong}</p>}
+                          {m.right && <p className="text-emerald-400 font-bold">✅ {m.right}</p>}
+                          {m.explanation && <p className="text-gray-300 text-xs">{m.explanation}</p>}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
