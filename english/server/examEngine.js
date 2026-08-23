@@ -232,6 +232,25 @@ OUTPUT SCHEMA (JSON only):
   ]
 }`;
 
+function safeParseJson(rawText) {
+  if (!rawText || typeof rawText !== 'string') return null;
+  let cleaned = rawText.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      try {
+        return JSON.parse(cleaned.slice(start, end + 1));
+      } catch (e2) {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
     for (const m of aiModels) {
       try {
         const aiRes = await Promise.race([
@@ -249,8 +268,8 @@ OUTPUT SCHEMA (JSON only):
         if (aiRes.ok) {
           const aiData = await aiRes.json();
           const rawJson = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
-          const parsed = JSON.parse(rawJson);
-          if (Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+          const parsed = safeParseJson(rawJson);
+          if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
             return parsed.questions;
           }
         } else {
