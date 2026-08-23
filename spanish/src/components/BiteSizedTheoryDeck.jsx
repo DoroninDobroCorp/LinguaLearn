@@ -474,7 +474,7 @@ export default function BiteSizedTheoryDeck({
                 <div className="grid grid-cols-1 gap-2">
                   {currentSlide.scenario.options.map((opt, optIdx) => {
                     const isAnswered = scenarioAnswer !== null;
-                    const isCorrect = optIdx === currentSlide.scenario.correctIndex;
+                    const isCorrect = optIdx === (currentSlide.scenario.correctIndex ?? currentSlide.scenario.correct ?? currentSlide.scenario.correctOption ?? 0);
                     let btnCls = 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200';
                     if (isAnswered) {
                       if (isCorrect) btnCls = 'bg-green-100 dark:bg-green-900/60 border-green-500 text-green-900 dark:text-green-200 font-bold';
@@ -515,40 +515,51 @@ export default function BiteSizedTheoryDeck({
               «{currentSlide.shortText.text}»
             </div>
 
-            {currentSlide.shortText.questions && currentSlide.shortText.questions.length > 0 && (
-              <div className="space-y-2">
-                <p className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white">
-                  1. {currentSlide.shortText.questions[0].question}
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {currentSlide.shortText.questions[0].options.map((opt, oIdx) => {
-                    const isAnswered = shortTextAnswer !== null;
-                    const isCorrect = oIdx === currentSlide.shortText.questions[0].correct;
-                    let btnCls = 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200';
-                    if (isAnswered) {
-                      if (isCorrect) btnCls = 'bg-green-100 dark:bg-green-900/60 border-green-500 text-green-900 dark:text-green-200 font-bold';
-                      else if (oIdx === shortTextAnswer) btnCls = 'bg-red-100 dark:bg-red-900/60 border-red-500 text-red-900 dark:text-red-200';
-                      else btnCls = 'opacity-40';
-                    }
-                    return (
-                      <button
-                        key={oIdx}
-                        onClick={() => {
-                          if (shortTextAnswer !== null) return;
-                          setShortTextAnswer(oIdx);
-                          if (isCorrect) soundEngine.playCorrect();
-                          else soundEngine.playWrong();
-                        }}
-                        disabled={isAnswered}
-                        className={`p-2.5 rounded-xl border text-left text-xs font-semibold transition-all shadow-sm ${btnCls}`}
-                      >
-                        {opt}
-                      </button>
-                    );
-                  })}
+            {currentSlide.shortText.questions && currentSlide.shortText.questions.length > 0 && (() => {
+              const targetQ = currentSlide.shortText.questions[0];
+              const correctIdx = targetQ.correctIndex ?? targetQ.correct ?? targetQ.correctOption ?? targetQ.answerIndex ?? 0;
+              return (
+                <div className="space-y-2 pt-1">
+                  <p className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white">
+                    1. {targetQ.question}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {targetQ.options.map((opt, oIdx) => {
+                      const isAnswered = shortTextAnswer !== null;
+                      const isCorrect = oIdx === correctIdx;
+                      let btnCls = 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 hover:border-purple-300';
+                      if (isAnswered) {
+                        if (isCorrect) btnCls = 'bg-green-100 dark:bg-green-900/60 border-green-500 text-green-900 dark:text-green-200 font-bold';
+                        else if (oIdx === shortTextAnswer) btnCls = 'bg-red-100 dark:bg-red-900/60 border-red-500 text-red-900 dark:text-red-200';
+                        else btnCls = 'opacity-40 border-gray-200 dark:border-gray-700';
+                      }
+                      return (
+                        <button
+                          key={oIdx}
+                          onClick={() => {
+                            if (shortTextAnswer !== null) return;
+                            setShortTextAnswer(oIdx);
+                            if (isCorrect) soundEngine.playCorrect();
+                            else soundEngine.playWrong();
+                          }}
+                          disabled={isAnswered}
+                          className={`p-2.5 rounded-xl border text-left text-xs font-semibold transition-all shadow-sm ${btnCls}`}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {shortTextAnswer !== null && targetQ.explanation && (
+                    <div className="p-3 rounded-xl bg-purple-50 dark:bg-gray-750 border border-purple-200 text-xs text-purple-950 dark:text-purple-200 flex items-start gap-2 animate-fadeIn mt-2">
+                      <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <span>{targetQ.explanation}</span>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
@@ -573,7 +584,7 @@ export default function BiteSizedTheoryDeck({
                   {currentSlide.quizList[quizIdx].options.map((opt, oIdx) => {
                     const ans = quizAnswers[quizIdx];
                     const isSelected = ans === oIdx;
-                    const isCorrect = oIdx === currentSlide.quizList[quizIdx].correct;
+                    const isCorrect = oIdx === (currentSlide.quizList[quizIdx].correctIndex ?? currentSlide.quizList[quizIdx].correct ?? currentSlide.quizList[quizIdx].correctOption ?? 0);
 
                     let btnStyle = 'border-purple-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-750 text-gray-800 dark:text-gray-100 hover:border-purple-300';
                     if (ans !== undefined) {
@@ -589,7 +600,7 @@ export default function BiteSizedTheoryDeck({
                     return (
                       <button
                         key={oIdx}
-                        onClick={() => handleQuizAnswer(quizIdx, oIdx, currentSlide.quizList[quizIdx].correct)}
+                        onClick={() => handleQuizAnswer(quizIdx, oIdx, currentSlide.quizList[quizIdx].correctIndex ?? currentSlide.quizList[quizIdx].correct ?? currentSlide.quizList[quizIdx].correctOption ?? 0)}
                         disabled={ans !== undefined}
                         className={`w-full p-3.5 rounded-2xl border-2 text-left font-bold text-sm transition-all flex items-center justify-between shadow-sm active:scale-98 ${btnStyle}`}
                       >
