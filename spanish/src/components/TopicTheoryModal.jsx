@@ -340,64 +340,80 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex border-b border-purple-100 dark:border-gray-700 px-6 bg-gray-50/80 dark:bg-gray-800/50 flex-wrap">
-          {starterVocabulary.length > 0 && (
+        <div className="flex border-b border-purple-100 dark:border-gray-700 px-6 bg-gray-50/80 dark:bg-gray-800/50 flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap">
+            {starterVocabulary.length > 0 && (
+              <button
+                onClick={() => setActiveTab('vocabulary')}
+                className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 ${
+                  activeTab === 'vocabulary'
+                    ? 'border-purple-600 text-purple-600 dark:text-purple-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Languages className="w-4 h-4" />
+                <span>1. Слова ({starterVocabulary.length})</span>
+              </button>
+            )}
             <button
-              onClick={() => setActiveTab('vocabulary')}
+              onClick={() => {
+                setVocabularyConfirmed(true);
+                setActiveTab('theory');
+              }}
               className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 ${
-                activeTab === 'vocabulary'
+                activeTab === 'theory'
                   ? 'border-purple-600 text-purple-600 dark:text-purple-400'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <Languages className="w-4 h-4" />
-              <span>1. Слова ({starterVocabulary.length})</span>
+              <BookOpen className="w-4 h-4" />
+              <span>2. Правило и квиз</span>
             </button>
-          )}
-          <button
-            onClick={() => {
-              if (!vocabularyConfirmed) return;
-              setActiveTab('theory');
-            }}
-            disabled={!vocabularyConfirmed}
-            className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 disabled:opacity-40 ${
-              activeTab === 'theory'
-                ? 'border-purple-600 text-purple-600 dark:text-purple-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>2. Правило и квиз</span>
-            {!vocabularyConfirmed && <Lock className="w-3 h-3" />}
-          </button>
 
-          {exercisesList.length > 0 && (
+            {exercisesList.length > 0 && (
+              <button
+                onClick={() => {
+                  setVocabularyConfirmed(true);
+                  setTheoryViewed(true);
+                  setActiveTab('exercises');
+                }}
+                className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 ${
+                  activeTab === 'exercises'
+                    ? 'border-purple-600 text-purple-600 dark:text-purple-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Dumbbell className="w-4 h-4" />
+                <span>3. Упражнения ({exercisesList.length})</span>
+              </button>
+            )}
+
             <button
-              onClick={() => exercisesUnlocked && setActiveTab('exercises')}
-              disabled={!exercisesUnlocked}
-              className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 disabled:opacity-40 ${
-                activeTab === 'exercises'
+              onClick={() => setActiveTab('tutor')}
+              className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 ${
+                activeTab === 'tutor'
                   ? 'border-purple-600 text-purple-600 dark:text-purple-400'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <Dumbbell className="w-4 h-4" />
-              <span>3. Упражнения ({exercisesList.length})</span>
-              {!exercisesUnlocked && <Lock className="w-3 h-3" />}
+              <Bot className="w-4 h-4" />
+              <span>AI-Репетитор</span>
+            </button>
+          </div>
+
+          {activeTab === 'vocabulary' && (
+            <button
+              onClick={() => {
+                setVocabularyConfirmed(true);
+                setActiveTab('theory');
+              }}
+              className="my-1.5 px-3.5 py-1.5 rounded-xl bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/50 dark:hover:bg-purple-900 text-purple-800 dark:text-purple-200 font-extrabold text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+              title="Пропустить вводные слова и перейти сразу к теории"
+            >
+              <span>Пропустить слова и открыть теорию</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           )}
-
-          <button
-            onClick={() => setActiveTab('tutor')}
-            className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 ${
-              activeTab === 'tutor'
-                ? 'border-purple-600 text-purple-600 dark:text-purple-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Bot className="w-4 h-4" />
-            <span>AI-Репетитор</span>
-          </button>
         </div>
 
         {/* Modal Body */}

@@ -217,12 +217,20 @@ export default function InteractiveVocabularyIntro({
           </p>
         </div>
 
-        <button
-          onClick={handleNextChunk}
-          className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-extrabold text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
-        >
-          <span>Перейти к следующей тройке слов ({chunkIdx + 2}/{totalChunks}) ➔</span>
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={onSkipToTheory}
+            className="flex-1 py-3 px-5 rounded-2xl border-2 border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-800 text-purple-700 dark:text-purple-300 font-extrabold text-sm hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-all"
+          >
+            Пропустить к теории ⏩
+          </button>
+          <button
+            onClick={handleNextChunk}
+            className="flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-extrabold text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <span>Следующая тройка ({chunkIdx + 2}/{totalChunks}) ➔</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -247,16 +255,25 @@ export default function InteractiveVocabularyIntro({
             </span>
           </div>
 
-          <button
-            onClick={() => {
-              setSubPhase('testing');
-              setTestIdx(0);
-              setTestSelected(null);
-            }}
-            className="text-xs font-bold text-gray-500 hover:text-purple-600 transition-colors"
-          >
-            К проверке тройки ➔
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onSkipToTheory}
+              className="px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-900/40 hover:bg-purple-100 dark:hover:bg-purple-900/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700 font-bold text-xs transition-colors flex items-center gap-1 shadow-sm"
+              title="Пропустить вводные слова и перейти сразу к теории"
+            >
+              <span>Пропустить слова ➔</span>
+            </button>
+            <button
+              onClick={() => {
+                setSubPhase('testing');
+                setTestIdx(0);
+                setTestSelected(null);
+              }}
+              className="text-xs font-bold text-gray-500 hover:text-purple-600 transition-colors"
+            >
+              К проверке ⚡
+            </button>
+          </div>
         </div>
 
         {/* Progress Bar */}
@@ -279,19 +296,27 @@ export default function InteractiveVocabularyIntro({
         />
 
         {/* Navigation Buttons */}
-        <div className="flex items-center justify-between gap-4 pt-2">
+        <div className="flex items-center justify-between gap-3 pt-2">
           <button
             onClick={handlePresentationPrev}
             disabled={cardInChunkIdx === 0}
-            className="px-5 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold text-sm hover:bg-gray-50 disabled:opacity-30 transition-all flex items-center gap-1.5 shadow-sm"
+            className="px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold text-sm hover:bg-gray-50 disabled:opacity-30 transition-all flex items-center gap-1.5 shadow-sm"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Назад</span>
           </button>
 
           <button
+            onClick={onSkipToTheory}
+            className="px-4 py-3 rounded-2xl border border-purple-200 dark:border-purple-700/60 bg-purple-50/70 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 font-bold text-sm hover:bg-purple-100/70 dark:hover:bg-purple-900/40 transition-all"
+            title="Пропустить слова и перейти к теории"
+          >
+            Пропустить к теории ⏩
+          </button>
+
+          <button
             onClick={handlePresentationNext}
-            className="flex-1 py-3 px-6 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-extrabold text-sm shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+            className="flex-1 py-3 px-5 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-extrabold text-sm shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
           >
             <span>
               {cardInChunkIdx < currentChunk.length - 1
@@ -324,9 +349,18 @@ export default function InteractiveVocabularyIntro({
               Проверка порции {chunkIdx + 1} ({testIdx + 1}/{currentTestItems.length})
             </span>
           </div>
-          <span className="text-xs font-bold text-gray-500">
-            Счет: {testScore}
-          </span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={onSkipToTheory}
+              className="px-3 py-1 rounded-xl bg-purple-50 dark:bg-purple-900/40 hover:bg-purple-100 dark:hover:bg-purple-900/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700 font-bold text-xs transition-colors flex items-center gap-1 shadow-sm"
+              title="Пропустить проверку и перейти к теории"
+            >
+              <span>Пропустить к теории ➔</span>
+            </button>
+            <span className="text-xs font-bold text-gray-500">
+              Счет: {testScore}
+            </span>
+          </div>
         </div>
 
         <div className="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
