@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Globe, Sparkles, RefreshCw, Volume2, HelpCircle, ArrowRight 
+  Globe, Sparkles, RefreshCw, Volume2, HelpCircle, ArrowRight, ListOrdered, Check 
 } from 'lucide-react';
 import { soundEngine, speakEnglish } from '../../utils/soundEffects';
 
@@ -28,9 +28,11 @@ function checkGrammarAnswerMatch(userText, correctText, altAnswers = []) {
 }
 
 export default function SentenceTranslationSection({ topics = [], onTopicUpdated }) {
-  const [loading, setLoading] = useState(false);
+  const [selectedTopicIds, setSelectedTopicIds] = useState([1, 2, 3, 4]);
+  const [showTopicSelector, setShowTopicSelector] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
-  const [selectedTopic, setSelectedTopic] = useState('all');
+  const [loading, setLoading] = useState(false);
   const [exercises, setExercises] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userTranslation, setUserTranslation] = useState('');
@@ -38,11 +40,40 @@ export default function SentenceTranslationSection({ topics = [], onTopicUpdated
   const [isCorrect, setIsCorrect] = useState(false);
   const [showHint, setShowHint] = useState(false);
 
-  const filteredTopics = selectedLevel === 'all' 
-    ? topics 
-    : topics.filter(t => t.level === selectedLevel);
+  useEffect(() => {
+    if (Array.isArray(topics) && topics.length > 0 && selectedTopicIds.length === 0) {
+      setSelectedTopicIds(topics.slice(0, 4).map(t => t.id));
+    }
+  }, [topics]);
 
-  const fetchTranslations = async () => {
+  const filteredTopics = topics.filter(t => {
+    const matchesLevel = selectedLevel === 'all' || t.level === selectedLevel;
+    const matchesSearch = !searchQuery.trim() || t.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesLevel && matchesSearch;
+  });
+
+  const toggleTopic = (id) => {
+    setSelectedTopicIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectFirstFour = () => {
+    const subset = filteredTopics.slice(0, 4).map(t => t.id);
+    setSelectedTopicIds(subset);
+  };
+
+  const handleSelectAll = () => {
+    const currentFilteredIds = filteredTopics.map(t => t.id);
+    const allSelected = currentFilteredIds.length > 0 && currentFilteredIds.every(id => selectedTopicIds.includes(id));
+    if (allSelected) {
+      setSelectedTopicIds(prev => prev.filter(id => !currentFilteredIds.includes(id)));
+    } else {
+      setSelectedTopicIds(prev => Array.from(new Set([...prev, ...currentFilteredIds])));
+    }
+  };
+
+  const fetchTranslations = async (targetTopicIds = selectedTopicIds) => {
     setLoading(true);
     setShowResult(false);
     setUserTranslation('');
@@ -55,7 +86,7 @@ export default function SentenceTranslationSection({ topics = [], onTopicUpdated
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           level: selectedLevel !== 'all' ? selectedLevel : undefined,
-          topicId: selectedTopic !== 'all' ? selectedTopic : undefined
+          topicIds: targetTopicIds.length > 0 ? targetTopicIds : undefined
         })
       });
       const data = await res.json();
@@ -128,64 +159,121 @@ export default function SentenceTranslationSection({ topics = [], onTopicUpdated
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 space-y-6 border border-gray-100 animate-fadeIn">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
-        <div>
-          <h3 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
-            <Globe className="h-6 w-6 text-indigo-600" />
-            <span>Перевод предложений</span>
-          </h3>
-          <p className="text-xs text-gray-500">Переводите аутентичные предложения с русского на английский.</p>
+    <div className="space-y-6">
+      {/* Topic Selector Bar 1-to-1 with ClassicQuiz */}
+      <div className="bg-white rounded-3xl p-6 shadow-xl border border-gray-100 space-y-4 animate-fadeIn">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-2 rounded-xl bg-indigo-600 text-white font-black text-sm">
+                🌐 Sentence Translation
+              </span>
+              <span className="text-xs font-bold text-indigo-700">
+                Selected topics: {selectedTopicIds.length}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Translate authentic sentences from Russian to English with AI feedback, grammar explanations, and mistake tracking.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-bold text-gray-800 focus:outline-none"
+            >
+              <option value="all">🌍 All levels</option>
+              {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map((lvl) => (
+                <option key={lvl} value={lvl}>Level {lvl}</option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => setShowTopicSelector(!showTopicSelector)}
+              className="px-4 py-2 rounded-xl border border-gray-200 bg-gray-50 text-indigo-700 font-bold text-xs hover:bg-indigo-50 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <ListOrdered className="w-4 h-4" />
+              <span>{showTopicSelector ? 'Hide topics ▲' : `Select topics (${selectedTopicIds.length}) ▼`}</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={selectedLevel}
-            onChange={(e) => {
-              setSelectedLevel(e.target.value);
-              setSelectedTopic('all');
-            }}
-            className="px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-bold text-gray-800 focus:outline-none"
-          >
-            <option value="all">🌍 Все уровни (A1–C2)</option>
-            {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map((lvl) => (
-              <option key={lvl} value={lvl}>Уровень {lvl}</option>
-            ))}
-          </select>
-
-          <select
-            value={selectedTopic}
-            onChange={(e) => setSelectedTopic(e.target.value)}
-            className="px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 max-w-xs truncate focus:outline-none"
-          >
-            <option value="all">
-              {selectedLevel === 'all' ? '🎯 Все темы курса' : `🎯 Все темы уровня ${selectedLevel}`}
-            </option>
-            {filteredTopics.map((t) => (
-              <option key={t.id} value={t.id}>
-                {selectedLevel === 'all' ? `${t.level}: ${t.name}` : t.name}
-              </option>
-            ))}
-          </select>
-
+        {/* Action Button Row */}
+        <div className="flex flex-wrap items-center gap-3 pt-1">
           <button
-            onClick={fetchTranslations}
+            onClick={() => fetchTranslations(selectedTopicIds)}
             disabled={loading}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+            className="flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-            <span>{loading ? 'Генерируем...' : 'Сгенерировать ⚡'}</span>
+            <Sparkles className="w-4 h-4 text-yellow-300" />
+            <span>{loading ? 'Generating AI sentences...' : 'Generate 10 AI Sentences ⚡'}</span>
           </button>
         </div>
+
+        {/* Expandable Topic Selector */}
+        {showTopicSelector && (
+          <div className="pt-3 border-t border-gray-100 space-y-3 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search topics..."
+                className="w-full sm:w-64 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-900 focus:outline-none"
+              />
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  onClick={handleSelectFirstFour}
+                  className="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold hover:bg-indigo-100"
+                >
+                  First 4 topics
+                </button>
+                <button
+                  onClick={handleSelectAll}
+                  className="text-xs px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold hover:bg-indigo-100"
+                >
+                  {filteredTopics.length > 0 && filteredTopics.every(t => selectedTopicIds.includes(t.id)) ? 'Deselect all' : `Select all (${filteredTopics.length})`}
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-48 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-1">
+              {filteredTopics.map((t) => {
+                const isSelected = selectedTopicIds.includes(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => toggleTopic(t.id)}
+                    className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-2 text-xs font-semibold ${
+                      isSelected
+                        ? 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-sm font-bold'
+                        : 'bg-white border-gray-200 text-gray-700 hover:border-indigo-300'
+                    }`}
+                  >
+                    <span className="truncate">{t.id}. {t.name}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {loading ? (
         <div className="py-16 text-center space-y-3">
           <RefreshCw className="h-8 w-8 text-indigo-600 animate-spin mx-auto" />
-          <p className="text-sm font-medium text-gray-500">Подготовка предложений для перевода...</p>
+          <p className="text-sm font-medium text-gray-500">Preparing translation sentences with AI...</p>
         </div>
       ) : current ? (
-        <div className="space-y-6">
+        <div className="bg-white rounded-3xl shadow-xl p-6 sm:p-8 space-y-6 border border-gray-100 animate-fadeIn">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-4 text-xs font-bold text-gray-500">
+            <span className="px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-800">Sentence {currentIndex + 1} of {exercises.length}</span>
+            <span>{current.testedGrammar || 'Grammar'}</span>
+          </div>
+
           <div className="p-6 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Переведите на английский:</span>
             <p className="text-lg sm:text-xl font-bold text-gray-900 leading-snug">
@@ -210,7 +298,7 @@ export default function SentenceTranslationSection({ topics = [], onTopicUpdated
                 className="text-xs font-semibold text-indigo-600 hover:underline flex items-center gap-1"
               >
                 <HelpCircle className="h-3.5 w-3.5" />
-                <span>{showHint ? `Подсказка: ${current.hint}` : 'Показать грамматическую подсказку'}</span>
+                <span>{showHint ? `Hint: ${current.hint}` : 'Show grammar hint'}</span>
               </button>
             )}
           </div>
@@ -221,13 +309,13 @@ export default function SentenceTranslationSection({ topics = [], onTopicUpdated
             }`}>
               <div className="flex items-center justify-between">
                 <span className={`font-bold text-sm ${isCorrect ? 'text-emerald-800' : 'text-rose-800'}`}>
-                  {isCorrect ? '✅ Верно! Отличный перевод' : '❌ Эталонный вариант перевода:'}
+                  {isCorrect ? '✅ Correct! Excellent translation' : '❌ Target translation:'}
                 </span>
                 <button
                   type="button"
                   onClick={() => speakEnglish(current.targetSentence)}
                   className="p-1 rounded bg-white text-gray-700 hover:text-indigo-600 shadow-sm"
-                  title="Озвучить на английском"
+                  title="Speak English"
                 >
                   <Volume2 className="h-4 w-4" />
                 </button>
@@ -246,27 +334,27 @@ export default function SentenceTranslationSection({ topics = [], onTopicUpdated
                 disabled={!userTranslation.trim()}
                 className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl shadow-md text-sm"
               >
-                Проверить перевод
+                Check Translation
               </button>
             ) : (
               <button
                 onClick={handleNext}
                 className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg text-sm flex items-center gap-2"
               >
-                <span>{currentIndex + 1 >= exercises.length ? 'Завершить раунд 🏆' : 'Следующее предложение'}</span>
+                <span>{currentIndex + 1 >= exercises.length ? 'Finish round 🏆' : 'Next sentence'}</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             )}
           </div>
         </div>
       ) : (
-        <div className="text-center py-12 space-y-3">
+        <div className="text-center py-12 space-y-3 bg-white rounded-3xl p-6 shadow-xl border border-gray-100">
           <div className="w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto text-2xl font-bold">
             🌐
           </div>
-          <h4 className="text-lg font-bold text-gray-800">Выберите тему и нажмите «Сгенерировать ⚡»</h4>
+          <h4 className="text-lg font-bold text-gray-800">Select topics and click «Generate 10 AI Sentences ⚡»</h4>
           <p className="text-xs text-gray-500 max-w-sm mx-auto">
-            ИИ подготовит контекстные предложения для перевода на английский язык с проверкой синонимов.
+            AI will generate context-rich sentences to translate with synonym matching, grammar explanations, and mistake tracking.
           </p>
         </div>
       )}
