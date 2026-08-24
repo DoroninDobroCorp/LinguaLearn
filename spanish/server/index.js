@@ -1700,7 +1700,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
 app.post('/api/exercises/generate-translation', async (req, res) => {
   try {
     const profileId = getProfileId(req);
-    const { topicIds } = req.body || {};
+    const { topicIds, topicId, level } = req.body || {};
 
     const allWords = db.prepare('SELECT id, word, translation, example, learned_permanently_at FROM vocabulary WHERE profile_id = ?').all(profileId);
     const learnedWords = allWords.filter((w) => w.learned_permanently_at !== null && w.learned_permanently_at !== undefined);
@@ -1736,13 +1736,15 @@ app.post('/api/exercises/generate-translation', async (req, res) => {
     if (Array.isArray(topicIds) && topicIds.length > 0) {
       const placeholders = topicIds.map(() => '?').join(',');
       selectedTopicRows = db.prepare(`SELECT id, name, category, level FROM curriculum_topics WHERE id IN (${placeholders})`).all(...topicIds);
-    } else if (topicIds && topicIds !== 'all') {
-      const single = db.prepare('SELECT id, name, category, level FROM curriculum_topics WHERE id = ?').get(topicIds);
+    } else if (topicId && topicId !== 'all') {
+      const single = db.prepare('SELECT id, name, category, level FROM curriculum_topics WHERE id = ?').get(topicId);
       if (single) selectedTopicRows = [single];
+    } else if (level && level !== 'all') {
+      selectedTopicRows = db.prepare('SELECT id, name, category, level FROM curriculum_topics WHERE level = ? ORDER BY RANDOM() LIMIT 4').all(level);
     }
 
     if (selectedTopicRows.length === 0) {
-      selectedTopicRows = db.prepare('SELECT id, name, category, level FROM curriculum_topics ORDER BY RANDOM() LIMIT 2').all();
+      selectedTopicRows = db.prepare('SELECT id, name, category, level FROM curriculum_topics ORDER BY RANDOM() LIMIT 3').all();
     }
 
     const topicsStr = selectedTopicRows.map((t, idx) => `${idx + 1}. ${t.name} (${t.category}, ${t.level})`).join('\n');

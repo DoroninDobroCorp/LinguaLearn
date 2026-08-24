@@ -492,6 +492,7 @@ function ClassicQuizSection({ allTopics = [], onTopicUpdated }) {
 // ----------------------------------------------------
 function SentenceTranslationExerciseSection({ topics, onTopicUpdated }) {
   const [loading, setLoading] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState('all');
   const [selectedTopic, setSelectedTopic] = useState('all');
   const [exercises, setExercises] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -499,6 +500,11 @@ function SentenceTranslationExerciseSection({ topics, onTopicUpdated }) {
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showHint, setShowHint] = useState(false);
+
+  // Filter topics based on selectedLevel
+  const filteredTopics = selectedLevel === 'all' 
+    ? topics 
+    : topics.filter(t => t.level === selectedLevel);
 
   const fetchTranslations = async () => {
     setLoading(true);
@@ -512,6 +518,7 @@ function SentenceTranslationExerciseSection({ topics, onTopicUpdated }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          level: selectedLevel !== 'all' ? selectedLevel : undefined,
           topicId: selectedTopic !== 'all' ? selectedTopic : undefined
         })
       });
@@ -565,22 +572,42 @@ function SentenceTranslationExerciseSection({ topics, onTopicUpdated }) {
           <p className="text-xs text-gray-500">Переводите аутентичные предложения с русского на английский.</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Level Filter */}
+          <select
+            value={selectedLevel}
+            onChange={(e) => {
+              setSelectedLevel(e.target.value);
+              setSelectedTopic('all');
+            }}
+            className="px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-bold text-gray-800 focus:outline-none"
+          >
+            <option value="all">🌍 Все уровни (A1–C2)</option>
+            {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map((lvl) => (
+              <option key={lvl} value={lvl}>Уровень {lvl}</option>
+            ))}
+          </select>
+
+          {/* Topic Selector */}
           <select
             value={selectedTopic}
             onChange={(e) => setSelectedTopic(e.target.value)}
-            className="px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800"
+            className="px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-gray-800 max-w-xs truncate focus:outline-none"
           >
-            <option value="all">🎯 Все темы курса</option>
-            {topics.map((t) => (
-              <option key={t.id} value={t.id}>{t.level}: {t.name}</option>
+            <option value="all">
+              {selectedLevel === 'all' ? '🎯 Все темы курса' : `🎯 Все темы уровня ${selectedLevel}`}
+            </option>
+            {filteredTopics.map((t) => (
+              <option key={t.id} value={t.id}>
+                {selectedLevel === 'all' ? `${t.level}: ${t.name}` : t.name}
+              </option>
             ))}
           </select>
 
           <button
             onClick={fetchTranslations}
             disabled={loading}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1.5"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
           >
             <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
             <span>{loading ? 'Генерируем...' : 'Сгенерировать ⚡'}</span>
