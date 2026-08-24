@@ -124,34 +124,89 @@ export const PRESET_ERROR_DETECTIVES = [
 ];
 
 export const SPEED_MATCH_PAIRS = [
-  { es: "el desayuno", ru: "завтрак" },
-  { es: "la cuenta", ru: "счет (в кафе)" },
-  { es: "la propina", ru: "чаевые" },
-  { es: "la servilleta", ru: "салфетка" },
-  { es: "el camarero / mozo", ru: "официант" },
-  { es: "la esquina", ru: "угол улицы" },
-  { es: "el barrio", ru: "район / квартал" },
-  { es: "la vereda", ru: "тротуар" },
-  { es: "el colectivo / bondi", ru: "автобус" },
-  { es: "el equipaje", ru: "багаж" },
-  { es: "la habitación", ru: "комната / номер" },
-  { es: "la llave", ru: "ключ" },
-  { es: "la farmacia", ru: "аптека" },
-  { es: "el dolor de cabeza", ru: "головная боль" },
-  { es: "la pastilla / comprimido", ru: "таблетка" },
-  { es: "el mate", ru: "напиток мате" },
-  { es: "la bombilla", ru: "соломинка для мате" },
-  { es: "la yerba", ru: "трава йерба" },
-  { es: "el regateo", ru: "торг по цене" },
-  { es: "el descuento", ru: "скидка" },
-  { es: "en efectivo", ru: "наличными" },
-  { es: "con tarjeta", ru: "банковской картой" },
-  { es: "la suerte", ru: "удача" },
-  { es: "la sonrisa", ru: "улыбка" },
-  { es: "el abrazo", ru: "объятие" },
-  { es: "el atardecer", ru: "закат" },
-  { es: "la madrugada", ru: "раннее утро / рассвет" },
-  { es: "la lluvia", ru: "дождь" },
-  { es: "la sombra", ru: "тень" },
-  { es: "el regalo", ru: "подарок" }
+  { left: "el desayuno", right: "завтрак" },
+  { left: "la cuenta", right: "счет (в кафе)" },
+  { left: "la propina", right: "чаевые" },
+  { left: "la servilleta", right: "салфетка" },
+  { left: "el camarero / mozo", right: "официант" },
+  { left: "la esquina", right: "угол улицы" },
+  { left: "el barrio", right: "район / квартал" },
+  { left: "la vereda", right: "тротуар" },
+  { left: "el colectivo / bondi", right: "автобус" },
+  { left: "el equipaje", right: "багаж" },
+  { left: "la habitación", right: "комната / номер" },
+  { left: "la llave", right: "ключ" },
+  { left: "la farmacia", right: "аптека" },
+  { left: "el dolor de cabeza", right: "головная боль" },
+  { left: "la pastilla / comprimido", right: "таблетка" },
+  { left: "el mate", right: "напиток мате" },
+  { left: "la bombilla", right: "соломинка для мате" },
+  { left: "la yerba", right: "трава йерба" },
+  { left: "el regateo", right: "торг по цене" },
+  { left: "el descuento", right: "скидка" },
+  { left: "en efectivo", right: "наличными" },
+  { left: "con tarjeta", right: "банковской картой" },
+  { left: "la suerte", right: "удача" },
+  { left: "la sonrisa", right: "улыбка" },
+  { left: "el abrazo", right: "объятие" },
+  { left: "el atardecer", right: "закат" },
+  { left: "la madrugada", right: "раннее утро / рассвет" },
+  { left: "la lluvia", right: "дождь" },
+  { left: "la sombra", right: "тень" },
+  { left: "el regalo", right: "подарок" }
 ];
+
+export function getWordTilesBatch(level = null) {
+  let list = PRESET_WORD_TILES;
+  if (level) {
+    list = list.filter(item => item.level === level);
+    if (list.length === 0) list = PRESET_WORD_TILES;
+  }
+  return list;
+}
+
+export function verifyWordTiles(itemId, userSentence) {
+  const item = PRESET_WORD_TILES.find(t => t.id === itemId);
+  if (!item) return { isCorrect: false, message: "Item not found" };
+
+  const normalize = (str) =>
+    (str || "")
+      .toLowerCase()
+      .replace(/[.,/#!$%^&*;:{}=\-_`~()¿?¡!]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const isCorrect = normalize(userSentence) === normalize(item.correctSentence);
+  return {
+    isCorrect,
+    correctSentence: item.correctSentence,
+    hint: item.hint
+  };
+}
+
+export function getSpeedMatchItems(count = 6) {
+  const shuffled = [...SPEED_MATCH_PAIRS].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+}
+
+export function getErrorDetectiveBatch(level = null) {
+  let list = PRESET_ERROR_DETECTIVES;
+  if (level) {
+    list = list.filter(item => item.level === level);
+    if (list.length === 0) list = PRESET_ERROR_DETECTIVES;
+  }
+  return list;
+}
+
+export function verifyErrorDetective(itemId, chosenOption) {
+  const item = PRESET_ERROR_DETECTIVES.find(d => d.id === itemId);
+  if (!item) return { isCorrect: false, message: "Item not found" };
+
+  const isCorrect = (String(chosenOption || '').trim().toLowerCase() === String(item.correctWord || '').trim().toLowerCase());
+  return {
+    isCorrect,
+    correctWord: item.correctWord,
+    ruleExplanation: item.ruleExplanation
+  };
+}
+
