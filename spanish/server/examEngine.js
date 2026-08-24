@@ -148,7 +148,7 @@ export function getExamsStatus(db, profileId) {
 /**
  * Generate full interactive exam (20 questions for milestone, 30 for mastery)
  */
-export async function generateExamQuestions({ db, profileId, level = 'A1', examType = 'milestone', topicIds = [], apiKey = '' }) {
+export async function generateExamQuestions({ db, profileId, level = 'A1', examType = 'milestone', topicIds = [], apiKey = '', recentMistakes = [] }) {
   ensureCurriculumExamsSchema(db);
 
   const queryTopicsStmt = db.prepare(`
@@ -193,6 +193,17 @@ export async function generateExamQuestions({ db, profileId, level = 'A1', examT
   const userWords = db.prepare('SELECT word, translation FROM vocabulary WHERE profile_id = ? ORDER BY RANDOM() LIMIT 25').all(profileId);
   const vocabListStr = userWords.length > 0 ? userWords.map((w) => `${w.word} (${w.translation})`).join(', ') : 'casa (дом), auto (машина), amigo (друг), tiempo (время), libro (книга)';
 
+  let mistakesInstruction = '';
+  if (Array.isArray(recentMistakes) && recentMistakes.length > 0) {
+    const mistakeListStr = recentMistakes.map((m, i) => `${i + 1}. [${m.topic_name || m.category || 'Topic'}] Prompt: "${m.prompt}" | Student failed with: "${m.user_wrong_answer}" ❌ | Correct was: "${m.correct_answer}" ✅ (Rule: ${m.rule_explanation || ''})`).join('\n');
+    mistakesInstruction = `
+CRITICAL ADAPTIVE REMEDIATION MANDATE (STUDENT WEAK SPOTS):
+The student previously struggled and failed on the following grammar items:
+${mistakeListStr}
+You MUST dedicate several questions in this batch to directly drilling, testing, and reinforcing these exact failed forms (verb conjugations, gender/number agreements, prepositions), giving the student a direct chance to conquer their past mistakes!
+`;
+  }
+
   const topicsListStr = selectedTopics.map((t, idx) => `${idx + 1}. [ID: ${t.id}] ${t.name} (${t.category}, Level: ${t.level})`).join('\n');
 
   let questions = [];
@@ -211,6 +222,7 @@ ${topicsListStr}
 
 STUDENT VOCABULARY TO EMBED IN QUESTIONS:
 ${vocabListStr}
+${mistakesInstruction}
 
 CRITICAL EXAM SPECIFICATIONS:
 1. QUESTION DISTRIBUTION:

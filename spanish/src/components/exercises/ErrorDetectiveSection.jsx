@@ -50,6 +50,36 @@ export default function ErrorDetectiveSection() {
         setRuleExplanation(data.ruleExplanation);
         if (data.isCorrect) soundEngine.playCorrect();
         else soundEngine.playWrong();
+
+        // Record / resolve mistake in grammar memory
+        try {
+          if (!data.isCorrect) {
+            profileFetch(profileApiUrl('/spanish/api/exercises/record-mistake'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                topicName: currentItem.testedGrammar || 'Error Detective',
+                category: 'error_detective',
+                level: currentItem.level || 'A1',
+                prompt: currentItem.sentence,
+                userWrongAnswer: option,
+                correctAnswer: currentItem.correctWord || data.correctWord || '',
+                ruleExplanation: data.ruleExplanation || currentItem.ruleExplanation || ''
+              })
+            }).catch(() => {});
+          } else {
+            profileFetch(profileApiUrl('/spanish/api/exercises/resolve-mistake'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                category: 'error_detective',
+                prompt: currentItem.sentence
+              })
+            }).catch(() => {});
+          }
+        } catch (e) {
+          console.warn('Mistake tracking error in ErrorDetective:', e);
+        }
       }
     } catch (err) {
       console.error('Error verifying error detective:', err);

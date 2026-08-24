@@ -56,6 +56,36 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
     if (correct) soundEngine.playCorrect();
     else soundEngine.playWrong();
 
+    // Record / Resolve mistake in student grammar mistake memory
+    try {
+      if (!correct) {
+        profileFetch(profileApiUrl('/spanish/api/exercises/record-mistake'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topicName: getVerbDrillProgressTopic(currentQuestion),
+            category: 'verb_conjugation',
+            level: DRILL_TYPES[drillType]?.level || 'A1',
+            prompt: `${currentQuestion.pronoun?.label || ''} + ${currentQuestion.verb?.infinitive || ''} (${DRILL_TYPES[drillType]?.title || ''})`,
+            userWrongAnswer: answer.trim(),
+            correctAnswer: getVerbDrillDisplayAnswer(currentQuestion),
+            ruleExplanation: currentRules[0] || 'Правило спряжения глагола'
+          })
+        }).catch(() => {});
+      } else {
+        profileFetch(profileApiUrl('/spanish/api/exercises/resolve-mistake'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            category: 'verb_conjugation',
+            prompt: `${currentQuestion.pronoun?.label || ''} + ${currentQuestion.verb?.infinitive || ''} (${DRILL_TYPES[drillType]?.title || ''})`
+          })
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Mistake tracking error in VerbDrills:', e);
+    }
+
     try {
       await profileFetch(profileApiUrl('/spanish/api/topics/update'), {
         method: 'POST',

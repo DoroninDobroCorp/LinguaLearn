@@ -146,6 +146,37 @@ export default function ClassicQuizSection({ allTopics = [], onTopicUpdated }) {
     if (correct) soundEngine.playCorrect();
     else soundEngine.playWrong();
 
+    // Record or resolve mistake in grammar memory
+    try {
+      if (!correct) {
+        fetch('/english/api/exercises/record-mistake', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topicId: currentEx.topicId,
+            topicName: currentEx.topic || currentEx.topicName,
+            category: 'quiz',
+            level: currentEx.level || selectedLevel || 'A1',
+            prompt: currentEx.question || currentEx.prompt,
+            userWrongAnswer: String(userAnswer),
+            correctAnswer: currentEx.correctAnswer || '',
+            ruleExplanation: currentEx.explanation || ''
+          })
+        }).catch(() => {});
+      } else {
+        fetch('/english/api/exercises/resolve-mistake', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            category: 'quiz',
+            prompt: currentEx.question || currentEx.prompt
+          })
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Mistake tracking error in English ClassicQuiz:', e);
+    }
+
     try {
       const resp = await fetch('/english/api/topics/update', {
         method: 'POST',

@@ -148,6 +148,38 @@ export default function ClassicQuizSection({ topicIds = [] }) {
       setIsAnswered(true);
       if (data.isCorrect) soundEngine.playCorrect();
       else soundEngine.playWrong();
+
+      // Record / resolve mistake in grammar memory
+      try {
+        if (!data.isCorrect) {
+          profileFetch(profileApiUrl('/spanish/api/exercises/record-mistake'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              topicId: currentEx.topicId,
+              topicName: currentEx.topic || currentEx.topicName,
+              category: 'quiz',
+              level: currentEx.level || selectedLevel || 'A1',
+              prompt: currentEx.question || currentEx.prompt,
+              userWrongAnswer: String(userAnswer),
+              correctAnswer: data.correctAnswer || currentEx.correctAnswer || '',
+              ruleExplanation: data.explanation || currentEx.explanation || ''
+            })
+          }).catch(() => {});
+        } else {
+          profileFetch(profileApiUrl('/spanish/api/exercises/resolve-mistake'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              category: 'quiz',
+              prompt: currentEx.question || currentEx.prompt
+            })
+          }).catch(() => {});
+        }
+      } catch (e) {
+        console.warn('Mistake tracking error in ClassicQuiz:', e);
+      }
+
       window.dispatchEvent(new CustomEvent('gamification_updated'));
     } catch (err) {
       setError(err.message || 'Не удалось проверить ответ');

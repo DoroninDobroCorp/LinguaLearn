@@ -107,6 +107,36 @@ export default function SentenceTranslationSection() {
 
     if (match) soundEngine.playCorrect();
     else soundEngine.playWrong();
+
+    // Persist mistake in grammar memory or resolve upon correct translation
+    try {
+      if (!match) {
+        profileFetch(profileApiUrl('/spanish/api/exercises/record-mistake'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topicName: current.testedGrammar || 'Перевод предложений',
+            category: 'translation',
+            level: selectedLevel !== 'all' ? selectedLevel : 'A1',
+            prompt: current.sourceSentence,
+            userWrongAnswer: userTranslation.trim(),
+            correctAnswer: current.targetSentence,
+            ruleExplanation: current.explanation || ''
+          })
+        }).catch(() => {});
+      } else {
+        profileFetch(profileApiUrl('/spanish/api/exercises/resolve-mistake'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            category: 'translation',
+            prompt: current.sourceSentence
+          })
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Mistake tracking error in SentenceTranslation:', e);
+    }
   };
 
   const handleNext = () => {

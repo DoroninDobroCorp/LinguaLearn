@@ -83,6 +83,36 @@ export default function SentenceTranslationSection({ topics = [], onTopicUpdated
 
     if (match) soundEngine.playCorrect();
     else soundEngine.playWrong();
+
+    // Persist mistake in grammar memory or resolve upon correct translation
+    try {
+      if (!match) {
+        fetch('/english/api/exercises/record-mistake', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topicName: current.testedGrammar || 'Sentence Translation',
+            category: 'translation',
+            level: selectedLevel !== 'all' ? selectedLevel : 'A1',
+            prompt: current.sourceSentence,
+            userWrongAnswer: userTranslation.trim(),
+            correctAnswer: current.targetSentence,
+            ruleExplanation: current.explanation || ''
+          })
+        }).catch(() => {});
+      } else {
+        fetch('/english/api/exercises/resolve-mistake', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            category: 'translation',
+            prompt: current.sourceSentence
+          })
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Mistake tracking error in English SentenceTranslation:', e);
+    }
   };
 
   const handleNext = () => {

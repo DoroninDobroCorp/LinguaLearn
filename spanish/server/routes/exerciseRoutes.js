@@ -8,8 +8,161 @@ import {
 } from '../gameExercises.js';
 import { generateExamQuestions } from '../examEngine.js';
 
+export function ensureMistakesTable(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS student_grammar_mistakes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL DEFAULT 1,
+      topic_id INTEGER,
+      topic_name TEXT,
+      category TEXT NOT NULL,
+      level TEXT NOT NULL DEFAULT 'A1',
+      prompt TEXT NOT NULL,
+      user_wrong_answer TEXT NOT NULL,
+      correct_answer TEXT NOT NULL,
+      rule_explanation TEXT,
+      error_count INTEGER NOT NULL DEFAULT 1,
+      is_resolved INTEGER NOT NULL DEFAULT 0,
+      last_occurred_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      resolved_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_grammar_mistakes_profile_active ON student_grammar_mistakes(profile_id, category, is_resolved, level);
+    CREATE INDEX IF NOT EXISTS idx_grammar_mistakes_prompt ON student_grammar_mistakes(profile_id, category, prompt);
+  `);
+}
+
 export function createExerciseRoutes({ db, getProfileId }) {
+  ensureMistakesTable(db);
   const router = express.Router();
+
+  // Mistake Memory Endpoints
+  router.post('/record-mistake', (req, res) => {
+    try {
+      ensureMistakesTable(db);
+      const profileId = getProfileId(req) || 1;
+      const {
+        topicId = null,
+        topicName = '',
+        category = 'general',
+        level = 'A1',
+        prompt,
+        userWrongAnswer,
+        correctAnswer,
+        ruleExplanation = ''
+      } = req.body || {};
+
+      if (!prompt || !correctAnswer) {
+        return res.status(400).json({ error: 'Prompt and correctAnswer are required' });
+      }
+
+      const existing = db.prepare(`
+        SELECT id, error_count FROM student_grammar_mistakes
+        WHERE profile_id = ? AND category = ? AND prompt = ?
+      `).get(profileId, category, String(prompt).trim());
+
+      const now = new Date().toISOString();
+      if (existing) {
+        db.prepare(`
+          UPDATE student_grammar_mistakes
+          SET error_count = error_count + 1,
+              user_wrong_answer = ?,
+              correct_answer = ?,
+              rule_explanation = COALESCE(?, rule_explanation),
+              is_resolved = 0,
+              last_occurred_at = ?,
+              resolved_at = NULL
+          WHERE id = ?
+        `).run(String(userWrongAnswer || ''), String(correctAnswer), ruleExplanation || null, now, existing.id);
+        return res.json({ success: true, mistakeId: existing.id, errorCount: existing.error_count + 1 });
+      } else {
+        const result = db.prepare(`
+          INSERT INTO student_grammar_mistakes (
+            profile_id, topic_id, topic_name, category, level,
+            prompt, user_wrong_answer, correct_answer, rule_explanation,
+            error_count, is_resolved, last_occurred_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?)
+        `).run(
+          profileId,
+          topicId ? Number(topicId) : null,
+          topicName || null,
+          category,
+          level || 'A1',
+          String(prompt).trim(),
+          String(userWrongAnswer || ''),
+          String(correctAnswer).trim(),
+          ruleExplanation || null,
+          now
+        );
+        return res.json({ success: true, mistakeId: result.lastInsertRowid, errorCount: 1 });
+      }
+    } catch (err) {
+      console.error('Error recording Spanish grammar mistake:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.post('/resolve-mistake', (req, res) => {
+    try {
+      ensureMistakesTable(db);
+      const profileId = getProfileId(req) || 1;
+      const { category, prompt, correctAnswer } = req.body || {};
+
+      const now = new Date().toISOString();
+      let result;
+      if (prompt && category) {
+        result = db.prepare(`
+          UPDATE student_grammar_mistakes
+          SET is_resolved = 1, resolved_at = ?
+          WHERE profile_id = ? AND category = ? AND prompt = ? AND is_resolved = 0
+        `).run(now, profileId, category, String(prompt).trim());
+      } else if (prompt) {
+        result = db.prepare(`
+          UPDATE student_grammar_mistakes
+          SET is_resolved = 1, resolved_at = ?
+          WHERE profile_id = ? AND prompt = ? AND is_resolved = 0
+        `).run(now, profileId, String(prompt).trim());
+      } else if (correctAnswer) {
+        result = db.prepare(`
+          UPDATE student_grammar_mistakes
+          SET is_resolved = 1, resolved_at = ?
+          WHERE profile_id = ? AND correct_answer = ? AND is_resolved = 0
+        `).run(now, profileId, String(correctAnswer).trim());
+      }
+
+      return res.json({ success: true, resolved: result ? result.changes : 0 });
+    } catch (err) {
+      console.error('Error resolving Spanish grammar mistake:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.get('/mistakes', (req, res) => {
+    try {
+      ensureMistakesTable(db);
+      const profileId = getProfileId(req) || 1;
+      const { category, level, limit = 20 } = req.query || {};
+
+      let query = 'SELECT * FROM student_grammar_mistakes WHERE profile_id = ? AND is_resolved = 0';
+      const params = [profileId];
+
+      if (category) {
+        query += ' AND category = ?';
+        params.push(category);
+      }
+      if (level && level !== 'all') {
+        query += ' AND level = ?';
+        params.push(level);
+      }
+      query += ' ORDER BY error_count DESC, last_occurred_at DESC LIMIT ?';
+      params.push(Number(limit) || 20);
+
+      const mistakes = db.prepare(query).all(...params);
+      return res.json({ mistakes });
+    } catch (err) {
+      console.error('Error fetching Spanish grammar mistakes:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  });
 
   // 1. Word Tiles
   router.get('/word-tiles', (req, res) => {
@@ -80,13 +233,24 @@ export function createExerciseRoutes({ db, getProfileId }) {
       const { level = 'A1', topicIds = [], count = 10 } = req.body || {};
       const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
 
+      // Retrieve student active grammar mistakes for adaptive remediation
+      ensureMistakesTable(db);
+      const recentMistakes = db.prepare(`
+        SELECT prompt, user_wrong_answer, correct_answer, rule_explanation, topic_name, category
+        FROM student_grammar_mistakes
+        WHERE profile_id = ? AND is_resolved = 0
+        ORDER BY error_count DESC, last_occurred_at DESC
+        LIMIT 8
+      `).all(profileId || 1);
+
       const exam = await generateExamQuestions({
         db,
         profileId,
         level,
         examType: 'custom',
         topicIds,
-        apiKey
+        apiKey,
+        recentMistakes
       });
 
       const exercises = (exam.questions || []).slice(0, count).map((q) => ({
@@ -105,7 +269,8 @@ export function createExerciseRoutes({ db, getProfileId }) {
       res.json({
         success: true,
         exercises,
-        topicsCount: topicIds.length
+        topicsCount: topicIds.length,
+        remediatedMistakesCount: recentMistakes.length
       });
     } catch (error) {
       console.error('Error generating exercises batch:', error);
@@ -165,6 +330,27 @@ export function createExerciseRoutes({ db, getProfileId }) {
 
       const topicsStr = selectedTopicRows.map((t, idx) => `${idx + 1}. ${t.name} (${t.category}, ${t.level})`).join('\n');
 
+      // Retrieve student active grammar mistakes for adaptive translation remediation
+      ensureMistakesTable(db);
+      const activeMistakes = db.prepare(`
+        SELECT prompt, user_wrong_answer, correct_answer, rule_explanation, topic_name, category
+        FROM student_grammar_mistakes
+        WHERE profile_id = ? AND is_resolved = 0
+        ORDER BY error_count DESC, last_occurred_at DESC
+        LIMIT 8
+      `).all(profileId || 1);
+
+      let mistakesInstruction = '';
+      if (activeMistakes.length > 0) {
+        const mistakeListStr = activeMistakes.map((m, i) => `${i + 1}. [${m.topic_name || m.category}] Prompt: "${m.prompt}" | Student made mistake: "${m.user_wrong_answer}" ❌ | Correct was: "${m.correct_answer}" ✅ (Rule: ${m.rule_explanation || ''})`).join('\n');
+        mistakesInstruction = `
+CRITICAL ADAPTIVE REMEDIATION MANDATE (MUST FOLLOW):
+The student previously made mistakes on the following grammar items/sentences:
+${mistakeListStr}
+You MUST design at least 3 to 5 of the 10 sentences to directly practice and test these exact grammar weak spots, verb forms, and sentence structures so the student learns from their previous mistakes!
+`;
+      }
+
       const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
       const prompt = `You are an elite Spanish language professor.
 Your task is to generate 10 full-sentence translation exercises for a student.
@@ -174,7 +360,7 @@ ${topicsStr}
 
 STUDENT'S MASTERED VOCABULARY POOL (YOU MUST COMPOSE SENTENCES PRIMARILY USING THESE KNOWN WORDS):
 ${vocabListStr}
-
+${mistakesInstruction}
 CRITICAL MANDATORY INSTRUCTIONS:
 1. For each of the 10 tasks:
    - "sourceSentence": A natural Russian sentence for the student to translate into Spanish.

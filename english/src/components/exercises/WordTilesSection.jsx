@@ -75,6 +75,36 @@ export default function WordTilesSection() {
         setIsCorrect(data.isCorrect);
         if (data.isCorrect) soundEngine.playCorrect();
         else soundEngine.playWrong();
+
+        // Record or resolve mistake in grammar memory
+        try {
+          if (!data.isCorrect) {
+            fetch('/english/api/exercises/record-mistake', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                topicName: currentItem.testedGrammar || 'Word Tiles',
+                category: 'word_tiles',
+                level: currentItem.level || 'A1',
+                prompt: currentItem.prompt,
+                userWrongAnswer: userSentence,
+                correctAnswer: currentItem.correctSentence || data.correctSentence || '',
+                ruleExplanation: currentItem.explanation || data.explanation || ''
+              })
+            }).catch(() => {});
+          } else {
+            fetch('/english/api/exercises/resolve-mistake', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                category: 'word_tiles',
+                prompt: currentItem.prompt
+              })
+            }).catch(() => {});
+          }
+        } catch (e) {
+          console.warn('Mistake tracking error in English WordTiles:', e);
+        }
       }
     } catch (err) {
       console.error('Error verifying word tiles:', err);

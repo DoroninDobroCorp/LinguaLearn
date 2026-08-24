@@ -38,6 +38,36 @@ export default function VerbDrillsSection() {
 
     if (correct) soundEngine.playCorrect();
     else soundEngine.playWrong();
+
+    // Record or resolve mistake in grammar memory
+    try {
+      if (!correct) {
+        fetch('/english/api/exercises/record-mistake', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topicName: DRILL_TYPES[drillType]?.title || 'Verb Forms & Tenses',
+            category: 'verb_conjugation',
+            level: 'A1',
+            prompt: currentQuestion.prompt,
+            userWrongAnswer: answer,
+            correctAnswer: currentQuestion.correctAnswer,
+            ruleExplanation: 'Правильная форма глагола в английском языке'
+          })
+        }).catch(() => {});
+      } else {
+        fetch('/english/api/exercises/resolve-mistake', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            category: 'verb_conjugation',
+            prompt: currentQuestion.prompt
+          })
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Mistake tracking error in English VerbDrills:', e);
+    }
   };
 
   return (
