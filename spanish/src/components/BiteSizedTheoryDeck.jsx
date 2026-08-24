@@ -13,6 +13,7 @@ export default function BiteSizedTheoryDeck({
   onFinishTheory,
   onStartExercises
 }) {
+  const [viewMode, setViewMode] = useState('slides'); // 'slides' | 'full'
   const [slideIdx, setSlideIdx] = useState(0);
   const [quizIdx, setQuizIdx] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState({});
@@ -189,12 +190,27 @@ export default function BiteSizedTheoryDeck({
     );
   }
 
+  if (viewMode === 'full') {
+    return (
+      <FullTheoryView
+        theoryData={theoryData}
+        topicName={topicName}
+        topicId={topicId}
+        onStartExercises={onStartExercises}
+        onSwitchToSlides={() => {
+          soundEngine.playTileClick();
+          setViewMode('slides');
+        }}
+      />
+    );
+  }
+
   const progressPercent = Math.round(((slideIdx + 1) / totalSlides) * 100);
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 animate-fadeIn">
       {/* Top Header Indicators */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="px-2.5 py-1 rounded-xl bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 font-extrabold text-xs">
             Слайд {slideIdx + 1} из {totalSlides}
@@ -204,20 +220,35 @@ export default function BiteSizedTheoryDeck({
           </span>
         </div>
 
-        {/* Dots Navigation */}
-        <div className="flex items-center gap-1">
-          {slides.map((_, dotIdx) => (
-            <button
-              key={dotIdx}
-              onClick={() => { soundEngine.playTileClick(); setSlideIdx(dotIdx); }}
-              className={`h-2 rounded-full transition-all ${
-                dotIdx === slideIdx
-                  ? 'w-5 bg-purple-600'
-                  : 'w-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-purple-300'
-              }`}
-              title={`Перейти к слайду ${dotIdx + 1}`}
-            />
-          ))}
+        <div className="flex items-center gap-3">
+          {/* Full Theory Toggle Button */}
+          <button
+            onClick={() => {
+              soundEngine.playTileClick();
+              setViewMode('full');
+            }}
+            className="px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 active:scale-95"
+            title="Открыть полный текст теории со всеми таблицами и примерами на одной странице"
+          >
+            <FileText className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+            <span>📜 Вся теория разом</span>
+          </button>
+
+          {/* Dots Navigation */}
+          <div className="hidden sm:flex items-center gap-1">
+            {slides.map((_, dotIdx) => (
+              <button
+                key={dotIdx}
+                onClick={() => { soundEngine.playTileClick(); setSlideIdx(dotIdx); }}
+                className={`h-2 rounded-full transition-all ${
+                  dotIdx === slideIdx
+                    ? 'w-5 bg-purple-600'
+                    : 'w-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-purple-300'
+                }`}
+                title={`Перейти к слайду ${dotIdx + 1}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -656,24 +687,366 @@ export default function BiteSizedTheoryDeck({
 
         {/* BOTTOM NAVIGATION BUTTONS */}
         {currentSlide.type !== 'quiz' && (
-          <div className="flex items-center justify-between gap-4 pt-6 border-t border-purple-50 dark:border-gray-750 mt-6">
+          <div className="flex items-center justify-between gap-3 pt-6 border-t border-purple-50 dark:border-gray-750 mt-6">
             <button
               onClick={handlePrevSlide}
               disabled={slideIdx === 0}
-              className="px-5 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold text-xs sm:text-sm hover:bg-gray-50 disabled:opacity-30 transition-all flex items-center gap-1.5 shadow-sm"
+              className="px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold text-xs sm:text-sm hover:bg-gray-50 disabled:opacity-30 transition-all flex items-center gap-1.5 shadow-sm"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Назад</span>
             </button>
 
             <button
+              onClick={() => {
+                soundEngine.playTileClick();
+                setViewMode('full');
+              }}
+              className="px-4 py-3 rounded-2xl border border-purple-200 dark:border-purple-700/60 bg-purple-50/70 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 font-bold text-xs sm:text-sm hover:bg-purple-100/70 dark:hover:bg-purple-900/40 transition-all flex items-center gap-1.5"
+              title="Открыть полный текст теории"
+            >
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">Вся теория разом</span>
+              <span className="sm:hidden">Вся теория</span>
+            </button>
+
+            <button
               onClick={handleNextSlide}
-              className="flex-1 py-3 px-6 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-extrabold text-xs sm:text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+              className="flex-1 py-3 px-5 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-extrabold text-xs sm:text-sm shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <span>{slideIdx < totalSlides - 1 ? 'Дальше ➔' : 'К проверочному квизу 🎯'}</span>
             </button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function FullTheoryView({ theoryData, topicName, topicId, onStartExercises, onSwitchToSlides }) {
+  const [quizAnswers, setQuizAnswers] = useState({});
+
+  const handleQuizAnswer = (qIndex, optIndex, correctIndex) => {
+    if (quizAnswers[qIndex] !== undefined) return;
+    const isCorrect = optIndex === correctIndex;
+    if (isCorrect) soundEngine.playCorrect();
+    else soundEngine.playWrong();
+    setQuizAnswers(prev => ({ ...prev, [qIndex]: optIndex }));
+  };
+
+  const sections = Array.isArray(theoryData.sections) ? theoryData.sections : [];
+  const examples = Array.isArray(theoryData.examples) ? theoryData.examples : [];
+  const mistakes = Array.isArray(theoryData.typicalMistakes)
+    ? theoryData.typicalMistakes
+    : (Array.isArray(theoryData.commonMistakes) ? theoryData.commonMistakes : []);
+  const quiz = Array.isArray(theoryData.quiz)
+    ? theoryData.quiz
+    : (Array.isArray(theoryData.quickCheckQuiz) ? theoryData.quickCheckQuiz : []);
+  const goals = Array.isArray(theoryData.goalsRu)
+    ? theoryData.goalsRu
+    : (Array.isArray(theoryData.learningObjectives) ? theoryData.learningObjectives : []);
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-8 animate-fadeIn pb-8">
+      {/* Top Floating / Mode Selector Banner */}
+      <div className="flex items-center justify-between p-3.5 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 flex-wrap gap-2">
+        <div className="flex items-center gap-2 text-xs font-extrabold text-purple-900 dark:text-purple-200">
+          <FileText className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+          <span>Режим полного просмотра теории (свитком)</span>
+        </div>
+        <button
+          onClick={onSwitchToSlides}
+          className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-gray-800 hover:bg-purple-100 dark:hover:bg-purple-900 border border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 active:scale-95"
+        >
+          <span>🎴 Перейти в пошаговый режим слайдов</span>
+        </button>
+      </div>
+
+      {/* 1. HERO BANNER */}
+      <div className="rounded-3xl bg-white dark:bg-gray-800 border-2 border-purple-100 dark:border-gray-700 shadow-xl overflow-hidden p-6 sm:p-8 space-y-4">
+        <ThematicTopicScene topicId={topicId} topicTitle={theoryData.russianTitle || topicName} size="hero" />
+        
+        {theoryData.summary && (
+          <p className="text-sm sm:text-base font-medium text-gray-800 dark:text-gray-200 leading-relaxed p-4 rounded-2xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-800">
+            {theoryData.summary}
+          </p>
+        )}
+
+        {theoryData.mnemonicRule && (
+          <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-start gap-3">
+            <Lightbulb className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="text-xs sm:text-sm text-amber-950 dark:text-amber-200">
+              <strong className="font-extrabold text-amber-900 dark:text-amber-300">Золотое правило: </strong>
+              {theoryData.mnemonicRule}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 2. GOALS */}
+      {goals.length > 0 && (
+        <div className="rounded-3xl bg-white dark:bg-gray-800 border border-purple-100 dark:border-gray-700 shadow-lg p-6 sm:p-7 space-y-3">
+          <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300 font-extrabold text-sm">
+            <Target className="w-5 h-5" />
+            <span>Цели и результаты урока:</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {goals.map((g, idx) => (
+              <div key={idx} className="p-3 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 flex items-start gap-2.5 text-xs sm:text-sm text-emerald-950 dark:text-emerald-200 font-bold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <span>{g}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 3. SECTIONS & TABLES */}
+      {sections.map((sec, sIdx) => (
+        <div key={sIdx} className="rounded-3xl bg-white dark:bg-gray-800 border border-purple-100 dark:border-gray-700 shadow-lg p-6 sm:p-8 space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 font-extrabold text-xs">
+              Раздел {sIdx + 1}
+            </span>
+            <h3 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white">
+              {sec.title || `Правило ${sIdx + 1}`}
+            </h3>
+          </div>
+
+          {sec.content && (
+            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-750 border border-purple-50 dark:border-gray-700 text-sm sm:text-base text-gray-800 dark:text-gray-100 leading-relaxed font-medium">
+              {sec.content}
+            </div>
+          )}
+
+          {/* Tables */}
+          {Array.isArray(sec.tables) && sec.tables.map((tbl, tIdx) => (
+            <div key={tIdx} className="overflow-x-auto rounded-2xl border border-purple-200 dark:border-gray-700 shadow-sm mt-3">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-purple-50 dark:bg-gray-750 text-purple-900 dark:text-purple-200 font-black border-b border-purple-200 dark:border-gray-700">
+                  <tr>
+                    {tbl.headers?.map((h, hIdx) => (
+                      <th key={hIdx} className="p-3.5">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-purple-100 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                  {tbl.rows?.map((row, rIdx) => (
+                    <tr key={rIdx} className="hover:bg-purple-50/40 dark:hover:bg-gray-750 transition-colors">
+                      {row.map((cell, cIdx) => (
+                        <td key={cIdx} className={`p-3.5 ${cIdx === 0 ? 'font-black text-purple-900 dark:text-purple-200 text-sm sm:text-base' : 'text-gray-700 dark:text-gray-300'}`}>
+                          <div className="flex items-center justify-between gap-2">
+                            <span>{cell}</span>
+                            {cIdx === 0 && cell.length > 2 && (
+                              <button
+                                onClick={() => speakSpanish(cell.split('(')[0].replace(/[¡!¿?]/g, '').trim())}
+                                className="p-1.5 text-purple-500 hover:text-purple-700 rounded-xl hover:bg-purple-100 dark:hover:bg-gray-700 transition-all flex-shrink-0"
+                                title="Озвучить"
+                              >
+                                <Volume2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+
+          {/* Sub examples */}
+          {Array.isArray(sec.examples) && sec.examples.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <span className="text-xs font-extrabold uppercase text-purple-700 dark:text-purple-300">Примеры:</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {sec.examples.map((ex, eIdx) => (
+                  <div key={eIdx} className="p-3 rounded-xl bg-purple-50/60 dark:bg-gray-750 border border-purple-100 dark:border-gray-700 flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-bold text-sm text-purple-950 dark:text-purple-200">«{ex.es}»</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{ex.ru}</p>
+                    </div>
+                    <button
+                      onClick={() => speakSpanish(ex.es)}
+                      className="p-1.5 rounded-lg bg-white dark:bg-gray-700 text-purple-600 shadow-sm"
+                      title="Озвучить"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* 4. REAL SPEECH EXAMPLES */}
+      {examples.length > 0 && (
+        <div className="rounded-3xl bg-white dark:bg-gray-800 border border-purple-100 dark:border-gray-700 shadow-lg p-6 sm:p-8 space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            <h3 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white">
+              Живая речь и аутентичные диалоги:
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {examples.map((ex, exIdx) => (
+              <div key={exIdx} className="p-4 rounded-2xl bg-purple-50/60 dark:bg-gray-750 border border-purple-100 dark:border-gray-700 flex items-start justify-between gap-3 shadow-sm">
+                <div>
+                  <div className="font-extrabold text-base text-purple-950 dark:text-purple-200">
+                    «{ex.es}»
+                  </div>
+                  <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 italic">
+                    {ex.ru}
+                  </div>
+                </div>
+                <button
+                  onClick={() => speakSpanish(ex.es)}
+                  className="p-2 rounded-xl bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-300 shadow-sm hover:scale-105 active:scale-95 transition-all flex-shrink-0"
+                  title="Озвучить"
+                >
+                  <Volume2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 5. TYPICAL MISTAKES */}
+      {mistakes.length > 0 && (
+        <div className="rounded-3xl bg-white dark:bg-gray-800 border border-rose-200 dark:border-rose-900/60 shadow-lg p-6 sm:p-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg sm:text-xl font-black text-rose-900 dark:text-rose-200 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-rose-500" />
+              <span>Типичные ловушки и ошибки студентов:</span>
+            </h3>
+            <span className="text-2xl">⚠️</span>
+          </div>
+
+          {theoryData.trapAlert && (
+            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs sm:text-sm text-rose-950 dark:text-rose-200">
+              <strong className="font-black text-rose-900 dark:text-rose-300">Внимание: </strong>
+              {theoryData.trapAlert}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {mistakes.map((m, mIdx) => (
+              <div key={mIdx} className="p-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-750/70 space-y-2">
+                <div className="flex items-center gap-2 text-rose-600 font-bold text-sm">
+                  <XCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{m.mistake || m.wrong}</span>
+                </div>
+                <div className="flex items-center gap-2 text-emerald-600 font-extrabold text-sm">
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                  <span>{m.correction || m.correct || m.right}</span>
+                </div>
+                {(m.explanation || m.why) && (
+                  <p className="text-xs text-gray-600 dark:text-gray-300 pl-6 italic border-t border-gray-200 dark:border-gray-700 pt-1.5 mt-1">
+                    {m.explanation || m.why}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 6. DIALECT NOTE */}
+      {theoryData.dialectNote && (
+        <div className="rounded-3xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 p-6 sm:p-7 space-y-2">
+          <div className="flex items-center gap-2 text-sky-900 dark:text-sky-200 font-black text-sm">
+            <Compass className="w-5 h-5 text-sky-600" />
+            <span>Колорит и диалекты (Рио-де-ла-Плата / Испания):</span>
+          </div>
+          <p className="text-sm text-sky-950 dark:text-sky-200 leading-relaxed font-medium pl-7">
+            {theoryData.dialectNote}
+          </p>
+        </div>
+      )}
+
+      {/* 7. QUICK CHECK QUIZ */}
+      {quiz.length > 0 && (
+        <div className="rounded-3xl bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-gray-700 shadow-xl p-6 sm:p-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              <span>Проверочный экспресс-квиз:</span>
+            </h3>
+            <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
+              {quiz.length} вопросов
+            </span>
+          </div>
+
+          <div className="space-y-6">
+            {quiz.map((q, qIdx) => {
+              const ans = quizAnswers[qIdx];
+              const correctIdx = q.correctIndex ?? q.correct ?? q.correctOption ?? 0;
+              return (
+                <div key={qIdx} className="p-4 sm:p-5 rounded-2xl bg-purple-50/50 dark:bg-gray-750/70 border border-purple-100 dark:border-gray-700 space-y-3">
+                  <p className="text-sm sm:text-base font-extrabold text-gray-900 dark:text-white">
+                    {qIdx + 1}. {q.question}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {q.options?.map((opt, oIdx) => {
+                      const isSelected = ans === oIdx;
+                      const isCorrect = oIdx === correctIdx;
+                      let btnStyle = 'border-purple-100 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 hover:border-purple-300';
+                      if (ans !== undefined) {
+                        if (isCorrect) {
+                          btnStyle = 'border-green-500 bg-green-50 dark:bg-green-950/60 text-green-900 dark:text-green-100 font-black';
+                        } else if (isSelected) {
+                          btnStyle = 'border-rose-500 bg-rose-50 dark:bg-rose-950/60 text-rose-900 dark:text-rose-100 font-bold';
+                        } else {
+                          btnStyle = 'opacity-40 border-gray-200';
+                        }
+                      }
+                      return (
+                        <button
+                          key={oIdx}
+                          onClick={() => handleQuizAnswer(qIdx, oIdx, correctIdx)}
+                          disabled={ans !== undefined}
+                          className={`p-3 rounded-xl border-2 text-left font-bold text-xs sm:text-sm transition-all flex items-center justify-between shadow-sm ${btnStyle}`}
+                        >
+                          <span>{opt}</span>
+                          {ans !== undefined && isCorrect && <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                          {ans !== undefined && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {ans !== undefined && q.explanation && (
+                    <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-gray-700 border border-purple-200 text-xs text-purple-950 dark:text-purple-200 flex items-start gap-1.5 animate-fadeIn">
+                      <Lightbulb className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <span>{q.explanation}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* FOOTER ACTIONS */}
+      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+        <button
+          onClick={onSwitchToSlides}
+          className="py-3.5 px-6 rounded-2xl border-2 border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-800 text-purple-700 dark:text-purple-300 font-extrabold text-sm hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-all flex items-center justify-center gap-2"
+        >
+          <span>🎴 Пошаговый режим слайдов</span>
+        </button>
+
+        <button
+          onClick={onStartExercises}
+          className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-black text-sm sm:text-base shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+        >
+          <span>Перейти к интерактивным упражнениям 🏋️</span>
+          <ArrowRight className="w-5 h-5" />
+        </button>
       </div>
     </div>
   );
