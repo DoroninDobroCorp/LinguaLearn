@@ -58,6 +58,11 @@ export const A1_UNITS = Object.freeze([
     outcomeRu: 'Сказать, куда идёшь, что делаешь, любишь и носишь.',
     topics: ['Present tense irregular verbs (ir/hacer/decir)', 'Gustar and similar verbs', 'Clothes (la ropa)'],
   },
+  {
+    id: 'a1-u10-accelerator', order: 10, titleRu: 'Бонусный ускоритель: Когнаты и языковые мосты',
+    outcomeRu: 'Мгновенно переводить тысячи слов через суффиксальные мосты и избегать ложных друзей переводчика.',
+    topics: ['Cognates and suffix bridges (когнаты и мосты)'],
+  },
 ]);
 
 export const A1_VOCABULARY_DOMAINS = Object.freeze([
