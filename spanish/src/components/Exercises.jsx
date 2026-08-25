@@ -15,8 +15,14 @@ export default function Exercises() {
   const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const validTabs = ['translation', 'classic_quiz', 'verb_drills', 'word_tiles', 'speed_match', 'error_detective'];
-  const tabParam = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(validTabs.includes(tabParam) ? tabParam : 'classic_quiz');
+  const [activeTab, setActiveTab] = useState(() => {
+    if (validTabs.includes(tabParam)) return tabParam;
+    try {
+      const saved = localStorage.getItem('lingua_spanish_exercise_tab');
+      if (validTabs.includes(saved)) return saved;
+    } catch {}
+    return 'translation';
+  });
   const recommendedMode = searchParams.get('mode') === 'recommended';
   const topicIds = (searchParams.get('topicIds') || '')
     .split(',')
@@ -27,6 +33,14 @@ export default function Exercises() {
   useEffect(() => {
     if (validTabs.includes(tabParam)) setActiveTab(tabParam);
   }, [tabParam]);
+
+  useEffect(() => {
+    try {
+      if (validTabs.includes(activeTab)) {
+        localStorage.setItem('lingua_spanish_exercise_tab', activeTab);
+      }
+    } catch {}
+  }, [activeTab]);
 
   const tabs = [
     { id: 'translation', label: 'Перевод предложений', emoji: '🌐' },

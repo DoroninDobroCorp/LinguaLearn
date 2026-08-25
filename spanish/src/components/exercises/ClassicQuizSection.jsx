@@ -8,7 +8,17 @@ import { soundEngine, speakSpanish } from '../../utils/soundEffects';
 
 export default function ClassicQuizSection({ topicIds = [] }) {
   const [availableTopics, setAvailableTopics] = useState([]);
-  const [selectedTopicIds, setSelectedTopicIds] = useState(topicIds.length > 0 ? topicIds : [1, 27]);
+  const [selectedTopicIds, setSelectedTopicIds] = useState(() => {
+    if (topicIds.length > 0) return topicIds;
+    try {
+      const saved = localStorage.getItem('lingua_spanish_classic_quiz_topics');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [1, 27];
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [showTopicSelector, setShowTopicSelector] = useState(false);
 
@@ -34,6 +44,14 @@ export default function ClassicQuizSection({ topicIds = [] }) {
   const startedAtRef = useRef(Date.now());
 
   useEffect(() => {
+    try {
+      if (selectedTopicIds.length > 0) {
+        localStorage.setItem('lingua_spanish_classic_quiz_topics', JSON.stringify(selectedTopicIds));
+      }
+    } catch {}
+  }, [selectedTopicIds]);
+
+  useEffect(() => {
     const fetchTopics = async () => {
       try {
         const res = await profileFetch(profileApiUrl('/spanish/api/curriculum/topics?level=A1'));
@@ -41,6 +59,15 @@ export default function ClassicQuizSection({ topicIds = [] }) {
           const data = await res.json();
           const list = Array.isArray(data.topics) ? data.topics : Array.isArray(data) ? data : [];
           setAvailableTopics(list.filter(t => t.level === 'A1' || !t.level));
+          if (list.length > 0) {
+            setSelectedTopicIds(prev => {
+              if (prev && prev.length > 0) {
+                const valid = prev.filter(id => list.some(t => t.id === id));
+                if (valid.length > 0) return valid;
+              }
+              return [1, 27];
+            });
+          }
         }
       } catch (err) {
         console.warn('Could not load topics list:', err);

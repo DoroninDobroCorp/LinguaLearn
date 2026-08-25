@@ -36,10 +36,25 @@ function checkGrammarAnswerMatch(userText, correctText, altAnswers = []) {
 
 export default function SentenceTranslationSection() {
   const [topics, setTopics] = useState([]);
-  const [selectedTopicIds, setSelectedTopicIds] = useState([1, 2, 3, 4]);
+  const [selectedTopicIds, setSelectedTopicIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lingua_spanish_translation_topics');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [1, 2, 3, 4];
+  });
   const [showTopicSelector, setShowTopicSelector] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState('all');
+  const [selectedLevel, setSelectedLevel] = useState(() => {
+    try {
+      return localStorage.getItem('lingua_spanish_translation_level') || 'all';
+    } catch {
+      return 'all';
+    }
+  });
   const [loading, setLoading] = useState(false);
   const [exercises, setExercises] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -47,6 +62,20 @@ export default function SentenceTranslationSection() {
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showHint, setShowHint] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (selectedTopicIds.length > 0) {
+        localStorage.setItem('lingua_spanish_translation_topics', JSON.stringify(selectedTopicIds));
+      }
+    } catch {}
+  }, [selectedTopicIds]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lingua_spanish_translation_level', selectedLevel);
+    } catch {}
+  }, [selectedLevel]);
 
   useEffect(() => {
     const fetchTopics = async () => {
@@ -57,7 +86,13 @@ export default function SentenceTranslationSection() {
           const list = Array.isArray(data.topics) ? data.topics : Array.isArray(data) ? data : [];
           setTopics(list);
           if (list.length > 0) {
-            setSelectedTopicIds(list.slice(0, 4).map(t => t.id));
+            setSelectedTopicIds(prev => {
+              if (prev && prev.length > 0) {
+                const valid = prev.filter(id => list.some(t => t.id === id));
+                if (valid.length > 0) return valid;
+              }
+              return list.slice(0, 4).map(t => t.id);
+            });
           }
         }
       } catch (err) {

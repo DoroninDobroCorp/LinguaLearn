@@ -17,9 +17,46 @@ import {
 
 export default function VerbDrillsSection({ onTopicUpdated }) {
   const { t } = useLanguage();
-  const [drillType, setDrillType] = useState('fourKeyVerbs');
-  const [pronounMode, setPronounMode] = useState('all');
-  const [runMode, setRunMode] = useState('ten');
+  const [drillType, setDrillType] = useState(() => {
+    try {
+      return localStorage.getItem('lingua_spanish_verb_drill_type') || 'fourKeyVerbs';
+    } catch {
+      return 'fourKeyVerbs';
+    }
+  });
+  const [pronounMode, setPronounMode] = useState(() => {
+    try {
+      return localStorage.getItem('lingua_spanish_verb_pronoun_mode') || 'all';
+    } catch {
+      return 'all';
+    }
+  });
+  const [runMode, setRunMode] = useState(() => {
+    try {
+      return localStorage.getItem('lingua_spanish_verb_run_mode') || 'ten';
+    } catch {
+      return 'ten';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lingua_spanish_verb_drill_type', drillType);
+    } catch {}
+  }, [drillType]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lingua_spanish_verb_pronoun_mode', pronounMode);
+    } catch {}
+  }, [pronounMode]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lingua_spanish_verb_run_mode', runMode);
+    } catch {}
+  }, [runMode]);
+
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [answer, setAnswer] = useState('');
   const [showResult, setShowResult] = useState(false);
