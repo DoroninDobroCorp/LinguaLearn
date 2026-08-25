@@ -25,8 +25,15 @@ export function isSpanishLang(value = '') {
   return normalizeLangTag(value).startsWith('es');
 }
 
+export function isSpanishVoice(voice) {
+  if (!voice) return false;
+  const lang = normalizeLangTag(voice.lang);
+  const name = String(voice.name || '').toLowerCase();
+  return isSpanishLang(lang) || name.includes('spanish') || name.includes('españ');
+}
+
 export function isLocalSpanishVoice(voice) {
-  return Boolean(voice?.localService) && isSpanishLang(voice?.lang);
+  return isSpanishVoice(voice);
 }
 
 export function selectBestSpanishVoice(voices = [], preferredLocales = SPANISH_VOICE_LOCALES) {
@@ -38,7 +45,7 @@ export function selectBestSpanishVoice(voices = [], preferredLocales = SPANISH_V
   let bestScore = -1;
 
   voices.forEach((voice, index) => {
-    if (!isLocalSpanishVoice(voice)) {
+    if (!isSpanishVoice(voice)) {
       return;
     }
 
@@ -48,6 +55,10 @@ export function selectBestSpanishVoice(voices = [], preferredLocales = SPANISH_V
 
     if (normalizedName.includes('spanish') || normalizedName.includes('españ')) {
       score += 3;
+    }
+
+    if (voice?.localService) {
+      score += 2;
     }
 
     if (voice?.default) {
@@ -74,14 +85,6 @@ export function getLocalSpanishPlaybackSupport({
       supported: false,
       message: 'Spanish playback is not supported in this browser.',
       reason: 'unsupported-browser',
-    };
-  }
-
-  if (!isLocalSpanishVoice(selectedVoice)) {
-    return {
-      supported: false,
-      message: 'Spanish playback needs a local Spanish voice installed in this browser.',
-      reason: 'missing-local-spanish-voice',
     };
   }
 
@@ -272,14 +275,20 @@ export function getVisibleSpanishContent(card, showAnswer) {
   }
 
   if (card.direction === 'source_to_target') {
-    return { text: String(card.prompt || '').trim(), source: 'prompt' };
+    const text = String(card.prompt || card.word || '').trim();
+    return { text, source: 'prompt' };
   }
 
-  if (card.direction === 'target_to_source' && showAnswer) {
-    return { text: String(card.answer || '').trim(), source: 'answer' };
+  if (card.direction === 'target_to_source') {
+    if (showAnswer) {
+      const text = String(card.answer || card.word || '').trim();
+      return { text, source: 'answer' };
+    }
+    return { text: '', source: null };
   }
 
-  return { text: '', source: null };
+  const text = String(card.word || card.prompt || '').trim();
+  return { text, source: 'word' };
 }
 
 export function getVoicePracticeSpanishContent({

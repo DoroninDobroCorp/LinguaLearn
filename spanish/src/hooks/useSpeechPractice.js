@@ -142,9 +142,10 @@ export function useSpeechPractice() {
     setTtsError('');
     const synth = window.speechSynthesis;
     const speechRequestId = speechRequestIdRef.current + 1;
-    speechRequestIdRef.current = speechRequestId;
-    activeUtteranceRef.current = null;
     synth.cancel();
+    if (typeof synth.resume === 'function') {
+      synth.resume();
+    }
 
     const utterance = new window.SpeechSynthesisUtterance(availability.text);
     utterance.lang = selectedVoice?.lang || 'es-ES';

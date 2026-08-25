@@ -1254,12 +1254,13 @@ function Vocabulary() {
       return;
     }
 
-    if (autoPlayedCardKeyRef.current === currentCardKey) {
+    if (!visibleSpanish.text) {
       return;
     }
 
-    if (!visibleSpanish.text) {
-      autoPlayedCardKeyRef.current = currentCardKey;
+    const currentPlayKey = `${currentCardKey}:${showAnswer ? 'answer' : 'prompt'}:${visibleSpanish.text}`;
+
+    if (autoPlayedCardKeyRef.current === currentPlayKey) {
       return;
     }
 
@@ -1268,12 +1269,13 @@ function Vocabulary() {
     }
 
     if (speakText(visibleSpanish.text)) {
-      autoPlayedCardKeyRef.current = currentCardKey;
+      autoPlayedCardKeyRef.current = currentPlayKey;
     }
   }, [
     currentCard,
     isVoicePracticeBusy,
     playbackSupport.supported,
+    showAnswer,
     speakText,
     visibleSpanish.text,
   ]);
