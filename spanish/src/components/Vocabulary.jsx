@@ -1626,6 +1626,93 @@ function Vocabulary() {
       });
   };
 
+  const handleDemoteToAlmostLearned = async (cardToDemote = currentCard) => {
+    if (!cardToDemote) return;
+    if (isOfflineRuntime()) {
+      setError('Возврат слова в группу требует подключения к интернету.');
+      return;
+    }
+
+    const entryId = Number(cardToDemote.id);
+    if (learnedMutationIdsRef.current.has(entryId)) return;
+    learnedMutationIdsRef.current.add(entryId);
+    setPendingLearnedIds((ids) => new Set(ids).add(entryId));
+    setError('');
+
+    // Find "Почти выучил" group
+    const almostLearnedGroup = groups.find((g) => g.name?.trim().toLowerCase() === 'почти выучил')
+      || groups.find((g) => g.name?.toLowerCase().includes('почти'));
+
+    const targetGroupObj = almostLearnedGroup ? { id: almostLearnedGroup.id, name: almostLearnedGroup.name } : null;
+
+    setEntries((items) => items.map((item) => {
+      if (item.id === entryId) {
+        const existingGroups = item.groups || [];
+        const hasAlmostLearned = targetGroupObj && existingGroups.some((g) => g.id === targetGroupObj.id);
+        const updatedGroups = targetGroupObj && !hasAlmostLearned ? [...existingGroups, targetGroupObj] : existingGroups;
+        const updatedGroupIds = updatedGroups.map((g) => g.id);
+        return {
+          ...item,
+          learned_permanently_at: null,
+          groups: updatedGroups,
+          group_ids: updatedGroupIds,
+        };
+      }
+      return item;
+    }));
+
+    if (almostLearnedGroup) {
+      setGroups((prev) => prev.map((g) => {
+        if (g.id === almostLearnedGroup.id) {
+          const wordIds = new Set(g.word_ids || []);
+          wordIds.add(entryId);
+          return {
+            ...g,
+            word_count: wordIds.size,
+            word_ids: Array.from(wordIds),
+          };
+        }
+        return g;
+      }));
+    }
+
+    advanceCurrentSessionCard(cardToDemote, { removeEntry: true });
+    setNotice(`Слово «${cardToDemote.word}» возвращается в группу «Почти выучил»…`);
+
+    try {
+      const unmarkRes = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/${entryId}/permanent-learned`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ learned: false }),
+      });
+      if (!unmarkRes.ok) {
+        const data = await unmarkRes.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to unmark learned state');
+      }
+
+      if (almostLearnedGroup) {
+        await profileFetch(profileApiUrl(`/spanish/api/vocabulary/groups/${almostLearnedGroup.id}/words`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wordId: entryId }),
+        }).catch((e) => console.warn('Group attach error:', e));
+      }
+
+      await refreshVocabulary();
+      setNotice(`Слово «${cardToDemote.word}» возвращено в группу «Почти выучил» и в активные тренировки!`);
+    } catch (err) {
+      setError(`Ошибка при возврате слова: ${err.message}`);
+      await refreshVocabulary().catch(() => undefined);
+    } finally {
+      learnedMutationIdsRef.current.delete(entryId);
+      setPendingLearnedIds((ids) => {
+        const next = new Set(ids);
+        next.delete(entryId);
+        return next;
+      });
+    }
+  };
+
   const toggleLearnedForever = async (entry) => {
     const isLearned = Boolean(entry.learned_permanently_at);
     const targetLearned = !isLearned;
@@ -1635,21 +1722,48 @@ function Vocabulary() {
     setPendingLearnedIds((ids) => new Set(ids).add(entryId));
     setError('');
 
-    setEntries((items) => items.map((item) => item.id === entryId
-      ? {
+    const almostLearnedGroup = !targetLearned
+      ? (groups.find((g) => g.name?.trim().toLowerCase() === 'почти выучил') || groups.find((g) => g.name?.toLowerCase().includes('почти')))
+      : null;
+
+    const targetGroupObj = almostLearnedGroup ? { id: almostLearnedGroup.id, name: almostLearnedGroup.name } : null;
+
+    setEntries((items) => items.map((item) => {
+      if (item.id === entryId) {
+        let nextGroups = targetLearned ? [] : (item.groups || []);
+        if (!targetLearned && targetGroupObj && !nextGroups.some((g) => g.id === targetGroupObj.id)) {
+          nextGroups = [...nextGroups, targetGroupObj];
+        }
+        return {
           ...item,
           learned_permanently_at: targetLearned ? new Date().toISOString() : null,
           is_favorite: targetLearned ? false : item.is_favorite,
-          groups: targetLearned ? [] : item.groups,
-        }
-      : item));
+          groups: nextGroups,
+          group_ids: nextGroups.map((g) => g.id),
+        };
+      }
+      return item;
+    }));
 
     if (targetLearned && (entry.groups || []).length > 0) {
       const removedGroupIds = (entry.groups || []).map((g) => g.id);
       setGroups((curr) => curr.map((g) => removedGroupIds.includes(g.id) ? { ...g, word_count: Math.max(0, (g.word_count || 1) - 1) } : g));
+    } else if (!targetLearned && almostLearnedGroup) {
+      setGroups((prev) => prev.map((g) => {
+        if (g.id === almostLearnedGroup.id) {
+          const wordIds = new Set(g.word_ids || []);
+          wordIds.add(entryId);
+          return {
+            ...g,
+            word_count: wordIds.size,
+            word_ids: Array.from(wordIds),
+          };
+        }
+        return g;
+      }));
     }
 
-    if (targetLearned && currentCard && currentCard.id === entryId) {
+    if (currentCard && currentCard.id === entryId) {
       advanceCurrentSessionCard(currentCard, { removeEntry: true });
     }
 
@@ -1663,7 +1777,17 @@ function Vocabulary() {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error || 'Failed to update learned state');
       }
-      setNotice(targetLearned ? `Marked "${entry.word}" as learned forever.` : `Restored "${entry.word}" to study queues.`);
+
+      if (!targetLearned && almostLearnedGroup) {
+        await profileFetch(profileApiUrl(`/spanish/api/vocabulary/groups/${almostLearnedGroup.id}/words`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wordId: entryId }),
+        }).catch(() => {});
+      }
+
+      setNotice(targetLearned ? `Слово «${entry.word}» выучено навсегда.` : `Слово «${entry.word}» возвращено в группу «Почти выучил».`);
+      await refreshVocabulary();
     } catch (err) {
       setError(err.message || 'Failed to update learned status');
       await refreshVocabulary().catch(() => undefined);
@@ -2560,15 +2684,28 @@ function Vocabulary() {
                   </div>
                 )}
 
-              <button
-                type="button"
-                onClick={handleLearned}
-                disabled={pendingLearnedIds.has(Number(currentCard.id)) || isVoicePracticeBusy}
-                className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-700 transition-all shadow-md flex items-center justify-center gap-2 leading-tight disabled:opacity-60 sm:text-base"
-              >
-                <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
-                Learned forever — remove from study queues
-              </button>
+              {activeSessionMode === 'learned_once' || currentCard.learned_permanently_at ? (
+                <button
+                  type="button"
+                  onClick={() => handleDemoteToAlmostLearned(currentCard)}
+                  disabled={pendingLearnedIds.has(Number(currentCard.id)) || isVoicePracticeBusy}
+                  className="w-full rounded-xl bg-amber-600 px-4 py-3 text-sm font-bold text-white hover:bg-amber-700 transition-all shadow-md flex items-center justify-center gap-2 leading-tight disabled:opacity-60 sm:text-base cursor-pointer"
+                  title="Вернуть слово в группу «Почти выучил» для регулярных тренировок"
+                >
+                  <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span>Вернуть в группу «Почти выучил»</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleLearned}
+                  disabled={pendingLearnedIds.has(Number(currentCard.id)) || isVoicePracticeBusy}
+                  className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-700 transition-all shadow-md flex items-center justify-center gap-2 leading-tight disabled:opacity-60 sm:text-base cursor-pointer"
+                >
+                  <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span>Learned forever — remove from study queues</span>
+                </button>
+              )}
             </div>
           )}
 
