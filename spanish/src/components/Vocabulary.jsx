@@ -2684,7 +2684,7 @@ function Vocabulary() {
                   </div>
                 )}
 
-              {activeSessionMode === 'learned_once' || currentCard.learned_permanently_at ? (
+              {reviewSession.mode === 'learned_once' || currentCard.learned_permanently_at ? (
                 <button
                   type="button"
                   onClick={() => handleDemoteToAlmostLearned(currentCard)}
