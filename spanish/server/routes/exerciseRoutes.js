@@ -369,6 +369,8 @@ CRITICAL MANDATORY INSTRUCTIONS:
    - "testedGrammar": Name of the specific grammar topic tested in this sentence.
    - "usedVocabulary": Array of student vocabulary words embedded in this sentence.
    - "explanation": Detailed Russian explanation of the grammar rule, word order, verb conjugations, and why this translation is constructed this way.
+   - "isReview": Set to true if this sentence addresses one of the student's previous mistakes listed above, false otherwise.
+   - "reviewReason": If isReview is true, write a short Russian note (e.g. "Повторение: тренировка формы глагола / конструкции из прошлых ошибок").
 2. The sentences MUST strictly practice the chosen grammar topics while weaving together words from the student's vocabulary list.
 3. Provide progressive variety across the 10 sentences covering different grammatical persons (yo, tú, él/ella, nosotros, ellos), affirmative/negative/questions, and nuances.
 
@@ -381,7 +383,9 @@ Respond ONLY with valid JSON matching this exact schema:
       "alternativeAnswers": ["Alternative Spanish translation 1"],
       "testedGrammar": "Grammar topic name",
       "usedVocabulary": ["palabra1", "palabra2"],
-      "explanation": "Подробное объяснение грамматики и перевода на русском языке"
+      "explanation": "Подробное объяснение грамматики и перевода на русском языке",
+      "isReview": true,
+      "reviewReason": "Повторение темы из прошлых ошибок"
     }
   ]
 }`;

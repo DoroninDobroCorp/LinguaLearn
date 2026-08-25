@@ -52,7 +52,7 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
     fetchServerMistakes();
   }, [fetchServerMistakes]);
 
-  // Convert a server mistake record into a playable question object
+  // Convert a server mistake record into a playable review question object
   const buildQuestionFromMistake = (m) => {
     return {
       id: `mistake-${m.id}-${Date.now()}`,
@@ -67,8 +67,9 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
       ending: null,
       correctAnswer: m.correct_answer?.includes(' ') ? m.correct_answer.split(' ').slice(1).join(' ') : m.correct_answer,
       displayAnswer: m.correct_answer,
-      isServerMistake: true,
+      isReview: true,
       mistakeId: m.id,
+      reviewReason: m.rule_explanation || 'Вы ранее допускали ошибку в этой форме глагола',
       previousWrongAnswer: m.user_wrong_answer,
     };
   };
@@ -86,8 +87,17 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
       setSessionMistakesQueue(mistakeQuestions.slice(1));
       setCurrentQuestion(mistakeQuestions[0]);
     } else {
-      setSessionMistakesQueue([]);
-      setCurrentQuestion(createVerbDrillQuestion(drillType, pronounMode));
+      // Standard session: if we have server mistakes, weave them in!
+      const initialMistakeQuestions = serverMistakes.slice(0, 3).map(buildQuestionFromMistake);
+      setSessionMistakesQueue(initialMistakeQuestions);
+
+      // Start with a fresh question (or review if user had errors)
+      if (initialMistakeQuestions.length > 0 && Math.random() > 0.5) {
+        setCurrentQuestion(initialMistakeQuestions[0]);
+        setSessionMistakesQueue(initialMistakeQuestions.slice(1));
+      } else {
+        setCurrentQuestion(createVerbDrillQuestion(drillType, pronounMode));
+      }
     }
 
     setSessionActive(true);
@@ -147,8 +157,8 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
           })
         }).then(() => fetchServerMistakes()).catch(() => {});
       } else {
-        // If it was a retry or server mistake, resolve it in the DB!
-        if (currentQuestion.isRetry || currentQuestion.isServerMistake) {
+        // If it was a retry or review question, resolve it in the DB!
+        if (currentQuestion.isRetry || currentQuestion.isReview) {
           profileFetch(profileApiUrl('/spanish/api/exercises/resolve-mistake'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -452,14 +462,21 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
             <div className="space-y-6 animate-fadeIn">
               {/* Question Card */}
               <div className={`p-6 rounded-2xl border text-center relative ${
-                currentQuestion.isRetry || currentQuestion.isServerMistake
-                  ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-300 dark:from-amber-950/40 dark:to-orange-950/40'
+                currentQuestion.isRetry || currentQuestion.isReview
+                  ? 'bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-amber-300 dark:from-amber-950/40 dark:to-orange-950/40 shadow-sm'
                   : 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/40 dark:to-pink-950/40 border-purple-200 dark:border-gray-700'
               }`}>
-                {(currentQuestion.isRetry || currentQuestion.isServerMistake) && (
-                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-amber-500 text-white text-[11px] font-black rounded-full shadow-sm mb-2">
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>⚠️ Работа над ошибкой: повторите форму!</span>
+                {currentQuestion.isReview && (
+                  <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-amber-500 text-white text-xs font-black rounded-full shadow-sm mb-2.5">
+                    <RotateCcw className="w-4 h-4" />
+                    <span>{currentQuestion.reviewReason || '🔄 Повторение темы: вы ранее ошибались в этом глаголе / форме'}</span>
+                  </div>
+                )}
+
+                {currentQuestion.isRetry && !currentQuestion.isReview && (
+                  <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-amber-500 text-white text-xs font-black rounded-full shadow-sm mb-2.5">
+                    <RotateCcw className="w-4 h-4" />
+                    <span>⚠️ Повтор ошибки: закрепите правильную форму!</span>
                   </div>
                 )}
 
