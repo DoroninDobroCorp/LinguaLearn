@@ -11,15 +11,17 @@ import WordTilesSection from './exercises/WordTilesSection';
 import SpeedMatchSection from './exercises/SpeedMatchSection';
 import ErrorDetectiveSection from './exercises/ErrorDetectiveSection';
 
+const VALID_EXERCISE_TABS = ['translation', 'classic_quiz', 'verb_drills', 'word_tiles', 'speed_match', 'error_detective'];
+
 export default function Exercises() {
   const { t } = useLanguage();
   const [searchParams] = useSearchParams();
-  const validTabs = ['translation', 'classic_quiz', 'verb_drills', 'word_tiles', 'speed_match', 'error_detective'];
+  const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(() => {
-    if (validTabs.includes(tabParam)) return tabParam;
+    if (VALID_EXERCISE_TABS.includes(tabParam)) return tabParam;
     try {
       const saved = localStorage.getItem('lingua_spanish_exercise_tab');
-      if (validTabs.includes(saved)) return saved;
+      if (VALID_EXERCISE_TABS.includes(saved)) return saved;
     } catch {}
     return 'translation';
   });
@@ -31,12 +33,12 @@ export default function Exercises() {
     .slice(0, 5);
 
   useEffect(() => {
-    if (validTabs.includes(tabParam)) setActiveTab(tabParam);
+    if (VALID_EXERCISE_TABS.includes(tabParam)) setActiveTab(tabParam);
   }, [tabParam]);
 
   useEffect(() => {
     try {
-      if (validTabs.includes(activeTab)) {
+      if (VALID_EXERCISE_TABS.includes(activeTab)) {
         localStorage.setItem('lingua_spanish_exercise_tab', activeTab);
       }
     } catch {}
