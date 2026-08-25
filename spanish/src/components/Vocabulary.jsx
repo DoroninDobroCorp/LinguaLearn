@@ -30,7 +30,9 @@ import {
   GraduationCap,
   CheckCircle2,
   ArrowUpDown,
-  Layers
+  Layers,
+  Search,
+  Filter,
 } from 'lucide-react';
 import { useSpeechPractice } from '../hooks/useSpeechPractice';
 import VocabularyDecksModal from './VocabularyDecksModal';
@@ -661,6 +663,9 @@ function Vocabulary() {
   const [pendingLearnedIds, setPendingLearnedIds] = useState(() => new Set());
   const [groups, setGroups] = useState([]);
   const [selectedGroupFilterIds, setSelectedGroupFilterIds] = useState([]);
+  const [wordSearchQuery, setWordSearchQuery] = useState('');
+  const [groupFilterSearchQuery, setGroupFilterSearchQuery] = useState('');
+  const [isGroupFilterOpen, setIsGroupFilterOpen] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
   const [selectedStudyGroupIds, setSelectedStudyGroupIds] = useState([]);
   const [isGroupsStudyExpanded, setIsGroupsStudyExpanded] = useState(false);
@@ -1304,8 +1309,25 @@ function Vocabulary() {
 
   const filteredEntries = useMemo(() => {
     let result = entries.filter((entry) => matchesEntryFilter(entry, entryFilter));
+
+    // 1. Text search (word, translation, example)
+    const query = wordSearchQuery.trim().toLowerCase();
+    if (query) {
+      result = result.filter((entry) =>
+        (entry.word || '').toLowerCase().includes(query) ||
+        (entry.translation || '').toLowerCase().includes(query) ||
+        (entry.example || '').toLowerCase().includes(query)
+      );
+    }
+
+    // 2. Group filter
     if (selectedGroupFilterIds.length > 0) {
-      result = result.filter((entry) => (entry.groups || []).some((g) => selectedGroupFilterIds.includes(g.id)));
+      const targetIds = new Set(selectedGroupFilterIds.map(Number));
+      result = result.filter((entry) => {
+        const wordGroupIds = (entry.groups || []).map((g) => Number(g.id))
+          .concat((entry.group_ids || []).map(Number));
+        return wordGroupIds.some((gid) => targetIds.has(gid));
+      });
     }
 
     result = [...result].sort((a, b) => {
@@ -1317,7 +1339,7 @@ function Vocabulary() {
     });
 
     return result;
-  }, [entries, entryFilter, selectedGroupFilterIds, sortBy]);
+  }, [entries, entryFilter, wordSearchQuery, selectedGroupFilterIds, sortBy]);
 
   const filteredEntryLabel = ENTRY_FILTERS[entryFilter]?.label || ENTRY_FILTERS.all.label;
 
@@ -2667,78 +2689,228 @@ function Vocabulary() {
                 </select>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowGroupManager((v) => !v)}
-              className="px-3.5 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-            >
-              <Folder className="h-4 w-4 text-indigo-600" />
-              <span>Manage Groups ({groups.length})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowDecksModal(true)}
-              className="px-3.5 py-1.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white hover:from-fuchsia-600 hover:to-purple-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm hover:scale-105"
-              title="Создать автоматические колоды по 25 слов из частотных списков CEFR"
-            >
-              <Layers className="h-4 w-4" />
-              <span>Частотные колоды</span>
-            </button>
 
-          </div>
-          {/* Multi-group filter row for entries list */}
-          {groups.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 p-2 bg-indigo-50/60 border border-indigo-100 rounded-2xl">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 mr-1">
-                <Tag className="h-3.5 w-3.5 text-indigo-600" />
-                <span>Фильтр групп:</span>
-              </div>
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setSelectedGroupFilterIds([])}
-                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                  selectedGroupFilterIds.length === 0
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-white text-slate-700 hover:bg-indigo-50 border border-slate-200'
-                }`}
+                onClick={() => setShowGroupManager((v) => !v)}
+                className="px-3.5 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
               >
-                Все ({entries.length})
+                <Folder className="h-4 w-4 text-indigo-600" />
+                <span>Manage Groups ({groups.length})</span>
               </button>
-              {groups.map((g) => {
-                const isSelected = selectedGroupFilterIds.includes(g.id);
-                return (
-                  <button
-                    key={g.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedGroupFilterIds((prev) =>
-                        prev.includes(g.id) ? prev.filter((id) => id !== g.id) : [...prev, g.id]
-                      );
-                    }}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                      isSelected
-                        ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-300'
-                        : 'bg-white text-indigo-950 hover:bg-indigo-50 border border-indigo-200/70'
-                    }`}
-                  >
-                    <span>{g.name}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                      isSelected ? 'bg-indigo-800 text-indigo-100' : 'bg-indigo-100 text-indigo-900'
-                    }`}>
-                      {g.word_count || 0}
-                    </span>
-                  </button>
-                );
-              })}
-              {selectedGroupFilterIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowDecksModal(true)}
+                className="px-3.5 py-1.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white hover:from-fuchsia-600 hover:to-purple-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm hover:scale-105"
+                title="Создать автоматические колоды по 25 слов из частотных списков CEFR"
+              >
+                <Layers className="h-4 w-4" />
+                <span>Частотные колоды</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Search bar & Searchable Group Filter row */}
+          <div className="flex flex-wrap items-center gap-2.5 p-3 bg-gradient-to-r from-indigo-50/90 via-purple-50/70 to-indigo-50/90 border-2 border-indigo-100 rounded-2xl">
+            {/* Word text search input */}
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-400" />
+              <input
+                type="text"
+                value={wordSearchQuery}
+                onChange={(e) => setWordSearchQuery(e.target.value)}
+                placeholder="🔍 Поиск слова, перевода или примера..."
+                className="w-full pl-9 pr-8 py-2 text-xs font-semibold bg-white border border-indigo-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 focus:outline-none shadow-xs"
+              />
+              {wordSearchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSelectedGroupFilterIds([])}
-                  className="text-xs text-indigo-700 hover:text-indigo-900 font-semibold underline ml-auto"
+                  onClick={() => setWordSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  title="Очистить поиск"
                 >
-                  Сбросить ({selectedGroupFilterIds.length} выбр.)
+                  <X className="h-3.5 w-3.5" />
                 </button>
               )}
+            </div>
+
+            {/* Searchable Group Filter Dropdown button */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsGroupFilterOpen((prev) => !prev)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border-2 shadow-xs cursor-pointer ${
+                  selectedGroupFilterIds.length > 0
+                    ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300'
+                    : 'bg-white text-indigo-950 border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50'
+                }`}
+              >
+                <Filter className="h-3.5 w-3.5" />
+                <span>
+                  {selectedGroupFilterIds.length === 0
+                    ? 'Фильтр по группам (Все)'
+                    : `Группы: ${selectedGroupFilterIds.length} выбрано`}
+                </span>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isGroupFilterOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Group Filter Popover */}
+              {isGroupFilterOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border-2 border-indigo-200 rounded-2xl shadow-2xl z-30 p-3.5 space-y-2.5 animate-fadeIn">
+                  <div className="flex items-center justify-between border-b border-indigo-100 pb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-950">
+                      <Tag className="h-4 w-4 text-indigo-600" />
+                      <span>Выберите группы для просмотра ({groups.length})</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsGroupFilterOpen(false)}
+                      className="text-gray-400 hover:text-gray-600 p-1"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Group Search field */}
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={groupFilterSearchQuery}
+                      onChange={(e) => setGroupFilterSearchQuery(e.target.value)}
+                      placeholder="Быстрый поиск группы по названию..."
+                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-indigo-200 rounded-lg focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  {/* Quick controls */}
+                  <div className="flex items-center justify-between text-[11px] font-semibold px-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGroupFilterIds([])}
+                      className="text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                    >
+                      Показать все слова
+                    </button>
+                    {selectedStudyGroupIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedGroupFilterIds([...selectedStudyGroupIds])}
+                        className="text-purple-700 hover:text-purple-900 hover:underline cursor-pointer"
+                        title="Применить группы, выбранные в блоке тренировки выше"
+                      >
+                        ⚡ Взять из Study ({selectedStudyGroupIds.length})
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Scrollable list of groups */}
+                  <div className="max-h-64 overflow-y-auto space-y-1 pr-1 border border-indigo-50 rounded-xl p-1">
+                    {sortedGroups
+                      .filter((g) =>
+                        (g.name || '').toLowerCase().includes(groupFilterSearchQuery.trim().toLowerCase())
+                      )
+                      .map((g) => {
+                        const isChecked = selectedGroupFilterIds.includes(g.id);
+                        return (
+                          <label
+                            key={g.id}
+                            className={`flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer select-none transition-colors ${
+                              isChecked ? 'bg-indigo-100/90 text-indigo-950 font-bold' : 'hover:bg-indigo-50/60 text-gray-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 overflow-hidden mr-2">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  setSelectedGroupFilterIds((prev) =>
+                                    prev.includes(g.id) ? prev.filter((id) => id !== g.id) : [...prev, g.id]
+                                  );
+                                }}
+                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                              />
+                              <span className="truncate">{g.name}</span>
+                            </div>
+                            <span className="text-[10px] font-bold bg-indigo-200/80 text-indigo-900 px-2 py-0.5 rounded-full shrink-0">
+                              {g.word_count || 0}
+                            </span>
+                          </label>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quick sync button if groups are selected in Study by Group */}
+            {selectedStudyGroupIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedGroupFilterIds([...selectedStudyGroupIds]);
+                  setNotice(`Фильтр таблицы синхронизирован с ${selectedStudyGroupIds.length} группами из тренировки.`);
+                }}
+                className="px-3 py-2 bg-white text-purple-700 border border-purple-200 hover:bg-purple-50 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                title="Показать в таблице ровно те группы, которые сейчас выбраны в тренировочном блоке"
+              >
+                <span>⚡ Синхронизировать с Study ({selectedStudyGroupIds.length})</span>
+              </button>
+            )}
+          </div>
+
+          {/* Active filter pills */}
+          {(selectedGroupFilterIds.length > 0 || wordSearchQuery) && (
+            <div className="flex flex-wrap items-center gap-1.5 p-2 bg-indigo-50/80 border border-indigo-200/80 rounded-2xl animate-fadeIn">
+              <span className="text-xs font-bold text-indigo-950 mr-1 flex items-center gap-1">
+                <Tag className="h-3.5 w-3.5 text-indigo-600" />
+                Активные фильтры:
+              </span>
+
+              {wordSearchQuery && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold bg-white text-indigo-900 border border-indigo-200 shadow-xs">
+                  <span>Текст: «{wordSearchQuery}»</span>
+                  <button
+                    type="button"
+                    onClick={() => setWordSearchQuery('')}
+                    className="text-indigo-400 hover:text-indigo-700 ml-1"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+
+              {selectedGroupFilterIds.map((gid) => {
+                const grp = groups.find((g) => g.id === gid);
+                if (!grp) return null;
+                return (
+                  <span
+                    key={gid}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-xs"
+                  >
+                    <span>{grp.name} ({grp.word_count || 0})</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGroupFilterIds((prev) => prev.filter((id) => id !== gid))}
+                      className="text-indigo-200 hover:text-white ml-1 font-bold"
+                    >
+                      ×
+                    </button>
+                  </span>
+                );
+              })}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedGroupFilterIds([]);
+                  setWordSearchQuery('');
+                }}
+                className="text-xs text-indigo-700 hover:text-indigo-900 font-bold underline ml-auto px-2 cursor-pointer"
+              >
+                Сбросить все
+              </button>
             </div>
           )}
 
@@ -2768,7 +2940,11 @@ function Vocabulary() {
         {entries.length === 0 ? (
           <p className="text-gray-600 text-center py-8">No vocabulary yet. Add your first entry above.</p>
         ) : filteredEntries.length === 0 ? (
-          <p className="text-gray-600 text-center py-8">No {filteredEntryLabel.toLowerCase()} entries right now.</p>
+          <p className="text-gray-600 text-center py-8">
+            {selectedGroupFilterIds.length > 0 || wordSearchQuery
+              ? 'По выбранным фильтрам слова не найдены.'
+              : `No ${filteredEntryLabel.toLowerCase()} entries right now.`}
+          </p>
         ) : (
           <div className="space-y-3 max-h-[34rem] overflow-y-auto">
             {filteredEntries.map((entry) => {
@@ -2820,10 +2996,20 @@ function Vocabulary() {
                           </span>
                         )}
                         {(entry.groups || []).map((g) => (
-                          <span key={g.id} className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200/60 px-2.5 py-0.5 text-xs font-semibold text-indigo-800">
-                            <Tag className="h-3 w-3" />
-                            {g.name}
-                          </span>
+                          <button
+                            key={g.id}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedGroupFilterIds([g.id]);
+                              setNotice(`Отфильтровано по группе «${g.name}».`);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 px-2.5 py-0.5 text-xs font-semibold text-indigo-800 transition-colors shadow-2xs cursor-pointer"
+                            title={`Нажмите, чтобы показать только слова группы «${g.name}»`}
+                          >
+                            <Tag className="h-3 w-3 text-indigo-600" />
+                            <span>{g.name}</span>
+                          </button>
                         ))}
                       </div>
 
