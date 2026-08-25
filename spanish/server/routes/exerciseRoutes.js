@@ -362,17 +362,21 @@ STUDENT'S MASTERED VOCABULARY POOL (YOU MUST COMPOSE SENTENCES PRIMARILY USING T
 ${vocabListStr}
 ${mistakesInstruction}
 CRITICAL MANDATORY INSTRUCTIONS:
-1. For each of the 10 tasks:
-   - "sourceSentence": A natural Russian sentence for the student to translate into Spanish.
+1. STRICT TRANSLATION SYMMETRY & FIDELITY:
+   - "sourceSentence" (Russian) and "targetSentence" (Spanish) MUST BE 100% FAITHFUL, EXACT EQUIVALENTS OF EACH OTHER. Every adjective, noun, adverb, and verb must match in meaning without swapping or hallucinating concepts (for example: if Russian has "длинная", Spanish MUST be "larga", NEVER swap with "buena").
+   - Russian sentences MUST sound completely natural and elegant to a native Russian speaker (NEVER duplicate words like "В эту ночь ночь...").
+   - "alternativeAnswers" MUST provide 1-3 valid Spanish translation alternatives (e.g. omitting/including subject pronouns, word order permutations, synonym phrases).
+2. For each of the 10 tasks:
+   - "sourceSentence": Natural Russian sentence for the student to translate into Spanish.
    - "targetSentence": The perfect, accurate Spanish translation.
    - "alternativeAnswers": Array of 1-3 valid alternative translations in Spanish.
    - "testedGrammar": Name of the specific grammar topic tested in this sentence.
    - "usedVocabulary": Array of student vocabulary words embedded in this sentence.
-   - "explanation": Detailed Russian explanation of the grammar rule, word order, verb conjugations, and why this translation is constructed this way.
+   - "explanation": Detailed Russian explanation of the grammar rule, word order, gender agreements, and verb conjugations.
    - "isReview": Set to true if this sentence addresses one of the student's previous mistakes listed above, false otherwise.
    - "reviewReason": If isReview is true, write a short Russian note (e.g. "Повторение: тренировка формы глагола / конструкции из прошлых ошибок").
-2. The sentences MUST strictly practice the chosen grammar topics while weaving together words from the student's vocabulary list.
-3. Provide progressive variety across the 10 sentences covering different grammatical persons (yo, tú, él/ella, nosotros, ellos), affirmative/negative/questions, and nuances.
+3. The sentences MUST strictly practice the chosen grammar topics while weaving together words from the student's vocabulary list.
+4. Provide progressive variety across the 10 sentences covering different grammatical persons (yo, tú, él/ella, nosotros, ellos), affirmative/negative/questions, and nuances.
 
 Respond ONLY with valid JSON matching this exact schema:
 {
@@ -391,7 +395,7 @@ Respond ONLY with valid JSON matching this exact schema:
 }`;
 
       let exercises = [];
-      const aiModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash'];
+      const aiModels = ['gemini-3.7-flash', 'gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
       for (const m of aiModels) {
         try {
           const aiRes = await Promise.race([
@@ -400,7 +404,7 @@ Respond ONLY with valid JSON matching this exact schema:
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: 'application/json', temperature: 0.7 }
+                generationConfig: { responseMimeType: 'application/json', temperature: 0.3 }
               })
             }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 35000))
