@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Globe, Sparkles, RefreshCw, Volume2, HelpCircle, ArrowRight, ListOrdered, Check 
+  Globe, Sparkles, RefreshCw, Volume2, HelpCircle, ArrowRight, ListOrdered, Check, RotateCcw 
 } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../../utils/api';
 import { soundEngine, speakSpanish } from '../../utils/soundEffects';
