@@ -1953,19 +1953,54 @@ export function getVocabularyEntry(db, profileId, entryId, now = new Date()) {
 }
 
 
+export function ensureLastPracticedColumn(db) {
+  try {
+    const cols = db.prepare('PRAGMA table_info(vocabulary_groups)').all();
+    if (!cols.some((c) => c.name === 'last_practiced_at')) {
+      db.exec('ALTER TABLE vocabulary_groups ADD COLUMN last_practiced_at TEXT');
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+export function touchVocabularyGroupPractice(db, profileId, groupIds) {
+  if (!Array.isArray(groupIds) || groupIds.length === 0) return;
+  ensureLastPracticedColumn(db);
+  const now = new Date().toISOString();
+  const stmt = db.prepare('UPDATE vocabulary_groups SET last_practiced_at = ? WHERE profile_id = ? AND id = ?');
+  const tx = db.transaction((ids) => {
+    for (const gid of ids) {
+      if (Number.isFinite(Number(gid))) {
+        stmt.run(now, profileId, Number(gid));
+      }
+    }
+  });
+  try {
+    tx(groupIds);
+  } catch (e) {
+    console.warn('Could not touch group practice time:', e.message);
+  }
+}
+
 export function listVocabularyGroups(db, profileId) {
+  ensureLastPracticedColumn(db);
   const groups = db.prepare(`
     SELECT
       g.id,
       g.profile_id,
       g.name,
       g.created_at,
+      g.last_practiced_at,
       COUNT(gm.vocabulary_id) AS word_count
     FROM vocabulary_groups g
     LEFT JOIN vocabulary_group_members gm ON gm.group_id = g.id
     WHERE g.profile_id = ?
     GROUP BY g.id
-    ORDER BY g.name COLLATE NOCASE ASC
+    ORDER BY
+      CASE WHEN g.last_practiced_at IS NOT NULL AND g.last_practiced_at != '' THEN 0 ELSE 1 END,
+      g.last_practiced_at DESC,
+      g.name COLLATE NOCASE ASC
   `).all(profileId);
 
   const memberRows = db.prepare(`
@@ -1988,6 +2023,7 @@ export function listVocabularyGroups(db, profileId) {
     profile_id: g.profile_id,
     name: g.name,
     created_at: g.created_at,
+    last_practiced_at: g.last_practiced_at || null,
     word_count: Number(g.word_count) || 0,
     word_ids: wordIdsByGroup.get(g.id) || [],
   }));

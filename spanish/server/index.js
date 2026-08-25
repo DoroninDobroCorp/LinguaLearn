@@ -77,6 +77,7 @@ import {
   createVocabularyGroup,
   updateVocabularyGroup,
   deleteVocabularyGroup,
+  touchVocabularyGroupPractice,
   addWordToGroup,
   removeWordFromGroup,
   setGroupWords,
@@ -1946,9 +1947,41 @@ app.post('/api/vocabulary/import', (req, res) => {
   }
 });
 
+app.post('/api/vocabulary/groups/:id/touch', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const groupId = Number.parseInt(req.params.id, 10);
+    touchVocabularyGroupPractice(db, profileId, [groupId]);
+    res.json({ success: true, groups: listVocabularyGroups(db, profileId) });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error touching vocabulary group:');
+  }
+});
+
+app.post('/api/vocabulary/groups/touch-batch', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const groupIds = Array.isArray(req.body?.groupIds) ? req.body.groupIds.map(Number).filter(Boolean) : [];
+    touchVocabularyGroupPractice(db, profileId, groupIds);
+    res.json({ success: true, groups: listVocabularyGroups(db, profileId) });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error touching vocabulary groups:');
+  }
+});
+
 app.get('/api/vocabulary/study-session', (req, res) => {
   try {
-    res.json({ session: getLatestVocabularyStudySession(db, getProfileId(req), req.query?.mode || null) });
+    const profileId = getProfileId(req);
+    const mode = req.query?.mode || null;
+    if (typeof mode === 'string') {
+      if (mode.startsWith('group_once:')) {
+        touchVocabularyGroupPractice(db, profileId, [Number(mode.split(':')[1])]);
+      } else if (mode.startsWith('groups_once:')) {
+        const gids = mode.split(':')[1].split(',').map(Number).filter(Boolean);
+        touchVocabularyGroupPractice(db, profileId, gids);
+      }
+    }
+    res.json({ session: getLatestVocabularyStudySession(db, profileId, mode) });
   } catch (error) {
     handleVocabularyError(res, error, 'Error fetching vocabulary study session:');
   }
@@ -1956,10 +1989,20 @@ app.get('/api/vocabulary/study-session', (req, res) => {
 
 app.put('/api/vocabulary/study-session', (req, res) => {
   try {
+    const profileId = getProfileId(req);
+    const mode = req.body?.mode;
+    if (typeof mode === 'string') {
+      if (mode.startsWith('group_once:')) {
+        touchVocabularyGroupPractice(db, profileId, [Number(mode.split(':')[1])]);
+      } else if (mode.startsWith('groups_once:')) {
+        const gids = mode.split(':')[1].split(',').map(Number).filter(Boolean);
+        touchVocabularyGroupPractice(db, profileId, gids);
+      }
+    }
     const session = saveVocabularyStudySession(
       db,
-      getProfileId(req),
-      req.body?.mode,
+      profileId,
+      mode,
       req.body?.state,
       new Date(),
       { restart: req.body?.restart === true },

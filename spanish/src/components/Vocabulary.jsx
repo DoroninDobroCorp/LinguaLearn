@@ -687,6 +687,31 @@ function Vocabulary() {
     return [];
   }, []);
 
+  const sortedGroups = useMemo(() => {
+    return [...groups].sort((a, b) => {
+      const timeA = a.last_practiced_at ? new Date(a.last_practiced_at).getTime() : 0;
+      const timeB = b.last_practiced_at ? new Date(b.last_practiced_at).getTime() : 0;
+      if (timeA !== timeB) {
+        return timeB - timeA;
+      }
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [groups]);
+
+  const touchGroups = useCallback((groupIds) => {
+    if (!Array.isArray(groupIds) || groupIds.length === 0) return;
+    const nowIso = new Date().toISOString();
+    const idSet = new Set(groupIds.map(Number));
+    setGroups((prev) =>
+      prev.map((g) => (idSet.has(g.id) ? { ...g, last_practiced_at: nowIso } : g))
+    );
+    profileFetch(profileApiUrl('/spanish/api/vocabulary/groups/touch-batch'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupIds }),
+    }).catch(() => {});
+  }, []);
+
   const createGroup = async () => {
     const name = newGroupName.trim();
     if (!name) return;
@@ -966,6 +991,16 @@ function Vocabulary() {
   }, []);
 
   const startReviewSession = useCallback(async (mode = 'due', sourceEntries = entries, { forceRestart = false } = {}) => {
+    if (typeof mode === 'string') {
+      if (mode.startsWith('group_once:')) {
+        const gid = Number(mode.split(':')[1]);
+        if (Number.isFinite(gid)) touchGroups([gid]);
+      } else if (mode.startsWith('groups_once:')) {
+        const gids = mode.split(':')[1].split(',').map(Number).filter(Boolean);
+        if (gids.length > 0) touchGroups(gids);
+      }
+    }
+
     if (!forceRestart && reviewSession.mode === mode && reviewSession.entries.length > 0) {
       resetPractice();
       setShowAnswer(false);
@@ -1857,11 +1892,12 @@ function Vocabulary() {
                 <div className="space-y-3 pt-1 animate-fadeIn">
                   {/* Group selection chips */}
                   <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto p-1">
-                    {groups.map((group) => {
+                    {sortedGroups.map((group) => {
                       const isSelected = selectedStudyGroupIds.includes(group.id);
                       const isCurrentMode = reviewSession.mode === `group_once:${group.id}` ||
                         (typeof reviewSession.mode === 'string' && reviewSession.mode.startsWith('groups_once:') &&
                           reviewSession.mode.split(':')[1].split(',').map(Number).includes(group.id));
+                      const isRecentlyPracticed = Boolean(group.last_practiced_at);
                       return (
                         <button
                           key={group.id}
@@ -1871,20 +1907,33 @@ function Vocabulary() {
                               prev.includes(group.id) ? prev.filter((id) => id !== group.id) : [...prev, group.id]
                             );
                           }}
-                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all shadow-sm ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all shadow-sm ${
                             isSelected
                               ? 'border-indigo-600 bg-indigo-600 text-white ring-2 ring-indigo-300'
                               : isCurrentMode
                               ? 'border-purple-400 bg-purple-100 text-purple-950 ring-1 ring-purple-300'
+                              : isRecentlyPracticed
+                              ? 'border-indigo-300 bg-indigo-50/70 text-indigo-950 hover:border-indigo-500 hover:bg-indigo-100/70'
                               : 'border-indigo-200 bg-white text-indigo-900 hover:border-indigo-400 hover:bg-indigo-50/60'
                           }`}
-                          title={isCurrentMode ? 'Currently active in-progress round' : isSelected ? 'Selected for next round' : 'Click to select'}
+                          title={
+                            isCurrentMode
+                              ? 'Currently active in-progress round'
+                              : isSelected
+                              ? 'Selected for next round'
+                              : isRecentlyPracticed
+                              ? `Practiced recently: ${new Date(group.last_practiced_at).toLocaleString()}`
+                              : 'Click to select'
+                          }
                         >
                           <span className={`w-3.5 h-3.5 rounded flex items-center justify-center text-[10px] font-bold border ${
                             isSelected ? 'bg-white text-indigo-700 border-white' : isCurrentMode ? 'bg-purple-200 border-purple-400 text-purple-900' : 'border-indigo-300 text-transparent'
                           }`}>
                             {isSelected ? '✓' : isCurrentMode ? '⏳' : ''}
                           </span>
+                          {isRecentlyPracticed && !isSelected && !isCurrentMode && (
+                            <span className="text-[11px]" title={`Practiced: ${new Date(group.last_practiced_at).toLocaleDateString()}`}>🕒</span>
+                          )}
                           <span>{group.name}</span>
                           <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                             isSelected
