@@ -387,7 +387,7 @@ Respond ONLY with valid JSON matching this exact schema:
 }`;
 
       let exercises = [];
-      const aiModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash'];
+      const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
       for (const m of aiModels) {
         try {
           const aiRes = await Promise.race([

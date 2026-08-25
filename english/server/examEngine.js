@@ -199,8 +199,8 @@ You MUST dedicate several questions in this batch to directly drilling, testing,
 
   let questions = [];
   const proxyBase = process.env.GEMINI_API_BASE_URL || 'http://127.0.0.1:58433';
-  // NOTE: Model 2.5 is strictly for audio/speech generation. In text generation, the primary model is Gemini 3.5 Flash Lite with fallbacks to gemini-3.5-flash and gemini-3.7-flash.
-  const aiModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash'];
+  // NOTE: Model 2.5 is strictly for audio/speech generation. In text generation, all models are Gemini 3+ generation.
+  const aiModels = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
 
   async function generateAIBatch(batchTopics, count) {
     const topicsListStr = batchTopics.map((t, idx) => `${idx + 1}. [ID: ${t.id}] ${t.name} (${t.category}, Level: ${t.level})`).join('\n');
