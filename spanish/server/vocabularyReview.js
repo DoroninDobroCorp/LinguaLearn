@@ -15,8 +15,7 @@ const LEARNING_HARD_STEP_DAYS = 6 / (24 * 60); // 6 minutes
 
 export const REVIEW_CARD_DIRECTIONS = ['source_to_target', 'target_to_source'];
 export const REVIEW_GRADES = ['dont_know', 'hard', 'good', 'easy'];
-export const VOCABULARY_EXPORT_FORMAT_VERSION = 1;
-export const RESUMABLE_VOCABULARY_MODES = ['once_all', 'favorites_once'];
+export const RESUMABLE_VOCABULARY_MODES = ['once_all', 'favorites_once', 'learned_once'];
 const MAX_STUDY_SESSION_BYTES = 2 * 1024 * 1024;
 
 const REVIEW_CARD_COLUMNS = [
@@ -996,7 +995,7 @@ function normalizeStudySessionMode(mode) {
   ) {
     return value;
   }
-  throw new VocabularyApiError(400, 'mode must be once_all, favorites_once, group_once:<id>, or groups_once:<ids>', 'INVALID_STUDY_MODE');
+  throw new VocabularyApiError(400, 'mode must be once_all, favorites_once, learned_once, group_once:<id>, or groups_once:<ids>', 'INVALID_STUDY_MODE');
 }
 
 function serializeStudySessionState(state, mode) {

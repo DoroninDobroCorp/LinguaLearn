@@ -52,7 +52,7 @@ import {
 
 
 function isResumableStudyMode(mode) {
-  return mode === 'once_all' || mode === 'favorites_once' || (typeof mode === 'string' && (mode.startsWith('group_once:') || mode.startsWith('groups_once:')));
+  return mode === 'once_all' || mode === 'favorites_once' || mode === 'learned_once' || (typeof mode === 'string' && (mode.startsWith('group_once:') || mode.startsWith('groups_once:')));
 }
 
 function isAutomaticSpanishTypingCard(card) {
@@ -323,6 +323,13 @@ function isEntryEligibleForRandomStudy(entry) {
     && entry.cards.some((card) => card.is_reviewable && card.is_due);
 }
 
+function isEntryEligibleForLearnedStudy(entry) {
+  return !isEntryBlocked(entry)
+    && Array.isArray(entry?.cards)
+    && entry.cards.some((card) => card.is_reviewable)
+    && (Boolean(entry?.learned_permanently_at) || entry.cards.every((card) => card.status === 'learned'));
+}
+
 function isEntryEligibleForPracticeAll(entry) {
   return !entry?.learned_permanently_at && !isEntryBlocked(entry)
     && Array.isArray(entry?.cards)
@@ -403,10 +410,11 @@ function buildReviewSessionEntries(entries, mode = 'due') {
     : isMultiGroup
     ? mode.split(':')[1].split(',').map(Number).filter(Boolean)
     : [];
-  const exactOnce = mode === 'once_all' || mode === 'favorites_once' || isGroupMode;
+  const exactOnce = mode === 'once_all' || mode === 'favorites_once' || mode === 'learned_once' || isGroupMode;
   const practiceOnly = mode === 'practice_all' || exactOnce;
   const eligibleEntries = entries.filter((entry) => {
     if (mode === 'favorites_once' && !entry.is_favorite) return false;
+    if (mode === 'learned_once') return isEntryEligibleForLearnedStudy(entry);
     if (isGroupMode && targetGroupIds.length > 0) {
       const entryGids = (entry.group_ids || []).concat((entry.groups || []).map((g) => g.id));
       const match = targetGroupIds.some((id) => entryGids.includes(id));
@@ -548,7 +556,9 @@ function restorePersistedReviewSession(saved, liveEntries) {
   const remainingEntries = state.session.entries
     .filter((item) => {
       const live = liveById.get(Number(item.entryId));
-      if (!live || live.learned_permanently_at) return false;
+      if (!live) return false;
+      if (mode !== 'learned_once' && live.learned_permanently_at) return false;
+      if (mode === 'learned_once' && !isEntryEligibleForLearnedStudy(live)) return false;
       if (mode === 'favorites_once' && !live.is_favorite) return false;
       if (isGroupMode) {
         const match = (live.group_ids || []).includes(targetGroupId) || (live.groups || []).some((g) => g.id === targetGroupId);
@@ -1283,9 +1293,14 @@ function Vocabulary() {
     () => entries.filter((entry) => entry.is_favorite && isEntryEligibleForPracticeAll(entry)).length,
     [entries],
   );
+  const learnedCandidateCount = useMemo(
+    () => entries.filter((entry) => isEntryEligibleForLearnedStudy(entry)).length,
+    [entries],
+  );
   const remainingSessionEntries = reviewSession.entries.length;
   const continuingOnceRound = reviewSession.mode === 'once_all' && remainingSessionEntries > 0;
   const continuingFavoritesRound = reviewSession.mode === 'favorites_once' && remainingSessionEntries > 0;
+  const continuingLearnedRound = reviewSession.mode === 'learned_once' && remainingSessionEntries > 0;
   const completedSessionEntries = Math.max(0, reviewSession.totalEntries - remainingSessionEntries);
   const reviewProgressPercent = reviewSession.totalEntries > 0
     ? Math.min(100, Math.round((completedSessionEntries / reviewSession.totalEntries) * 100))
@@ -1294,6 +1309,7 @@ function Vocabulary() {
   const practiceRoundCompleted = reviewSession.isComplete && reviewSession.mode === 'practice_all' && reviewSession.totalEntries > 0;
   const onceRoundCompleted = reviewSession.isComplete && reviewSession.mode === 'once_all' && reviewSession.totalEntries > 0;
   const favoritesRoundCompleted = reviewSession.isComplete && reviewSession.mode === 'favorites_once' && reviewSession.totalEntries > 0;
+  const learnedRoundCompleted = reviewSession.isComplete && reviewSession.mode === 'learned_once' && reviewSession.totalEntries > 0;
 
   const entryCounts = useMemo(() => {
     const filterKeys = Object.keys(ENTRY_FILTERS);
@@ -1362,10 +1378,15 @@ function Vocabulary() {
   const dueLabel = useMemo(() => {
     if (reviewSession.totalEntries > 0 && currentCard) {
       const wordLabel = `${remainingSessionEntries} ${remainingSessionEntries === 1 ? 'word' : 'words'} left`;
+      if (reviewSession.mode === 'learned_once') return `${wordLabel} in learned words round`;
       if (reviewSession.mode === 'favorites_once') return `${wordLabel} in favorites round`;
       if (reviewSession.mode === 'once_all') return `${wordLabel} in exact-once round`;
       if (isCurrentGroupRound) return `${wordLabel} in «${currentGroupName}» group round`;
       return reviewSession.mode === 'practice_all' ? `${wordLabel} in random practice` : `${wordLabel} in this round`;
+    }
+
+    if (learnedRoundCompleted) {
+      return 'Learned words round finished';
     }
 
     if (reviewRoundCompleted) {
@@ -1852,15 +1873,18 @@ function Vocabulary() {
 
         <div className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
           <p className="mb-3 text-sm font-semibold text-indigo-900">Choose a study round</p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            <button type="button" onClick={() => startReviewSession('due')} disabled={dueStudyCandidateCount === 0} className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-indigo-700 shadow-sm disabled:opacity-45">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <button type="button" onClick={() => startReviewSession('due')} disabled={dueStudyCandidateCount === 0} className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-indigo-700 shadow-sm disabled:opacity-45 hover:bg-indigo-50/70 transition-colors cursor-pointer">
               Due now ({dueStudyCandidateCount})
             </button>
-            <button type="button" onClick={() => startReviewSession('once_all')} disabled={!continuingOnceRound && practiceAllCandidateCount === 0} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-45">
+            <button type="button" onClick={() => startReviewSession('once_all')} disabled={!continuingOnceRound && practiceAllCandidateCount === 0} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-45 hover:bg-indigo-700 transition-colors cursor-pointer">
               {continuingOnceRound ? `Continue all words (${remainingSessionEntries} left)` : `All words — once each (${practiceAllCandidateCount})`}
             </button>
-            <button type="button" onClick={() => startReviewSession('favorites_once')} disabled={!continuingFavoritesRound && favoriteCandidateCount === 0} className="rounded-xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-45">
+            <button type="button" onClick={() => startReviewSession('favorites_once')} disabled={!continuingFavoritesRound && favoriteCandidateCount === 0} className="rounded-xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-45 hover:bg-amber-600 transition-colors cursor-pointer">
               <Star className="mr-1 inline h-4 w-4" /> {continuingFavoritesRound ? `Continue favorites (${remainingSessionEntries} left)` : `Favorites only (${favoriteCandidateCount})`}
+            </button>
+            <button type="button" onClick={() => startReviewSession('learned_once')} disabled={!continuingLearnedRound && learnedCandidateCount === 0} className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-45 hover:bg-emerald-700 transition-colors cursor-pointer" title="Повторить полностью изученные слова (Learned forever)">
+              <GraduationCap className="mr-1 inline h-4 w-4" /> {continuingLearnedRound ? `Продолжить выученные (${remainingSessionEntries} осталось)` : `Выученные слова (${learnedCandidateCount})`}
             </button>
           </div>
 
@@ -2272,7 +2296,7 @@ function Vocabulary() {
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
             <div>
               <p className="text-sm text-gray-500">
-                {isCurrentGroupRound ? `${isMultiGroupRound ? 'Groups' : 'Group'}: ${currentGroupName} · Круг ${reviewSession.lap || 1} (бесконечный режим)` : currentCard.session_mode === 'favorites_once' ? 'Favorites — once each' : currentCard.session_mode === 'once_all' ? 'All words — once each' : currentCard.session_mode === 'practice_all' ? 'Random practice round' : 'Due round'}
+                {isCurrentGroupRound ? `${isMultiGroupRound ? 'Groups' : 'Group'}: ${currentGroupName} · Круг ${reviewSession.lap || 1} (бесконечный режим)` : currentCard.session_mode === 'learned_once' ? '🎓 Learned words — once each' : currentCard.session_mode === 'favorites_once' ? 'Favorites — once each' : currentCard.session_mode === 'once_all' ? 'All words — once each' : currentCard.session_mode === 'practice_all' ? 'Random practice round' : 'Due round'}
               </p>
               <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <Brain className="h-6 w-6 text-indigo-600" />
@@ -2630,22 +2654,26 @@ function Vocabulary() {
         <div className="bg-white rounded-2xl shadow-2xl p-12 text-center">
           <RotateCcw className="h-16 w-16 mx-auto text-green-500 mb-4" />
           <h3 className="text-2xl font-bold text-gray-800 mb-2">
-            {reviewRoundCompleted
-              ? 'Round finished!'
-              : practiceRoundCompleted
-                ? 'Practice round finished!'
-                : 'All caught up! 🎉'}
+            {learnedRoundCompleted
+              ? 'Learned words round finished!'
+              : reviewRoundCompleted
+                ? 'Round finished!'
+                : practiceRoundCompleted
+                  ? 'Practice round finished!'
+                  : 'All caught up! 🎉'}
           </h3>
           <p className="text-gray-600">
-            {favoritesRoundCompleted
-              ? 'Favorites round finished!'
-              : onceRoundCompleted
-                ? 'Every active word appeared exactly once.'
-                : reviewRoundCompleted
-              ? 'You went through every currently available word in random order and kept each word in the round until all three forms were done.'
-              : practiceRoundCompleted
-                ? 'You repeated every active word in random order.'
-                : 'No words are due right now.'}
+            {learnedRoundCompleted
+              ? 'You reviewed all permanently learned words!'
+              : favoritesRoundCompleted
+                ? 'Favorites round finished!'
+                : onceRoundCompleted
+                  ? 'Every active word appeared exactly once.'
+                  : reviewRoundCompleted
+                ? 'You went through every currently available word in random order and kept each word in the round until all three forms were done.'
+                : practiceRoundCompleted
+                  ? 'You repeated every active word in random order.'
+                  : 'No words are due right now.'}
           </p>
           {practiceAllCandidateCount > 0 && (
             <button
