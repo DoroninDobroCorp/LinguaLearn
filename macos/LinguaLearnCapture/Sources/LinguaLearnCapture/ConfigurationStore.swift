@@ -43,7 +43,7 @@ enum ConfigurationStore {
             guard KeychainTokenStorage.saveToken(legacyToken) else {
                 throw ConfigurationStoreError.keychainWriteFailed
             }
-            config.bearerToken = keychainToken
+            config.bearerToken = legacyToken
             try write(config, to: url)
         }
         return config
