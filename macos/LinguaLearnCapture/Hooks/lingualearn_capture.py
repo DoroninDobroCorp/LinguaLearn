@@ -29,6 +29,10 @@ SOCKET_STEP_TIMEOUT_SECONDS = 0.20
 SAFE_EVENT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$")
 
 
+def utc_timestamp() -> str:
+    return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def configuration_path() -> Path:
     override = os.environ.get("LINGUALEARN_CAPTURE_CONFIG")
     if override:
@@ -56,8 +60,32 @@ def make_event_id(hook_input: dict[str, Any], source_app: str, prompt: str) -> s
 def capture_payload(hook_input: Any) -> dict[str, Any] | None:
     if not isinstance(hook_input, dict):
         return None
-    prompt = hook_input.get("prompt")
-    if not isinstance(prompt, str) or not prompt or len(prompt) > MAX_PROMPT_CHARACTERS:
+    if "turn_id" in hook_input and not str(hook_input.get("turn_id", "")).strip():
+        return None
+    raw_prompt = (
+        hook_input.get("prompt")
+        or hook_input.get("user_prompt")
+        or hook_input.get("text")
+        or hook_input.get("message")
+        or hook_input.get("content")
+    )
+    if isinstance(raw_prompt, dict):
+        prompt = str(raw_prompt.get("text") or raw_prompt.get("content") or "")
+    elif isinstance(raw_prompt, list):
+        parts: list[str] = []
+        for item in raw_prompt:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict) and isinstance(item.get("text"), str):
+                parts.append(item["text"])
+        prompt = "\n".join(parts)
+    elif isinstance(raw_prompt, str):
+        prompt = raw_prompt
+    else:
+        return None
+
+    prompt = prompt.strip()
+    if not prompt or len(prompt) > MAX_PROMPT_CHARACTERS:
         return None
     source_app = hook_input.get("sourceApp") or hook_input.get("source_app") or os.environ.get("LINGUALEARN_SOURCE_APP")
     if not source_app:
