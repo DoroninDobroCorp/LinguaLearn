@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var accessibilityMonitor: AccessibilityCaptureMonitor?
     private var ingressServer: LoopbackIngressServer?
     private var hookInboxImporter: HookInboxImporter?
+    private var cliHistoryMonitor: CLIHistoryMonitor?
     private var pauseItem: NSMenuItem?
     private var statusMenuItem: NSMenuItem?
 
@@ -20,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        cliHistoryMonitor?.stop()
         hookInboxImporter?.stop()
         accessibilityMonitor?.stop()
         ingressServer?.stop()
@@ -79,9 +81,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func reloadConfiguration(showErrors: Bool) {
+        cliHistoryMonitor?.stop()
         hookInboxImporter?.stop()
         accessibilityMonitor?.stop()
         ingressServer?.stop()
+        cliHistoryMonitor = nil
         hookInboxImporter = nil
         accessibilityMonitor = nil
         ingressServer = nil
@@ -169,6 +173,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             try ingress.start()
             ingressServer = ingress
+
+            let historyMonitor = CLIHistoryMonitor { [weak coordinator] event in
+                _ = coordinator?.submit(event)
+            }
+            self.cliHistoryMonitor = historyMonitor
+            if config.captureEnabled {
+                historyMonitor.start()
+            }
 
             if config.captureEnabled {
                 if !AccessibilityCaptureMonitor.isTrusted {
@@ -302,8 +314,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if willPause {
             accessibilityMonitor?.stop()
+            cliHistoryMonitor?.stop()
             setStatus("Paused • pending queue still delivers")
         } else {
+            cliHistoryMonitor?.start()
             let started = accessibilityMonitor?.start() ?? false
             setStatus(started ? "Capturing • queue \(coordinator.queueDepth)" : capturePermissionStatus())
         }
