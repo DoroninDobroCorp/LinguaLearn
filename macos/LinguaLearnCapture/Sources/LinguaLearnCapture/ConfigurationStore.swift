@@ -34,14 +34,17 @@ enum ConfigurationStore {
         }
         let data = try Data(contentsOf: url)
         var config = try PayloadCoding.makeDecoder().decode(CaptureConfiguration.self, from: data)
-        let fileToken = config.bearerToken.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if !fileToken.isEmpty && fileToken != "CHANGE_ME" {
-            return config
-        }
+        let legacyToken = config.bearerToken.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if let keychainToken = KeychainTokenStorage.getToken(), !keychainToken.isEmpty {
             config.bearerToken = keychainToken
+        } else if !legacyToken.isEmpty && legacyToken != "CHANGE_ME" {
+            // One-time migration from older builds that stored the token in config.json.
+            guard KeychainTokenStorage.saveToken(legacyToken) else {
+                throw ConfigurationStoreError.keychainWriteFailed
+            }
+            config.bearerToken = keychainToken
+            try write(config, to: url)
         }
         return config
     }
@@ -56,10 +59,19 @@ enum ConfigurationStore {
 
         let token = configuration.bearerToken.trimmingCharacters(in: .whitespacesAndNewlines)
         if !token.isEmpty && token != "CHANGE_ME" {
-            _ = KeychainTokenStorage.saveToken(token)
+            guard KeychainTokenStorage.saveToken(token) else {
+                throw ConfigurationStoreError.keychainWriteFailed
+            }
         }
 
-        let data = try PayloadCoding.makeEncoder().encode(configuration)
+        // bearerToken remains a runtime compatibility field, but secrets are
+        // never serialized to config.json. The real value lives only in Keychain.
+        var redacted = configuration
+        redacted.bearerToken = "CHANGE_ME"
+        if token.isEmpty {
+            redacted.bearerToken = ""
+        }
+        let data = try PayloadCoding.makeEncoder().encode(redacted)
         try data.write(to: url, options: [.atomic])
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }

@@ -176,10 +176,16 @@ final class CorrectionPopupController: NSObject {
         currentAppURL = presentation.appURL
         replaceDraftHandler = presentation.replaceDraft
 
-        contentStack.addArrangedSubview(makeSection(
+        let allErrors = vm.grammarErrors + vm.mechanicalCorrections + vm.optionalSuggestions
+        let highlightedCorrected = makeHighlightedAttributedString(
+            original: vm.originalText,
+            corrected: vm.bestTextToUse,
+            errors: allErrors
+        )
+
+        contentStack.addArrangedSubview(makeAttributedSection(
             title: vm.headerTitle,
-            body: vm.bestTextToUse,
-            color: .labelColor
+            attributedBody: highlightedCorrected
         ))
 
         if !vm.grammarErrors.isEmpty {
@@ -268,6 +274,38 @@ final class CorrectionPopupController: NSObject {
         panel.setContentSize(NSSize(width: 480, height: height))
     }
 
+    private func makeHighlightedAttributedString(
+        original: String,
+        corrected: String,
+        errors: [FormattedWritingError]
+    ) -> NSAttributedString {
+        let safeCorrected = corrected.count > 2_500 ? String(corrected.prefix(2_500)) + "…" : corrected
+        let attributed = NSMutableAttributedString(
+            string: safeCorrected,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 13),
+                .foregroundColor: NSColor.labelColor
+            ]
+        )
+
+        let ranges = SentenceDiffHighlighter.computeCorrectionRanges(
+            original: original,
+            corrected: safeCorrected,
+            errors: errors
+        )
+
+        let safeLength = (safeCorrected as NSString).length
+        for range in ranges {
+            guard range.location + range.length <= safeLength else { continue }
+            attributed.addAttributes([
+                .foregroundColor: NSColor.systemRed,
+                .font: NSFont.systemFont(ofSize: 13, weight: .medium)
+            ], range: range)
+        }
+
+        return attributed
+    }
+
     private func makeSection(title: String, body: String, color: NSColor) -> NSView {
         let stack = NSStackView()
         stack.orientation = .vertical
@@ -277,6 +315,21 @@ final class CorrectionPopupController: NSObject {
         let safeBody = body.count > 2_500 ? String(body.prefix(2_500)) + "…" : body
         let label = makeLabel(safeBody, font: .systemFont(ofSize: 13))
         label.textColor = color
+        label.maximumNumberOfLines = 8
+        stack.addArrangedSubview(label)
+        stack.widthAnchor.constraint(equalToConstant: 444).isActive = true
+        return stack
+    }
+
+    private func makeAttributedSection(title: String, attributedBody: NSAttributedString) -> NSView {
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 3
+        stack.addArrangedSubview(makeLabel(title, font: .systemFont(ofSize: 12, weight: .semibold)))
+        let label = NSTextField(wrappingLabelWithString: "")
+        label.attributedStringValue = attributedBody
+        label.isSelectable = true
         label.maximumNumberOfLines = 8
         stack.addArrangedSubview(label)
         stack.widthAnchor.constraint(equalToConstant: 444).isActive = true
