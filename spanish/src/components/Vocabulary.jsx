@@ -686,6 +686,7 @@ function Vocabulary() {
   const [editingGroupName, setEditingGroupName] = useState('');
   const [activeGroupMenuWordId, setActiveGroupMenuWordId] = useState(null);
   const [pendingGroupWordIds, setPendingGroupWordIds] = useState(() => new Set());
+  const [deletingWordIds, setDeletingWordIds] = useState(() => new Set());
 
 
   const fetchGroups = useCallback(async () => {
@@ -1806,17 +1807,35 @@ function Vocabulary() {
   const restoreLearnedEntry = (entry) => toggleLearnedForever(entry);
 
   const deleteWord = async (entryId) => {
+    const id = Number(entryId);
+    if (!id) return;
     if (isOfflineRuntime()) {
       setError('Deleting vocabulary needs internet.');
       return;
     }
-    if (!window.confirm('Delete this vocabulary entry and its review progress?')) return;
 
-    setIsSubmitting(true);
-    setError('');
-    setNotice('');
+    // 1. Optimistic removal: instantly remove from UI and session queue
+    const removedEntry = entries.find((e) => Number(e.id) === id);
+    setEntries((prev) => prev.filter((e) => Number(e.id) !== id));
+    setDeletingWordIds((prev) => new Set(prev).add(id));
+    setStats((prev) => (prev ? { ...prev, total_entries: Math.max(0, (prev.total_entries || 1) - 1) } : prev));
+
+    setReviewSession((prev) => {
+      if (!prev?.choices?.length) return prev;
+      const filteredChoices = prev.choices.filter((item) => Number(item?.entry?.id) !== id);
+      const newIndex = prev.currentIndex >= filteredChoices.length
+        ? Math.max(0, filteredChoices.length - 1)
+        : prev.currentIndex;
+      return {
+        ...prev,
+        choices: filteredChoices,
+        currentIndex: newIndex,
+      };
+    });
+
+    // 2. Perform background delete request without blocking other UI actions
     try {
-      const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/${entryId}`), {
+      const response = await profileFetch(profileApiUrl(`/spanish/api/vocabulary/${id}`), {
         method: 'DELETE',
       });
 
@@ -1824,14 +1843,19 @@ function Vocabulary() {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error || 'Failed to delete word');
       }
-
-      await refreshVocabulary();
-      setShowAnswer(false);
     } catch (deleteError) {
       console.error('Error deleting word:', deleteError);
       setError(deleteError.message || 'Failed to delete word');
+      // Rollback on error
+      if (removedEntry) {
+        setEntries((prev) => [removedEntry, ...prev]);
+      }
     } finally {
-      setIsSubmitting(false);
+      setDeletingWordIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
@@ -3385,8 +3409,8 @@ function Vocabulary() {
                       <button
                         type="button"
                         onClick={() => deleteWord(entry.id)}
-                        disabled={isSubmitting}
-                        className="p-2 text-red-600 hover:bg-red-100 rounded-xl transition-colors disabled:opacity-60"
+                        disabled={deletingWordIds.has(Number(entry.id))}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-xl transition-colors disabled:opacity-60 cursor-pointer"
                         title="Delete entry"
                       >
                         <Trash2 className="h-4 w-4" />
