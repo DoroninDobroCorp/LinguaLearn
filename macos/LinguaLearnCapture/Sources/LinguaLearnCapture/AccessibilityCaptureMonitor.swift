@@ -331,10 +331,18 @@ final class AccessibilityCaptureMonitor {
 
     private func isEditable(_ element: AXUIElement) -> Bool {
         var settable = DarwinBoolean(false)
-        guard AXUIElementIsAttributeSettable(element, kAXValueAttribute as CFString, &settable) == .success else {
-            return false
+        if AXUIElementIsAttributeSettable(element, kAXValueAttribute as CFString, &settable) == .success, settable.boolValue {
+            return true
         }
-        return settable.boolValue
+        let role: String = attribute(kAXRoleAttribute, from: element) ?? ""
+        if role == "AXTextArea" || role == "AXTextField" || role == "AXComboBox" {
+            return true
+        }
+        let subrole: String = attribute(kAXSubroleAttribute, from: element) ?? ""
+        if subrole == "AXEmptyContent" || subrole == "AXContent" {
+            return true
+        }
+        return false
     }
 
     private func isSecure(element: AXUIElement, role: String) -> Bool {
@@ -353,11 +361,15 @@ final class AccessibilityCaptureMonitor {
     }
 
     private func confirmComposerWasCleared(_ candidate: Candidate, allowReplacementComposer: Bool) {
-        let interval: TimeInterval = 0.08
+        let interval: TimeInterval = 0.05
         DispatchQueue.main.asyncAfter(deadline: .now() + interval) { [weak self] in
             guard let self else { return }
             let current: String? = self.attribute(kAXValueAttribute, from: candidate.element)
-            if current?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+            let trimmedCurrent = current?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let originalTrimmed = candidate.text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // 1. If original element's text became empty or changed from original
+            if (current != nil && trimmedCurrent.isEmpty) || (current != nil && trimmedCurrent != originalTrimmed) {
                 self.recordDiagnostic(
                     event: "composerConfirmation",
                     decision: "capturedOriginalCleared",
@@ -370,19 +382,33 @@ final class AccessibilityCaptureMonitor {
                 ))
                 return
             }
-            // React/Electron may destroy and recreate its content-editable node after sending.
-            // Treat that as confirmation only when the replacement focused editor belongs to the
-            // same process and is empty; a non-empty replacement remains a draft and is ignored.
-            if allowReplacementComposer, current == nil {
+
+            // 2. React/Electron/Telegram may recreate or refocus an empty composer
+            if allowReplacementComposer {
                 let source = SourceApplication(
                     bundleIdentifier: candidate.sourceApp,
                     processIdentifier: candidate.processIdentifier
                 )
-                if let replacement = self.focusedEditableElement(for: source),
-                   replacement.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if let replacement = self.focusedEditableElement(for: source) {
+                    let repTrimmed = replacement.value.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if repTrimmed.isEmpty || repTrimmed != originalTrimmed {
+                        self.recordDiagnostic(
+                            event: "composerConfirmation",
+                            decision: "capturedReplacementEmpty",
+                            sourceApp: candidate.sourceApp
+                        )
+                        self.onCapture(CapturedSentence(
+                            sourceApp: candidate.sourceApp,
+                            text: candidate.text,
+                            capturedAt: candidate.capturedAt
+                        ))
+                        return
+                    }
+                } else if current == nil {
+                    // Stale element reference destroyed upon send -> sentence was submitted
                     self.recordDiagnostic(
                         event: "composerConfirmation",
-                        decision: "capturedReplacementEmpty",
+                        decision: "capturedElementDestroyed",
                         sourceApp: candidate.sourceApp
                     )
                     self.onCapture(CapturedSentence(
@@ -393,6 +419,7 @@ final class AccessibilityCaptureMonitor {
                     return
                 }
             }
+
             guard Date() < candidate.deadline else {
                 self.recordDiagnostic(
                     event: "composerConfirmation",

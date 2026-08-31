@@ -18,8 +18,9 @@ temporary_app="${temporary_root}/${app_name}"
 /usr/bin/ditto "${binary_dir}/LinguaLearnCapture" "${temporary_app}/Contents/MacOS/LinguaLearnCapture"
 if [[ -d "${binary_dir}/Sparkle.framework" ]]; then
     /usr/bin/ditto "${binary_dir}/Sparkle.framework" "${temporary_app}/Contents/Frameworks/Sparkle.framework"
-    /usr/bin/ditto "${binary_dir}/Sparkle.framework" "${temporary_app}/Contents/MacOS/Sparkle.framework"
 fi
+/usr/bin/install_name_tool -add_rpath "@executable_path/../Frameworks" "${temporary_app}/Contents/MacOS/LinguaLearnCapture" 2>/dev/null || true
+/usr/bin/install_name_tool -add_rpath "@loader_path/../Frameworks" "${temporary_app}/Contents/MacOS/LinguaLearnCapture" 2>/dev/null || true
 /bin/cp "${package_root}/Resources/Info.plist" "${temporary_app}/Contents/Info.plist"
 /bin/chmod 0755 "${temporary_app}/Contents/MacOS/LinguaLearnCapture"
 
