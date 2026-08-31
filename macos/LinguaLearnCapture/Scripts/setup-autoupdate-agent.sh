@@ -10,13 +10,18 @@ else
     package_root="${script_dir}"
 fi
 
-autoupdate_script="${package_root}/Scripts/autoupdate.sh"
+app_support_dir="${HOME}/Library/Application Support/LinguaLearnCapture"
+scripts_target_dir="${app_support_dir}/Scripts"
+autoupdate_script="${scripts_target_dir}/autoupdate.sh"
 launch_agents_dir="${HOME}/Library/LaunchAgents"
 agent_plist="${launch_agents_dir}/com.lingualearn.capture.autoupdate.plist"
 log_dir="${HOME}/Library/Logs/LinguaLearnCapture"
 
-/bin/mkdir -p "${launch_agents_dir}" "${log_dir}"
-/bin/chmod 0755 "${autoupdate_script}"
+/bin/mkdir -p "${launch_agents_dir}" "${log_dir}" "${scripts_target_dir}"
+/bin/cp -f "${package_root}/Scripts/autoupdate.sh" "${scripts_target_dir}/"
+/bin/cp -f "${package_root}/Scripts/update-installed.sh" "${scripts_target_dir}/"
+/bin/cp -f "${package_root}/Scripts/build-app.sh" "${scripts_target_dir}/"
+/bin/chmod 0755 "${scripts_target_dir}"/*
 
 /usr/bin/python3 - "${agent_plist}" "${autoupdate_script}" "${log_dir}/autoupdate.log" <<'PY'
 import os
