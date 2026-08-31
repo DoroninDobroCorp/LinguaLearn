@@ -425,88 +425,10 @@ Respond ONLY with valid JSON matching this exact schema:
       }
 
       if (exercises.length === 0) {
-        exercises = [
-          {
-            sourceSentence: "Они строят новый дом в центре города.",
-            targetSentence: "Ellos están construyendo una casa nueva en el centro.",
-            alternativeAnswers: ["Construyen una casa nueva en el centro.", "Están construyendo una casa nueva en el centro."],
-            testedGrammar: selectedTopicRows[0]?.name || "Estar + Gerundio",
-            usedVocabulary: ["casa", "nuevo", "centro"],
-            explanation: "Для выражения действия, происходящего прямо сейчас, используется estar + gerundio (están construyendo)."
-          },
-          {
-            sourceSentence: "Я живу в этом красивом городе уже два года.",
-            targetSentence: "Vivo en esta ciudad hermosa desde hace dos años.",
-            alternativeAnswers: ["Yo vivo en esta hermosa ciudad desde hace dos años.", "Vivo en esta ciudad bonita hace dos años."],
-            testedGrammar: "Presente / Preposiciones de tiempo",
-            usedVocabulary: ["vivir", "ciudad", "año", "dos"],
-            explanation: "Конструкция 'desde hace + промежуток времени' указывает на действие, начавшееся в прошлом и продолжающееся сейчас."
-          },
-          {
-            sourceSentence: "Мой брат хочет купить машину в следующем месяце.",
-            targetSentence: "Mi hermano quiere comprar un coche el próximo mes.",
-            alternativeAnswers: ["Mi hermano quiere comprar un auto el mes que viene.", "Mi hermano desea comprar un coche el próximo mes."],
-            testedGrammar: "Querer + Infinitivo",
-            usedVocabulary: ["hermano", "comprar", "mes", "próximo"],
-            explanation: "После модального глагола querer основной смысловой глагол ставится в инфинитиве (comprar)."
-          },
-          {
-            sourceSentence: "Мы всегда пьем кофе по утрам на террасе.",
-            targetSentence: "Siempre bebemos café por las mañanas en la terraza.",
-            alternativeAnswers: ["Nosotros tomamos café por la mañana en la terraza.", "Siempre tomamos café por las mañanas en la terraza."],
-            testedGrammar: "Presente de indicativo (rutina)",
-            usedVocabulary: ["siempre", "beber", "café", "mañana"],
-            explanation: "Для регулярных повторяющихся привычек используется Presente de Indicativo (bebemos / tomamos)."
-          },
-          {
-            sourceSentence: "Где находится ближайшая аптека?",
-            targetSentence: "¿Dónde está la farmacia más cercana?",
-            alternativeAnswers: ["¿Dónde se encuentra la farmacia más cercana?", "¿Dónde queda la farmacia más próxima?"],
-            testedGrammar: "Estar para ubicación / Superlativo",
-            usedVocabulary: ["dónde", "farmacia", "cercano"],
-            explanation: "Для указания местоположения объектов всегда используется глагол estar (¿Dónde está...?)."
-          },
-          {
-            sourceSentence: "У тебя есть время поговорить сегодня со мной?",
-            targetSentence: "¿Tienes tiempo para hablar conmigo hoy?",
-            alternativeAnswers: ["¿Tú tienes tiempo de hablar conmigo hoy?", "¿Tienes tiempo para hablar hoy conmigo?"],
-            testedGrammar: "Tener + Pronombres con preposición",
-            usedVocabulary: ["tiempo", "hablar", "hoy", "conmigo"],
-            explanation: "С предлогом con местоимение yo превращается в слитную форму conmigo."
-          },
-          {
-            sourceSentence: "Эти студенты очень умные и трудолюбивые.",
-            targetSentence: "Estos estudiantes son muy inteligentes y trabajadores.",
-            alternativeAnswers: ["Estos alumnos son muy inteligentes y trabajadores."],
-            testedGrammar: "Ser + Adjetivos de cualidad esencial",
-            usedVocabulary: ["estudiante", "inteligente", "trabajador"],
-            explanation: "Для постоянных качеств и характеристик характера используется глагол ser (son inteligentes)."
-          },
-          {
-            sourceSentence: "Завтра мы пойдем на пляж, если будет хорошая погода.",
-            targetSentence: "Mañana vamos a la playa si hace buen tiempo.",
-            alternativeAnswers: ["Mañana iremos a la playa si hace buen tiempo.", "Mañana vamos a ir a la playa si hace buen tiempo."],
-            testedGrammar: "Oraciones condicionales (si + Presente)",
-            usedVocabulary: ["mañana", "playa", "tiempo", "bueno"],
-            explanation: "В реальном условии после si используется Presente de Indicativo (si hace buen tiempo)."
-          },
-          {
-            sourceSentence: "Она не может прийти на встречу, потому что сейчас работает.",
-            targetSentence: "Ella no puede venir a la reunión porque ahora está trabajando.",
-            alternativeAnswers: ["No puede venir a la reunión porque está trabajando ahora.", "Ella no puede asistir a la reunión porque trabaja ahora."],
-            testedGrammar: "Poder + Infinitivo / Estar + Gerundio",
-            usedVocabulary: ["poder", "venir", "trabajar", "ahora"],
-            explanation: "После poder ставится инфинитив (venir), а для текущей занятости используется está trabajando."
-          },
-          {
-            sourceSentence: "Я должен закончить эту важную работу до вечера.",
-            targetSentence: "Debo terminar este trabajo importante antes de la tarde.",
-            alternativeAnswers: ["Tengo que terminar este trabajo importante antes de la tarde.", "Debo finalizar este trabajo importante para la tarde."],
-            testedGrammar: "Deber / Tener que + Infinitivo",
-            usedVocabulary: ["deber", "terminar", "trabajo", "importante", "tarde"],
-            explanation: "Обязательство выражается через deber + infinitivo или tener que + infinitivo."
-          }
-        ];
+        return res.status(503).json({
+          error: 'Модель ИИ временно недоступна для генерации предложений. Пожалуйста, попробуйте еще раз через несколько секунд.',
+          code: 'AI_MODEL_UNAVAILABLE'
+        });
       }
 
       exercises.forEach((ex, idx) => {

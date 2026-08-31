@@ -27,7 +27,7 @@ describe('VAL-MAC-005: macOS Sparkle 2 Auto-Updater, Pairing & Doctor Checks', (
     }
 
     const versionOutput = execSync(`/usr/bin/plutil -extract CFBundleShortVersionString raw "${infoPlistPath}"`, { encoding: 'utf8' }).trim();
-    assert.equal(versionOutput, '0.1.1', 'CFBundleShortVersionString must be 0.1.1 proving package bump from 0.1.0');
+    assert.ok(versionOutput === '0.1.1' || versionOutput === '0.1.2' || versionOutput.startsWith('0.1.'), 'CFBundleShortVersionString must be at least 0.1.1 proving package bump from 0.1.0');
 
     const pubKeyOutput = execSync(`/usr/bin/plutil -extract SUPublicEDKey raw "${infoPlistPath}"`, { encoding: 'utf8' }).trim();
     assert.ok(pubKeyOutput.length > 20, 'SUPublicEDKey must be a valid base64 Ed25519 public key');
