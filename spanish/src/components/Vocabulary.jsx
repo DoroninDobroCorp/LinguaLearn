@@ -1,3 +1,4 @@
+import { useLanguage } from '../contexts/LanguageContext';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
@@ -99,24 +100,28 @@ const REVIEW_ACTIONS = [
   {
     key: 'dont_know',
     label: "Don't Know",
+    labelRu: "Не знаю",
     icon: X,
     className: 'bg-red-500 hover:bg-red-600',
   },
   {
     key: 'hard',
     label: 'Hard',
+    labelRu: "Сложно",
     icon: AlertCircle,
     className: 'bg-orange-500 hover:bg-orange-600',
   },
   {
     key: 'good',
     label: 'Good',
+    labelRu: "Хорошо",
     icon: Check,
     className: 'bg-blue-500 hover:bg-blue-600',
   },
   {
     key: 'easy',
     label: 'Easy',
+    labelRu: "Легко",
     icon: TrendingUp,
     className: 'bg-green-500 hover:bg-green-600',
   },
@@ -501,19 +506,26 @@ function createReviewSession(entries, mode = 'due') {
   };
 }
 
-function advanceReviewSession(session, completedCard) {
-  const nextEntries = session.entries
-    .map((entry) => {
-      if (entry.entryId !== completedCard?.id) {
-        return entry;
-      }
+function advanceReviewSession(session, completedCard, { repeatMistake = false } = {}) {
+  let nextEntries;
+  if (repeatMistake) {
+    const failedEntry = session.entries.find((entry) => entry.entryId === completedCard?.id);
+    const otherEntries = session.entries.filter((entry) => entry.entryId !== completedCard?.id);
+    nextEntries = failedEntry ? [...otherEntries, failedEntry] : session.entries;
+  } else {
+    nextEntries = session.entries
+      .map((entry) => {
+        if (entry.entryId !== completedCard?.id) {
+          return entry;
+        }
 
-      return {
-        ...entry,
-        remainingVariants: entry.remainingVariants.filter((variant) => variant.key !== completedCard.study_variant),
-      };
-    })
-    .filter((entry) => entry.remainingVariants.length > 0);
+        return {
+          ...entry,
+          remainingVariants: entry.remainingVariants.filter((variant) => variant.key !== completedCard.study_variant),
+        };
+      })
+      .filter((entry) => entry.remainingVariants.length > 0);
+  }
 
   const selection = pickNextSessionCard(nextEntries, session.mode, completedCard?.id || null);
 
@@ -627,6 +639,7 @@ function VoiceActionButton({
 }
 
 function Vocabulary() {
+  const { language } = useLanguage();
   const [entries, setEntries] = useState([]);
   const [reviewQueue, setReviewQueue] = useState([]);
   const [reviewSession, setReviewSession] = useState(INITIAL_REVIEW_SESSION);
@@ -1047,8 +1060,7 @@ function Vocabulary() {
           }
         }
       } catch (loadError) {
-        setError(`Could not check the saved vocabulary round: ${loadError.message}`);
-        return;
+        console.warn("Could not check saved vocabulary round online, continuing locally:", loadError);
       }
     }
 
@@ -1067,7 +1079,7 @@ function Vocabulary() {
     startReviewSession(mode, entries, { forceRestart: true });
   }, [entries, startReviewSession]);
 
-  const advanceCurrentSessionCard = useCallback((completedCard = currentCard, { removeEntry = false } = {}) => {
+  const advanceCurrentSessionCard = useCallback((completedCard = currentCard, { removeEntry = false, repeatMistake = false } = {}) => {
     if (!completedCard) {
       return;
     }
@@ -1090,7 +1102,7 @@ function Vocabulary() {
 
     let nextState = removeEntry
       ? removeEntryFromReviewSession(reviewSession, completedCard.id)
-      : advanceReviewSession(reviewSession, completedCard);
+      : advanceReviewSession(reviewSession, completedCard, { repeatMistake });
 
     // Infinite loop for group rounds: when the round finishes, automatically start next shuffled lap!
     const isGroupRound = typeof reviewSession.mode === 'string' && (reviewSession.mode.startsWith('group_once:') || reviewSession.mode.startsWith('groups_once:'));
@@ -1186,7 +1198,7 @@ function Vocabulary() {
   }, [entries, isLoading, reviewQueue.length, reviewSession.isComplete, reviewSession.totalEntries, studySessionHydrated]);
 
   useEffect(() => {
-    if (!studySessionHydrated || !isResumableStudyMode(reviewSession.mode)) return undefined;
+    if (!studySessionHydrated || !isResumableStudyMode(reviewSession.mode) || isOfflineRuntime()) return undefined;
     const payload = {
       mode: reviewSession.mode,
       state: { session: reviewSession, currentCard: reviewQueue[0] || null },
@@ -1528,7 +1540,8 @@ function Vocabulary() {
       );
     }
 
-    advanceCurrentSessionCard(currentCard);
+    const isMistake = grade === again || grade === 1 || grade === hard;
+    advanceCurrentSessionCard(currentCard, { repeatMistake: isMistake });
   };
 
   const handleLearned = () => {
@@ -2645,19 +2658,20 @@ function Vocabulary() {
 
           {showAnswer && (
             <div className="mt-4 space-y-3">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
                 {REVIEW_ACTIONS.map((action) => {
                   const Icon = action.icon;
+                  const btnLabel = language === 'ru' ? (action.labelRu || action.label) : action.label;
                   return (
                     <button
                       key={action.key}
                       type="button"
                       onClick={() => handleReview(action.key)}
                       disabled={isVoicePracticeBusy}
-                      className={`rounded-xl px-3 py-2.5 text-xs font-semibold text-white transition-all shadow-md flex min-h-[3.25rem] items-center justify-center gap-1.5 text-center leading-tight disabled:opacity-60 sm:min-h-[4rem] sm:flex-col sm:gap-1 sm:px-3 sm:py-3 sm:text-sm ${action.className}`}
+                      className={`rounded-2xl px-3 py-3 text-xs sm:text-sm font-bold text-white transition-all shadow-md flex min-h-[3.5rem] items-center justify-center gap-1.5 text-center leading-tight active:scale-95 disabled:opacity-60 sm:min-h-[4rem] sm:flex-col sm:gap-1 sm:px-3 sm:py-3 ${action.className}`}
                     >
-                      <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                      <span>{action.label}</span>
+                      <Icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <span>{btnLabel}</span>
                     </button>
                   );
                 })}
@@ -2665,10 +2679,10 @@ function Vocabulary() {
                   type="button"
                   onClick={() => updateFavorite(currentCard, !currentCard.is_favorite)}
                   disabled={pendingFavoriteIds.has(Number(currentCard.id)) || isVoicePracticeBusy}
-                  className={`rounded-xl border-2 px-3 py-2.5 text-xs font-semibold transition-all shadow-md flex min-h-[3.25rem] items-center justify-center gap-1.5 text-center leading-tight disabled:opacity-60 sm:min-h-[4rem] sm:flex-col sm:gap-1 sm:px-3 sm:py-3 sm:text-sm ${currentCard.is_favorite ? 'border-amber-500 bg-amber-100 text-amber-800' : 'border-amber-300 bg-white text-amber-700 hover:bg-amber-50'}`}
+                  className={`col-span-2 sm:col-span-1 rounded-2xl border-2 px-3 py-2.5 text-xs sm:text-sm font-bold transition-all shadow-xs flex min-h-[3rem] items-center justify-center gap-1.5 text-center leading-tight active:scale-95 disabled:opacity-60 sm:min-h-[4rem] sm:flex-col sm:gap-1 sm:px-3 sm:py-3 ${currentCard.is_favorite ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200' : 'border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50'}`}
                 >
                   <Star className={`h-4 w-4 sm:h-5 sm:w-5 ${currentCard.is_favorite ? 'fill-current' : ''}`} />
-                  <span>{currentCard.is_favorite ? 'Remove Favorite' : 'Add Favorite'}</span>
+                  <span>{currentCard.is_favorite ? (language === 'ru' ? 'В избранном ★' : 'Remove Favorite') : (language === 'ru' ? 'В избранное ☆' : 'Add Favorite')}</span>
                 </button>
               </div>
 

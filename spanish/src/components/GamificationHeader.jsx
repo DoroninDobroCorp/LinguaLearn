@@ -37,7 +37,21 @@ export default function GamificationHeader() {
 
   return (
     <>
-      <div className="flex items-center space-x-2 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md px-3 py-1 rounded-full border border-purple-200 dark:border-gray-700 shadow-sm text-xs font-bold">
+      {/* Mobile compact badge (< md) */}
+      <div
+        className="flex md:hidden items-center space-x-1.5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 px-2.5 py-1 rounded-full border border-amber-300/80 dark:border-slate-700 shadow-xs cursor-pointer active:scale-95 transition-all text-xs font-black text-amber-600 dark:text-amber-400"
+        onClick={() => setShowQuestsModal(true)}
+        title={`Racha: ${status.streakDays} días, Nivel ${status.level}`}
+      >
+        <Flame className="w-4 h-4 fill-amber-500 text-amber-500 animate-pulse" />
+        <span>{status.streakDays}</span>
+        <span className="text-[10px] bg-amber-200/80 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded-full font-extrabold leading-none">
+          {completedQuestsCount}/{totalQuestsCount}
+        </span>
+      </div>
+
+      {/* Desktop / tablet full badge (>= md) */}
+      <div className="hidden md:flex items-center space-x-2 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md px-3 py-1 rounded-full border border-purple-200 dark:border-gray-700 shadow-sm text-xs font-bold">
         {/* Level Badge */}
         <div className="flex items-center space-x-1.5 text-purple-900 dark:text-purple-300">
           <span className="text-base">{status.emoji}</span>

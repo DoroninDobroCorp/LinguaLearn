@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect , useRef} from 'react';
 
 const LanguageContext = createContext();
 
@@ -337,6 +337,8 @@ export function useLanguage() {
 
 export function LanguageSwitcher() {
   const { language, setLanguage } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
 
   const options = [
     { code: 'ru', label: 'RU', flag: '🇷🇺' },
@@ -344,23 +346,74 @@ export function LanguageSwitcher() {
     { code: 'es', label: 'ES', flag: '🇪🇸' },
   ];
 
+  const currentOption = options.find((opt) => opt.code === language) || options[0];
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
-    <div className="flex items-center space-x-1 bg-white/70 dark:bg-gray-800/70 p-1 rounded-xl border border-purple-200 dark:border-gray-700 shadow-sm">
-      {options.map((opt) => (
+    <div className="relative" ref={menuRef}>
+      {/* Mobile compact switcher (< sm) */}
+      <div className="sm:hidden">
         <button
-          key={opt.code}
-          onClick={() => setLanguage(opt.code)}
-          className={`px-2 py-1 rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ${
-            language === opt.code
-              ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-sm scale-105'
-              : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
-          }`}
-          title={`Interface language: ${opt.label}`}
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="flex items-center space-x-1 bg-white/80 dark:bg-gray-800/80 px-2 py-1.5 rounded-xl border border-purple-200 dark:border-gray-700 shadow-xs text-xs font-bold text-gray-800 dark:text-gray-200 active:scale-95 transition-all"
+          aria-label="Сменить язык интерфейса"
         >
-          <span>{opt.flag}</span>
-          <span>{opt.label}</span>
+          <span className="text-sm leading-none">{currentOption.flag}</span>
+          <span className="text-[11px] font-extrabold">{currentOption.label}</span>
         </button>
-      ))}
+
+        {open && (
+          <div className="absolute right-0 top-full mt-1.5 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-purple-200 dark:border-gray-700 p-1 z-50 min-w-[110px] flex flex-col space-y-0.5 animate-slide-up">
+            {options.map((opt) => (
+              <button
+                key={opt.code}
+                type="button"
+                onClick={() => {
+                  setLanguage(opt.code);
+                  setOpen(false);
+                }}
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-left w-full ${
+                  language === opt.code
+                    ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-xs'
+                    : 'text-gray-700 dark:text-gray-200 hover:bg-purple-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                <span>{opt.flag}</span>
+                <span>{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop pills (>= sm) */}
+      <div className="hidden sm:flex items-center space-x-1 bg-white/70 dark:bg-gray-800/70 p-1 rounded-xl border border-purple-200 dark:border-gray-700 shadow-sm">
+        {options.map((opt) => (
+          <button
+            key={opt.code}
+            onClick={() => setLanguage(opt.code)}
+            className={`px-2 py-1 rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ${
+              language === opt.code
+                ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-sm scale-105'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+            }`}
+            title={`Interface language: ${opt.label}`}
+          >
+            <span>{opt.flag}</span>
+            <span>{opt.label}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

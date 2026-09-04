@@ -10,8 +10,9 @@ import VerbDrillsSection from './exercises/VerbDrillsSection';
 import WordTilesSection from './exercises/WordTilesSection';
 import SpeedMatchSection from './exercises/SpeedMatchSection';
 import ErrorDetectiveSection from './exercises/ErrorDetectiveSection';
+import CognateBridgesSection from './exercises/CognateBridgesSection';
 
-const VALID_EXERCISE_TABS = ['translation', 'classic_quiz', 'verb_drills', 'word_tiles', 'speed_match', 'error_detective'];
+const VALID_EXERCISE_TABS = ['translation', 'classic_quiz', 'verb_drills', 'cognates', 'word_tiles', 'speed_match', 'error_detective'];
 
 export default function Exercises() {
   const { t } = useLanguage();
@@ -48,6 +49,7 @@ export default function Exercises() {
     { id: 'translation', label: 'Перевод предложений', emoji: '🌐' },
     { id: 'classic_quiz', label: 'Тесты & Экзамены (ИИ)', emoji: '🧠' },
     { id: 'verb_drills', label: 'Спряжения глаголов', emoji: '🎯' },
+    { id: 'cognates', label: 'Когнаты и ложные друзья', emoji: '🌉' },
     { id: 'word_tiles', label: 'Конструктор фраз', emoji: '🧩' },
     { id: 'speed_match', label: 'Speed Match Blitz', emoji: '⚡' },
     { id: 'error_detective', label: 'Детектив ошибок', emoji: '🔍' },
@@ -72,7 +74,7 @@ export default function Exercises() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 mb-8 bg-white/80 dark:bg-gray-800/80 p-2 rounded-2xl border border-purple-100 dark:border-gray-700 shadow-sm">
+      <div className="flex overflow-x-auto no-scrollbar gap-2 mb-6 p-1.5 sm:p-2 bg-white/80 dark:bg-gray-800/80 rounded-2xl border border-purple-100 dark:border-gray-700 shadow-sm sm:flex-wrap">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -82,13 +84,13 @@ export default function Exercises() {
                 soundEngine.playTileClick();
                 setActiveTab(tab.id);
               }}
-              className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+              className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex-shrink-0 whitespace-nowrap active:scale-95 ${
                 isActive
                   ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md scale-105'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-purple-50 dark:hover:bg-gray-700'
               }`}
             >
-              <span>{tab.emoji}</span>
+              <span className="text-base sm:text-lg">{tab.emoji}</span>
               <span>{tab.label}</span>
             </button>
           );
@@ -96,6 +98,7 @@ export default function Exercises() {
       </div>
 
       {activeTab === 'translation' && <SentenceTranslationSection />}
+      {activeTab === 'cognates' && <CognateBridgesSection />}
       {activeTab === 'word_tiles' && <WordTilesSection />}
       {activeTab === 'speed_match' && <SpeedMatchSection />}
       {activeTab === 'error_detective' && <ErrorDetectiveSection />}

@@ -158,6 +158,32 @@ const IRREGULAR_VERBS = {
       ellos: 'van',
     },
   },
+  hacer: {
+    infinitive: 'hacer',
+    translation: 'делать',
+    forms: {
+      yo: 'hago',
+      tu: 'haces',
+      vos: 'hacés',
+      el: 'hace',
+      nosotros: 'hacemos',
+      vosotros: 'hacéis',
+      ellos: 'hacen',
+    },
+  },
+  decir: {
+    infinitive: 'decir',
+    translation: 'говорить, сказать',
+    forms: {
+      yo: 'digo',
+      tu: 'dices',
+      vos: 'decís',
+      el: 'dice',
+      nosotros: 'decimos',
+      vosotros: 'decís',
+      ellos: 'dicen',
+    },
+  },
 };
 
 export const SER_ESTAR_CONTEXTS = [
@@ -269,6 +295,31 @@ export const DRILL_TYPES = {
       'Estar — для местоположения, временных состояний, настроения, самочувствия.',
     ],
   },
+  hacerDecir: {
+    label: 'Hacer и Decir (неправильные)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    rules: [
+      'hacer (делать): yo hago, tú haces, vos hacés, él hace, nosotros hacemos, vosotros hacéis (Испания), ellos/ustedes hacen.',
+      'decir (сказать): yo digo, tú dices, vos decís, él dice, nosotros decimos, vosotros decís (Испания), ellos/ustedes dicen.',
+    ],
+  },
+  hacer: {
+    label: 'Hacer (делать)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    rules: [
+      'hacer (неправильный): yo hago, tú haces, vos hacés, él/ella/usted hace, nosotros hacemos, vosotros hacéis (Испания), ellos/ustedes hacen.',
+    ],
+  },
+  decir: {
+    label: 'Decir (сказать)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    rules: [
+      'decir (неправильный): yo digo, tú dices, vos decís, él/ella/usted dice, nosotros decimos, vosotros decís (Испания), ellos/ustedes dicen.',
+    ],
+  },
 };
 
 function getRandomInt(max) {
@@ -286,7 +337,9 @@ export function conjugateVerb(drillType, verb, pronounId) {
     return conjugateRegularVerb(verb, pronounId);
   }
 
-  const irregularKey = drillType === 'fourKeyVerbs' ? (verb.infinitive || 'ser') : drillType;
+  const irregularKey = (drillType === 'fourKeyVerbs' || drillType === 'hacerDecir')
+    ? (verb.infinitive || 'ser')
+    : (verb?.infinitive || drillType);
   return IRREGULAR_VERBS[irregularKey].forms[pronounId];
 }
 
@@ -339,6 +392,26 @@ export function createVerbDrillQuestion(drillType = 'regular', pronounMode = 'al
     };
   }
 
+  if (drillType === 'hacerDecir') {
+    const keys = ['hacer', 'decir'];
+    const selectedKey = keys[getRandomInt(keys.length)];
+    const verb = IRREGULAR_VERBS[selectedKey];
+    const pronoun = activePronouns[getRandomInt(activePronouns.length)];
+
+    return {
+      id: `${drillType}-${verb.infinitive}-${pronoun.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      drillType,
+      subDrillType: selectedKey,
+      verb: verb.infinitive,
+      translation: verb.translation,
+      pronounId: pronoun.id,
+      pronoun: pronoun.label,
+      pronounAliases: pronoun.answerAliases,
+      ending: null,
+      correctAnswer: conjugateVerb(selectedKey, verb, pronoun.id),
+    };
+  }
+
   const pronoun = activePronouns[getRandomInt(activePronouns.length)];
   const verb = drillType === 'regular'
     ? REGULAR_VERBS[getRandomInt(REGULAR_VERBS.length)]
@@ -370,6 +443,10 @@ export function getVerbDrillProgressTopic(question) {
       : question.subDrillType === 'ir'
       ? 'Present tense irregular verbs (ir/hacer/decir)'
       : 'Ser vs Estar (basic)';
+  }
+
+  if (question?.drillType === 'hacerDecir' || question?.drillType === 'hacer' || question?.drillType === 'decir') {
+    return 'Present tense irregular verbs (ir/hacer/decir)';
   }
 
   return DRILL_TYPES[question?.drillType]?.topic ?? 'Ser vs Estar (basic)';
