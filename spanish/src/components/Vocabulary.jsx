@@ -44,7 +44,17 @@ import {
   shouldStopSpeakingOnCardFlip,
 } from '../utils/speechPractice';
 import { scoreTypedAnswer } from '../utils/answerMatching';
-import { buildOnceEachChoices } from '../utils/vocabularyRounds';
+import {
+  buildOnceEachChoices,
+  isReviewMistake,
+  isEntryEligibleForRandomStudy,
+  isEntryEligibleForLearnedStudy,
+  isEntryEligibleForPracticeAll,
+  chooseRandomItem,
+  pickNextSessionCard,
+  advanceReviewSession,
+  removeEntryFromReviewSession,
+} from '../utils/vocabularyRounds';
 import {
   formatOfflineCacheTime,
   readOfflineVocabularyCache,
@@ -322,25 +332,6 @@ function findEntryCard(entry, direction) {
   return entry.cards.find((card) => card.direction === direction && card.is_reviewable) || null;
 }
 
-function isEntryEligibleForRandomStudy(entry) {
-  return !entry?.learned_permanently_at && !isEntryBlocked(entry)
-    && Array.isArray(entry?.cards)
-    && entry.cards.some((card) => card.is_reviewable && card.is_due);
-}
-
-function isEntryEligibleForLearnedStudy(entry) {
-  return !isEntryBlocked(entry)
-    && Array.isArray(entry?.cards)
-    && entry.cards.some((card) => card.is_reviewable)
-    && (Boolean(entry?.learned_permanently_at) || entry.cards.every((card) => card.status === 'learned'));
-}
-
-function isEntryEligibleForPracticeAll(entry) {
-  return !entry?.learned_permanently_at && !isEntryBlocked(entry)
-    && Array.isArray(entry?.cards)
-    && entry.cards.some((card) => card.is_reviewable)
-    && !entry.cards.every((card) => card.status === 'learned');
-}
 
 function buildSessionVariant(card, {
   key,
@@ -398,13 +389,6 @@ function buildStudyVariantsForEntry(entry, { practiceOnly = false } = {}) {
   return variants;
 }
 
-function chooseRandomItem(values = []) {
-  if (values.length === 0) {
-    return null;
-  }
-
-  return values[Math.floor(Math.random() * values.length)] || values[0];
-}
 
 function buildReviewSessionEntries(entries, mode = 'due') {
   const isSingleGroup = typeof mode === 'string' && mode.startsWith('group_once:');
@@ -451,43 +435,6 @@ function buildReviewSessionEntries(entries, mode = 'due') {
     .filter((entry) => entry.remainingVariants.length > 0);
 }
 
-function pickNextSessionCard(sessionEntries, sessionMode = 'due', previousEntryId = null) {
-  const activeEntries = sessionEntries.filter((entry) => entry.remainingVariants.length > 0);
-  if (activeEntries.length === 0) {
-    return null;
-  }
-
-  const candidateEntries = activeEntries.length > 1
-    ? activeEntries.filter((entry) => entry.entryId !== previousEntryId)
-    : activeEntries;
-  const selectedEntry = chooseRandomItem(candidateEntries.length > 0 ? candidateEntries : activeEntries);
-  const selectedVariant = chooseRandomItem(selectedEntry?.remainingVariants || []);
-
-  if (!selectedEntry || !selectedVariant) {
-    return null;
-  }
-
-  return {
-    entryId: selectedEntry.entryId,
-    card: {
-      id: selectedEntry.entryId,
-      entry_id: selectedEntry.entryId,
-      word: selectedEntry.word,
-      translation: selectedEntry.translation,
-      example: selectedEntry.example,
-      is_favorite: selectedEntry.isFavorite,
-      groups: selectedEntry.groups || [],
-      group_ids: selectedEntry.group_ids || [],
-      due_card_count: selectedEntry.dueCardCount,
-      total_forms_for_word: selectedEntry.totalVariants,
-      forms_remaining_for_word: selectedEntry.remainingVariants.length,
-      current_form_index: (selectedEntry.totalVariants - selectedEntry.remainingVariants.length) + 1,
-      session_mode: sessionMode,
-      study_variant: selectedVariant.key,
-      ...selectedVariant,
-    },
-  };
-}
 
 function createReviewSession(entries, mode = 'due') {
   const sessionEntries = buildReviewSessionEntries(entries, mode);
@@ -506,54 +453,6 @@ function createReviewSession(entries, mode = 'due') {
   };
 }
 
-function advanceReviewSession(session, completedCard, { repeatMistake = false } = {}) {
-  let nextEntries;
-  if (repeatMistake) {
-    const failedEntry = session.entries.find((entry) => entry.entryId === completedCard?.id);
-    const otherEntries = session.entries.filter((entry) => entry.entryId !== completedCard?.id);
-    nextEntries = failedEntry ? [...otherEntries, failedEntry] : session.entries;
-  } else {
-    nextEntries = session.entries
-      .map((entry) => {
-        if (entry.entryId !== completedCard?.id) {
-          return entry;
-        }
-
-        return {
-          ...entry,
-          remainingVariants: entry.remainingVariants.filter((variant) => variant.key !== completedCard.study_variant),
-        };
-      })
-      .filter((entry) => entry.remainingVariants.length > 0);
-  }
-
-  const selection = pickNextSessionCard(nextEntries, session.mode, completedCard?.id || null);
-
-  return {
-    session: {
-      ...session,
-      entries: nextEntries,
-      lastEntryId: selection?.entryId || completedCard?.id || null,
-      isComplete: nextEntries.length === 0,
-    },
-    currentCard: selection?.card || null,
-  };
-}
-
-function removeEntryFromReviewSession(session, entryId) {
-  const nextEntries = session.entries.filter((entry) => entry.entryId !== entryId);
-  const selection = pickNextSessionCard(nextEntries, session.mode, entryId);
-
-  return {
-    session: {
-      ...session,
-      entries: nextEntries,
-      lastEntryId: selection?.entryId || entryId || null,
-      isComplete: nextEntries.length === 0,
-    },
-    currentCard: selection?.card || null,
-  };
-}
 
 function restorePersistedReviewSession(saved, liveEntries) {
   const mode = saved?.mode;
@@ -645,6 +544,9 @@ function Vocabulary() {
   const [reviewSession, setReviewSession] = useState(INITIAL_REVIEW_SESSION);
   const [stats, setStats] = useState(INITIAL_STATS);
   const [todayVocabProgress, setTodayVocabProgress] = useState(0);
+  const cardContainerRef = useRef(null);
+  const [showVoicePracticeDetails, setShowVoicePracticeDetails] = useState(false);
+  const [isRoundsExpanded, setIsRoundsExpanded] = useState(false);
 
   const fetchDailyVocabProgress = useCallback(async () => {
     try {
@@ -1072,6 +974,10 @@ function Vocabulary() {
     setShowAnswer(false);
     setTypedAnswer('');
     setTypingFeedback(null);
+    setIsRoundsExpanded(false);
+    setTimeout(() => {
+      cardContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
   }, [entries, resetPractice, reviewSession.entries.length, reviewSession.mode]);
 
   const restartReviewSession = useCallback((mode) => {
@@ -1540,7 +1446,7 @@ function Vocabulary() {
       );
     }
 
-    const isMistake = grade === again || grade === 1 || grade === hard;
+    const isMistake = isReviewMistake(grade);
     advanceCurrentSessionCard(currentCard, { repeatMistake: isMistake });
   };
 
@@ -2034,6 +1940,40 @@ function Vocabulary() {
           </div>
         )}
 
+{currentCard && !isRoundsExpanded ? (
+          <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50/80 p-3.5 flex flex-wrap items-center justify-between gap-2 shadow-xs">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-indigo-600 flex-shrink-0" />
+              <div>
+                <span className="text-xs sm:text-sm font-bold text-indigo-950">
+                  {isCurrentGroupRound
+                    ? `📁 ${currentGroupName} (Круг ${reviewSession.lap || 1})`
+                    : reviewSession.mode === 'learned_once'
+                    ? '🎓 Повторение выученных слов'
+                    : reviewSession.mode === 'favorites_once'
+                    ? '★ Повторение избранных'
+                    : reviewSession.mode === 'once_all'
+                    ? '📚 Повторение всех слов'
+                    : reviewSession.mode === 'practice_all'
+                    ? '🎲 Случайная практика'
+                    : '⚡ Due round'}
+                </span>
+                <span className="text-xs text-indigo-700 ml-2 font-semibold">
+                  {remainingSessionEntries > 0 ? `(${remainingSessionEntries} осталось)` : ''}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsRoundsExpanded(true)}
+              className="text-xs font-bold text-indigo-700 bg-white hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1"
+            >
+              <span>Сменить режим / Статистика</span>
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div>
         <div className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
           <p className="mb-3 text-sm font-semibold text-indigo-900">Choose a study round</p>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -2259,6 +2199,18 @@ function Vocabulary() {
             );
           })}
         </div>
+            {currentCard && (
+              <button
+                type="button"
+                onClick={() => setIsRoundsExpanded(false)}
+                className="w-full mt-3 py-2 text-xs font-bold text-indigo-700 bg-indigo-100/70 hover:bg-indigo-200 rounded-xl flex items-center justify-center gap-1 transition-colors cursor-pointer"
+              >
+                <ChevronUp className="h-4 w-4" />
+                <span>Свернуть к текущей тренировке</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {stats.pending_completion_entries > 0 && (
@@ -2455,81 +2407,78 @@ function Vocabulary() {
           Loading vocabulary cards...
         </div>
       ) : currentCard ? (
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
-            <div>
-              <p className="text-sm text-gray-500">
-                {isCurrentGroupRound ? `${isMultiGroupRound ? 'Groups' : 'Group'}: ${currentGroupName} · Круг ${reviewSession.lap || 1} (бесконечный режим)` : currentCard.session_mode === 'learned_once' ? '🎓 Learned words — once each' : currentCard.session_mode === 'favorites_once' ? 'Favorites — once each' : currentCard.session_mode === 'once_all' ? 'All words — once each' : currentCard.session_mode === 'practice_all' ? 'Random practice round' : 'Due round'}
-              </p>
-              <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <Brain className="h-6 w-6 text-indigo-600" />
-                {dueLabel}
-              </h3>
-            </div>
-
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-semibold">
-                <Languages className="h-4 w-4" />
+        <div ref={cardContainerRef} className="bg-white rounded-2xl shadow-xl p-3.5 sm:p-6 md:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">
+                {isCurrentGroupRound
+                  ? `📁 ${currentGroupName} · Круг ${reviewSession.lap || 1}`
+                  : currentCard.session_mode === 'learned_once'
+                  ? '🎓 Выученные слова'
+                  : currentCard.session_mode === 'favorites_once'
+                  ? '★ Избранное'
+                  : currentCard.session_mode === 'once_all'
+                  ? '📚 Все слова'
+                  : currentCard.session_mode === 'practice_all'
+                  ? '🎲 Случайная практика'
+                  : '⚡ Due round'}
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-semibold">
+                <Languages className="h-3.5 w-3.5" />
                 {currentCard.direction_label}
               </span>
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-sm font-semibold">
-                <RotateCcw className="h-4 w-4" />
-                Form {currentCard.current_form_index} of {currentCard.total_forms_for_word}
-              </span>
-              {currentCard.due_card_count > 1 && (
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold">
-                  <RotateCcw className="h-4 w-4" />
-                  {currentCard.due_card_count} practice directions due
+              {currentCard.total_forms_for_word > 1 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-semibold">
+                  <RotateCcw className="h-3 w-3" />
+                  {currentCard.current_form_index}/{currentCard.total_forms_for_word}
                 </span>
               )}
               {currentCard.practice_only && (
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-sm font-semibold">
-                  <AlertCircle className="h-4 w-4" />
-                  Practice only
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[11px] font-semibold">
+                  Тренировка
                 </span>
               )}
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${STATUS_STYLES[currentCard.status] || STATUS_STYLES.review}`}>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${STATUS_STYLES[currentCard.status] || STATUS_STYLES.review}`}>
                 {statusLabel(currentCard.status)}
               </span>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+              {remainingSessionEntries > 0 && <span>Осталось: {remainingSessionEntries}</span>}
               {isCurrentGroupRound && (
                 <button
                   type="button"
                   onClick={() => startReviewSession('due')}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-colors shadow-sm"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-colors"
                   title="Остановить тренировку группы"
                 >
-                  <span>🛑 Закончить тренировку</span>
+                  <span>🛑 Стоп</span>
                 </button>
               )}
             </div>
           </div>
 
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+          <div className="w-full bg-gray-100 rounded-full h-1.5 mb-2.5">
             <div
-              className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all"
+              className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full transition-all"
               style={{ width: `${reviewProgressPercent}%` }}
             />
           </div>
 
-          {/* Daily Quest Progress Live Banner */}
-          <div className="mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 border border-purple-200 flex items-center justify-between shadow-sm">
-            <div className="flex items-center space-x-2.5">
-              <span className="text-xl">📇</span>
-              <div>
-                <div className="text-xs font-black text-gray-900 flex items-center gap-2">
-                  <span>Миссия на сегодня: Повторение слов</span>
-                  {todayVocabProgress >= 10 && (
-                    <span className="text-[10px] bg-green-500 text-white font-bold px-2 py-0.5 rounded-full">
-                      ✓ Выполнено (+30 XP)
-                    </span>
-                  )}
-                </div>
-                <div className="text-[11px] text-gray-600 font-medium">
-                  Повторено сегодня: <strong>{todayVocabProgress}</strong> из 10 карточек
-                </div>
-              </div>
+          {/* Daily Quest Live Mini Bar */}
+          <div className="mb-3 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 border border-purple-200/80 flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">📇</span>
+              <span className="text-xs font-bold text-gray-800">
+                Миссия дня: <strong className="text-indigo-600 font-extrabold">{todayVocabProgress}</strong>/10 слов
+              </span>
+              {todayVocabProgress >= 10 && (
+                <span className="text-[10px] bg-green-500 text-white font-bold px-1.5 py-0.2 rounded-full">
+                  ✓ Выполнено (+30 XP)
+                </span>
+              )}
             </div>
-            <div className="w-24 sm:w-32 bg-gray-200 h-2 rounded-full overflow-hidden">
+            <div className="w-20 sm:w-28 bg-gray-200 h-1.5 rounded-full overflow-hidden">
               <div
                 className="bg-gradient-to-r from-amber-400 to-purple-600 h-full rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(100, Math.round((todayVocabProgress / 10) * 100))}%` }}
@@ -2538,8 +2487,8 @@ function Vocabulary() {
           </div>
 
           {currentCard.practice_only && (
-            <p className="mb-4 text-sm text-slate-500 text-center">
-              This form keeps the round varied. It counts toward finishing the word, but it does not change the spaced repetition timer.
+            <p className="mb-2 text-xs text-slate-500 text-center">
+              Эта карточка для закрепления и не меняет таймер интервального повторения.
             </p>
           )}
 
@@ -2557,17 +2506,33 @@ function Vocabulary() {
               }
             }}
             aria-disabled={isVoicePracticeBusy}
-            className={`bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 md:p-10 min-h-[220px] md:min-h-[320px] flex flex-col items-center justify-center border-2 md:border-4 border-indigo-200 transition-all text-center ${typingStageActive ? 'cursor-default' : (isVoicePracticeBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:border-indigo-400')}`}
+            className={`bg-gradient-to-br from-indigo-50/80 to-purple-50/80 rounded-2xl p-4 sm:p-6 min-h-[120px] sm:min-h-[160px] md:min-h-[200px] flex flex-col items-center justify-center border-2 border-indigo-200 transition-all text-center select-none ${typingStageActive ? 'cursor-default' : (isVoicePracticeBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:border-indigo-400 active:scale-[0.99]')}`}
           >
             {!hidePromptOnSpanishAnswer && (
-              <>
-                <p className="text-xs sm:text-sm uppercase tracking-wide text-indigo-600 font-semibold mb-2 sm:mb-3">
+              <div className="w-full">
+                <p className="text-[11px] sm:text-xs uppercase tracking-wide text-indigo-600 font-bold mb-1">
                   {currentCard.prompt_label}
                 </p>
-                <p className="text-2xl sm:text-3xl md:text-5xl font-bold text-indigo-900 mb-4 md:mb-6 break-words">
-                  {currentCard.prompt}
-                </p>
-              </>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-indigo-950 break-words">
+                    {currentCard.prompt}
+                  </span>
+                  {practiceSpanish.text && !showAnswer && (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        speakText(practiceSpanish.text);
+                      }}
+                      disabled={isSpeaking || isSubmitting || !playbackSupport.supported}
+                      className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-full transition-colors cursor-pointer"
+                      title="Прослушать произношение"
+                    >
+                      <Volume2 className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
 
             {typingStageActive && !showAnswer && (
@@ -2576,10 +2541,10 @@ function Vocabulary() {
                   event.preventDefault();
                   checkTypedAnswer();
                 }}
-                className="w-full max-w-xl flex flex-col items-center gap-3"
+                className="w-full max-w-md flex flex-col items-center gap-2.5 mt-2"
                 onClick={(event) => event.stopPropagation()}
               >
-                <label className="text-sm uppercase tracking-wide text-indigo-600 font-semibold">
+                <label className="text-xs uppercase tracking-wide text-indigo-600 font-bold">
                   Type the {currentCard.answer_label.toLowerCase()}
                 </label>
                 <input
@@ -2593,13 +2558,13 @@ function Vocabulary() {
                   value={typedAnswer}
                   onChange={(event) => setTypedAnswer(event.target.value)}
                   placeholder={`Your ${currentCard.answer_label.toLowerCase()}…`}
-                  className="w-full px-4 py-3 text-xl text-center text-indigo-900 bg-white border-2 border-indigo-200 rounded-xl focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 text-lg text-center text-indigo-900 bg-white border-2 border-indigo-200 rounded-xl focus:outline-none focus:border-indigo-500"
                 />
                 <div className="flex gap-2">
                   <button
                     type="submit"
                     disabled={!typedAnswer.trim() || isSubmitting || isVoicePracticeBusy}
-                    className="px-5 py-2 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 disabled:opacity-50"
+                    className="px-4 py-1.5 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 disabled:opacity-50"
                   >
                     Check
                   </button>
@@ -2607,7 +2572,7 @@ function Vocabulary() {
                     type="button"
                     onClick={() => { setTypingFeedback(null); setShowAnswer(true); }}
                     disabled={isSubmitting || isVoicePracticeBusy}
-                    className="px-5 py-2 rounded-xl bg-white text-indigo-700 border border-indigo-200 font-semibold hover:bg-indigo-50 disabled:opacity-50"
+                    className="px-4 py-1.5 rounded-xl bg-white text-indigo-700 border border-indigo-200 font-bold text-xs hover:bg-indigo-50 disabled:opacity-50"
                   >
                     Show answer
                   </button>
@@ -2616,10 +2581,10 @@ function Vocabulary() {
             )}
 
             {showAnswer ? (
-              <div className="space-y-4 max-w-2xl animate-fadeIn mt-2">
+              <div className="w-full mt-2 pt-2 border-t border-indigo-200/60 animate-fadeIn">
                 {typingFeedback && (
                   <div
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold ${
+                    className={`mb-2 px-3 py-1.5 rounded-xl text-xs font-semibold ${
                       typingFeedback.status === 'correct'
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                         : typingFeedback.status === 'close'
@@ -2633,32 +2598,55 @@ function Vocabulary() {
                   </div>
                 )}
                 <div>
-                  <p className="text-xs sm:text-sm uppercase tracking-wide text-purple-600 font-semibold mb-2">
+                  <p className="text-[11px] sm:text-xs uppercase tracking-wide text-purple-600 font-bold">
                     {currentCard.answer_label}
                   </p>
-                  <p className="text-2xl sm:text-3xl text-purple-800 font-semibold break-words">{currentCard.answer}</p>
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    <span className="text-xl sm:text-2xl md:text-3xl font-extrabold text-purple-900 break-words">
+                      {currentCard.answer}
+                    </span>
+                    {practiceSpanish.text && (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          speakText(practiceSpanish.text);
+                        }}
+                        disabled={isSpeaking || isSubmitting || !playbackSupport.supported}
+                        className="p-1.5 text-purple-700 hover:text-purple-900 hover:bg-purple-100 rounded-full transition-colors cursor-pointer"
+                        title="Прослушать произношение"
+                      >
+                        <Volume2 className="h-5 w-5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {currentCard.example && (
-                  <p className="text-lg text-gray-700 italic">“{currentCard.example}”</p>
+                  <p className="text-xs sm:text-sm text-slate-600 italic mt-1 line-clamp-2">
+                    “{currentCard.example}”
+                  </p>
                 )}
 
-                <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-gray-600">
-                  <span className="inline-flex items-center gap-1">
-                    <Clock3 className="h-4 w-4" />
-                    Reviewed {currentCard.review_count} times
-                  </span>
-                  <span>Next due: {formatRelativeTime(currentCard.next_review_at)}</span>
+                <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] text-slate-400 mt-1">
+                  <span>Повторено: {currentCard.review_count}</span>
+                  <span>·</span>
+                  <span>След.: {formatRelativeTime(currentCard.next_review_at)}</span>
                 </div>
               </div>
             ) : (
-              !typingStageActive && <p className="text-gray-500 text-lg">Click to reveal the answer</p>
+              !typingStageActive && (
+                <p className="text-indigo-400 text-xs sm:text-sm font-medium mt-1.5">
+                  Нажмите, чтобы увидеть перевод
+                </p>
+              )
             )}
           </div>
 
           {showAnswer && (
-            <div className="mt-4 space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+            <div className="mt-3 space-y-2">
+              {/* 4 Review Rating Buttons in a Single Responsive Row */}
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5">
                 {REVIEW_ACTIONS.map((action) => {
                   const Icon = action.icon;
                   const btnLabel = language === 'ru' ? (action.labelRu || action.label) : action.label;
@@ -2668,41 +2656,44 @@ function Vocabulary() {
                       type="button"
                       onClick={() => handleReview(action.key)}
                       disabled={isVoicePracticeBusy}
-                      className={`rounded-2xl px-3 py-3 text-xs sm:text-sm font-bold text-white transition-all shadow-md flex min-h-[3.5rem] items-center justify-center gap-1.5 text-center leading-tight active:scale-95 disabled:opacity-60 sm:min-h-[4rem] sm:flex-col sm:gap-1 sm:px-3 sm:py-3 ${action.className}`}
+                      className={`rounded-xl px-1.5 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-white transition-all shadow-sm flex flex-col items-center justify-center gap-1 text-center leading-tight active:scale-95 disabled:opacity-60 cursor-pointer ${action.className}`}
                     >
                       <Icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                      <span>{btnLabel}</span>
+                      <span className="truncate w-full text-[11px] sm:text-xs">{btnLabel}</span>
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Secondary utility actions row: compact horizontal pills */}
+              <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1.5 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => updateFavorite(currentCard, !currentCard.is_favorite)}
                   disabled={pendingFavoriteIds.has(Number(currentCard.id)) || isVoicePracticeBusy}
-                  className={`col-span-2 sm:col-span-1 rounded-2xl border-2 px-3 py-2.5 text-xs sm:text-sm font-bold transition-all shadow-xs flex min-h-[3rem] items-center justify-center gap-1.5 text-center leading-tight active:scale-95 disabled:opacity-60 sm:min-h-[4rem] sm:flex-col sm:gap-1 sm:px-3 sm:py-3 ${currentCard.is_favorite ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200' : 'border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-300 hover:bg-amber-50'}`}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all inline-flex items-center gap-1 active:scale-95 disabled:opacity-60 cursor-pointer ${
+                    currentCard.is_favorite
+                      ? 'border-amber-400 bg-amber-100 text-amber-900'
+                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  }`}
                 >
-                  <Star className={`h-4 w-4 sm:h-5 sm:w-5 ${currentCard.is_favorite ? 'fill-current' : ''}`} />
-                  <span>{currentCard.is_favorite ? (language === 'ru' ? 'В избранном ★' : 'Remove Favorite') : (language === 'ru' ? 'В избранное ☆' : 'Add Favorite')}</span>
+                  <Star className={`h-3.5 w-3.5 ${currentCard.is_favorite ? 'fill-amber-500 text-amber-500' : 'text-slate-400'}`} />
+                  <span>{currentCard.is_favorite ? 'В избранном ★' : 'В избранное'}</span>
                 </button>
-              </div>
 
-
-                {/* Group selector dropdown on flashcard */}
                 {groups.length > 0 && (
-                  <div className="relative inline-block w-full">
+                  <div className="relative inline-block">
                     <button
                       type="button"
                       onClick={() => setActiveGroupMenuWordId(activeGroupMenuWordId === currentCard.id ? null : currentCard.id)}
-                      className="w-full py-2.5 px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 font-semibold text-xs inline-flex items-center justify-between"
+                      className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-all inline-flex items-center gap-1 cursor-pointer"
                     >
-                      <span className="flex items-center gap-1">
-                        <Tag className="h-3.5 w-3.5 text-indigo-600" />
-                        Manage word groups ({((currentCard.groups || []).length)})
-                      </span>
-                      <ChevronDown className="h-4 w-4" />
+                      <Tag className="h-3.5 w-3.5 text-indigo-600" />
+                      <span>Группы ({(currentCard.groups || []).length})</span>
+                      <ChevronDown className="h-3 w-3 text-slate-400" />
                     </button>
                     {activeGroupMenuWordId === currentCard.id && (
-                      <div className="absolute bottom-full mb-1 left-0 w-full bg-white rounded-xl shadow-2xl border border-slate-200 p-2 z-20 space-y-1">
+                      <div className="absolute bottom-full mb-1 left-0 min-w-[180px] bg-white rounded-xl shadow-2xl border border-slate-200 p-2 z-30 space-y-1">
                         {groups.map((group) => {
                           const isAttached = (currentCard.groups || []).some((g) => g.id === group.id);
                           return (
@@ -2710,7 +2701,7 @@ function Vocabulary() {
                               key={group.id}
                               type="button"
                               onClick={() => toggleWordGroup(currentCard, group.id)}
-                              className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between ${
+                              className={`w-full text-left px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center justify-between ${
                                 isAttached ? 'bg-indigo-50 text-indigo-800' : 'hover:bg-slate-50 text-slate-700'
                               }`}
                             >
@@ -2724,110 +2715,106 @@ function Vocabulary() {
                   </div>
                 )}
 
-              {reviewSession.mode === 'learned_once' || currentCard.learned_permanently_at ? (
-                <button
-                  type="button"
-                  onClick={() => handleDemoteToAlmostLearned(currentCard)}
-                  disabled={pendingLearnedIds.has(Number(currentCard.id)) || isVoicePracticeBusy}
-                  className="w-full rounded-xl bg-amber-600 px-4 py-3 text-sm font-bold text-white hover:bg-amber-700 transition-all shadow-md flex items-center justify-center gap-2 leading-tight disabled:opacity-60 sm:text-base cursor-pointer"
-                  title="Вернуть слово в группу «Почти выучил» для регулярных тренировок"
-                >
-                  <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
-                  <span>Вернуть в группу «Почти выучил»</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleLearned}
-                  disabled={pendingLearnedIds.has(Number(currentCard.id)) || isVoicePracticeBusy}
-                  className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-700 transition-all shadow-md flex items-center justify-center gap-2 leading-tight disabled:opacity-60 sm:text-base cursor-pointer"
-                >
-                  <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
-                  <span>Learned forever — remove from study queues</span>
-                </button>
+                {reviewSession.mode === 'learned_once' || currentCard.learned_permanently_at ? (
+                  <button
+                    type="button"
+                    onClick={() => handleDemoteToAlmostLearned(currentCard)}
+                    disabled={pendingLearnedIds.has(Number(currentCard.id)) || isVoicePracticeBusy}
+                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 transition-all inline-flex items-center gap-1 active:scale-95 disabled:opacity-60 cursor-pointer"
+                    title="Вернуть слово в группу «Почти выучил»"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 text-amber-600" />
+                    <span>Вернуть в «Почти выучил»</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleLearned}
+                    disabled={pendingLearnedIds.has(Number(currentCard.id)) || isVoicePracticeBusy}
+                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 transition-all inline-flex items-center gap-1 active:scale-95 disabled:opacity-60 cursor-pointer"
+                    title="Выучено навсегда"
+                  >
+                    <GraduationCap className="h-3.5 w-3.5 text-violet-600" />
+                    <span>Выучено навсегда</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Collapsible advanced voice/mic recording */}
+              {practiceSpanish.text && (
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowVoicePracticeDetails((prev) => !prev)}
+                    className="text-[11px] text-slate-500 hover:text-indigo-600 flex items-center justify-center gap-1 mx-auto py-1 cursor-pointer"
+                  >
+                    <Mic className="h-3 w-3" />
+                    <span>{showVoicePracticeDetails ? 'Скрыть запись голоса' : 'Запись голоса и произношение'}</span>
+                    {showVoicePracticeDetails ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  </button>
+
+                  {showVoicePracticeDetails && (
+                    <div className="mt-2 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 animate-fadeIn">
+                      <div className="flex flex-wrap gap-1.5 justify-center">
+                        <VoiceActionButton
+                          icon={Volume2}
+                          label={isSpeaking ? 'Повторить' : 'Слушать'}
+                          onClick={() => speakText(practiceSpanish.text)}
+                          disabled={isSubmitting || isVoicePracticeBusy || !playbackSupport.supported}
+                          className="bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-100 text-xs py-1.5 px-2.5"
+                        />
+                        {isSpeaking && (
+                          <VoiceActionButton
+                            icon={Square}
+                            label="Стоп"
+                            onClick={stopSpeaking}
+                            disabled={isSubmitting}
+                            className="bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 text-xs py-1.5 px-2.5"
+                          />
+                        )}
+                        <VoiceActionButton
+                          icon={Mic}
+                          label={hasRecording ? 'Перезаписать' : 'Записать'}
+                          onClick={startRecording}
+                          disabled={isSubmitting || isVoicePracticeBusy || !speechCapabilities.recordingSupported}
+                          className="bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-100 text-xs py-1.5 px-2.5"
+                        />
+                        {isVoicePracticeBusy && (
+                          <VoiceActionButton
+                            icon={Square}
+                            label={isRecording ? 'Стоп запись' : 'Отмена'}
+                            onClick={stopRecording}
+                            disabled={isSubmitting}
+                            className="bg-emerald-600 text-white hover:bg-emerald-700 text-xs py-1.5 px-2.5"
+                          />
+                        )}
+                        {hasRecording && (
+                          <>
+                            <VoiceActionButton
+                              icon={Play}
+                              label="Моя запись"
+                              onClick={playRecording}
+                              disabled={isSubmitting || isVoicePracticeBusy}
+                              className="bg-white text-purple-700 border border-purple-200 hover:bg-purple-100 text-xs py-1.5 px-2.5"
+                            />
+                            <VoiceActionButton
+                              icon={Trash2}
+                              label="Удалить"
+                              onClick={clearRecording}
+                              disabled={isSubmitting || isVoicePracticeBusy}
+                              className="bg-white text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs py-1.5 px-2.5"
+                            />
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
-
-          {practiceSpanish.text ? (
-            <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-4">
-              <div className="flex flex-wrap gap-2">
-                <VoiceActionButton
-                  icon={Volume2}
-                  label={isSpeaking ? 'Replay Spanish' : 'Listen in Spanish'}
-                  onClick={() => speakText(practiceSpanish.text)}
-                  disabled={isSubmitting || isVoicePracticeBusy || !playbackSupport.supported}
-                  className="bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-100"
-                />
-                {isSpeaking && (
-                  <VoiceActionButton
-                    icon={Square}
-                    label="Stop audio"
-                    onClick={stopSpeaking}
-                    disabled={isSubmitting}
-                    className="bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
-                  />
-                )}
-                <VoiceActionButton
-                  icon={Mic}
-                  label={hasRecording ? 'Record a new take' : 'Repeat aloud'}
-                  onClick={startRecording}
-                  disabled={isSubmitting || isVoicePracticeBusy || !speechCapabilities.recordingSupported}
-                  className="bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-                />
-                {isVoicePracticeBusy && (
-                  <VoiceActionButton
-                    icon={Square}
-                    label={isRecording ? 'Stop recording' : 'Cancel mic setup'}
-                    onClick={stopRecording}
-                    disabled={isSubmitting}
-                    className="bg-emerald-600 text-white hover:bg-emerald-700"
-                  />
-                )}
-                <VoiceActionButton
-                  icon={Play}
-                  label="Play my take"
-                  onClick={playRecording}
-                  disabled={isSubmitting || isVoicePracticeBusy || !hasRecording}
-                  className="bg-white text-purple-700 border border-purple-200 hover:bg-purple-100"
-                />
-                <VoiceActionButton
-                  icon={Trash2}
-                  label="Clear take"
-                  onClick={clearRecording}
-                  disabled={isSubmitting || isVoicePracticeBusy || !hasRecording}
-                  className="bg-white text-rose-700 border border-rose-200 hover:bg-rose-100"
-                />
-              </div>
-
-              <div className="mt-3 space-y-2 text-sm text-slate-600">
-                {isRecordingStarting && (
-                  <p className="text-emerald-700">Waiting for microphone access… keep this Spanish side open or cancel setup.</p>
-                )}
-                <p className="flex items-start gap-2">
-                  <Shield className="h-4 w-4 mt-0.5 text-emerald-600" />
-                  <span>Private on this device: your microphone take stays in this browser until you clear it.</span>
-                </p>
-                <p>
-                  Listen only uses {speechVoiceLabel}. This free version is for listen, repeat aloud, and playback only.
-                </p>
-                {!playbackSupport.supported && (
-                  <p className="text-amber-700">{playbackSupport.message}</p>
-                )}
-                {!speechCapabilities.recordingSupported && (
-                  <p className="text-amber-700">Local recording needs microphone permission plus MediaRecorder support.</p>
-                )}
-                {ttsError && <p className="text-red-700">{ttsError}</p>}
-                {recordingError && <p className="text-red-700">{recordingError}</p>}
-              </div>
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-gray-500">
-              Reveal the Spanish side to listen or record a private repeat-aloud take.
-            </p>
-          )}
         </div>
-      ) : (
+) : (
         <div className="bg-white rounded-2xl shadow-2xl p-12 text-center">
           <RotateCcw className="h-16 w-16 mx-auto text-green-500 mb-4" />
           <h3 className="text-2xl font-bold text-gray-800 mb-2">
