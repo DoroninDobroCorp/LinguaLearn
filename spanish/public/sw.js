@@ -1,4 +1,4 @@
-const CACHE_VERSION = "spanish-pwa-v8-offline-pack-20260905";
+const CACHE_VERSION = "spanish-pwa-v9-portal-profile-modal-20260905";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 
