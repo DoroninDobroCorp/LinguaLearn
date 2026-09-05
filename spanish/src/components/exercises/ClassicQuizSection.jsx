@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Sparkles, Target, Trophy, ListOrdered, Check, Volume2, ArrowRight 
+  Sparkles, Target, Trophy, ListOrdered, Check, Volume2, ArrowRight, WifiOff 
 } from 'lucide-react';
 import ExamModal from '../ExamModal';
 import { profileApiUrl, profileFetch } from '../../utils/api';
 import { soundEngine, speakSpanish } from '../../utils/soundEffects';
 
-export default function ClassicQuizSection({ topicIds = [] }) {
+export default function ClassicQuizSection({ topicIds = [], onSelectTab }) {
   const [availableTopics, setAvailableTopics] = useState([]);
   const [selectedTopicIds, setSelectedTopicIds] = useState(() => {
     if (topicIds.length > 0) return topicIds;
@@ -258,6 +258,55 @@ export default function ClassicQuizSection({ topicIds = [] }) {
             <span>{showTopicSelector ? 'Скрыть выбор тем ▲' : 'Выбрать темы (' + selectedTopicIds.length + ') ▼'}</span>
           </button>
         </div>
+
+        {typeof navigator !== "undefined" && navigator.onLine === false && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 space-y-3">
+            <div className="flex items-center gap-2 font-bold text-sm">
+              <WifiOff className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              <span>Офлайн-режим: Генерация ИИ-тестов требует интернет</span>
+            </div>
+            <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-300 leading-relaxed">
+              Нейросеть Gemini недоступна без интернета. Однако для вас полностью автономно работают 5 других интерактивных форматов тренировок:
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => onSelectTab && onSelectTab("verb_drills")}
+                className="px-3 py-2 rounded-xl bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700 text-xs font-bold shadow-sm hover:scale-105 active:scale-95 transition-all text-amber-900 dark:text-amber-100"
+              >
+                🎯 Спряжения глаголов
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectTab && onSelectTab("word_tiles")}
+                className="px-3 py-2 rounded-xl bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700 text-xs font-bold shadow-sm hover:scale-105 active:scale-95 transition-all text-amber-900 dark:text-amber-100"
+              >
+                🧩 Конструктор фраз
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectTab && onSelectTab("error_detective")}
+                className="px-3 py-2 rounded-xl bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700 text-xs font-bold shadow-sm hover:scale-105 active:scale-95 transition-all text-amber-900 dark:text-amber-100"
+              >
+                🔍 Детектив ошибок
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectTab && onSelectTab("speed_match")}
+                className="px-3 py-2 rounded-xl bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700 text-xs font-bold shadow-sm hover:scale-105 active:scale-95 transition-all text-amber-900 dark:text-amber-100"
+              >
+                ⚡ Speed Match Blitz
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectTab && onSelectTab("translation")}
+                className="px-3 py-2 rounded-xl bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700 text-xs font-bold shadow-sm hover:scale-105 active:scale-95 transition-all text-amber-900 dark:text-amber-100"
+              >
+                🌐 100 предложений (A1)
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Action Buttons Row */}
         <div className="flex flex-wrap items-center gap-3 pt-1">

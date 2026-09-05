@@ -58,7 +58,10 @@ import {
 import {
   formatOfflineCacheTime,
   readOfflineVocabularyCache,
+  readOfflineVocabularyCacheAsync,
   writeOfflineVocabularyCache,
+  saveOfflineStudySession,
+  loadOfflineStudySession,
 } from '../utils/offlineVocabularyCache';
 
 
@@ -907,17 +910,18 @@ function Vocabulary() {
     return { entries: nextEntries, stats: nextStats, queueStats: nextQueueStats, groups: nextGroups };
   };
 
-  const loadOfflineVocabularySnapshot = useCallback(() => {
-    const cached = readOfflineVocabularyCache();
-    if (!cached) {
+  const loadOfflineVocabularySnapshot = useCallback(async () => {
+    const cached = await readOfflineVocabularyCacheAsync();
+    if (!cached || !Array.isArray(cached.entries) || cached.entries.length === 0) {
       return false;
     }
 
-    setEntries(cached.entries || []);
+    setEntries(cached.entries);
     setStats(cached.stats || INITIAL_STATS);
     setQueueStats(cached.queueStats || { total_due: 0, returned: 0, limit: 40 });
+    setGroups(cached.groups || []);
     setOfflineSnapshot(cached);
-    setNotice(`Offline vocabulary loaded from ${formatOfflineCacheTime(cached.cachedAt)}. Review progress changes need internet.`);
+    setNotice(`Офлайн-словарь активен: ${cached.entries.length} слов загружено локально (${formatOfflineCacheTime(cached.cachedAt)}).`);
     return true;
   }, []);
 
@@ -963,6 +967,27 @@ function Vocabulary() {
         }
       } catch (loadError) {
         console.warn("Could not check saved vocabulary round online, continuing locally:", loadError);
+      }
+
+      // Offline fallback: check local IndexedDB saved session
+      try {
+        const offlineSaved = await loadOfflineStudySession(mode);
+        if (offlineSaved?.session) {
+          const restored = restorePersistedReviewSession(offlineSaved.session, sourceEntries);
+          if (restored?.currentCard) {
+            setReviewSession(restored.session);
+            setReviewQueue([restored.currentCard]);
+            resetPractice();
+            setShowAnswer(false);
+            setTypedAnswer('');
+            setTypingFeedback(null);
+            setError('');
+            setNotice(`Возобновлен офлайн-раунд (${restored.session.entries.length} слов осталось).`);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Offline study session restore note:", e);
       }
     }
 
@@ -1029,6 +1054,7 @@ function Vocabulary() {
 
     setReviewSession(nextState.session);
     setReviewQueue(nextState.currentCard ? [nextState.currentCard] : []);
+    saveOfflineStudySession(nextState.session.mode, nextState.session, nextState.currentCard);
     resetPractice();
     setShowAnswer(false);
     setTypedAnswer('');
@@ -1043,9 +1069,28 @@ function Vocabulary() {
       setError('');
       setNotice('');
       try {
-        if (typeof navigator !== 'undefined' && navigator.onLine === false && loadOfflineVocabularySnapshot()) {
-          setStudySessionHydrated(true);
-          return;
+        const isOffline = (typeof navigator !== 'undefined' && navigator.onLine === false);
+
+        if (isOffline) {
+          const loadedOffline = await loadOfflineVocabularySnapshot();
+          if (loadedOffline) {
+            try {
+              const savedOfflineSession = await loadOfflineStudySession('due');
+              if (savedOfflineSession?.session && !cancelled) {
+                const restored = restorePersistedReviewSession(savedOfflineSession.session, savedOfflineSession.session.entries || []);
+                if (restored?.currentCard) {
+                  setReviewSession(restored.session);
+                  setReviewQueue([restored.currentCard]);
+                }
+              }
+            } catch (sessErr) {
+              console.warn('Offline session restore note:', sessErr);
+            }
+            if (!cancelled) {
+              setStudySessionHydrated(true);
+            }
+            return;
+          }
         }
 
         const loaded = await refreshVocabulary();
@@ -1071,7 +1116,8 @@ function Vocabulary() {
       } catch (loadError) {
         if (!cancelled) {
           console.error('Error loading vocabulary:', loadError);
-          if (!loadOfflineVocabularySnapshot()) {
+          const loadedOffline = await loadOfflineVocabularySnapshot();
+          if (!loadedOffline) {
             setError(loadError.message || 'Failed to load vocabulary');
           }
           setStudySessionHydrated(true);
@@ -1104,7 +1150,9 @@ function Vocabulary() {
   }, [entries, isLoading, reviewQueue.length, reviewSession.isComplete, reviewSession.totalEntries, studySessionHydrated]);
 
   useEffect(() => {
-    if (!studySessionHydrated || !isResumableStudyMode(reviewSession.mode) || isOfflineRuntime()) return undefined;
+    if (!studySessionHydrated || !isResumableStudyMode(reviewSession.mode)) return undefined;
+    saveOfflineStudySession(reviewSession.mode, reviewSession, reviewQueue[0] || null);
+    if (isOfflineRuntime()) return undefined;
     const payload = {
       mode: reviewSession.mode,
       state: { session: reviewSession, currentCard: reviewQueue[0] || null },

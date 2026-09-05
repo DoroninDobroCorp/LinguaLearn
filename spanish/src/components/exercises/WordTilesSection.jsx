@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, ArrowRight } from 'lucide-react';
+import { Volume2, ArrowRight, WifiOff } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../../utils/api';
 import { soundEngine, speakSpanish } from '../../utils/soundEffects';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { getWordTilesBatch, verifyWordTiles } from '../../utils/gameExercises';
 
 export default function WordTilesSection() {
   const { t } = useLanguage();
@@ -14,25 +15,10 @@ export default function WordTilesSection() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const fetchItems = async () => {
-    try {
-      setLoading(true);
-      const res = await profileFetch(profileApiUrl('/spanish/api/exercises/word-tiles'));
-      if (res.ok) {
-        const data = await res.json();
-        const list = data.items || [];
-        setItems(list);
-        if (list.length > 0) loadQuestion(list[0]);
-      }
-    } catch (err) {
-      console.error('Error fetching word tiles:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [isOffline, setIsOffline] = useState(false);
 
   const loadQuestion = (item) => {
+    if (!item || !Array.isArray(item.tiles)) return;
     const shuffled = [...item.tiles].map((tText, idx) => ({ id: `${idx}_${tText}`, text: tText })).sort(() => 0.5 - Math.random());
     setAvailableTiles(shuffled);
     setSelectedTiles([]);
@@ -41,11 +27,38 @@ export default function WordTilesSection() {
     setIsCorrect(false);
   };
 
+  const fetchItems = async () => {
+    let loadedList = [];
+    try {
+      setLoading(true);
+      const res = await profileFetch(profileApiUrl('/spanish/api/exercises/word-tiles')).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.items) && data.items.length > 0) {
+          loadedList = data.items;
+        }
+      }
+    } catch (err) {
+      console.warn('Network error fetching word tiles, fallback to offline items:', err);
+    }
+
+    if (loadedList.length === 0) {
+      loadedList = getWordTilesBatch();
+      setIsOffline(true);
+    }
+
+    setItems(loadedList);
+    if (loadedList.length > 0) {
+      loadQuestion(loadedList[0]);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
     fetchItems();
   }, []);
 
-  const currentItem = items[currentIndex];
+  const currentItem = items[currentIndex] || getWordTilesBatch()[0];
 
   const handleTileClick = (tile) => {
     if (isSubmitted) return;
@@ -65,6 +78,7 @@ export default function WordTilesSection() {
     if (isSubmitted || selectedTiles.length === 0 || !currentItem) return;
     const userSentence = selectedTiles.map(t => t.text).join(' ');
 
+    let verification = null;
     try {
       const res = await profileFetch(profileApiUrl('/spanish/api/exercises/word-tiles/verify'), {
         method: 'POST',
@@ -72,45 +86,50 @@ export default function WordTilesSection() {
         body: JSON.stringify({ itemId: currentItem.id, userSentence })
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setIsSubmitted(true);
-        setIsCorrect(data.isCorrect);
-        if (data.isCorrect) soundEngine.playCorrect();
-        else soundEngine.playWrong();
-
-        // Record / resolve mistake in grammar memory
-        try {
-          if (!data.isCorrect) {
-            profileFetch(profileApiUrl('/spanish/api/exercises/record-mistake'), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                topicName: currentItem.testedGrammar || 'Word Tiles',
-                category: 'word_tiles',
-                level: currentItem.level || 'A1',
-                prompt: currentItem.prompt,
-                userWrongAnswer: userSentence,
-                correctAnswer: currentItem.correctSentence || data.correctSentence || '',
-                ruleExplanation: currentItem.explanation || data.explanation || ''
-              })
-            }).catch(() => {});
-          } else {
-            profileFetch(profileApiUrl('/spanish/api/exercises/resolve-mistake'), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                category: 'word_tiles',
-                prompt: currentItem.prompt
-              })
-            }).catch(() => {});
-          }
-        } catch (e) {
-          console.warn('Mistake tracking error in WordTiles:', e);
-        }
+      if (res && res.ok) {
+        verification = await res.json();
       }
-    } catch (err) {
-      console.error('Error verifying word tiles:', err);
+    } catch {
+      // offline
+    }
+
+    if (!verification) {
+      verification = verifyWordTiles(currentItem.id, userSentence);
+    }
+
+    setIsSubmitted(true);
+    setIsCorrect(Boolean(verification.isCorrect));
+    if (verification.isCorrect) soundEngine.playCorrect();
+    else soundEngine.playWrong();
+
+    // Record / resolve mistake in background (silent offline fallback)
+    try {
+      if (!verification.isCorrect) {
+        profileFetch(profileApiUrl('/spanish/api/exercises/record-mistake'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topicName: currentItem.testedGrammar || 'Word Tiles',
+            category: 'word_tiles',
+            level: currentItem.level || 'A1',
+            prompt: currentItem.prompt,
+            userWrongAnswer: userSentence,
+            correctAnswer: currentItem.correctSentence || verification.correctSentence || '',
+            ruleExplanation: currentItem.explanation || verification.hint || ''
+          })
+        }).catch(() => {});
+      } else {
+        profileFetch(profileApiUrl('/spanish/api/exercises/resolve-mistake'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            category: 'word_tiles',
+            prompt: currentItem.prompt
+          })
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Mistake tracking error in WordTiles:', e);
     }
   };
 
@@ -120,7 +139,7 @@ export default function WordTilesSection() {
     loadQuestion(items[nextIdx]);
   };
 
-  if (loading || !currentItem) {
+  if (loading && !currentItem) {
     return <div className="p-8 text-center text-gray-500">Загрузка конструктора предложений...</div>;
   }
 
@@ -128,9 +147,16 @@ export default function WordTilesSection() {
     <div className="max-w-4xl mx-auto glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-purple-100 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 animate-fadeIn space-y-6">
       <div className="flex items-center justify-between border-b border-purple-100 dark:border-gray-700 pb-4">
         <div>
-          <span className="text-xs font-bold bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-300 px-2.5 py-1 rounded-full">
-            {currentItem.level}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-300 px-2.5 py-1 rounded-full">
+              {currentItem.level || 'A1'}
+            </span>
+            {isOffline && (
+              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <WifiOff className="w-3 h-3" /> Офлайн
+              </span>
+            )}
+          </div>
           <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mt-1 flex items-center gap-2">
             <span>🧩 Word Tiles (Конструктор фраз)</span>
           </h3>

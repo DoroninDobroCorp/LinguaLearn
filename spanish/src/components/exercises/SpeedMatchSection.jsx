@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, Clock } from 'lucide-react';
+import { Zap, Clock, WifiOff } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../../utils/api';
 import { soundEngine } from '../../utils/soundEffects';
+import { getSpeedMatchItems } from '../../utils/gameExercises';
 
 export default function SpeedMatchSection() {
   const [pairs, setPairs] = useState([]);
@@ -11,36 +12,46 @@ export default function SpeedMatchSection() {
   const [selectedRu, setSelectedRu] = useState(null);
   const [matchedIds, setMatchedIds] = useState(new Set());
   const [timeLeft, setTimeLeft] = useState(30);
-  const [combo, setCombo] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [combo, setCombo] = useState(1);
   const [score, setScore] = useState(0);
+  const [isOffline, setIsOffline] = useState(false);
 
   const startRound = async () => {
+    let rawPairs = [];
     try {
-      const res = await profileFetch(profileApiUrl('/spanish/api/exercises/speed-match'));
-      if (res.ok) {
+      const res = await profileFetch(profileApiUrl('/spanish/api/exercises/speed-match')).catch(() => null);
+      if (res && res.ok) {
         const data = await res.json();
-        const rawPairs = data.pairs || [];
-        setPairs(rawPairs);
-
-        const esList = rawPairs.map((p, i) => ({ id: i, text: p.left })).sort(() => 0.5 - Math.random());
-        const ruList = rawPairs.map((p, i) => ({ id: i, text: p.right })).sort(() => 0.5 - Math.random());
-
-        setEsCards(esList);
-        setRuCards(ruList);
-        setMatchedIds(new Set());
-        setSelectedEs(null);
-        setSelectedRu(null);
-        setTimeLeft(30);
-        setCombo(1);
-        setScore(0);
-        setIsPlaying(true);
-        setIsGameOver(false);
+        if (Array.isArray(data.pairs) && data.pairs.length > 0) {
+          rawPairs = data.pairs;
+        }
       }
     } catch (err) {
-      console.error('Error starting speed match:', err);
+      console.warn('Network error in speed match, using offline items:', err);
     }
+
+    if (!rawPairs || rawPairs.length === 0) {
+      rawPairs = getSpeedMatchItems(6);
+      setIsOffline(true);
+    }
+
+    setPairs(rawPairs);
+
+    const esList = rawPairs.map((p, i) => ({ id: i, text: p.left })).sort(() => 0.5 - Math.random());
+    const ruList = rawPairs.map((p, i) => ({ id: i, text: p.right })).sort(() => 0.5 - Math.random());
+
+    setEsCards(esList);
+    setRuCards(ruList);
+    setMatchedIds(new Set());
+    setSelectedEs(null);
+    setSelectedRu(null);
+    setTimeLeft(30);
+    setCombo(1);
+    setScore(0);
+    setIsPlaying(true);
+    setIsGameOver(false);
   };
 
   useEffect(() => {
@@ -124,10 +135,17 @@ export default function SpeedMatchSection() {
     <div className="max-w-4xl mx-auto glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-purple-100 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 animate-fadeIn space-y-6">
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-purple-100 dark:border-gray-700">
         <div>
-          <h3 className="text-xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
-            <Zap className="w-6 h-6 text-amber-500" />
-            Speed Match Blitz
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+              <Zap className="w-6 h-6 text-amber-500" />
+              Speed Match Blitz
+            </h3>
+            {isOffline && (
+              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <WifiOff className="w-3 h-3" /> Офлайн
+              </span>
+            )}
+          </div>
           <p className="text-xs text-gray-500 dark:text-gray-400">Сопоставляйте пары слов до истечения 30 секунд.</p>
         </div>
 
@@ -175,7 +193,7 @@ export default function SpeedMatchSection() {
                 <button
                   key={card.id}
                   onClick={() => handleCardClick('es', card)}
-                  className={`w-full h-14 px-4 rounded-2xl font-bold text-sm sm:text-base border-2 shadow-sm transition-all flex items-center justify-center text-center ${
+                  className={`w-full h-14 px-4 rounded-2xl font-bold text-sm sm:text-base border-2 shadow-sm transition-all flex items-center justify-center text-center active:scale-95 ${
                     isSelected ? 'bg-purple-600 text-white border-purple-600 scale-105' : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:border-purple-400'
                   }`}
                 >
@@ -196,7 +214,7 @@ export default function SpeedMatchSection() {
                 <button
                   key={card.id}
                   onClick={() => handleCardClick('ru', card)}
-                  className={`w-full h-14 px-4 rounded-2xl font-bold text-sm sm:text-base border-2 shadow-sm transition-all flex items-center justify-center text-center ${
+                  className={`w-full h-14 px-4 rounded-2xl font-bold text-sm sm:text-base border-2 shadow-sm transition-all flex items-center justify-center text-center active:scale-95 ${
                     isSelected ? 'bg-indigo-600 text-white border-indigo-600 scale-105' : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:border-indigo-400'
                   }`}
                 >
@@ -214,7 +232,7 @@ export default function SpeedMatchSection() {
           <p className="text-lg font-bold text-purple-600 dark:text-purple-400">Набрано очков: {score}</p>
           <button
             onClick={startRound}
-            className="px-6 py-3 bg-purple-600 text-white font-bold rounded-xl shadow-md"
+            className="px-6 py-3 bg-purple-600 text-white font-bold rounded-xl shadow-md active:scale-95"
           >
             Сыграть еще раз 🔄
           </button>

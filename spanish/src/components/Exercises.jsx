@@ -103,7 +103,7 @@ export default function Exercises() {
       {activeTab === 'speed_match' && <SpeedMatchSection />}
       {activeTab === 'error_detective' && <ErrorDetectiveSection />}
       {activeTab === 'verb_drills' && <VerbDrillsSection />}
-      {activeTab === 'classic_quiz' && <ClassicQuizSection topicIds={topicIds} />}
+      {activeTab === 'classic_quiz' && <ClassicQuizSection topicIds={topicIds} onSelectTab={setActiveTab} />}
     </div>
   );
 }
