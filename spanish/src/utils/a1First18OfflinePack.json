@@ -1,0 +1,1257 @@
+{
+  "packId": "a1_first_18_mastery_100",
+  "title": "Полный офлайн-пак: Первые 18 тем курса A1 (100 предложений)",
+  "description": "Все ключевые темы начала испанского языка: приветствия, местоимения, артикли, Ser/Estar, прилагательные, семья, глаголы -ar, отрицание, вопросы и время.",
+  "totalCount": 100,
+  "generatedAt": "2026-09-05T02:26:01.590Z",
+  "topics": [
+    {
+      "id": 27,
+      "order": 1,
+      "name": "Greetings and introductions (saludos)"
+    },
+    {
+      "id": 7,
+      "order": 2,
+      "name": "Subject pronouns (yo/tú/vos/él/ella)"
+    },
+    {
+      "id": 19,
+      "order": 3,
+      "name": "Numbers and counting"
+    },
+    {
+      "id": 4,
+      "order": 4,
+      "name": "Gender and articles (el/la/los/las)"
+    },
+    {
+      "id": 5,
+      "order": 5,
+      "name": "Indefinite articles (un/una/unos/unas)"
+    },
+    {
+      "id": 20,
+      "order": 6,
+      "name": "Colors (colores)"
+    },
+    {
+      "id": 6,
+      "order": 7,
+      "name": "Plural nouns (-s/-es)"
+    },
+    {
+      "id": 1,
+      "order": 8,
+      "name": "Ser vs Estar (basic)"
+    },
+    {
+      "id": 13,
+      "order": 9,
+      "name": "Basic adjective agreement (gender/number)"
+    },
+    {
+      "id": 30,
+      "order": 10,
+      "name": "Describing people (describir personas)"
+    },
+    {
+      "id": 21,
+      "order": 11,
+      "name": "Family members (la familia)"
+    },
+    {
+      "id": 8,
+      "order": 12,
+      "name": "Possessive adjectives (mi/tu/su)"
+    },
+    {
+      "id": 11,
+      "order": 13,
+      "name": "Tener (to have) and tener expressions"
+    },
+    {
+      "id": 25,
+      "order": 14,
+      "name": "Parts of the body (el cuerpo)"
+    },
+    {
+      "id": 2,
+      "order": 15,
+      "name": "Present tense regular -ar verbs"
+    },
+    {
+      "id": 17,
+      "order": 16,
+      "name": "Negation (no + verb)"
+    },
+    {
+      "id": 18,
+      "order": 17,
+      "name": "Question formation (¿...?)"
+    },
+    {
+      "id": 22,
+      "order": 18,
+      "name": "Days, months, seasons"
+    }
+  ],
+  "exercises": [
+    {
+      "id": "offline_pack_a1_1_1",
+      "batch": 1,
+      "sourceSentence": "Привет! Меня зовут Анна, а тебя?",
+      "targetSentence": "¡Hola! Me llamo Ana, ¿y tú?",
+      "alternativeAnswers": [
+        "¡Hola! Yo me llamo Ana, ¿y tú?",
+        "¡Hola! Mi nombre es Ana, ¿y tú?"
+      ],
+      "testedGrammar": "Личные местоимения и глагол llamarse",
+      "explanation": "Для неофициального знакомства используется возвратный глагол 'llamarse' (me llamo). Местоимение 'tú' после союза 'y' используется в качестве ударного местоимения при встречном вопросе ('а ты?')."
+    },
+    {
+      "id": "offline_pack_a1_1_2",
+      "batch": 1,
+      "sourceSentence": "Добрый день, сеньор Лопес. Как поживаете?",
+      "targetSentence": "Buenos días, señor López. ¿Cómo está usted?",
+      "alternativeAnswers": [
+        "Buenos días, señor López. ¿Cómo está?",
+        "Buen día, señor López. ¿Cómo está usted?"
+      ],
+      "testedGrammar": "Вежливое обращение (usted) и глагол estar",
+      "explanation": "При вежливом обращении на 'Вы' к одному лицу используется местоимение 'usted' и форма глагола 3-го лица единственного числа ('está'). Местоимение 'usted' может опускаться, но часто добавляется для подчеркивания вежливости."
+    },
+    {
+      "id": "offline_pack_a1_1_3",
+      "batch": 1,
+      "sourceSentence": "Привет, Карлос! Как дела?",
+      "targetSentence": "¡Hola, Carlos! ¿Cómo estás?",
+      "alternativeAnswers": [
+        "¡Hola, Carlos! ¿Qué tal?",
+        "¡Hola, Carlos! ¿Cómo te va?"
+      ],
+      "testedGrammar": "Неформальное приветствие и глагол estar (tú)",
+      "explanation": "При обращении на 'ты' с глаголом 'estar' используется форма 2-го лица единственного числа ('estás'). Личное местоимение 'tú' обычно опускается, так как окончание глагола однозначно указывает на лицо."
+    },
+    {
+      "id": "offline_pack_a1_1_4",
+      "batch": 1,
+      "sourceSentence": "Он студент, а она преподаватель.",
+      "targetSentence": "Él es estudiante y ella es profesora.",
+      "alternativeAnswers": [
+        "Él es estudiante y ella es maestra."
+      ],
+      "testedGrammar": "Местоимения él/ella и глагол ser",
+      "explanation": "При противопоставлении двух лиц местоимения 'él' (он) и 'ella' (она) обязательно сохраняются. Обратите внимание на графическое ударение (tilde) в 'él', отличающее местоимение от артикля 'el'. Перед названиями профессий неопределенный артикль обычно опускается."
+    },
+    {
+      "id": "offline_pack_a1_1_5",
+      "batch": 1,
+      "sourceSentence": "Мы из Испании, а вы откуда?",
+      "targetSentence": "Nosotros somos de España, ¿y ustedes de dónde son?",
+      "alternativeAnswers": [
+        "Somos de España, ¿y ustedes de dónde son?",
+        "Nosotros somos de España, ¿y vosotros de dónde sois?"
+      ],
+      "testedGrammar": "Местоимения nosotros/ustedes/vosotros и происхождение (ser de)",
+      "explanation": "Для выражения происхождения используется глагол 'ser' с предлогом 'de'. 'Nosotros' — местоимение 1-го лица множественного числа. Для обращения к группе людей в Латинской Америке используется 'ustedes', а в Испании для неформального общения — 'vosotros'."
+    },
+    {
+      "id": "offline_pack_a1_1_6",
+      "batch": 1,
+      "sourceSentence": "Очень приятно. Я Пабло.",
+      "targetSentence": "Mucho gusto. Yo soy Pablo.",
+      "alternativeAnswers": [
+        "Mucho gusto. Soy Pablo.",
+        "Encantado. Soy Pablo.",
+        "Es un placer. Yo soy Pablo."
+      ],
+      "testedGrammar": "Формулы вежливости и глагол ser",
+      "explanation": "'Mucho gusto' — универсальная формула вежливости при знакомстве. Местоимение 'yo' может использоваться для эмфазы (выделения себя), но также грамматически верно сказать просто 'Soy Pablo'."
+    },
+    {
+      "id": "offline_pack_a1_1_7",
+      "batch": 1,
+      "sourceSentence": "Они мои друзья, их зовут Хуан и Мария.",
+      "targetSentence": "Ellos son mis amigos, se llaman Juan y María.",
+      "alternativeAnswers": [
+        "Son mis amigos, se llaman Juan y María.",
+        "Ellos son mis amigos, sus nombres son Juan y María."
+      ],
+      "testedGrammar": "Местоимение ellos и глаголы ser/llamarse во мн. числе",
+      "explanation": "'Ellos' обозначает смешанную или мужскую группу во 3-м лице множественного числа. Глаголы принимают формы 3-го лица мн. ч.: 'son' (ser) и 'se llaman' (llamarse)."
+    },
+    {
+      "id": "offline_pack_a1_1_8",
+      "batch": 1,
+      "sourceSentence": "Ты говоришь по-испански?",
+      "targetSentence": "¿Tú hablas español?",
+      "alternativeAnswers": [
+        "¿Hablas español?",
+        "¿Vos hablás español?"
+      ],
+      "testedGrammar": "Местоимение tú / vos и спряжение глаголов на -ar",
+      "explanation": "Глагол 'hablar' в форме 2-го лица ед. ч. настоящего времени (Presente de Indicativo) имеет окончание '-as' (tú hablas). В странах с явлением 'voseo' (например, в Аргентине) употребляется 'vos hablás'."
+    },
+    {
+      "id": "offline_pack_a1_1_9",
+      "batch": 1,
+      "sourceSentence": "Здравствуйте, я доктор Мартинес.",
+      "targetSentence": "Hola, yo soy el doctor Martínez.",
+      "alternativeAnswers": [
+        "Hola, soy el doctor Martínez.",
+        "Buenos días, soy el doctor Martínez."
+      ],
+      "testedGrammar": "Самопрезентация и определенный артикль с титулами",
+      "explanation": "В испанском языке перед титулами и званиями (doctor, señor, profesor), когда о человеке говорят в третьем лице или официально представляются с титулом, ставится определенный артикль ('el doctor Martínez')."
+    },
+    {
+      "id": "offline_pack_a1_1_10",
+      "batch": 1,
+      "sourceSentence": "Вы туристы?",
+      "targetSentence": "¿Ustedes son turistas?",
+      "alternativeAnswers": [
+        "¿Son ustedes turistas?",
+        "¿Son turistas?",
+        "¿Vosotros sois turistas?"
+      ],
+      "testedGrammar": "Множественное число местоимений (ustedes / vosotros)",
+      "explanation": "При вопросе к группе людей местоимение 'ustedes' согласуется с глаголом в форме 3-го лица множественного числа ('son'). Существительное 'turista' является общим для мужского и женского рода и во множественном числе принимает окончание '-s' ('turistas')."
+    },
+    {
+      "id": "offline_pack_a1_2_1",
+      "batch": 2,
+      "sourceSentence": "Проблема стоит сорок евро.",
+      "targetSentence": "El problema cuesta cuarenta euros.",
+      "alternativeAnswers": [
+        "El problema vale cuarenta euros."
+      ],
+      "testedGrammar": "Исключения мужского рода (el problema) и числительные",
+      "explanation": "Слово «problema» греческого происхождения и оканчивается на -ma, поэтому оно мужского рода и требует артикля «el». Числительное «cuarenta» (40) пишется в одно слово."
+    },
+    {
+      "id": "offline_pack_a1_2_2",
+      "batch": 2,
+      "sourceSentence": "В неделе семь дней.",
+      "targetSentence": "La semana tiene siete días.",
+      "alternativeAnswers": [
+        "Hay siete días en la semana."
+      ],
+      "testedGrammar": "Исключения мужского рода (el día) и числительное 7",
+      "explanation": "Слово «día», несмотря на окончание -a, относится к мужскому роду (el día / los días). Слово «semana» — женского рода (la semana). Числительное «siete» не изменяется по родам."
+    },
+    {
+      "id": "offline_pack_a1_2_3",
+      "batch": 2,
+      "sourceSentence": "На руке пять пальцев.",
+      "targetSentence": "En la mano hay cinco dedos.",
+      "alternativeAnswers": [
+        "La mano tiene cinco dedos."
+      ],
+      "testedGrammar": "Исключения женского рода (la mano) и безличная форма hay",
+      "explanation": "Слово «mano» оканчивается на -o, но является исключением женского рода (la mano). Для указания на наличие предметов используется глагол «hay»."
+    },
+    {
+      "id": "offline_pack_a1_2_4",
+      "batch": 2,
+      "sourceSentence": "Девушки покупают тридцать две розы.",
+      "targetSentence": "Las chicas compran treinta y dos rosas.",
+      "alternativeAnswers": [
+        "Las muchachas compran treinta y dos rosas."
+      ],
+      "testedGrammar": "Определенный артикль las и составные числительные",
+      "explanation": "Множественное число женского рода требует артикля «las» (las chicas). Числительные от 31 до 99 пишутся раздельно через союз «y» (treinta y dos)."
+    },
+    {
+      "id": "offline_pack_a1_2_5",
+      "batch": 2,
+      "sourceSentence": "Мальчики покупают пятнадцать яблок.",
+      "targetSentence": "Los niños compran quince manzanas.",
+      "alternativeAnswers": [
+        "Los chicos compran quince manzanas."
+      ],
+      "testedGrammar": "Определенный артикль los и числительное 15",
+      "explanation": "Существительное «niños» мужского рода множественного числа согласуется с артиклем «los». Числительное 15 по-испански — «quince»."
+    },
+    {
+      "id": "offline_pack_a1_2_6",
+      "batch": 2,
+      "sourceSentence": "Рубашка стоит шестнадцать евро.",
+      "targetSentence": "La camisa cuesta dieciséis euros.",
+      "alternativeAnswers": [
+        "La camisa vale dieciséis euros."
+      ],
+      "testedGrammar": "Определенный артикль la и числительное 16 с графическим ударением",
+      "explanation": "Слово «camisa» женского рода единственного числа употребляется с артиклем «la». Числительное «dieciséis» (16) пишется слитно и имеет обязательное графическое ударение."
+    },
+    {
+      "id": "offline_pack_a1_2_7",
+      "batch": 2,
+      "sourceSentence": "Карта стоит двадцать пять евро.",
+      "targetSentence": "El mapa cuesta veinticinco euros.",
+      "alternativeAnswers": [
+        "El mapa vale veinticinco euros."
+      ],
+      "testedGrammar": "Исключения мужского рода (el mapa) и числительные 21-29",
+      "explanation": "Слово «mapa» — исключение мужского рода, поэтому используется артикль «el». Числительные от 21 до 29 пишутся слитно в один словоформат (veinticinco)."
+    },
+    {
+      "id": "offline_pack_a1_2_8",
+      "batch": 2,
+      "sourceSentence": "Женщины читают сорок восемь страниц.",
+      "targetSentence": "Las mujeres leen cuarenta y ocho páginas.",
+      "alternativeAnswers": [
+        "Las señoras leen cuarenta y ocho páginas."
+      ],
+      "testedGrammar": "Определенный артикль las и составные числительные",
+      "explanation": "Существительное «mujeres» женского рода во множественном числе употребляется с артиклем «las». Составное числительное 48 образуется по схеме: десяток + y + единица (cuarenta y ocho)."
+    },
+    {
+      "id": "offline_pack_a1_2_9",
+      "batch": 2,
+      "sourceSentence": "Учителя проверяют восемьдесят тетрадей.",
+      "targetSentence": "Los profesores revisan ochenta cuadernos.",
+      "alternativeAnswers": [
+        "Los maestros revisan ochenta cuadernos."
+      ],
+      "testedGrammar": "Определенный артикль los и круглые десятки (80)",
+      "explanation": "Существительное «profesores» мужского рода множественного числа требует артикля «los». Числительное «ochenta» обозначает «восемьдесят»."
+    },
+    {
+      "id": "offline_pack_a1_2_10",
+      "batch": 2,
+      "sourceSentence": "Тема содержит девяносто девять слов.",
+      "targetSentence": "El tema contiene noventa y nueve palabras.",
+      "alternativeAnswers": [
+        "El tema tiene noventa y nueve palabras."
+      ],
+      "testedGrammar": "Исключения мужского рода (el tema) и числительное 99",
+      "explanation": "Слово «tema» оканчивается на -ma и относится к мужскому роду (el tema). Числительное 99 переводится как «noventa y nueve» с раздельное записью через «y»."
+    },
+    {
+      "id": "offline_pack_a1_3_1",
+      "batch": 3,
+      "sourceSentence": "Я покупаю красную рубашку.",
+      "targetSentence": "Compro una camisa roja.",
+      "alternativeAnswers": [
+        "Yo compro una camisa roja."
+      ],
+      "testedGrammar": "Неопределенный артикль una и согласование прилагательного roja",
+      "explanation": "Существительное 'camisa' женского рода единственного числа, поэтому используется неопределенный артикль 'una'. Прилагательное цвета ставится после существительного и согласуется с ним в роде и числе ('roja')."
+    },
+    {
+      "id": "offline_pack_a1_3_2",
+      "batch": 3,
+      "sourceSentence": "У нас есть синяя машина.",
+      "targetSentence": "Tenemos un coche azul.",
+      "alternativeAnswers": [
+        "Nosotros tenemos un coche azul.",
+        "Tenemos un auto azul.",
+        "Nosotros tenemos un auto azul."
+      ],
+      "testedGrammar": "Неопределенный артикль un и прилагательное цвета azul",
+      "explanation": "Существительное 'coche' (машина) мужского рода, поэтому используется артикль 'un'. Прилагательное 'azul' оканчивается на согласный и имеет одинаковую форму для мужского и женского рода."
+    },
+    {
+      "id": "offline_pack_a1_3_3",
+      "batch": 3,
+      "sourceSentence": "Они ищут желтый стол.",
+      "targetSentence": "Buscan una mesa amarilla.",
+      "alternativeAnswers": [
+        "Ellos buscan una mesa amarilla.",
+        "Ellas buscan una mesa amarilla."
+      ],
+      "testedGrammar": "Неопределенный артикль una и согласование amarilla",
+      "explanation": "Слово 'mesa' в испанском языке женского рода ('una mesa'), поэтому прилагательное 'amarillo' меняет окончание на женский род — 'amarilla' — и ставится после существительного."
+    },
+    {
+      "id": "offline_pack_a1_3_4",
+      "batch": 3,
+      "sourceSentence": "Мне нужны черные туфли.",
+      "targetSentence": "Necesito unos zapatos negros.",
+      "alternativeAnswers": [
+        "Yo necesito unos zapatos negros."
+      ],
+      "testedGrammar": "Неопределенный артикль unos и согласование negros во множественном числе",
+      "explanation": "Существительное 'zapatos' мужского рода во множественном числе. С ним употребляется неопределенный артикль множественного числа 'unos' и прилагательное 'negros'."
+    },
+    {
+      "id": "offline_pack_a1_3_5",
+      "batch": 3,
+      "sourceSentence": "Ты покупаешь белые футболки?",
+      "targetSentence": "¿Compras unas camisetas blancas?",
+      "alternativeAnswers": [
+        "¿Tú compras unas camisetas blancas?",
+        "¿Compras unas playeras blancas?"
+      ],
+      "testedGrammar": "Неопределенный артикль unas и женский род множественного числа blancas",
+      "explanation": "Для существительного женского рода во множественном числе 'camisetas' используется артикль 'unas' и форма прилагательного 'blancas'."
+    },
+    {
+      "id": "offline_pack_a1_3_6",
+      "batch": 3,
+      "sourceSentence": "В комнате есть серый диван.",
+      "targetSentence": "En la habitación hay un sofá gris.",
+      "alternativeAnswers": [
+        "Hay un sofá gris en la habitación.",
+        "En el cuarto hay un sofá gris."
+      ],
+      "testedGrammar": "Конструкция hay с артиклем un и прилагательным gris",
+      "explanation": "После безличной формы глагола 'hay' (имеется/есть) используется неопределенный артикль 'un' для мужского рода ('un sofá'). Прилагательное 'gris' ставится после существительного."
+    },
+    {
+      "id": "offline_pack_a1_3_7",
+      "batch": 3,
+      "sourceSentence": "Он хочет зеленую куртку.",
+      "targetSentence": "Él quiere una chaqueta verde.",
+      "alternativeAnswers": [
+        "Quiere una chaqueta verde.",
+        "Él quiere una cazadora verde."
+      ],
+      "testedGrammar": "Неопределенный артикль una и неизменяемое по родам прилагательное verde",
+      "explanation": "Слово 'chaqueta' женского рода, требует артикля 'una'. Прилагательное 'verde' оканчивается на '-e' и одинаково пишется как с мужским, так и с женским родом."
+    },
+    {
+      "id": "offline_pack_a1_3_8",
+      "batch": 3,
+      "sourceSentence": "Мы покупаем серые брюки.",
+      "targetSentence": "Compramos unos pantalones grises.",
+      "alternativeAnswers": [
+        "Nosotros compramos unos pantalones grises."
+      ],
+      "testedGrammar": "Множественное число unos и образование формы grises",
+      "explanation": "Существительное 'pantalones' мужского рода во множественном числе требует артикля 'unos'. Прилагательные, оканчивающиеся на согласный (gris), во множественном числе получают окончание '-es' (grises)."
+    },
+    {
+      "id": "offline_pack_a1_3_9",
+      "batch": 3,
+      "sourceSentence": "Я вижу желтую птицу.",
+      "targetSentence": "Veo un pájaro amarillo.",
+      "alternativeAnswers": [
+        "Yo veo un pájaro amarillo.",
+        "Veo un ave amarilla."
+      ],
+      "testedGrammar": "Неопределенный артикль un и согласование amarillo",
+      "explanation": "Слово 'pájaro' — мужского рода ('un pájaro'), поэтому прилагательное используется в мужском роде 'amarillo' и ставится после существительного."
+    },
+    {
+      "id": "offline_pack_a1_3_10",
+      "batch": 3,
+      "sourceSentence": "Ты хочешь красное яблоко?",
+      "targetSentence": "¿Quieres una manzana roja?",
+      "alternativeAnswers": [
+        "¿Tú quieres una manzana roja?"
+      ],
+      "testedGrammar": "Неопределенный артикль una и позиция прилагательного roja",
+      "explanation": "Существительное 'manzana' женского рода единственного числа, с ним используется неопределенный артикль 'una' и прилагательное 'roja', следующее за существительным."
+    },
+    {
+      "id": "offline_pack_a1_4_1",
+      "batch": 4,
+      "sourceSentence": "Мои братья — врачи.",
+      "targetSentence": "Mis hermanos son médicos.",
+      "alternativeAnswers": [
+        "Mis hermanos son doctores.",
+        "Ellos son médicos."
+      ],
+      "testedGrammar": "Ser (профессия) + Множественное число существительных (-s)",
+      "explanation": "Для указания профессии используется глагол ser (son для 3-го лица мн. ч.). Существительные, оканчивающиеся на гласную, образуют множественное число с помощью окончания -s (hermano -> hermanos, médico -> médicos)."
+    },
+    {
+      "id": "offline_pack_a1_4_2",
+      "batch": 4,
+      "sourceSentence": "Карандаши синие.",
+      "targetSentence": "Los lápices son azules.",
+      "alternativeAnswers": [
+        "Los lápices son de color azul."
+      ],
+      "testedGrammar": "Ser (постоянное свойство/цвет) + Множественное число (z -> ces, -es)",
+      "explanation": "Цвет как постоянная характеристика передаётся глаголом ser (son). Существительные на -z меняют букву на -ces во множественном числе (el lápiz -> los lápices). Прилагательные на согласную принимают окончание -es (azul -> azules)."
+    },
+    {
+      "id": "offline_pack_a1_4_3",
+      "batch": 4,
+      "sourceSentence": "Студенты сейчас в библиотеке.",
+      "targetSentence": "Los estudiantes están en la biblioteca ahora.",
+      "alternativeAnswers": [
+        "Ahora los estudiantes están en la biblioteca.",
+        "Los estudiantes están ahora en la biblioteca."
+      ],
+      "testedGrammar": "Estar (местоположение) + Множественное число (-s)",
+      "explanation": "Местонахождение людей и предметов всегда выражается глаголом estar (están). Существительное estudiante оканчивается на гласную, поэтому во множественном числе добавляется -s (los estudiantes)."
+    },
+    {
+      "id": "offline_pack_a1_4_4",
+      "batch": 4,
+      "sourceSentence": "Мы устали после работы.",
+      "targetSentence": "Estamos cansados después del trabajo.",
+      "alternativeAnswers": [
+        "Nosotros estamos cansados después del trabajo.",
+        "Estamos cansadas después del trabajo."
+      ],
+      "testedGrammar": "Estar (физическое состояние) + Согласование во множественном числе",
+      "explanation": "Временные физические состояния (усталость) передаются глаголом estar (estamos). Прилагательное cansado согласуется в числе и роде с подлежащим (cansados / cansadas)."
+    },
+    {
+      "id": "offline_pack_a1_4_5",
+      "batch": 4,
+      "sourceSentence": "Эти города очень красивые.",
+      "targetSentence": "Estas ciudades son muy bonitas.",
+      "alternativeAnswers": [
+        "Estas ciudades son muy hermosas.",
+        "Estas ciudades son muy bellas."
+      ],
+      "testedGrammar": "Ser (характеристика) + Множественное число (-es)",
+      "explanation": "Постоянные качества и описания требуют глагола ser (son). Существительные на согласную образуют множественное число с помощью -es (la ciudad -> las ciudades)."
+    },
+    {
+      "id": "offline_pack_a1_4_6",
+      "batch": 4,
+      "sourceSentence": "Где ключи? Они на столе.",
+      "targetSentence": "¿Dónde están las llaves? Están en la mesa.",
+      "alternativeAnswers": [
+        "¿Dónde están las llaves? Están sobre la mesa.",
+        "¿Dónde están las llaves? Ellas están en la mesa."
+      ],
+      "testedGrammar": "Estar (местоположение) + Множественное число (-s)",
+      "explanation": "Вопрос о местоположении и ответ о локализации требуют глагола estar (están). Существительное llave во множественном числе принимает -s (llaves)."
+    },
+    {
+      "id": "offline_pack_a1_4_7",
+      "batch": 4,
+      "sourceSentence": "Девушки — испанки, они из Мадрида.",
+      "targetSentence": "Las chicas son españolas, son de Madrid.",
+      "alternativeAnswers": [
+        "Las chicas son españolas, ellas son de Madrid.",
+        "Las jóvenes son españolas, son de Madrid."
+      ],
+      "testedGrammar": "Ser (национальность и происхождение) + Множественное число",
+      "explanation": "Национальность и происхождение (de + город/страна) всегда выражаются глаголом ser (son). Прилагательное española во множественном числе принимает окончание -s (españolas)."
+    },
+    {
+      "id": "offline_pack_a1_4_8",
+      "batch": 4,
+      "sourceSentence": "Окна в комнате открыты.",
+      "targetSentence": "Las ventanas de la habitación están abiertas.",
+      "alternativeAnswers": [
+        "Las ventanas del cuarto están abiertas.",
+        "Las ventanas de la pieza están abiertas."
+      ],
+      "testedGrammar": "Estar (состояние предмета) + Согласование причастия/прилагательного",
+      "explanation": "Состояние предмета (открыто, закрыто, сломано) передаётся глаголом estar (están). Прилагательное abiertas согласуется в женском роде и множественном числе с las ventanas."
+    },
+    {
+      "id": "offline_pack_a1_4_9",
+      "batch": 4,
+      "sourceSentence": "Эти мужчины — известные актёры.",
+      "targetSentence": "Estos hombres son actores famosos.",
+      "alternativeAnswers": [
+        "Estos hombres son unos actores famosos.",
+        "Estos hombres son actores conocidos."
+      ],
+      "testedGrammar": "Ser (идентификация/профессия) + Множественное число (-es, -s)",
+      "explanation": "Идентификация и профессия выражаются через ser (son). Существительное actor оканчивается на согласную -r, поэтому принимает окончание -es (actores), а hombre оканчивается на гласную и принимает -s (hombres)."
+    },
+    {
+      "id": "offline_pack_a1_4_10",
+      "batch": 4,
+      "sourceSentence": "Сегодня мы счастливы.",
+      "targetSentence": "Hoy estamos felices.",
+      "alternativeAnswers": [
+        "Estamos felices hoy.",
+        "Hoy nosotros estamos felices."
+      ],
+      "testedGrammar": "Estar (эмоциональное состояние) + Множественное число (z -> ces)",
+      "explanation": "Текущее эмоциональное состояние выражается глаголом estar (estamos). Прилагательное feliz оканчивается на -z, поэтому во множественном числе меняет её на -ces (felices)."
+    },
+    {
+      "id": "offline_pack_a1_5_1",
+      "batch": 5,
+      "sourceSentence": "Мой друг высокий и очень симпатичный.",
+      "targetSentence": "Mi amigo es alto y muy simpático.",
+      "alternativeAnswers": [
+        "Mi amigo es muy simpático y alto."
+      ],
+      "testedGrammar": "Согласование прилагательных в мужском роде единственного числа",
+      "explanation": "Прилагательные «alto» (высокий) и «simpático» (симпатичный/приятный) оканчиваются на -o и согласуются с существительным мужского рода «amigo» в единственном числе. Для описания постоянных качеств используется глагол «ser» (es)."
+    },
+    {
+      "id": "offline_pack_a1_5_2",
+      "batch": 5,
+      "sourceSentence": "Анна — умная и трудолюбивая девушка.",
+      "targetSentence": "Ana es una chica inteligente y trabajadora.",
+      "alternativeAnswers": [
+        "Ana es una joven inteligente y trabajadora.",
+        "Ana es una chica trabajadora e inteligente."
+      ],
+      "testedGrammar": "Образование женского рода прилагательных (-a, -ora)",
+      "explanation": "Прилагательное «trabajador» в женском роде получает окончание -a («trabajadora»). Прилагательное «inteligente» оканчивается на -e и имеет одинаковую форму как для мужского, так и для женского рода."
+    },
+    {
+      "id": "offline_pack_a1_5_3",
+      "batch": 5,
+      "sourceSentence": "Мои коллеги очень застенчивые.",
+      "targetSentence": "Mis colegas son muy tímidos.",
+      "alternativeAnswers": [
+        "Mis compañeros son muy tímidos.",
+        "Mis colegas son muy tímidas."
+      ],
+      "testedGrammar": "Множественное число прилагательных и родовой контекст",
+      "explanation": "Для образования множественного числа к прилагательному «tímido» добавляется окончание -s («tímidos»). Если пол коллег не уточнён, по умолчанию используется мужской род множественного числа."
+    },
+    {
+      "id": "offline_pack_a1_5_4",
+      "batch": 5,
+      "sourceSentence": "Его сёстры невысокие и блондинки.",
+      "targetSentence": "Sus hermanas son bajas y rubias.",
+      "alternativeAnswers": [
+        "Las hermanas de él son bajas y rubias."
+      ],
+      "testedGrammar": "Согласование прилагательных в женском роде множественного числа",
+      "explanation": "Существительное «hermanas» относится к женскому роду множественного числа, поэтому прилагательные «bajo» и «rubio» принимают форму женского рода множественного числа: «bajas» и «rubias»."
+    },
+    {
+      "id": "offline_pack_a1_5_5",
+      "batch": 5,
+      "sourceSentence": "Этот незнакомец брюнет и очень высокий.",
+      "targetSentence": "Este desconocido es moreno y muy alto.",
+      "alternativeAnswers": [
+        "Este extraño es moreno y muy alto."
+      ],
+      "testedGrammar": "Указательные местоимения и описание внешности",
+      "explanation": "Указательное местоимение «este» (этот) согласуется с «desconocido» (незнакомец). Прилагательные «moreno» (брюнет/смуглый) и «alto» (высокий) стоят в форме мужского рода единственного числа."
+    },
+    {
+      "id": "offline_pack_a1_5_6",
+      "batch": 5,
+      "sourceSentence": "Наши учительницы очень симпатичные и умные.",
+      "targetSentence": "Nuestras profesoras son muy simpáticas e inteligentes.",
+      "alternativeAnswers": [
+        "Nuestras maestras son muy simpáticas e inteligentes."
+      ],
+      "testedGrammar": "Союз «e» вместо «y» и согласование во множественном числе",
+      "explanation": "Соединительный союз «y» меняется на «e» перед словами, начинающимися на звук [i] (i- или hi-), например «e inteligentes». Прилагательное «simpáticas» согласуется с «profesoras» в женском роде множественного числа."
+    },
+    {
+      "id": "offline_pack_a1_5_7",
+      "batch": 5,
+      "sourceSentence": "Карлос и Мария трудолюбивые и весёлые.",
+      "targetSentence": "Carlos y María son trabajadores y alegres.",
+      "alternativeAnswers": [
+        "Carlos y María son muy trabajadores y alegres."
+      ],
+      "testedGrammar": "Согласование прилагательных с группами смешанного пола",
+      "explanation": "Если группа состоит из лиц мужского и женского пола (Carlos y María), прилагательные принимают форму мужского рода множественного числа («trabajadores»). Прилагательное «alegre» оканчивается на -e и во множественном числе имеет форму «alegres» для обоих родов."
+    },
+    {
+      "id": "offline_pack_a1_5_8",
+      "batch": 5,
+      "sourceSentence": "Твои друзья худые или полные?",
+      "targetSentence": "¿Tus amigos son delgados o gordos?",
+      "alternativeAnswers": [
+        "¿Vuestros amigos son delgados o gordos?",
+        "¿Sus amigos son delgados o gordos?"
+      ],
+      "testedGrammar": "Прилагательные-антонимы во множественном числе",
+      "explanation": "Прилагательные «delgado» (худой) и «gordo» (полный) согласуются с существительным «amigos» во множественном числе мужского рода («delgados», «gordos»)."
+    },
+    {
+      "id": "offline_pack_a1_5_9",
+      "batch": 5,
+      "sourceSentence": "Моя новая подруга очень скромная и застенчивая.",
+      "targetSentence": "Mi nueva amiga es muy modesta y tímida.",
+      "alternativeAnswers": [
+        "Mi amiga nueva es muy modesta y tímida."
+      ],
+      "testedGrammar": "Положение и согласование прилагательных женского рода",
+      "explanation": "Все прилагательные («nueva», «modesta», «tímida») согласуются с существительным «amiga» в женском роде единственного числа и оканчиваются на -a."
+    },
+    {
+      "id": "offline_pack_a1_5_10",
+      "batch": 5,
+      "sourceSentence": "Этот мужчина рыжий и сильный.",
+      "targetSentence": "Este hombre es pelirrojo y fuerte.",
+      "alternativeAnswers": [
+        "Aquel hombre es pelirrojo y fuerte."
+      ],
+      "testedGrammar": "Прилагательные с неизменяемым по роду окончанием -e",
+      "explanation": "Прилагательное «pelirrojo» (рыжий) изменяется по родам (pelirrojo/pelirroja), тогда как «fuerte» (сильный) оканчивается на -e и совпадает в формах мужского и женского рода."
+    },
+    {
+      "id": "offline_pack_a1_6_1",
+      "batch": 6,
+      "sourceSentence": "Мой брат — врач и живёт в Мадриде.",
+      "targetSentence": "Mi hermano es médico y vive en Madrid.",
+      "alternativeAnswers": [
+        "Mi hermano es doctor y vive en Madrid.",
+        "Mi hermano trabaja como médico y vive en Madrid."
+      ],
+      "testedGrammar": "Притяжательные прилагательные (mi) и профессии с ser",
+      "explanation": "Притяжательное местоимение «mi» согласуется в числе с существительным «hermano» (ед. ч.). Профессии после глагола «ser» в испанском языке обычно употребляются без артикля: «es médico»."
+    },
+    {
+      "id": "offline_pack_a1_6_2",
+      "batch": 6,
+      "sourceSentence": "У твоих родителей очень большой дом.",
+      "targetSentence": "Tus padres tienen una casa muy grande.",
+      "alternativeAnswers": [
+        "Tus papás tienen una casa muy grande."
+      ],
+      "testedGrammar": "Притяжательные прилагательные (tus) и глагол tener",
+      "explanation": "Форма «tus» используется во множественном числе для местоимения второго лица (tú), так как «padres» стоит во множественном числе. Для обозначения обладания («у родителей есть») используется глагол «tener»."
+    },
+    {
+      "id": "offline_pack_a1_6_3",
+      "batch": 6,
+      "sourceSentence": "Нашей бабушке восемьдесят лет.",
+      "targetSentence": "Nuestra abuela tiene ochenta años.",
+      "alternativeAnswers": [
+        "Nuestra abuelita tiene ochenta años."
+      ],
+      "testedGrammar": "Притяжательные прилагательные (nuestro/a) и возраст (tener)",
+      "explanation": "Притяжательное прилагательное первого лица мн. ч. меняется по родам и числам: «nuestra» согласуется в женском роде и единственном числе со словом «abuela». Возраст в испанском языке выражается через глагол «tener» + количество лет + «años»."
+    },
+    {
+      "id": "offline_pack_a1_6_4",
+      "batch": 6,
+      "sourceSentence": "Его дети очень умные.",
+      "targetSentence": "Sus hijos son muy inteligentes.",
+      "alternativeAnswers": [
+        "Los hijos de él son muy inteligentes.",
+        "Sus hijos son muy listos."
+      ],
+      "testedGrammar": "Притяжательные прилагательные (sus) и согласование прилагательных",
+      "explanation": "Форма «sus» указывает на множественное число определяемого существительного («hijos»), независимо от того, кому они принадлежат (ему, ей, им). Прилагательное «inteligentes» согласуется с «hijos» во множественном числе."
+    },
+    {
+      "id": "offline_pack_a1_6_5",
+      "batch": 6,
+      "sourceSentence": "Где живут твои дядя и тётя?",
+      "targetSentence": "¿Dónde viven tus tíos?",
+      "alternativeAnswers": [
+        "¿Dónde están viviendo tus tíos?",
+        "¿En dónde viven tus tíos?"
+      ],
+      "testedGrammar": "Собирательные существительные родства и притяжательные (tus)",
+      "explanation": "В испанском языке существительное мужского рода во множественном числе «tíos» обозначает пару родственников разного пола («дядя и тётя»). Притяжательное прилагательное «tus» согласуется во множественном числе."
+    },
+    {
+      "id": "offline_pack_a1_6_6",
+      "batch": 6,
+      "sourceSentence": "Наши двоюродные сёстры — учительницы в школе.",
+      "targetSentence": "Nuestras primas son profesoras en una escuela.",
+      "alternativeAnswers": [
+        "Nuestras primas son maestras en un colegio.",
+        "Nuestras primas son profesoras en un colegio."
+      ],
+      "testedGrammar": "Притяжательные прилагательные (nuestras) и род/число",
+      "explanation": "Форма «nuestras» согласуется в женском роде и множественном числе с существительным «primas». Профессия «profesoras» также согласуется в женском роде и множественном числе."
+    },
+    {
+      "id": "offline_pack_a1_6_7",
+      "batch": 6,
+      "sourceSentence": "Моей маме пятьдесят лет, и она архитектор.",
+      "targetSentence": "Mi madre tiene cincuenta años y es arquitecta.",
+      "alternativeAnswers": [
+        "Mi mamá tiene cincuenta años y es arquitecta.",
+        "Mi madre tiene 50 años y es arquitecta."
+      ],
+      "testedGrammar": "Притяжательные прилагательные (mi) и формы профессий",
+      "explanation": "Местоимение «mi» используется перед существительными единственного числа любого рода («mi madre»). Название профессии ставится в женском роде («arquitecta») без артикля."
+    },
+    {
+      "id": "offline_pack_a1_6_8",
+      "batch": 6,
+      "sourceSentence": "Их дедушка в саду с собакой.",
+      "targetSentence": "Su abuelo está en el jardín con el perro.",
+      "alternativeAnswers": [
+        "El abuelo de ellos está en el jardín con el perro."
+      ],
+      "testedGrammar": "Притяжательные прилагательные (su) и глагол estar (местонахождение)",
+      "explanation": "Притяжательное прилагательное «su» относится к обладателям во множественном числе («их»), но согласуется с определяемым словом «abuelo» (ед. ч.). Для выражения местонахождения используется глагол «estar»."
+    },
+    {
+      "id": "offline_pack_a1_6_9",
+      "batch": 6,
+      "sourceSentence": "Наш отец работает в банке.",
+      "targetSentence": "Nuestro padre trabaja en un banco.",
+      "alternativeAnswers": [
+        "Nuestro papá trabaja en un banco."
+      ],
+      "testedGrammar": "Притяжательные прилагательные (nuestro) и глагол trabajar",
+      "explanation": "Форма «nuestro» согласуется в мужском роде и единственном числе с существительным «padre». Глагол «trabajar» стоит в форме 3-го лица ед. ч. настоящего времени (Presente de Indicativo)."
+    },
+    {
+      "id": "offline_pack_a1_6_10",
+      "batch": 6,
+      "sourceSentence": "Мои дочери — студентки и изучают языки.",
+      "targetSentence": "Mis hijas son estudiantes y estudian idiomas.",
+      "alternativeAnswers": [
+        "Mis hijas son estudiantes y estudian lenguas."
+      ],
+      "testedGrammar": "Притяжательные прилагательные (mis) и согласование во множественном числе",
+      "explanation": "Притяжательное местоимение «mis» согласуется во множественном числе с существительным «hijas». Существительное «estudiantes» имеет одинаковую форму для мужского и женского рода во множественном числе."
+    },
+    {
+      "id": "offline_pack_a1_7_1",
+      "batch": 7,
+      "sourceSentence": "Я очень хочу есть и тороплюсь.",
+      "targetSentence": "Tengo mucha hambre y tengo prisa.",
+      "alternativeAnswers": [
+        "Tengo mucha hambre y estoy con prisa.",
+        "Tengo mucha hambre y voy con prisa."
+      ],
+      "testedGrammar": "Идиоматические выражения с tener (tener hambre, tener prisa)",
+      "explanation": "В испанском языке голод и спешка выражаются через глагол tener с существительными: tener hambre (быть голодным) и tener prisa (спешить). Так как слово hambre женского рода, прилагательное «очень» переводится как mucha."
+    },
+    {
+      "id": "offline_pack_a1_7_2",
+      "batch": 7,
+      "sourceSentence": "Ей десять лет, и ей холодно.",
+      "targetSentence": "Ella tiene diez años y tiene frío.",
+      "alternativeAnswers": [
+        "Tiene diez años y tiene frío.",
+        "Tiene diez años y siente frío."
+      ],
+      "testedGrammar": "Выражение возраста и физического состояния (tener ... años, tener frío)",
+      "explanation": "Для указания возраста и физических ощущений (холод, жара) в испанском используется глагол tener: tener ... años и tener frío. Личное местоимение ella можно опустить, если контекст понятен."
+    },
+    {
+      "id": "offline_pack_a1_7_3",
+      "batch": 7,
+      "sourceSentence": "Нам очень жарко и мы хотим пить.",
+      "targetSentence": "Tenemos mucho calor y tenemos mucha sed.",
+      "alternativeAnswers": [
+        "Tenemos mucho calor y mucha sed.",
+        "Nosotros tenemos mucho calor y mucha sed."
+      ],
+      "testedGrammar": "Физические ощущения с tener (tener calor, tener sed)",
+      "explanation": "Ощущения жары (tener calor) и жажды (tener sed) передаются глаголом tener. Слова calor (мужской род) и sed (женский род) требуют соответствующего согласования наречий/прилагательных: mucho calor, mucha sed."
+    },
+    {
+      "id": "offline_pack_a1_7_4",
+      "batch": 7,
+      "sourceSentence": "Ты боишься темноты?",
+      "targetSentence": "¿Tienes miedo de la oscuridad?",
+      "alternativeAnswers": [
+        "¿Tú tienes miedo de la oscuridad?",
+        "¿Tienes miedo a la oscuridad?"
+      ],
+      "testedGrammar": "Выражение страха (tener miedo de/a)",
+      "explanation": "Чувство страха передается конструкцией tener miedo de... или tener miedo a... Глагол tener спрягается для 2-го лица единственного числа (tú tienes)."
+    },
+    {
+      "id": "offline_pack_a1_7_5",
+      "batch": 7,
+      "sourceSentence": "Дети хотят спать, потому что уже поздно.",
+      "targetSentence": "Los niños tienen sueño porque ya es tarde.",
+      "alternativeAnswers": [
+        "Los niños tienen mucho sueño porque ya es tarde.",
+        "Tienen sueño los niños porque ya es tarde."
+      ],
+      "testedGrammar": "Выражение сонливости (tener sueño)",
+      "explanation": "Желание спать выражается устойчивым оборотом tener sueño (буквально «иметь сон»). Существительное los niños согласовывается с формой 3-го лица множественного числа tienen."
+    },
+    {
+      "id": "offline_pack_a1_7_6",
+      "batch": 7,
+      "sourceSentence": "У меня сегодня болит голова.",
+      "targetSentence": "Tengo dolor de cabeza hoy.",
+      "alternativeAnswers": [
+        "Hoy tengo dolor de cabeza.",
+        "Me duele la cabeza hoy."
+      ],
+      "testedGrammar": "Части тела и боль (la cabeza, tener dolor de)",
+      "explanation": "Боль в теле можно передать через выражение tener dolor de + название части тела (в данном случае la cabeza — голова). Также часто используется глагол doler (me duele la cabeza)."
+    },
+    {
+      "id": "offline_pack_a1_7_7",
+      "batch": 7,
+      "sourceSentence": "У Марии голубые глаза и длинные ноги.",
+      "targetSentence": "María tiene los ojos azules y las piernas largas.",
+      "alternativeAnswers": [
+        "María tiene ojos azules y piernas largas.",
+        "María tiene los ojos azules y piernas largas."
+      ],
+      "testedGrammar": "Части тела и описание внешности (los ojos, las piernas)",
+      "explanation": "При описании черт внешности используются части тела с определенным артиклем или без него и глагол tener. Прилагательные согласуются в роде и числе: los ojos azules (муж. р., мн. ч.), las piernas largas (жен. р., мн. ч.)."
+    },
+    {
+      "id": "offline_pack_a1_7_8",
+      "batch": 7,
+      "sourceSentence": "У меня мерзнут руки.",
+      "targetSentence": "Tengo las manos frías.",
+      "alternativeAnswers": [
+        "Tengo frío en las manos.",
+        "Mis manos están frías."
+      ],
+      "testedGrammar": "Части тела и физические ощущения (las manos)",
+      "explanation": "Фраза «у меня мерзнут руки» передается конструкцией tener + части тела + прилагательное frío/a. Обратите внимание, что слово la mano — женского рода, поэтому во множественном числе будет las manos frías."
+    },
+    {
+      "id": "offline_pack_a1_7_9",
+      "batch": 7,
+      "sourceSentence": "У моего дедушки болит спина.",
+      "targetSentence": "Mi abuelo tiene dolor de espalda.",
+      "alternativeAnswers": [
+        "A mi abuelo le duele la espalda.",
+        "Mi abuelo tiene dolores de espalda."
+      ],
+      "testedGrammar": "Части тела и боль (la espalda, tener dolor de)",
+      "explanation": "Название части тела la espalda (спина) сочетается с выражением tener dolor de для обозначения боли. Альтернативный вариант с глаголом doler: A mi abuelo le duele la espalda."
+    },
+    {
+      "id": "offline_pack_a1_7_10",
+      "batch": 7,
+      "sourceSentence": "Вы правы, у меня очень устали ноги.",
+      "targetSentence": "Tiene razón, tengo las piernas muy cansadas.",
+      "alternativeAnswers": [
+        "Tienes razón, tengo las piernas muy cansadas.",
+        "Usted tiene razón, tengo las piernas muy cansadas."
+      ],
+      "testedGrammar": "Идиомы tener razón и части тела (las piernas)",
+      "explanation": "Выражение «быть правым» — это tener razón. Усталость ног описывается комбинацией tener + las piernas + cansadas, где прилагательное cansadas согласуется с существительным женского рода множественного числа las piernas."
+    },
+    {
+      "id": "offline_pack_a1_8_1",
+      "batch": 8,
+      "sourceSentence": "Я говорю по-испански каждый день.",
+      "targetSentence": "Hablo español todos los días.",
+      "alternativeAnswers": [
+        "Yo hablo español todos los días.",
+        "Hablo español cada día."
+      ],
+      "testedGrammar": "Presente de indicativo: hablar (yo)",
+      "explanation": "В испанском языке правильные глаголы на -ar в форме 1-го лица единственного числа (yo) принимают окончание -o (hablo). Местоимение yo обычно опускается."
+    },
+    {
+      "id": "offline_pack_a1_8_2",
+      "batch": 8,
+      "sourceSentence": "Ты не работаешь по воскресеньям?",
+      "targetSentence": "¿No trabajas los domingos?",
+      "alternativeAnswers": [
+        "¿Tú no trabajas los domingos?",
+        "¿No trabajas los días domingo?"
+      ],
+      "testedGrammar": "Negación (no + verbo): trabajar (tú)",
+      "explanation": "Базовое отрицание образуется с помощью частицы no перед глаголом. Для местоимения tú глагол trabajar имеет окончание -as (trabajas)."
+    },
+    {
+      "id": "offline_pack_a1_8_3",
+      "batch": 8,
+      "sourceSentence": "Мария не учится по вечерам.",
+      "targetSentence": "María no estudia por las tardes.",
+      "alternativeAnswers": [
+        "María no estudia por la tarde.",
+        "Ella no estudia por las tardes."
+      ],
+      "testedGrammar": "Negación (no + verbo): estudiar (ella)",
+      "explanation": "В 3-ем лице единственного числа (él/ella/usted) глаголы на -ar оканчиваются на -a (estudia). Отрицательная частица no ставится непосредственно перед глаголом."
+    },
+    {
+      "id": "offline_pack_a1_8_4",
+      "batch": 8,
+      "sourceSentence": "Мы никогда не слушаем музыку на работе.",
+      "targetSentence": "Nunca escuchamos música en el trabajo.",
+      "alternativeAnswers": [
+        "Nosotros nunca escuchamos música en el trabajo.",
+        "No escuchamos música en el trabajo nunca."
+      ],
+      "testedGrammar": "Negación con 'nunca': escuchar (nosotros)",
+      "explanation": "Отрицательное слово nunca (никогда) может стоять перед глаголом, и в этом случае частица no не требуется (nunca escuchamos). Глагол escuchar для nosotros имеет окончание -amos."
+    },
+    {
+      "id": "offline_pack_a1_8_5",
+      "batch": 8,
+      "sourceSentence": "Они готовят обед вместе.",
+      "targetSentence": "Cocinan el almuerzo juntos.",
+      "alternativeAnswers": [
+        "Ellos cocinan el almuerzo juntos.",
+        "Ellas cocinan el almuerzo juntas."
+      ],
+      "testedGrammar": "Presente de indicativo: cocinar (ellos/ellas)",
+      "explanation": "Форма глагола cocinar для 3-го лица множественного числа (ellos/ellas) оканчивается на -an (cocinan)."
+    },
+    {
+      "id": "offline_pack_a1_8_6",
+      "batch": 8,
+      "sourceSentence": "Я тоже не покупаю книги здесь.",
+      "targetSentence": "Tampoco compro libros aquí.",
+      "alternativeAnswers": [
+        "Yo tampoco compro libros aquí.",
+        "No compro libros aquí tampoco."
+      ],
+      "testedGrammar": "Negación con 'tampoco': comprar (yo)",
+      "explanation": "Слово tampoco переводится как «тоже не» / «также не». Если tampoco стоит перед глаголом, двойное отрицание с no не используется (tampoco compro)."
+    },
+    {
+      "id": "offline_pack_a1_8_7",
+      "batch": 8,
+      "sourceSentence": "Вы много путешествуете?",
+      "targetSentence": "¿Viajan mucho?",
+      "alternativeAnswers": [
+        "¿Ustedes viajan mucho?",
+        "¿Viajáis mucho?",
+        "¿Vosotros viajáis mucho?"
+      ],
+      "testedGrammar": "Presente de indicativo: viajar (ustedes / vosotros)",
+      "explanation": "Для формы ustedes (Вы - мн. ч.) глагол viajar имеет окончание -an (viajan). В Испании для обращения на «вы» (множественное число, неформально) используется форма vosotros/as с окончанием -áis (viajáis)."
+    },
+    {
+      "id": "offline_pack_a1_8_8",
+      "batch": 8,
+      "sourceSentence": "Я жду автобус на остановке.",
+      "targetSentence": "Espero el autobús en la parada.",
+      "alternativeAnswers": [
+        "Yo espero el autobús en la parada.",
+        "Espero el bus en la parada."
+      ],
+      "testedGrammar": "Presente de indicativo: esperar (yo)",
+      "explanation": "Глагол esperar означает «ждать». Когда мы ждем неодушевленный предмет (например, autobús), прямой предлог не требуется: espero el autobús."
+    },
+    {
+      "id": "offline_pack_a1_8_9",
+      "batch": 8,
+      "sourceSentence": "Она никогда не ждёт коллег.",
+      "targetSentence": "Ella nunca espera a sus colegas.",
+      "alternativeAnswers": [
+        "Nunca espera a sus colegas.",
+        "No espera a sus colegas nunca."
+      ],
+      "testedGrammar": "Negación con 'nunca' y предлог 'a': esperar (ella)",
+      "explanation": "Глагол esperar требует предлога a перед одушевленным прямым дополнением (espera a sus colegas). Слово nunca перед глаголом отменяет необходимость частицы no."
+    },
+    {
+      "id": "offline_pack_a1_8_10",
+      "batch": 8,
+      "sourceSentence": "Я не готовлю сегодня, и ты тоже не готовишь.",
+      "targetSentence": "Yo no cocino hoy y tú tampoco cocinas.",
+      "alternativeAnswers": [
+        "No cocino hoy y tú tampoco cocinas.",
+        "No cocino hoy y tampoco cocinas tú."
+      ],
+      "testedGrammar": "Сочетание 'no' и 'tampoco': cocinar (yo / tú)",
+      "explanation": "В первой части используется стандартное отрицание no cocino (1-е лицо, yo). Во второй части для выражения «тоже не» применяется tampoco cocinas (2-е лицо, tú)."
+    },
+    {
+      "id": "offline_pack_a1_9_1",
+      "batch": 9,
+      "sourceSentence": "Что ты делаешь в понедельник?",
+      "targetSentence": "¿Qué haces el lunes?",
+      "alternativeAnswers": [
+        "¿Qué haces tú el lunes?"
+      ],
+      "testedGrammar": "Question formation with 'Qué' and days of the week",
+      "explanation": "В испанском языке дни недели используются с определенным артиклем мужского рода 'el'. Глагол 'hacer' (делать) во втором лице единственного числа — 'haces'."
+    },
+    {
+      "id": "offline_pack_a1_9_2",
+      "batch": 9,
+      "sourceSentence": "Где ты будешь в мае?",
+      "targetSentence": "¿Dónde estarás en mayo?",
+      "alternativeAnswers": [
+        "¿Dónde vas a estar en mayo?"
+      ],
+      "testedGrammar": "Question formation with 'Dónde' and months",
+      "explanation": "Названия месяцев пишутся с маленькой буквы и используются с предлогом 'en'. Вопрос о местонахождении требует глагола 'estar'."
+    },
+    {
+      "id": "offline_pack_a1_9_3",
+      "batch": 9,
+      "sourceSentence": "Когда твой день рождения?",
+      "targetSentence": "¿Cuándo es tu cumpleaños?",
+      "alternativeAnswers": [
+        "¿Cuándo es el día de tu cumpleaños?"
+      ],
+      "testedGrammar": "Question formation with 'Cuándo'",
+      "explanation": "Для вопроса о дате или времени используется 'Cuándo'. 'Cumpleaños' — существительное мужского рода, поэтому используем притяжательное местоимение 'tu'."
+    },
+    {
+      "id": "offline_pack_a1_9_4",
+      "batch": 9,
+      "sourceSentence": "Почему ты не работаешь в воскресенье?",
+      "targetSentence": "¿Por qué no trabajas el domingo?",
+      "alternativeAnswers": [
+        "¿Por qué tú no trabajas el domingo?"
+      ],
+      "testedGrammar": "Question formation with 'Por qué'",
+      "explanation": "Вопросительное слово 'por qué' пишется раздельно и с графическим ударением. Отрицание 'no' ставится непосредственно перед глаголом."
+    },
+    {
+      "id": "offline_pack_a1_9_5",
+      "batch": 9,
+      "sourceSentence": "Как ты проводишь лето?",
+      "targetSentence": "¿Cómo pasas el verano?",
+      "alternativeAnswers": [
+        "¿Cómo pasas tú el verano?"
+      ],
+      "testedGrammar": "Question formation with 'Cómo' and seasons",
+      "explanation": "Времена года используются с определенным артиклем. 'Cómo' используется для вопроса о способе или процессе действия."
+    },
+    {
+      "id": "offline_pack_a1_9_6",
+      "batch": 9,
+      "sourceSentence": "Кто придет в среду?",
+      "targetSentence": "¿Quién viene el miércoles?",
+      "alternativeAnswers": [
+        "¿Quién va a venir el miércoles?"
+      ],
+      "testedGrammar": "Question formation with 'Quién'",
+      "explanation": "Вопросительное слово 'Quién' используется для одушевленных лиц. Дни недели, оканчивающиеся на -s, не меняются во множественном числе."
+    },
+    {
+      "id": "offline_pack_a1_9_7",
+      "batch": 9,
+      "sourceSentence": "Сколько стоит билет в январе?",
+      "targetSentence": "¿Cuánto cuesta el billete en enero?",
+      "alternativeAnswers": [
+        "¿Cuánto vale el billete en enero?"
+      ],
+      "testedGrammar": "Question formation with 'Cuánto'",
+      "explanation": "Вопросительное слово 'Cuánto' согласуется в роде и числе с существительным, к которому относится (здесь 'cuesta' — глагол, поэтому 'cuánto' в мужском роде)."
+    },
+    {
+      "id": "offline_pack_a1_9_8",
+      "batch": 9,
+      "sourceSentence": "Что ты любишь делать весной?",
+      "targetSentence": "¿Qué te gusta hacer en primavera?",
+      "alternativeAnswers": [
+        "¿Qué haces en primavera?"
+      ],
+      "testedGrammar": "Question formation with 'Qué' and seasons",
+      "explanation": "Конструкция 'gustar' требует косвенного местоимения 'te'. Времена года 'primavera', 'verano', 'otoño', 'invierno' используются с предлогом 'en'."
+    },
+    {
+      "id": "offline_pack_a1_9_9",
+      "batch": 9,
+      "sourceSentence": "Где ты будешь в субботу?",
+      "targetSentence": "¿Dónde estarás el sábado?",
+      "alternativeAnswers": [
+        "¿Dónde vas a estar el sábado?"
+      ],
+      "testedGrammar": "Question formation with 'Dónde'",
+      "explanation": "Для будущего времени можно использовать простое будущее 'estarás' или конструкцию 'ir a + infinitivo'."
+    },
+    {
+      "id": "offline_pack_a1_9_10",
+      "batch": 9,
+      "sourceSentence": "Почему ты не любишь осень?",
+      "targetSentence": "¿Por qué no te gusta el otoño?",
+      "alternativeAnswers": [
+        "¿Por qué no te gusta a ti el otoño?"
+      ],
+      "testedGrammar": "Question formation with 'Por qué'",
+      "explanation": "В испанском языке вопросительный знак ставится и в начале (перевернутый), и в конце предложения."
+    },
+    {
+      "id": "offline_pack_a1_10_1",
+      "batch": 10,
+      "sourceSentence": "Привет, меня зовут Анна, и я очень рада знакомству.",
+      "targetSentence": "Hola, me llamo Ana y estoy muy contenta de conocerte.",
+      "alternativeAnswers": [
+        "Hola, mi nombre es Ana y estoy muy contenta de conocerte."
+      ],
+      "testedGrammar": "Saludos y verbos reflexivos",
+      "explanation": "Используется глагол 'llamarse' для представления и 'estar' для выражения текущего состояния (радости)."
+    },
+    {
+      "id": "offline_pack_a1_10_2",
+      "batch": 10,
+      "sourceSentence": "Мой брат высокий, и у него карие глаза.",
+      "targetSentence": "Mi hermano es alto y tiene los ojos marrones.",
+      "alternativeAnswers": [
+        "Mi hermano es alto y tiene ojos color café."
+      ],
+      "testedGrammar": "Ser vs Tener (описание)",
+      "explanation": "Для описания физических характеристик (рост) используем 'ser', а для наличия черт (глаза) — глагол 'tener'."
+    },
+    {
+      "id": "offline_pack_a1_10_3",
+      "batch": 10,
+      "sourceSentence": "Сейчас два часа дня, и мы идем в школу.",
+      "targetSentence": "Son las dos de la tarde y vamos a la escuela.",
+      "alternativeAnswers": [
+        "Es la una y media... (ошибка в примере, здесь именно 2 часа)"
+      ],
+      "testedGrammar": "Время и глагол ir",
+      "explanation": "Для времени от 2 до 12 используется глагол во множественном числе 'son'. 'Vamos' — форма глагола 'ir' для 'nosotros'."
+    },
+    {
+      "id": "offline_pack_a1_10_4",
+      "batch": 10,
+      "sourceSentence": "Ты работаешь в офисе или дома?",
+      "targetSentence": "¿Trabajas en la oficina o en casa?",
+      "alternativeAnswers": [
+        "¿Tú trabajas en la oficina o en casa?"
+      ],
+      "testedGrammar": "Глаголы на -ar",
+      "explanation": "Окончание -as указывает на второе лицо единственного числа (tú). Местоимение 'tú' можно опустить."
+    },
+    {
+      "id": "offline_pack_a1_10_5",
+      "batch": 10,
+      "sourceSentence": "У них есть большая семья в Мадриде.",
+      "targetSentence": "Ellos tienen una familia grande en Madrid.",
+      "alternativeAnswers": [
+        "Tienen una familia grande en Madrid."
+      ],
+      "testedGrammar": "Глагол Tener",
+      "explanation": "Глагол 'tener' используется для выражения обладания. Прилагательное 'grande' ставится после существительного."
+    },
+    {
+      "id": "offline_pack_a1_10_6",
+      "batch": 10,
+      "sourceSentence": "Сегодня понедельник, и я очень занят.",
+      "targetSentence": "Hoy es lunes y estoy muy ocupado.",
+      "alternativeAnswers": [
+        "Hoy es lunes y estoy muy ocupada."
+      ],
+      "testedGrammar": "Ser vs Estar",
+      "explanation": "День недели — это постоянная характеристика (ser), а занятость — временное состояние (estar)."
+    },
+    {
+      "id": "offline_pack_a1_10_7",
+      "batch": 10,
+      "sourceSentence": "Кто эта женщина? Это моя мама.",
+      "targetSentence": "¿Quién es esta mujer? Es mi madre.",
+      "alternativeAnswers": [
+        "¿Quién es esa mujer? Es mi mamá."
+      ],
+      "testedGrammar": "Указательные местоимения и семья",
+      "explanation": "Используем 'esta' (эта) для указания на человека рядом. 'Es' используется для идентификации личности."
+    },
+    {
+      "id": "offline_pack_a1_10_8",
+      "batch": 10,
+      "sourceSentence": "Мы изучаем испанский язык каждый день.",
+      "targetSentence": "Nosotros estudiamos español cada día.",
+      "alternativeAnswers": [
+        "Estudiamos español todos los días."
+      ],
+      "testedGrammar": "Настоящее время (-ar)",
+      "explanation": "Окончание -amos соответствует местоимению 'nosotros'. 'Cada día' или 'todos los días' выражают регулярность."
+    },
+    {
+      "id": "offline_pack_a1_10_9",
+      "batch": 10,
+      "sourceSentence": "Где твоя книга? Она на столе.",
+      "targetSentence": "¿Dónde está tu libro? Está en la mesa.",
+      "alternativeAnswers": [
+        "¿Dónde está tu libro? Está sobre la mesa."
+      ],
+      "testedGrammar": "Глагол Estar (местоположение)",
+      "explanation": "Для обозначения местоположения предмета в пространстве всегда используется глагол 'estar'."
+    },
+    {
+      "id": "offline_pack_a1_10_10",
+      "batch": 10,
+      "sourceSentence": "Мне 20 лет, и я живу в Испании.",
+      "targetSentence": "Tengo veinte años y vivo en España.",
+      "alternativeAnswers": [
+        "Tengo 20 años y vivo en España."
+      ],
+      "testedGrammar": "Возраст и глаголы на -ir",
+      "explanation": "Возраст в испанском выражается через глагол 'tener' (иметь годы). 'Vivo' — форма глагола 'vivir' для первого лица."
+    }
+  ]
+}

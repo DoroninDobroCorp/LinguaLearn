@@ -1,4 +1,4 @@
-const CACHE_VERSION = "spanish-pwa-v7-mobile-20260904";
+const CACHE_VERSION = "spanish-pwa-v8-offline-pack-20260905";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 
@@ -12,7 +12,8 @@ const PRECACHE_ASSETS = [
   "/spanish/pwa-icon.svg",
   "/spanish/apple-touch-icon.png",
   "/spanish/pwa-192.png",
-  "/spanish/pwa-512.png"
+  "/spanish/pwa-512.png",
+  "/spanish/a1_first_18_offline_pack_100.json"
 ];
 
 self.addEventListener("install", (event) => {

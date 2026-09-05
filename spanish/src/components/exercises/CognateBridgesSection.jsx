@@ -81,12 +81,15 @@ export default function CognateBridgesSection() {
       <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-800 dark:via-gray-800 dark:to-indigo-950/30 border-2 border-indigo-200 dark:border-gray-700 shadow-xl space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-indigo-600 text-white font-black text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="p-2 rounded-xl bg-indigo-600 text-white font-black text-xs sm:text-sm shadow-sm">
                 🌉 Когнаты & Ложные друзья
               </span>
               <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">
                 Тема 31 (A1 Accelerator)
+              </span>
+              <span className="px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700 text-xs font-extrabold flex items-center gap-1 shadow-xs">
+                ✓ Офлайн 100%
               </span>
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">

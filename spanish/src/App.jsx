@@ -173,7 +173,7 @@ function AppContent() {
       {isOffline && (
         <div className="bg-amber-600 text-white text-xs font-bold py-1.5 px-4 text-center shadow-md flex items-center justify-center gap-2 sticky top-16 z-40 animate-fadeIn">
           <span>📴 Офлайн-режим</span>
-          <span className="opacity-90 font-medium">— доступны тренировка слов, спряжения глаголов и когнаты</span>
+          <span className="opacity-90 font-medium">— доступны тренировка слов, глаголы, когнаты (слова из англ.) и офлайн-пак 100 предложений</span>
         </div>
       )}
 

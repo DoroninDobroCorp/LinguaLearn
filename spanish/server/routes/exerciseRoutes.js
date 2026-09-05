@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import express from 'express';
 import { 
   getWordTilesBatch, 
@@ -448,6 +450,149 @@ Respond ONLY with valid JSON matching this exact schema:
       });
     } catch (error) {
       console.error('Error in /api/exercises/generate-translation:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+
+  // 5.1 Default Pre-generated 100-sentence pack
+  router.get('/default-translation-pack', (req, res) => {
+    try {
+      const publicPath = path.join(process.cwd(), 'public', 'a1_first_18_offline_pack_100.json');
+      if (fs.existsSync(publicPath)) {
+        const raw = fs.readFileSync(publicPath, 'utf-8');
+        return res.json(JSON.parse(raw));
+      }
+      return res.status(404).json({ error: 'Default pack file not found' });
+    } catch (err) {
+      console.error('Error reading default pack:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 5.2 Generate custom 100-sentence translation pack across selected topics
+  router.post('/generate-translation-pack', async (req, res) => {
+    try {
+      const profileId = getProfileId(req);
+      const { topicIds, level = 'A1', count = 100 } = req.body || {};
+
+      let selectedTopicRows = [];
+      if (Array.isArray(topicIds) && topicIds.length > 0) {
+        const placeholders = topicIds.map(() => '?').join(',');
+        selectedTopicRows = db.prepare(`SELECT id, pedagogical_order, name, category, level FROM curriculum_topics WHERE id IN (${placeholders}) ORDER BY pedagogical_order ASC, id ASC`).all(...topicIds);
+      } else {
+        selectedTopicRows = db.prepare(`SELECT id, pedagogical_order, name, category, level FROM curriculum_topics WHERE level = ? ORDER BY pedagogical_order ASC, id ASC LIMIT 18`).all(level);
+      }
+
+      if (selectedTopicRows.length === 0) {
+        selectedTopicRows = db.prepare(`SELECT id, pedagogical_order, name, category, level FROM curriculum_topics ORDER BY RANDOM() LIMIT 18`).all();
+      }
+
+      const numBatches = 10;
+      const batchSize = Math.max(1, Math.ceil(selectedTopicRows.length / numBatches));
+      const topicBatches = [];
+      for (let i = 0; i < selectedTopicRows.length; i += batchSize) {
+        topicBatches.push(selectedTopicRows.slice(i, i + batchSize));
+      }
+      while (topicBatches.length < numBatches) {
+        topicBatches.push(selectedTopicRows);
+      }
+
+      const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
+      const aiModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3-flash-preview', 'gemini-flash-latest'];
+
+      const allExercises = [];
+      for (let bIdx = 0; bIdx < numBatches; bIdx++) {
+        const bTopics = topicBatches[bIdx % topicBatches.length];
+        const topicsListStr = bTopics.map((t, idx) => `${idx + 1}. ${t.name} (${t.category}, ${t.level})`).join('\n');
+
+        const prompt = `You are an elite Spanish language professor and curriculum designer.
+Generate exactly 10 full-sentence translation exercises for Spanish Level ${level} (Batch ${bIdx + 1}/10).
+
+TARGET GRAMMAR TOPICS:
+${topicsListStr}
+
+CRITICAL MANDATORY INSTRUCTIONS:
+1. STRICT TRANSLATION SYMMETRY & FIDELITY:
+   - "sourceSentence" (Russian) and "targetSentence" (Spanish) MUST BE 100% FAITHFUL, EXACT EQUIVALENTS.
+   - Russian sentences must sound completely natural to a native Russian speaker.
+   - "alternativeAnswers" MUST provide 1-3 valid Spanish translation alternatives.
+2. For each of the 10 tasks:
+   - "sourceSentence": Natural Russian sentence.
+   - "targetSentence": Accurate Spanish translation.
+   - "alternativeAnswers": Array of 1-3 alternative valid translations in Spanish.
+   - "testedGrammar": Name of the specific grammar topic tested.
+   - "explanation": Educational Russian explanation detailing grammar rules, agreements, or verb forms.
+
+Respond ONLY with valid JSON matching this schema:
+{
+  "exercises": [
+    {
+      "sourceSentence": "...",
+      "targetSentence": "...",
+      "alternativeAnswers": ["..."],
+      "testedGrammar": "...",
+      "explanation": "..."
+    }
+  ]
+}`;
+
+        let batchExercises = null;
+        for (const m of aiModels) {
+          try {
+            const aiRes = await Promise.race([
+              fetch(`http://127.0.0.1:58433/v1beta/models/${m}:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                  generationConfig: { responseMimeType: 'application/json', temperature: 0.35 }
+                })
+              }),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 25000))
+            ]);
+
+            if (aiRes.ok) {
+              const aiData = await aiRes.json();
+              const rawJson = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+              const parsed = JSON.parse(rawJson);
+              if (Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
+                batchExercises = parsed.exercises;
+                break;
+              }
+            }
+          } catch (err) {
+            console.warn(`[Pack generation] Model ${m} batch ${bIdx + 1} error:`, err.message);
+          }
+        }
+
+        if (Array.isArray(batchExercises)) {
+          batchExercises.forEach((item, itemIdx) => {
+            allExercises.push({
+              id: `pack_${Date.now()}_${bIdx + 1}_${itemIdx + 1}`,
+              batch: bIdx + 1,
+              ...item
+            });
+          });
+        }
+      }
+
+      if (allExercises.length === 0) {
+        return res.status(503).json({
+          error: 'Модель ИИ временно недоступна для генерации пакета предложений.',
+          code: 'AI_MODEL_UNAVAILABLE'
+        });
+      }
+
+      return res.json({
+        packId: `pack_${Date.now()}`,
+        count: allExercises.length,
+        exercises: allExercises,
+        topics: selectedTopicRows,
+        generatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error in /api/exercises/generate-translation-pack:', error);
       return res.status(500).json({ error: error.message });
     }
   });
