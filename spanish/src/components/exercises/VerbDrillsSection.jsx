@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Target, Lightbulb, Play, CheckCircle2, XCircle, RotateCcw, AlertTriangle, Flame } from 'lucide-react';
+import { Target, Lightbulb, Play, CheckCircle2, XCircle, RotateCcw, AlertTriangle, Flame, WifiOff, Sparkles } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../../utils/api';
 import { soundEngine } from '../../utils/soundEffects';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -8,6 +8,9 @@ import {
   DRILL_PRONOUN_MODES,
   DRILL_RUN_MODES,
   DRILL_TYPES,
+  IRREGULAR_VERBS,
+  ALL_IRREGULAR_KEYS,
+  IRREGULAR_VERB_GROUPS,
   getVerbDrillDisplayAnswer,
   getVerbDrillProgressTopic,
   isVerbDrillAnswerCorrect,
@@ -15,13 +18,32 @@ import {
   PRONOUNS,
 } from '../../utils/verbDrills';
 
+const PRIMARY_DRILL_KEYS = [
+  'allIrregulars',
+  'fourKeyVerbs',
+  'group_stem_ie',
+  'group_stem_ue',
+  'group_stem_i',
+  'group_yo',
+  'singleVerb',
+  'serEstar',
+  'regular',
+];
+
 export default function VerbDrillsSection({ onTopicUpdated }) {
   const { t } = useLanguage();
   const [drillType, setDrillType] = useState(() => {
     try {
-      return localStorage.getItem('lingua_spanish_verb_drill_type') || 'fourKeyVerbs';
+      return localStorage.getItem('lingua_spanish_verb_drill_type') || 'allIrregulars';
     } catch {
-      return 'fourKeyVerbs';
+      return 'allIrregulars';
+    }
+  });
+  const [selectedSingleVerb, setSelectedSingleVerb] = useState(() => {
+    try {
+      return localStorage.getItem('lingua_spanish_verb_single_verb') || 'poder';
+    } catch {
+      return 'poder';
     }
   });
   const [pronounMode, setPronounMode] = useState(() => {
@@ -44,6 +66,12 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
       localStorage.setItem('lingua_spanish_verb_drill_type', drillType);
     } catch {}
   }, [drillType]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lingua_spanish_verb_single_verb', selectedSingleVerb);
+    } catch {}
+  }, [selectedSingleVerb]);
 
   useEffect(() => {
     try {
@@ -72,17 +100,29 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
 
   const SPANISH_CHARS = ['á', 'é', 'í', 'ó', 'ú', 'ñ', '¿', '¡'];
 
-  // Load server-recorded verb mistakes
+  // Load server-recorded verb mistakes with offline localStorage cache
   const fetchServerMistakes = useCallback(async () => {
     try {
       const res = await profileFetch(profileApiUrl('/spanish/api/exercises/mistakes?category=verb_conjugation&limit=50'));
       if (res.ok) {
         const data = await res.json();
-        setServerMistakes(data.mistakes || []);
+        const list = data.mistakes || [];
+        setServerMistakes(list);
+        try {
+          localStorage.setItem('lingua_cached_verb_mistakes', JSON.stringify(list));
+        } catch {}
+        return;
       }
     } catch (e) {
-      console.warn('Error fetching server verb mistakes:', e);
+      console.warn('Network offline or error fetching server verb mistakes:', e);
     }
+    // Offline fallback
+    try {
+      const cached = localStorage.getItem('lingua_cached_verb_mistakes');
+      if (cached) {
+        setServerMistakes(JSON.parse(cached));
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -93,7 +133,7 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
   const buildQuestionFromMistake = (m) => {
     return {
       id: `mistake-${m.id}-${Date.now()}`,
-      drillType: 'fourKeyVerbs',
+      drillType: 'allIrregulars',
       verb: m.prompt?.includes('+') ? m.prompt.split('+')[1]?.split('(')[0]?.trim() : 'verbo',
       prompt: m.prompt?.includes('___') ? m.prompt : null,
       instruction: m.rule_explanation || 'Отработка сохраненной ошибки спряжения',
@@ -133,7 +173,7 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
         setCurrentQuestion(initialMistakeQuestions[0]);
         setSessionMistakesQueue(initialMistakeQuestions.slice(1));
       } else {
-        setCurrentQuestion(createVerbDrillQuestion(drillType, pronounMode));
+        setCurrentQuestion(createVerbDrillQuestion(drillType, pronounMode, { singleVerb: selectedSingleVerb }));
       }
     }
 
@@ -170,7 +210,7 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
     const promptStr = getQuestionPromptString(currentQuestion);
     const displayAnswerStr = getVerbDrillDisplayAnswer(currentQuestion);
 
-    // Record or Resolve mistake on server
+    // Record or Resolve mistake locally and on server
     try {
       if (!correct) {
         // Add to in-session retry queue
@@ -179,7 +219,7 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
           return alreadyIn ? prev : [...prev, { ...currentQuestion, isRetry: true, previousWrongAnswer: answer.trim() }];
         });
 
-        // Save to server database
+        // Save to server database (with silent offline catch)
         profileFetch(profileApiUrl('/spanish/api/exercises/record-mistake'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -190,7 +230,7 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
             prompt: promptStr,
             userWrongAnswer: answer.trim(),
             correctAnswer: displayAnswerStr,
-            ruleExplanation: currentQuestion.reason || currentRules[0] || 'Правило спряжения глагола'
+            ruleExplanation: currentQuestion.rulesHint || currentQuestion.reason || currentRules[0] || 'Правило спряжения глагола'
           })
         }).then(() => fetchServerMistakes()).catch(() => {});
       } else {
@@ -208,7 +248,7 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
         }
       }
     } catch (e) {
-      console.warn('Mistake tracking error in VerbDrills:', e);
+      console.warn('Mistake tracking offline fallback in VerbDrills:', e);
     }
 
     try {
@@ -226,7 +266,7 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
       });
       if (typeof onTopicUpdated === 'function') onTopicUpdated();
     } catch (error) {
-      console.error('Error updating verb drill topic:', error);
+      // Offline mode: keep going without disrupting user flow
     }
   };
 
@@ -276,7 +316,7 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
       setSessionMistakesQueue((prev) => prev.slice(1));
       setCurrentQuestion(nextMistake);
     } else {
-      setCurrentQuestion(createVerbDrillQuestion(drillType, pronounMode));
+      setCurrentQuestion(createVerbDrillQuestion(drillType, pronounMode, { singleVerb: selectedSingleVerb }));
     }
 
     setAnswer('');
@@ -286,27 +326,35 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
 
   const insertChar = (c) => setAnswer((prev) => prev + c);
 
-  const currentRules = DRILL_TYPES[drillType]?.rules || [];
+  const currentRules = (drillType === 'singleVerb' && IRREGULAR_VERBS[selectedSingleVerb])
+    ? [IRREGULAR_VERBS[selectedSingleVerb].hint]
+    : (DRILL_TYPES[drillType]?.rules || []);
 
   return (
     <div className="max-w-3xl mx-auto glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-purple-100 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 animate-fadeIn">
       {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-purple-100 dark:border-gray-700 pb-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-purple-100 dark:border-gray-700 pb-4 mb-6 gap-3">
         <div>
-          <h3 className="text-xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
-            <Target className="w-6 h-6 text-fuchsia-500" />
-            <span>Тренировка спряжения глаголов</span>
-          </h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+              <Target className="w-6 h-6 text-fuchsia-500" />
+              <span>Тренировка спряжения глаголов</span>
+            </h3>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 shadow-sm">
+              <WifiOff className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+              <span>100% Офлайн</span>
+            </span>
+          </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Отрабатывай 4 главных глагола (ser, estar, tener, ir) и правильные окончания с аргентинским voseo.
+            Отрабатывай все 60 неправильных глаголов словаря, группы чередований (e➔ie, o➔ue, e➔i, yo-go) и аргентинское voseo без интернета.
           </p>
         </div>
 
         {sessionActive ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start sm:self-auto">
             <button
               onClick={() => setShowRuleHint(!showRuleHint)}
-              className="px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 font-bold text-xs hover:bg-amber-100 transition-all flex items-center gap-1.5 shadow-sm"
+              className="px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 font-bold text-xs hover:bg-amber-100 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
             >
               <Lightbulb className="w-4 h-4 text-amber-600" />
               <span>{showRuleHint ? 'Скрыть ▲' : '💡 Подсказка'}</span>
@@ -316,14 +364,14 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
                 setSessionActive(false);
                 fetchServerMistakes();
               }}
-              className="px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-100 font-bold text-xs"
+              className="px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-100 font-bold text-xs cursor-pointer"
             >
               Завершить
             </button>
           </div>
         ) : (
           serverMistakes.length > 0 && (
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-black border border-rose-200 animate-pulse">
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-black border border-rose-200 animate-pulse self-start sm:self-auto">
               <AlertTriangle className="w-3.5 h-3.5" />
               {serverMistakes.length} ошибок на повторении
             </span>
@@ -337,11 +385,11 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 font-black text-sm text-amber-950 dark:text-amber-200">
               <Lightbulb className="w-5 h-5 text-amber-600 flex-shrink-0" />
-              <span>Правило и шпаргалка спряжений: {DRILL_TYPES[drillType]?.label}</span>
+              <span>Шпаргалка: {drillType === 'singleVerb' ? `${selectedSingleVerb} (${IRREGULAR_VERBS[selectedSingleVerb]?.translation})` : DRILL_TYPES[drillType]?.label}</span>
             </div>
             <button
               onClick={() => setShowRuleHint(false)}
-              className="text-xs text-amber-700 hover:text-amber-900 font-bold"
+              className="text-xs text-amber-700 hover:text-amber-900 font-bold cursor-pointer"
             >
               ✕ Закрыть
             </button>
@@ -371,7 +419,7 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
                     У вас {serverMistakes.length} нерешенных ошибок в спряжениях
                   </h4>
                   <p className="text-xs text-rose-800">
-                    Система сохранила формы, в которых вы ошибались. Отработайте их, чтобы закрепить материал!
+                    Система сохранила формы, в которых вы ошибались. Отработайте их прямо сейчас!
                   </p>
                 </div>
               </div>
@@ -388,11 +436,11 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">
-                Тип глаголов:
+                Выберите тренировку:
               </label>
               <button
                 onClick={() => setShowRuleHint(!showRuleHint)}
-                className="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1"
+                className="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 cursor-pointer"
               >
                 <Lightbulb className="w-3.5 h-3.5" />
                 <span>{showRuleHint ? 'Скрыть шпаргалку' : 'Посмотреть шпаргалку правил'}</span>
@@ -400,26 +448,59 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {Object.entries(DRILL_TYPES).map(([k, v]) => (
-                <button
-                  key={k}
-                  onClick={() => {
-                    soundEngine.playTileClick();
-                    setDrillType(k);
-                  }}
-                  className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                    drillType === k
-                      ? 'bg-purple-100 dark:bg-purple-900/60 border-purple-500 text-purple-900 dark:text-purple-200 shadow-md font-bold'
-                      : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-purple-300 bg-white dark:bg-gray-800'
-                  }`}
-                >
-                  <div className="font-extrabold text-sm">{v.label}</div>
-                  {v.rules && v.rules.length > 0 && (
-                    <div className="text-[11px] opacity-75 mt-0.5 line-clamp-1">{v.rules[0]}</div>
-                  )}
-                </button>
-              ))}
+              {PRIMARY_DRILL_KEYS.map((k) => {
+                const v = DRILL_TYPES[k];
+                if (!v) return null;
+                const isSelected = drillType === k;
+                return (
+                  <button
+                    key={k}
+                    onClick={() => {
+                      soundEngine.playTileClick();
+                      setDrillType(k);
+                    }}
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-100 dark:bg-purple-900/60 border-purple-500 text-purple-900 dark:text-purple-200 shadow-md font-bold'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-purple-300 bg-white dark:bg-gray-800'
+                    }`}
+                  >
+                    <div className="font-extrabold text-sm">{v.label}</div>
+                    {v.rules && v.rules.length > 0 && (
+                      <div className="text-[11px] opacity-75 mt-0.5 line-clamp-1">{v.rules[0]}</div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Individual Verb Picker dropdown when singleVerb mode is active */}
+            {drillType === 'singleVerb' && (
+              <div className="mt-3 p-4 bg-gradient-to-r from-purple-50 via-fuchsia-50 to-pink-50 dark:bg-gray-750 rounded-2xl border-2 border-purple-300 dark:border-purple-700 animate-fadeIn shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-black uppercase text-purple-900 dark:text-purple-300">
+                    Выберите глагол из словаря ({ALL_IRREGULAR_KEYS.length} глаголов):
+                  </label>
+                  <span className="text-[11px] text-purple-600 font-bold">100% офлайн</span>
+                </div>
+                <select
+                  value={selectedSingleVerb}
+                  onChange={(e) => setSelectedSingleVerb(e.target.value)}
+                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-purple-300 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:border-purple-500 shadow-sm cursor-pointer"
+                >
+                  {ALL_IRREGULAR_KEYS.map((k) => (
+                    <option key={k} value={k}>
+                      {k} — {IRREGULAR_VERBS[k].translation}
+                    </option>
+                  ))}
+                </select>
+                {IRREGULAR_VERBS[selectedSingleVerb]?.hint && (
+                  <p className="text-xs text-purple-900 dark:text-purple-200 mt-2.5 font-medium bg-white/70 dark:bg-gray-800/70 p-2.5 rounded-xl border border-purple-200 dark:border-purple-800">
+                    💡 <strong>Формы: </strong>{IRREGULAR_VERBS[selectedSingleVerb].hint}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -517,8 +598,13 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
                   </div>
                 )}
 
-                <div className="text-xs font-bold uppercase text-purple-600 dark:text-purple-400 mb-1">
-                  Глагол: {currentQuestion.verb} ({currentQuestion.translation})
+                <div className="text-xs font-bold uppercase text-purple-600 dark:text-purple-400 mb-1 flex items-center justify-center gap-2 flex-wrap">
+                  <span>Глагол: <strong>{currentQuestion.verb}</strong> ({currentQuestion.translation})</span>
+                  {currentQuestion.pattern && (
+                    <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 text-[10px] font-black rounded-md">
+                      {currentQuestion.pattern === 'stem_ie' ? 'e ➔ ie' : currentQuestion.pattern === 'stem_ue' ? 'o/u ➔ ue' : currentQuestion.pattern === 'stem_i' ? 'e ➔ i' : currentQuestion.pattern === 'yo_go' ? 'yo: -go' : currentQuestion.pattern === 'yo_zco' ? 'yo: -zco' : 'особый'}
+                    </span>
+                  )}
                 </div>
                 <div className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white my-2">
                   {currentQuestion.prompt || `${currentQuestion.pronoun} _______`}
@@ -609,7 +695,7 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
                     <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                     <div>
                       <strong className="font-bold">Шпаргалка: </strong>
-                      <span>{currentRules[0] || 'Обратите внимание на спряжение для данного местоимения.'}</span>
+                      <span>{currentQuestion.rulesHint || currentRules[0] || 'Обратите внимание на спряжение для данного местоимения.'}</span>
                     </div>
                   </div>
                 </div>
@@ -621,4 +707,3 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
     </div>
   );
 }
-

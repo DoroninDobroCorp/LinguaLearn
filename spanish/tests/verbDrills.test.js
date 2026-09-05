@@ -12,6 +12,10 @@ import {
   SER_ESTAR_CONTEXTS,
   DRILL_PRONOUN_MODES,
   FOUR_KEY_VERB_KEYS,
+  IRREGULAR_VERBS,
+  ALL_IRREGULAR_KEYS,
+  IRREGULAR_VERB_GROUPS,
+  DRILL_TYPES,
 } from '../src/utils/verbDrills.js';
 
 const byInfinitive = Object.fromEntries(REGULAR_VERBS.map((verb) => [verb.infinitive, verb]));
@@ -28,17 +32,28 @@ describe('verb drill helpers', () => {
   it('conjugates the top regular verbs in present tense including standard tú and vos', () => {
     assert.equal(conjugateVerb('regular', byInfinitive.hablar, 'yo'), 'hablo');
     assert.equal(conjugateVerb('regular', byInfinitive.hablar, 'tu'), 'hablas');
-    assert.equal(conjugateVerb('regular', byInfinitive.trabajar, 'vos'), 'trabajás');
-    assert.equal(conjugateVerb('regular', byInfinitive.trabajar, 'tu'), 'trabajas');
-    assert.equal(conjugateVerb('regular', byInfinitive.estudiar, 'el'), 'estudia');
-    assert.equal(conjugateVerb('regular', byInfinitive.comprar, 'nosotros'), 'compramos');
-    assert.equal(conjugateVerb('regular', byInfinitive.llamar, 'ellos'), 'llaman');
+    assert.equal(conjugateVerb('regular', byInfinitive.hablar, 'vos'), 'hablás');
+    assert.equal(conjugateVerb('regular', byInfinitive.hablar, 'el'), 'habla');
+    assert.equal(conjugateVerb('regular', byInfinitive.hablar, 'nosotros'), 'hablamos');
+    assert.equal(conjugateVerb('regular', byInfinitive.hablar, 'vosotros'), 'habláis');
+    assert.equal(conjugateVerb('regular', byInfinitive.hablar, 'ellos'), 'hablan');
+
     assert.equal(conjugateVerb('regular', byInfinitive.comer, 'yo'), 'como');
     assert.equal(conjugateVerb('regular', byInfinitive.comer, 'tu'), 'comes');
-    assert.equal(conjugateVerb('regular', byInfinitive.aprender, 'ellos'), 'aprenden');
-    assert.equal(conjugateVerb('regular', byInfinitive.vivir, 'nosotros'), 'vivimos');
+    assert.equal(conjugateVerb('regular', byInfinitive.comer, 'vos'), 'comés');
+    assert.equal(conjugateVerb('regular', byInfinitive.comer, 'el'), 'come');
+    assert.equal(conjugateVerb('regular', byInfinitive.comer, 'nosotros'), 'comemos');
+    assert.equal(conjugateVerb('regular', byInfinitive.comer, 'vosotros'), 'coméis');
+    assert.equal(conjugateVerb('regular', byInfinitive.comer, 'ellos'), 'comen');
+
+    assert.equal(conjugateVerb('regular', byInfinitive.vivir, 'yo'), 'vivo');
     assert.equal(conjugateVerb('regular', byInfinitive.vivir, 'tu'), 'vives');
-    assert.equal(conjugateVerb('regular', byInfinitive.escribir, 'vos'), 'escribís');
+    assert.equal(conjugateVerb('regular', byInfinitive.vivir, 'vos'), 'vivís');
+    assert.equal(conjugateVerb('regular', byInfinitive.vivir, 'el'), 'vive');
+    assert.equal(conjugateVerb('regular', byInfinitive.vivir, 'nosotros'), 'vivimos');
+    assert.equal(conjugateVerb('regular', byInfinitive.vivir, 'vosotros'), 'vivís');
+    assert.equal(conjugateVerb('regular', byInfinitive.vivir, 'ellos'), 'viven');
+
     assert.equal(conjugateVerb('regular', byInfinitive.escribir, 'tu'), 'escribes');
   });
 
@@ -215,5 +230,74 @@ describe('verb drill helpers', () => {
     assert.equal(getVerbDrillProgressTopic({ drillType: 'fourKeyVerbs', subDrillType: 'ir' }), 'Present tense irregular verbs (ir/hacer/decir)');
     assert.equal(getVerbDrillProgressTopic({ drillType: 'fourKeyVerbs', subDrillType: 'tener' }), 'Tener (to have) and tener expressions');
     assert.equal(getVerbDrillProgressTopic({ drillType: 'fourKeyVerbs', subDrillType: 'ser' }), 'Ser vs Estar (basic)');
+  });
+
+  it('contains all 60 irregular verbs from user vocabulary with full forms including voseo', () => {
+    assert.equal(ALL_IRREGULAR_KEYS.length, 60);
+    const pronouns = ['yo', 'tu', 'vos', 'el', 'nosotros', 'vosotros', 'ellos'];
+    for (const key of ALL_IRREGULAR_KEYS) {
+      const verb = IRREGULAR_VERBS[key];
+      assert.ok(verb, `Verb ${key} must exist`);
+      assert.ok(verb.infinitive, `Verb ${key} must have infinitive`);
+      assert.ok(verb.translation, `Verb ${key} must have translation`);
+      assert.ok(verb.forms, `Verb ${key} must have forms object`);
+      for (const p of pronouns) {
+        assert.ok(verb.forms[p], `Verb ${key} must have form for pronoun ${p}`);
+      }
+    }
+
+    // Check specific essential voseo forms
+    assert.equal(IRREGULAR_VERBS.poder.forms.vos, 'podés');
+    assert.equal(IRREGULAR_VERBS.querer.forms.vos, 'querés');
+    assert.equal(IRREGULAR_VERBS.saber.forms.vos, 'sabés');
+    assert.equal(IRREGULAR_VERBS.poner.forms.vos, 'ponés');
+    assert.equal(IRREGULAR_VERBS.salir.forms.vos, 'salís');
+    assert.equal(IRREGULAR_VERBS.venir.forms.vos, 'venís');
+    assert.equal(IRREGULAR_VERBS.dormir.forms.vos, 'dormís');
+    assert.equal(IRREGULAR_VERBS.volver.forms.vos, 'volvés');
+    assert.equal(IRREGULAR_VERBS.jugar.forms.vos, 'jugás');
+    assert.equal(IRREGULAR_VERBS.conocer.forms.vos, 'conocés');
+    assert.equal(IRREGULAR_VERBS.pedir.forms.vos, 'pedís');
+    assert.equal(IRREGULAR_VERBS.traducir.forms.vos, 'traducís');
+  });
+
+  it('generates questions in allIrregulars mode covering diverse irregular verbs', () => {
+    const seenVerbs = new Set();
+    for (let i = 0; i < 100; i++) {
+      const q = createVerbDrillQuestion('allIrregulars', 'all');
+      assert.equal(q.drillType, 'allIrregulars');
+      assert.ok(ALL_IRREGULAR_KEYS.includes(q.subDrillType));
+      assert.ok(q.correctAnswer);
+      assert.ok(isVerbDrillAnswerCorrect(q.correctAnswer, q));
+      seenVerbs.add(q.verb);
+    }
+    assert.ok(seenVerbs.size >= 10, 'Should cover a broad selection of irregular verbs');
+  });
+
+  it('generates questions for a chosen singleVerb mode with options', () => {
+    for (let i = 0; i < 20; i++) {
+      const q = createVerbDrillQuestion('singleVerb', 'all', { singleVerb: 'poder' });
+      assert.equal(q.verb, 'poder');
+      assert.equal(q.subDrillType, 'poder');
+      assert.ok(isVerbDrillAnswerCorrect(q.correctAnswer, q));
+    }
+  });
+
+  it('generates questions for irregular groups (stem-changing e->ie, o/u->ue, e->i, yo-irregulars)', () => {
+    const ieQuestion = createVerbDrillQuestion('group_stem_ie', 'all');
+    assert.ok(IRREGULAR_VERB_GROUPS.group_stem_ie.verbs.includes(ieQuestion.verb));
+    assert.ok(isVerbDrillAnswerCorrect(ieQuestion.correctAnswer, ieQuestion));
+
+    const ueQuestion = createVerbDrillQuestion('group_stem_ue', 'all');
+    assert.ok(IRREGULAR_VERB_GROUPS.group_stem_ue.verbs.includes(ueQuestion.verb));
+    assert.ok(isVerbDrillAnswerCorrect(ueQuestion.correctAnswer, ueQuestion));
+
+    const iQuestion = createVerbDrillQuestion('group_stem_i', 'all');
+    assert.ok(IRREGULAR_VERB_GROUPS.group_stem_i.verbs.includes(iQuestion.verb));
+    assert.ok(isVerbDrillAnswerCorrect(iQuestion.correctAnswer, iQuestion));
+
+    const yoQuestion = createVerbDrillQuestion('group_yo', 'all');
+    assert.ok(IRREGULAR_VERB_GROUPS.group_yo.verbs.includes(yoQuestion.verb));
+    assert.ok(isVerbDrillAnswerCorrect(yoQuestion.correctAnswer, yoQuestion));
   });
 });

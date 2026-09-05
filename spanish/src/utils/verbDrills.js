@@ -105,84 +105,475 @@ export const REGULAR_ENDINGS = {
 
 export const FOUR_KEY_VERB_KEYS = ['ser', 'estar', 'tener', 'ir'];
 
-const IRREGULAR_VERBS = {
+export const IRREGULAR_VERBS = {
   ser: {
     infinitive: 'ser',
-    translation: 'быть (по сути)',
-    forms: {
-      yo: 'soy',
-      tu: 'eres',
-      vos: 'sos',
-      el: 'es',
-      nosotros: 'somos',
-      vosotros: 'sois',
-      ellos: 'son',
-    },
+    translation: 'быть / являться (суть)',
+    pattern: 'unique',
+    hint: 'ser: soy, eres, vos sos, es, somos, sois, son',
+    forms: { yo: 'soy', tu: 'eres', vos: 'sos', el: 'es', nosotros: 'somos', vosotros: 'sois', ellos: 'son' },
   },
   estar: {
     infinitive: 'estar',
-    translation: 'быть (находиться, состояние)',
-    forms: {
-      yo: 'estoy',
-      tu: 'estás',
-      vos: 'estás',
-      el: 'está',
-      nosotros: 'estamos',
-      vosotros: 'estáis',
-      ellos: 'están',
-    },
+    translation: 'находиться / быть в состоянии',
+    pattern: 'unique',
+    hint: 'estar: estoy, estás, vos estás, está, estamos, estáis, están',
+    forms: { yo: 'estoy', tu: 'estás', vos: 'estás', el: 'está', nosotros: 'estamos', vosotros: 'estáis', ellos: 'están' },
   },
   tener: {
     infinitive: 'tener',
     translation: 'иметь',
-    forms: {
-      yo: 'tengo',
-      tu: 'tienes',
-      vos: 'tenés',
-      el: 'tiene',
-      nosotros: 'tenemos',
-      vosotros: 'tenéis',
-      ellos: 'tienen',
-    },
+    pattern: 'yo_go',
+    hint: 'tener: tengo, tienes, vos tenés, tiene, tenemos, tenéis, tienen',
+    forms: { yo: 'tengo', tu: 'tienes', vos: 'tenés', el: 'tiene', nosotros: 'tenemos', vosotros: 'tenéis', ellos: 'tienen' },
   },
   ir: {
     infinitive: 'ir',
     translation: 'идти, ехать',
-    forms: {
-      yo: 'voy',
-      tu: 'vas',
-      vos: 'vas',
-      el: 'va',
-      nosotros: 'vamos',
-      vosotros: 'vais',
-      ellos: 'van',
-    },
+    pattern: 'unique',
+    hint: 'ir: voy, vas, vos vas, va, vamos, vais, van',
+    forms: { yo: 'voy', tu: 'vas', vos: 'vas', el: 'va', nosotros: 'vamos', vosotros: 'vais', ellos: 'van' },
   },
   hacer: {
     infinitive: 'hacer',
-    translation: 'делать',
-    forms: {
-      yo: 'hago',
-      tu: 'haces',
-      vos: 'hacés',
-      el: 'hace',
-      nosotros: 'hacemos',
-      vosotros: 'hacéis',
-      ellos: 'hacen',
-    },
+    translation: 'делать, совершать',
+    pattern: 'yo_go',
+    hint: 'hacer: hago, haces, vos hacés, hace, hacemos, hacéis, hacen',
+    forms: { yo: 'hago', tu: 'haces', vos: 'hacés', el: 'hace', nosotros: 'hacemos', vosotros: 'hacéis', ellos: 'hacen' },
   },
   decir: {
     infinitive: 'decir',
     translation: 'говорить, сказать',
-    forms: {
-      yo: 'digo',
-      tu: 'dices',
-      vos: 'decís',
-      el: 'dice',
-      nosotros: 'decimos',
-      vosotros: 'decís',
-      ellos: 'dicen',
-    },
+    pattern: 'stem_i',
+    hint: 'decir: digo, dices, vos decís, dice, decimos, decís, dicen',
+    forms: { yo: 'digo', tu: 'dices', vos: 'decís', el: 'dice', nosotros: 'decimos', vosotros: 'decís', ellos: 'dicen' },
+  },
+  poder: {
+    infinitive: 'poder',
+    translation: 'мочь, иметь возможность',
+    pattern: 'stem_ue',
+    hint: 'poder (o->ue): puedo, puedes, vos podés, puede, podemos, podéis, pueden',
+    forms: { yo: 'puedo', tu: 'puedes', vos: 'podés', el: 'puede', nosotros: 'podemos', vosotros: 'podéis', ellos: 'pueden' },
+  },
+  querer: {
+    infinitive: 'querer',
+    translation: 'хотеть, любить',
+    pattern: 'stem_ie',
+    hint: 'querer (e->ie): quiero, quieres, vos querés, quiere, queremos, queréis, quieren',
+    forms: { yo: 'quiero', tu: 'quieres', vos: 'querés', el: 'quiere', nosotros: 'queremos', vosotros: 'queréis', ellos: 'quieren' },
+  },
+  saber: {
+    infinitive: 'saber',
+    translation: 'знать (факты, умения)',
+    pattern: 'yo_special',
+    hint: 'saber: sé, sabes, vos sabés, sabe, sabemos, sabéis, saben',
+    forms: { yo: 'sé', tu: 'sabes', vos: 'sabés', el: 'sabe', nosotros: 'sabemos', vosotros: 'sabéis', ellos: 'saben' },
+  },
+  poner: {
+    infinitive: 'poner',
+    translation: 'класть, ставить, включать',
+    pattern: 'yo_go',
+    hint: 'poner: pongo, pones, vos ponés, pone, ponemos, ponéis, ponen',
+    forms: { yo: 'pongo', tu: 'pones', vos: 'ponés', el: 'pone', nosotros: 'ponemos', vosotros: 'ponéis', ellos: 'ponen' },
+  },
+  salir: {
+    infinitive: 'salir',
+    translation: 'выходить, уходить',
+    pattern: 'yo_go',
+    hint: 'salir: salgo, sales, vos salís, sale, salimos, salís, salen',
+    forms: { yo: 'salgo', tu: 'sales', vos: 'salís', el: 'sale', nosotros: 'salimos', vosotros: 'salís', ellos: 'salen' },
+  },
+  venir: {
+    infinitive: 'venir',
+    translation: 'приходить, приезжать',
+    pattern: 'yo_go',
+    hint: 'venir: vengo, vienes, vos venís, viene, venimos, venís, vienen',
+    forms: { yo: 'vengo', tu: 'vienes', vos: 'venís', el: 'viene', nosotros: 'venimos', vosotros: 'venís', ellos: 'vienen' },
+  },
+  ver: {
+    infinitive: 'ver',
+    translation: 'видеть, смотреть',
+    pattern: 'yo_special',
+    hint: 'ver: veo, ves, vos ves, ve, vemos, veis, ven',
+    forms: { yo: 'veo', tu: 'ves', vos: 'ves', el: 've', nosotros: 'vemos', vosotros: 'veis', ellos: 'ven' },
+  },
+  dar: {
+    infinitive: 'dar',
+    translation: 'давать',
+    pattern: 'yo_special',
+    hint: 'dar: doy, das, vos das, da, damos, dais, dan',
+    forms: { yo: 'doy', tu: 'das', vos: 'das', el: 'da', nosotros: 'damos', vosotros: 'dais', ellos: 'dan' },
+  },
+  pedir: {
+    infinitive: 'pedir',
+    translation: 'просить, заказывать',
+    pattern: 'stem_i',
+    hint: 'pedir (e->i): pido, pides, vos pedís, pide, pedimos, pedís, piden',
+    forms: { yo: 'pido', tu: 'pides', vos: 'pedís', el: 'pide', nosotros: 'pedimos', vosotros: 'pedís', ellos: 'piden' },
+  },
+  dormir: {
+    infinitive: 'dormir',
+    translation: 'спать',
+    pattern: 'stem_ue',
+    hint: 'dormir (o->ue): duermo, duermes, vos dormís, duerme, dormimos, dormís, duermen',
+    forms: { yo: 'duermo', tu: 'duermes', vos: 'dormís', el: 'duerme', nosotros: 'dormimos', vosotros: 'dormís', ellos: 'duermen' },
+  },
+  volver: {
+    infinitive: 'volver',
+    translation: 'возвращаться',
+    pattern: 'stem_ue',
+    hint: 'volver (o->ue): vuelvo, vuelves, vos volvés, vuelve, volvemos, volvéis, vuelven',
+    forms: { yo: 'vuelvo', tu: 'vuelves', vos: 'volvés', el: 'vuelve', nosotros: 'volvemos', vosotros: 'volvéis', ellos: 'vuelven' },
+  },
+  jugar: {
+    infinitive: 'jugar',
+    translation: 'играть',
+    pattern: 'stem_ue',
+    hint: 'jugar (u->ue): juego, juegas, vos jugás, juega, jugamos, jugáis, juegan',
+    forms: { yo: 'juego', tu: 'juegas', vos: 'jugás', el: 'juega', nosotros: 'jugamos', vosotros: 'jugáis', ellos: 'juegan' },
+  },
+  sentir: {
+    infinitive: 'sentir',
+    translation: 'чувствовать',
+    pattern: 'stem_ie',
+    hint: 'sentir (e->ie): siento, sientes, vos sentís, siente, sentimos, sentís, sienten',
+    forms: { yo: 'siento', tu: 'sientes', vos: 'sentís', el: 'siente', nosotros: 'sentimos', vosotros: 'sentís', ellos: 'sienten' },
+  },
+  preferir: {
+    infinitive: 'preferir',
+    translation: 'предпочитать',
+    pattern: 'stem_ie',
+    hint: 'preferir (e->ie): prefiero, prefieres, vos preferís, prefiere, preferimos, preferís, prefieren',
+    forms: { yo: 'prefiero', tu: 'prefieres', vos: 'preferís', el: 'prefiere', nosotros: 'preferimos', vosotros: 'preferís', ellos: 'prefieren' },
+  },
+  pensar: {
+    infinitive: 'pensar',
+    translation: 'думать',
+    pattern: 'stem_ie',
+    hint: 'pensar (e->ie): pienso, piensas, vos pensás, piensa, pensamos, pensáis, piensan',
+    forms: { yo: 'pienso', tu: 'piensas', vos: 'pensás', el: 'piensa', nosotros: 'pensamos', vosotros: 'pensáis', ellos: 'piensan' },
+  },
+  entender: {
+    infinitive: 'entender',
+    translation: 'понимать',
+    pattern: 'stem_ie',
+    hint: 'entender (e->ie): entiendo, entiendes, vos entendés, entiende, entendemos, entendéis, entienden',
+    forms: { yo: 'entiendo', tu: 'entiendes', vos: 'entendés', el: 'entiende', nosotros: 'entendemos', vosotros: 'entendéis', ellos: 'entienden' },
+  },
+  conocer: {
+    infinitive: 'conocer',
+    translation: 'знать (людей, места), знакомиться',
+    pattern: 'yo_zco',
+    hint: 'conocer: conozco, conoces, vos conocés, conoce, conocemos, conocéis, conocen',
+    forms: { yo: 'conozco', tu: 'conoces', vos: 'conocés', el: 'conoce', nosotros: 'conocemos', vosotros: 'conocéis', ellos: 'conocen' },
+  },
+  traer: {
+    infinitive: 'traer',
+    translation: 'приносить',
+    pattern: 'yo_go',
+    hint: 'traer: traigo, traes, vos traés, trae, traemos, traéis, traen',
+    forms: { yo: 'traigo', tu: 'traes', vos: 'traés', el: 'trae', nosotros: 'traemos', vosotros: 'traéis', ellos: 'traen' },
+  },
+  oír: {
+    infinitive: 'oír',
+    translation: 'слышать',
+    pattern: 'yo_special',
+    hint: 'oír: oigo, oyes, vos oís, oye, oímos, oís, oyen',
+    forms: { yo: 'oigo', tu: 'oyes', vos: 'oís', el: 'oye', nosotros: 'oímos', vosotros: 'oís', ellos: 'oyen' },
+  },
+  seguir: {
+    infinitive: 'seguir',
+    translation: 'следовать, продолжать',
+    pattern: 'stem_i',
+    hint: 'seguir (e->i): sigo, sigues, vos seguís, sigue, seguimos, seguís, siguen',
+    forms: { yo: 'sigo', tu: 'sigues', vos: 'seguís', el: 'sigue', nosotros: 'seguimos', vosotros: 'seguís', ellos: 'siguen' },
+  },
+  repetir: {
+    infinitive: 'repetir',
+    translation: 'повторять',
+    pattern: 'stem_i',
+    hint: 'repetir (e->i): repito, repites, vos repetís, repite, repetimos, repetís, repiten',
+    forms: { yo: 'repito', tu: 'repites', vos: 'repetís', el: 'repite', nosotros: 'repetimos', vosotros: 'repetís', ellos: 'repiten' },
+  },
+  servir: {
+    infinitive: 'servir',
+    translation: 'служить, подавать',
+    pattern: 'stem_i',
+    hint: 'servir (e->i): sirvo, sirves, vos servís, sirve, servimos, servís, sirven',
+    forms: { yo: 'sirvo', tu: 'sirves', vos: 'servís', el: 'sirve', nosotros: 'servimos', vosotros: 'servís', ellos: 'sirven' },
+  },
+  morir: {
+    infinitive: 'morir',
+    translation: 'умирать',
+    pattern: 'stem_ue',
+    hint: 'morir (o->ue): muero, mueres, vos morís, muere, morimos, morís, mueren',
+    forms: { yo: 'muero', tu: 'mueres', vos: 'morís', el: 'muere', nosotros: 'morimos', vosotros: 'morís', ellos: 'mueren' },
+  },
+  valer: {
+    infinitive: 'valer',
+    translation: 'стоить, иметь ценность',
+    pattern: 'yo_go',
+    hint: 'valer: valgo, vales, vos valés, vale, valemos, valéis, valen',
+    forms: { yo: 'valgo', tu: 'vales', vos: 'valés', el: 'vale', nosotros: 'valemos', vosotros: 'valéis', ellos: 'valen' },
+  },
+  traducir: {
+    infinitive: 'traducir',
+    translation: 'переводить',
+    pattern: 'yo_zco',
+    hint: 'traducir: traduzco, traduces, vos traducís, traduce, traducimos, traducís, traducen',
+    forms: { yo: 'traduzco', tu: 'traduces', vos: 'traducís', el: 'traduce', nosotros: 'traducimos', vosotros: 'traducís', ellos: 'traducen' },
+  },
+  producir: {
+    infinitive: 'producir',
+    translation: 'производить',
+    pattern: 'yo_zco',
+    hint: 'producir: produzco, produces, vos producís, produce, producimos, producís, producen',
+    forms: { yo: 'produzco', tu: 'produces', vos: 'producís', el: 'produce', nosotros: 'producimos', vosotros: 'producís', ellos: 'producen' },
+  },
+  conducir: {
+    infinitive: 'conducir',
+    translation: 'водить машину',
+    pattern: 'yo_zco',
+    hint: 'conducir: conduzco, conduces, vos conducís, conduce, conducimos, conducís, conducen',
+    forms: { yo: 'conduzco', tu: 'conduces', vos: 'conducís', el: 'conduce', nosotros: 'conducimos', vosotros: 'conducís', ellos: 'conducen' },
+  },
+  caer: {
+    infinitive: 'caer',
+    translation: 'падать',
+    pattern: 'yo_go',
+    hint: 'caer: caigo, caes, vos caés, cae, caemos, caéis, caen',
+    forms: { yo: 'caigo', tu: 'caes', vos: 'caés', el: 'cae', nosotros: 'caemos', vosotros: 'caéis', ellos: 'caen' },
+  },
+  empezar: {
+    infinitive: 'empezar',
+    translation: 'начинать',
+    pattern: 'stem_ie',
+    hint: 'empezar (e->ie): empiezo, empiezas, vos empezás, empieza, empezamos, empezáis, empiezan',
+    forms: { yo: 'empiezo', tu: 'empiezas', vos: 'empezás', el: 'empieza', nosotros: 'empezamos', vosotros: 'empezáis', ellos: 'empiezan' },
+  },
+  comenzar: {
+    infinitive: 'comenzar',
+    translation: 'начинать (синоним)',
+    pattern: 'stem_ie',
+    hint: 'comenzar (e->ie): comienzo, comienzas, vos comenzás, comienza, comenzamos, comenzáis, comienzan',
+    forms: { yo: 'comienzo', tu: 'comienzas', vos: 'comenzás', el: 'comienza', nosotros: 'comenzamos', vosotros: 'comenzáis', ellos: 'comienzan' },
+  },
+  cerrar: {
+    infinitive: 'cerrar',
+    translation: 'закрывать',
+    pattern: 'stem_ie',
+    hint: 'cerrar (e->ie): cierro, cierras, vos cerrás, cierra, cerramos, cerráis, cierran',
+    forms: { yo: 'cierro', tu: 'cierras', vos: 'cerrás', el: 'cierra', nosotros: 'cerramos', vosotros: 'cerráis', ellos: 'cierran' },
+  },
+  recordar: {
+    infinitive: 'recordar',
+    translation: 'помнить, вспоминать',
+    pattern: 'stem_ue',
+    hint: 'recordar (o->ue): recuerdo, recuerdas, vos recordás, recuerda, recordamos, recordáis, recuerdan',
+    forms: { yo: 'recuerdo', tu: 'recuerdas', vos: 'recordás', el: 'recuerda', nosotros: 'recordamos', vosotros: 'recordáis', ellos: 'recuerdan' },
+  },
+  encontrar: {
+    infinitive: 'encontrar',
+    translation: 'находить',
+    pattern: 'stem_ue',
+    hint: 'encontrar (o->ue): encuentro, encuentras, vos encontrás, encuentra, encontramos, encontráis, encuentran',
+    forms: { yo: 'encuentro', tu: 'encuentras', vos: 'encontrás', el: 'encuentra', nosotros: 'encontramos', vosotros: 'encontráis', ellos: 'encuentran' },
+  },
+  perder: {
+    infinitive: 'perder',
+    translation: 'терять, проигрывать',
+    pattern: 'stem_ie',
+    hint: 'perder (e->ie): pierdo, pierdes, vos perdés, pierde, perdemos, perdéis, pierden',
+    forms: { yo: 'pierdo', tu: 'pierdes', vos: 'perdés', el: 'pierde', nosotros: 'perdemos', vosotros: 'perdéis', ellos: 'pierden' },
+  },
+  almorzar: {
+    infinitive: 'almorzar',
+    translation: 'обедать',
+    pattern: 'stem_ue',
+    hint: 'almorzar (o->ue): almuerzo, almuerzas, vos almorzás, almuerza, almorzamos, almorzáis, almuerzan',
+    forms: { yo: 'almuerzo', tu: 'almuerzas', vos: 'almorzás', el: 'almuerza', nosotros: 'almorzamos', vosotros: 'almorzáis', ellos: 'almuerzan' },
+  },
+  volar: {
+    infinitive: 'volar',
+    translation: 'летать',
+    pattern: 'stem_ue',
+    hint: 'volar (o->ue): vuelo, vuelas, vos volás, vuela, volamos, voláis, vuelan',
+    forms: { yo: 'vuelo', tu: 'vuelas', vos: 'volás', el: 'vuela', nosotros: 'volamos', vosotros: 'voláis', ellos: 'vuelan' },
+  },
+  soñar: {
+    infinitive: 'soñar',
+    translation: 'мечтать, видеть сны',
+    pattern: 'stem_ue',
+    hint: 'soñar (o->ue): sueño, sueñas, vos soñás, sueña, soñamos, soñáis, sueñan',
+    forms: { yo: 'sueño', tu: 'sueñas', vos: 'soñás', el: 'sueña', nosotros: 'soñamos', vosotros: 'soñáis', ellos: 'sueñan' },
+  },
+  costar: {
+    infinitive: 'costar',
+    translation: 'стоить',
+    pattern: 'stem_ue',
+    hint: 'costar (o->ue): cuesto, cuestas, vos costás, cuesta, costamos, costáis, cuestan',
+    forms: { yo: 'cuesto', tu: 'cuestas', vos: 'costás', el: 'cuesta', nosotros: 'costamos', vosotros: 'costáis', ellos: 'cuestan' },
+  },
+  demostrar: {
+    infinitive: 'demostrar',
+    translation: 'демонстрировать, доказывать',
+    pattern: 'stem_ue',
+    hint: 'demostrar (o->ue): demuestro, demuestras, vos demostrás, demuestra, demostramos, demostráis, demuestran',
+    forms: { yo: 'demuestro', tu: 'demuestras', vos: 'demostrás', el: 'demuestra', nosotros: 'demostramos', vosotros: 'demostráis', ellos: 'demuestran' },
+  },
+  despertar: {
+    infinitive: 'despertar',
+    translation: 'будить / просыпаться',
+    pattern: 'stem_ie',
+    hint: 'despertar (e->ie): despierto, despiertas, vos despertás, despierta, despertamos, despertáis, despiertan',
+    forms: { yo: 'despierto', tu: 'despiertas', vos: 'despertás', el: 'despierta', nosotros: 'despertamos', vosotros: 'despertáis', ellos: 'despiertan' },
+  },
+  divertir: {
+    infinitive: 'divertir',
+    translation: 'развлекать, веселить',
+    pattern: 'stem_ie',
+    hint: 'divertir (e->ie): divierto, diviertes, vos divertís, divierte, divertimos, divertís, divierten',
+    forms: { yo: 'divierto', tu: 'diviertes', vos: 'divertís', el: 'divierte', nosotros: 'divertimos', vosotros: 'divertís', ellos: 'divierten' },
+  },
+  mentir: {
+    infinitive: 'mentir',
+    translation: 'лгать',
+    pattern: 'stem_ie',
+    hint: 'mentir (e->ie): miento, mientes, vos mentís, miente, mentimos, mentís, mienten',
+    forms: { yo: 'miento', tu: 'mientes', vos: 'mentís', el: 'miente', nosotros: 'mentimos', vosotros: 'mentís', ellos: 'mienten' },
+  },
+  sugerir: {
+    infinitive: 'sugerir',
+    translation: 'предлагать, намекать',
+    pattern: 'stem_ie',
+    hint: 'sugerir (e->ie): sugiero, sugieres, vos sugerís, sugiere, sugerimos, sugerís, sugieren',
+    forms: { yo: 'sugiero', tu: 'sugieres', vos: 'sugerís', el: 'sugiere', nosotros: 'sugerimos', vosotros: 'sugerís', ellos: 'sugieren' },
+  },
+  agradecer: {
+    infinitive: 'agradecer',
+    translation: 'благодарить',
+    pattern: 'yo_zco',
+    hint: 'agradecer: agradezco, agradeces, vos agradecés, agradece, agradecemos, agradecéis, agradecen',
+    forms: { yo: 'agradezco', tu: 'agradeces', vos: 'agradecés', el: 'agradece', nosotros: 'agradecemos', vosotros: 'agradecéis', ellos: 'agradecen' },
+  },
+  ofrecer: {
+    infinitive: 'ofrecer',
+    translation: 'предлагать',
+    pattern: 'yo_zco',
+    hint: 'ofrecer: ofrezco, ofreces, vos ofrecés, ofrece, ofrecemos, ofrecéis, ofrecen',
+    forms: { yo: 'ofrezco', tu: 'ofreces', vos: 'ofrecés', el: 'ofrece', nosotros: 'ofrecemos', vosotros: 'ofrecéis', ellos: 'ofrecen' },
+  },
+  parecer: {
+    infinitive: 'parecer',
+    translation: 'казаться',
+    pattern: 'yo_zco',
+    hint: 'parecer: parezco, pareces, vos parecés, parece, parecemos, parecéis, parecen',
+    forms: { yo: 'parezco', tu: 'pareces', vos: 'parecés', el: 'parece', nosotros: 'parecemos', vosotros: 'parecéis', ellos: 'parecen' },
+  },
+  reconocer: {
+    infinitive: 'reconocer',
+    translation: 'узнавать, признавать',
+    pattern: 'yo_zco',
+    hint: 'reconocer: reconozco, reconoces, vos reconocés, reconoce, reconocemos, reconocéis, reconocen',
+    forms: { yo: 'reconozco', tu: 'reconoces', vos: 'reconocés', el: 'reconoce', nosotros: 'reconocemos', vosotros: 'reconocéis', ellos: 'reconocen' },
+  },
+  haber: {
+    infinitive: 'haber',
+    translation: 'вспомогательный глагол',
+    pattern: 'unique',
+    hint: 'haber: he, has, vos has, ha (hay), hemos, habéis, han',
+    forms: { yo: 'he', tu: 'has', vos: 'has', el: 'ha', nosotros: 'hemos', vosotros: 'habéis', ellos: 'han' },
+  },
+  oler: {
+    infinitive: 'oler',
+    translation: 'нюхать, пахнуть',
+    pattern: 'unique',
+    hint: 'oler: huelo, hueles, vos olés, huele, olemos, oléis, huelen',
+    forms: { yo: 'huelo', tu: 'hueles', vos: 'olés', el: 'huele', nosotros: 'olemos', vosotros: 'oléis', ellos: 'huelen' },
+  },
+  huir: {
+    infinitive: 'huir',
+    translation: 'бежать, спасаться',
+    pattern: 'unique',
+    hint: 'huir: huyo, huyes, vos huís, huye, huimos, huís, huyen',
+    forms: { yo: 'huyo', tu: 'huyes', vos: 'huís', el: 'huye', nosotros: 'huimos', vosotros: 'huís', ellos: 'huyen' },
+  },
+  mantener: {
+    infinitive: 'mantener',
+    translation: 'держать, поддерживать',
+    pattern: 'yo_go',
+    hint: 'mantener: mantengo, mantienes, vos mantenés, mantiene, mantenemos, mantenéis, mantienen',
+    forms: { yo: 'mantengo', tu: 'mantienes', vos: 'mantenés', el: 'mantiene', nosotros: 'mantenemos', vosotros: 'mantenéis', ellos: 'mantienen' },
+  },
+  sostener: {
+    infinitive: 'sostener',
+    translation: 'держать, утверждать',
+    pattern: 'yo_go',
+    hint: 'sostener: sostengo, sostienes, vos sostenés, sostiene, sostenemos, sostenéis, sostienen',
+    forms: { yo: 'sostengo', tu: 'sostienes', vos: 'sostenés', el: 'sostiene', nosotros: 'sostenemos', vosotros: 'sostenéis', ellos: 'sostienen' },
+  },
+  proponer: {
+    infinitive: 'proponer',
+    translation: 'предлагать',
+    pattern: 'yo_go',
+    hint: 'proponer: propongo, propones, vos proponés, propone, proponemos, proponéis, proponen',
+    forms: { yo: 'propongo', tu: 'propones', vos: 'proponés', el: 'propone', nosotros: 'proponemos', vosotros: 'proponéis', ellos: 'proponen' },
+  },
+  suponer: {
+    infinitive: 'suponer',
+    translation: 'предполагать',
+    pattern: 'yo_go',
+    hint: 'suponer: supongo, supones, vos suponés, supone, suponemos, suponéis, suponen',
+    forms: { yo: 'supongo', tu: 'supones', vos: 'suponés', el: 'supone', nosotros: 'suponemos', vosotros: 'suponéis', ellos: 'suponen' },
+  },
+};
+
+export const ALL_IRREGULAR_KEYS = Object.keys(IRREGULAR_VERBS);
+
+export const IRREGULAR_VERB_GROUPS = {
+  group_stem_ie: {
+    label: 'Группа e ➔ ie (querer, pensar, entender...)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    category: 'stem',
+    verbs: ['querer', 'pensar', 'entender', 'preferir', 'sentir', 'cerrar', 'empezar', 'comenzar', 'perder', 'despertar', 'divertir', 'mentir', 'sugerir'],
+    rules: [
+      'В корне под ударением буква e переходит в дифтонг ie (yo, tú, él, ellos).',
+      'В nosotros, vosotros и аргентинском vos корень НЕ меняется: nosotros queremos, vosotros queréis, vos querés.',
+    ],
+  },
+  group_stem_ue: {
+    label: 'Группа o / u ➔ ue (poder, dormir, volver, jugar...)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    category: 'stem',
+    verbs: ['poder', 'dormir', 'volver', 'jugar', 'recordar', 'encontrar', 'costar', 'almorzar', 'volar', 'soñar', 'morir', 'demostrar'],
+    rules: [
+      'В корне под ударением гласная o или u переходит в ue (yo puedo, tú duermes, él juega).',
+      'В nosotros, vosotros и vos чередования нет: nosotros podemos, vos podés, vos volvés, vos jugás.',
+    ],
+  },
+  group_stem_i: {
+    label: 'Группа e ➔ i (pedir, servir, repetir, seguir...)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    category: 'stem',
+    verbs: ['pedir', 'servir', 'repetir', 'seguir', 'decir'],
+    rules: [
+      'Буква e переходит в i в 1-м, 2-м и 3-м лице (pido, pides, pide, piden).',
+      'Формы nosotros/vosotros/vos сохраняют базовую e: pedimos, vosotros pedís, vos pedís.',
+    ],
+  },
+  group_yo: {
+    label: 'Особое 1-е лицо Yo (-go, -zco, sé, doy, veo)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    category: 'yo',
+    verbs: ['hacer', 'poner', 'salir', 'venir', 'tener', 'traer', 'valer', 'caer', 'conocer', 'traducir', 'conducir', 'producir', 'agradecer', 'ofrecer', 'parecer', 'reconocer', 'saber', 'dar', 'ver', 'oír'],
+    rules: [
+      'Только форма "yo" имеет особую основу: -go (hago, pongo, salgo, vengo, tengo, traigo, valgo, caigo), -zco (conozco, traduzco, conduzco), sé, doy, veo.',
+      'Остальные лица спрягаются по стандартным правилам соответствующего спряжения.',
+    ],
   },
 };
 
@@ -216,7 +607,7 @@ export const SER_ESTAR_CONTEXTS = [
   { pronounId: 'nosotros', sentence: 'Nosotros ___ en Barcelona.', translation: 'Мы в Барселоне.', verb: 'estar', reason: 'location -> estar' },
   { pronounId: 'nosotros', sentence: 'Nosotros ___ profesores.', translation: 'Мы преподаватели.', verb: 'ser', reason: 'profession -> ser' },
   { pronounId: 'vosotros', sentence: 'Vosotros ___ de España.', translation: 'Вы из Испании.', verb: 'ser', reason: 'origin -> ser' },
-  { pronounId: 'vosotros', sentence: 'Vosotros ___ en casa.', translation: 'Вы дома.', verb: 'estar', reason: 'location -> estar' },
+  { pronounId: 'vosotros', sentence: 'Vosotros ___ в casa.', translation: 'Вы дома.', verb: 'estar', reason: 'location -> estar' },
   { pronounId: 'vosotros', sentence: 'Vosotros ___ simpáticos.', translation: 'Вы приятные.', verb: 'ser', reason: 'trait -> ser' },
   { pronounId: 'vosotros', sentence: 'Vosotros ___ cansados.', translation: 'Вы устали.', verb: 'estar', reason: 'state -> estar' },
   { pronounId: 'ellos', sentence: 'Ellos ___ en la playa.', translation: 'Они на пляже.', verb: 'estar', reason: 'location -> estar' },
@@ -232,8 +623,69 @@ export const SER_ESTAR_CONTEXTS = [
 ];
 
 export const DRILL_TYPES = {
+  allIrregulars: {
+    label: '⚡ Все неправильные глаголы (60 глаголов словаря)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    rules: [
+      'Отработка всех 60 неправильных глаголов из вашего словаря (включая voseo).',
+      'Включает отклоняющиеся глаголы (e->ie, o->ue, e->i) и особые формы 1-го лица (-go, -zco, sé, doy, veo).',
+    ],
+  },
+  fourKeyVerbs: {
+    label: '4 главных глагола (ser, estar, tener, ir)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    rules: [
+      'ser (быть): yo soy, tú eres, vos sos, él es, nosotros somos, vosotros sois, ellos son.',
+      'estar (находиться): yo estoy, tú estás, vos estás, él está, nosotros estamos, vosotros estáis, ellos están.',
+      'tener (иметь): yo tengo, tú tienes, vos tenés, él tiene, nosotros tenemos, vosotros tenéis, ellos tienen.',
+      'ir (идти, ехать): yo voy, tú vas, vos vas, él va, nosotros vamos, vosotros vais, ellos van.',
+    ],
+  },
+  group_stem_ie: {
+    label: 'Группа e ➔ ie (querer, pensar, entender...)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    rules: [
+      'e -> ie под ударением во всех лицах, КРОМЕ nosotros, vosotros и vos (в Аргентине: querés, pensás, entendés).',
+    ],
+  },
+  group_stem_ue: {
+    label: 'Группа o / u ➔ ue (poder, dormir, volver, jugar...)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    rules: [
+      'o/u -> ue под ударением (puedo, duermes, vuelve, juega), но nosotros podemos, vos podés, vos volvés, vos jugás.',
+    ],
+  },
+  group_stem_i: {
+    label: 'Группа e ➔ i (pedir, servir, repetir, seguir...)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    rules: [
+      'e -> i в формах pido, pides, pide, piden. Формы nosotros pedimos, vosotros pedís, vos pedís.',
+    ],
+  },
+  group_yo: {
+    label: 'Особое 1-е лицо Yo (-go, -zco, sé, doy, veo)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    rules: [
+      'Особая форма 1-го лица: hago, pongo, salgo, vengo, traigo, conozco, traduzco, sé, doy, veo, oigo.',
+    ],
+  },
+  singleVerb: {
+    label: '🎯 Выбрать конкретный глагол (из 60)',
+    topic: 'Present tense irregular verbs (ir/hacer/decir)',
+    level: 'A1',
+    rules: [
+      'Индивидуальная тренировка выбранного глагола во всех лицах и числах.',
+    ],
+  },
   regular: {
-    label: 'Правильные глаголы',
+    label: 'Правильные глаголы (-ar, -er, -ir)',
+    topic: 'Present tense regular -ar verbs',
     level: 'A1',
     rules: [
       '-ar: yo -o, tú -as, vos -ás, él -a, nosotros -amos, vosotros -áis (Испания), ellos/ustedes -an.',
@@ -241,15 +693,24 @@ export const DRILL_TYPES = {
       '-ir: yo -o, tú -es, vos -ís, él -e, nosotros -imos, vosotros -ís (Испания), ellos/ustedes -en.',
     ],
   },
-  fourKeyVerbs: {
-    label: '4 главных глагола (Все)',
+  serEstar: {
+    label: 'Ser vs Estar в контексте (предложения)',
+    topic: 'Ser vs Estar (basic)',
+    level: 'A1',
+    rules: [
+      'Формы Ser: soy / eres / sos / es / somos / sois (Испания) / son.',
+      'Формы Estar: estoy / estás / está / estamos / estáis (Испания) / están.',
+      'Ser — для постоянных качеств, профессии, происхождения, времени событий.',
+      'Estar — для местоположения, временных состояний, настроения, самочувствия.',
+    ],
+  },
+  hacerDecir: {
+    label: 'Hacer и Decir (неправильные)',
     topic: 'Present tense irregular verbs (ir/hacer/decir)',
     level: 'A1',
     rules: [
-      'ser (быть): yo soy, tú eres, vos sos, él es, nosotros somos, vosotros sois (Испания), ellos/ustedes son.',
-      'estar (находиться): yo estoy, tú estás, vos estás, él está, nosotros estamos, vosotros estáis (Испания), ellos/ustedes están.',
-      'tener (иметь): yo tengo, tú tienes, vos tenés, él tiene, nosotros tenemos, vosotros tenéis (Испания), ellos/ustedes tienen.',
-      'ir (идти, ехать): yo voy, tú vas, vos vas, él va, nosotros vamos, vosotros vais (Испания), ellos/ustedes van.',
+      'hacer (делать): yo hago, tú haces, vos hacés, él hace, nosotros hacemos, vosotros hacéis (Испания), они: ellos/ustedes hacen.',
+      'decir (сказать): yo digo, tú dices, vos decís, él dice, nosotros decimos, vosotros decís (Испания), ellos/ustedes dicen.',
     ],
   },
   ser: {
@@ -281,27 +742,7 @@ export const DRILL_TYPES = {
     topic: 'Present tense irregular verbs (ir/hacer/decir)',
     level: 'A1',
     rules: [
-      'ir (неправильный): yo voy, tú vas, vos vas, él/ella/usted va, nosotros vamos, vosotros vais (Испания), ellos/ustedes van.',
-    ],
-  },
-  serEstar: {
-    label: 'Ser vs Estar в контексте',
-    topic: 'Ser vs Estar (basic)',
-    level: 'A1',
-    rules: [
-      'Формы Ser: soy / eres / sos / es / somos / sois (Испания) / son.',
-      'Формы Estar: estoy / estás / está / estamos / estáis (Испания) / están.',
-      'Ser — для постоянных качеств, профессии, происхождения, времени событий.',
-      'Estar — для местоположения, временных состояний, настроения, самочувствия.',
-    ],
-  },
-  hacerDecir: {
-    label: 'Hacer и Decir (неправильные)',
-    topic: 'Present tense irregular verbs (ir/hacer/decir)',
-    level: 'A1',
-    rules: [
-      'hacer (делать): yo hago, tú haces, vos hacés, él hace, nosotros hacemos, vosotros hacéis (Испания), ellos/ustedes hacen.',
-      'decir (сказать): yo digo, tú dices, vos decís, él dice, nosotros decimos, vosotros decís (Испания), ellos/ustedes dicen.',
+      'ir (неправильный): yo voy, tú vas, vos vas, él/ella/usted va, nosotros vamos, vosotros vais (Испания), они: ellos/ustedes van.',
     ],
   },
   hacer: {
@@ -337,13 +778,16 @@ export function conjugateVerb(drillType, verb, pronounId) {
     return conjugateRegularVerb(verb, pronounId);
   }
 
-  const irregularKey = (drillType === 'fourKeyVerbs' || drillType === 'hacerDecir')
-    ? (verb.infinitive || 'ser')
+  const irregularKey = (drillType === 'fourKeyVerbs' || drillType === 'hacerDecir' || drillType === 'allIrregulars' || String(drillType).startsWith('group_'))
+    ? (verb?.infinitive || 'ser')
     : (verb?.infinitive || drillType);
-  return IRREGULAR_VERBS[irregularKey].forms[pronounId];
+  if (IRREGULAR_VERBS[irregularKey]) {
+    return IRREGULAR_VERBS[irregularKey].forms[pronounId];
+  }
+  return IRREGULAR_VERBS.ser.forms[pronounId];
 }
 
-export function createVerbDrillQuestion(drillType = 'regular', pronounMode = 'all') {
+export function createVerbDrillQuestion(drillType = 'regular', pronounMode = 'all', options = {}) {
   const pronounFilter = DRILL_PRONOUN_MODES[pronounMode]?.filter || (() => true);
   const eligiblePronouns = PRONOUNS.filter(pronounFilter);
   const activePronouns = eligiblePronouns.length > 0 ? eligiblePronouns : PRONOUNS;
@@ -389,6 +833,8 @@ export function createVerbDrillQuestion(drillType = 'regular', pronounMode = 'al
       pronounAliases: pronoun.answerAliases,
       ending: null,
       correctAnswer: conjugateVerb(selectedKey, verb, pronoun.id),
+      pattern: verb.pattern,
+      rulesHint: verb.hint,
     };
   }
 
@@ -409,13 +855,80 @@ export function createVerbDrillQuestion(drillType = 'regular', pronounMode = 'al
       pronounAliases: pronoun.answerAliases,
       ending: null,
       correctAnswer: conjugateVerb(selectedKey, verb, pronoun.id),
+      pattern: verb.pattern,
+      rulesHint: verb.hint,
     };
   }
 
+  if (drillType === 'allIrregulars') {
+    const selectedKey = ALL_IRREGULAR_KEYS[getRandomInt(ALL_IRREGULAR_KEYS.length)];
+    const verb = IRREGULAR_VERBS[selectedKey];
+    const pronoun = activePronouns[getRandomInt(activePronouns.length)];
+
+    return {
+      id: `${drillType}-${verb.infinitive}-${pronoun.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      drillType,
+      subDrillType: selectedKey,
+      verb: verb.infinitive,
+      translation: verb.translation,
+      pronounId: pronoun.id,
+      pronoun: pronoun.label,
+      pronounAliases: pronoun.answerAliases,
+      ending: null,
+      correctAnswer: conjugateVerb(selectedKey, verb, pronoun.id),
+      pattern: verb.pattern,
+      rulesHint: verb.hint,
+    };
+  }
+
+  if (IRREGULAR_VERB_GROUPS[drillType]) {
+    const groupVerbs = IRREGULAR_VERB_GROUPS[drillType].verbs;
+    const selectedKey = groupVerbs[getRandomInt(groupVerbs.length)];
+    const verb = IRREGULAR_VERBS[selectedKey];
+    const pronoun = activePronouns[getRandomInt(activePronouns.length)];
+
+    return {
+      id: `${drillType}-${verb.infinitive}-${pronoun.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      drillType,
+      subDrillType: selectedKey,
+      verb: verb.infinitive,
+      translation: verb.translation,
+      pronounId: pronoun.id,
+      pronoun: pronoun.label,
+      pronounAliases: pronoun.answerAliases,
+      ending: null,
+      correctAnswer: conjugateVerb(selectedKey, verb, pronoun.id),
+      pattern: verb.pattern,
+      rulesHint: verb.hint,
+    };
+  }
+
+  if (drillType === 'singleVerb' || IRREGULAR_VERBS[drillType]) {
+    const key = (drillType === 'singleVerb' && options.singleVerb && IRREGULAR_VERBS[options.singleVerb])
+      ? options.singleVerb
+      : (IRREGULAR_VERBS[drillType] ? drillType : 'poder');
+    const verb = IRREGULAR_VERBS[key];
+    const pronoun = activePronouns[getRandomInt(activePronouns.length)];
+
+    return {
+      id: `single-${verb.infinitive}-${pronoun.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      drillType,
+      subDrillType: key,
+      verb: verb.infinitive,
+      translation: verb.translation,
+      pronounId: pronoun.id,
+      pronoun: pronoun.label,
+      pronounAliases: pronoun.answerAliases,
+      ending: null,
+      correctAnswer: conjugateVerb(key, verb, pronoun.id),
+      pattern: verb.pattern,
+      rulesHint: verb.hint,
+    };
+  }
+
+  // regular
   const pronoun = activePronouns[getRandomInt(activePronouns.length)];
-  const verb = drillType === 'regular'
-    ? REGULAR_VERBS[getRandomInt(REGULAR_VERBS.length)]
-    : IRREGULAR_VERBS[drillType];
+  const verb = REGULAR_VERBS[getRandomInt(REGULAR_VERBS.length)];
 
   return {
     id: `${drillType}-${verb.infinitive}-${pronoun.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -445,11 +958,19 @@ export function getVerbDrillProgressTopic(question) {
       : 'Ser vs Estar (basic)';
   }
 
+  if (question?.drillType === 'ser' || question?.drillType === 'estar' || question?.drillType === 'serEstar') {
+    return 'Ser vs Estar (basic)';
+  }
+
+  if (question?.drillType === 'tener') {
+    return 'Tener (to have) and tener expressions';
+  }
+
   if (question?.drillType === 'hacerDecir' || question?.drillType === 'hacer' || question?.drillType === 'decir') {
     return 'Present tense irregular verbs (ir/hacer/decir)';
   }
 
-  return DRILL_TYPES[question?.drillType]?.topic ?? 'Ser vs Estar (basic)';
+  return DRILL_TYPES[question?.drillType]?.topic ?? 'Present tense irregular verbs (ir/hacer/decir)';
 }
 
 export function getVerbDrillAcceptedAnswers(question) {
