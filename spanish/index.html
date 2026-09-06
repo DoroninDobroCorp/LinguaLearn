@@ -15,7 +15,25 @@
     <title>Spanish Learning Assistant</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#fdf2f8 0%,#f5d0fe 50%,#fdf2f8 100%);font-family:system-ui,-apple-system,sans-serif;padding:24px;text-align:center;">
+        <div style="font-size:52px;margin-bottom:12px;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.1));">🇪🇸</div>
+        <div style="font-size:22px;font-weight:900;background:linear-gradient(to right,#d946ef,#9333ea);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;">LinguaLearn Spanish</div>
+        <div id="offline-load-status" style="font-size:14px;font-weight:600;color:#6b7280;margin-bottom:16px;">Запуск приложения...</div>
+        <div id="offline-spinner" style="width:36px;height:36px;border:3px solid #f3e8ff;border-top-color:#c026d3;border-radius:50%;animation:pwa-spin 1s linear infinite;"></div>
+        <style>@keyframes pwa-spin{to{transform:rotate(360deg)}}</style>
+      </div>
+    </div>
+    <script>
+      window.addEventListener('error', function(e) {
+        var statusEl = document.getElementById('offline-load-status');
+        var spinEl = document.getElementById('offline-spinner');
+        if (statusEl) {
+          if (spinEl) spinEl.style.display = 'none';
+          statusEl.innerHTML = '<div style="background:#fff;padding:16px;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.05);max-width:320px;margin:0 auto;border:1px solid #fbcfe8;"><div style="color:#e11d48;font-weight:bold;margin-bottom:6px;">⚠️ Запуск в офлайне</div><div style="font-size:12px;color:#4b5563;margin-bottom:12px;">' + (e.message || 'Сбой скрипта при запуске') + '</div><button onclick="location.reload()" style="padding:8px 18px;background:linear-gradient(to right,#d946ef,#9333ea);color:#fff;border:none;border-radius:12px;font-weight:bold;font-size:13px;cursor:pointer;">Повторить запуск 🔄</button></div>';
+        }
+      });
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

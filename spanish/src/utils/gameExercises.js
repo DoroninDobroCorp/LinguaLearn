@@ -1,3 +1,4 @@
+import { readOfflineVocabularyCacheSync } from './offlineVocabularyCache.js';
 // Tactile and Gamified Exercises Engine for LinguaLearn Spanish
 
 export const PRESET_WORD_TILES = [
@@ -185,7 +186,18 @@ export function verifyWordTiles(itemId, userSentence) {
 }
 
 export function getSpeedMatchItems(count = 6) {
-  const shuffled = [...SPEED_MATCH_PAIRS].sort(() => 0.5 - Math.random());
+  let userPairs = [];
+  try {
+    const cached = readOfflineVocabularyCacheSync();
+    if (cached && Array.isArray(cached.entries) && cached.entries.length > 0) {
+      userPairs = cached.entries
+        .filter((e) => e && e.word && e.translation && e.word.length < 24 && e.translation.length < 30 && !e.word.includes('/'))
+        .map((e) => ({ left: e.word, right: e.translation }));
+    }
+  } catch {}
+
+  const pool = userPairs.length >= count ? [...userPairs, ...SPEED_MATCH_PAIRS] : [...SPEED_MATCH_PAIRS, ...userPairs];
+  const shuffled = [...pool].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);
 }
 

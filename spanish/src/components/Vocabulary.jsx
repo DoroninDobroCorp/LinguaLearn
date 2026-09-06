@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import { useSpeechPractice } from '../hooks/useSpeechPractice';
 import VocabularyDecksModal from './VocabularyDecksModal';
-import { profileApiUrl, profileFetch } from '../utils/api';
+import { profileApiUrl, profileFetch, getActiveProfileId } from '../utils/api';
 import {
   getVoicePracticeSpanishContent,
   getVisibleSpanishContent,
@@ -62,6 +62,10 @@ import {
   writeOfflineVocabularyCache,
   saveOfflineStudySession,
   loadOfflineStudySession,
+  getOfflineMutations,
+  applyOfflineAddWord,
+  applyOfflineDeleteWord,
+  syncOfflineMutations,
 } from '../utils/offlineVocabularyCache';
 
 
@@ -567,10 +571,29 @@ function Vocabulary() {
   }, []);
 
   useEffect(() => {
+    checkMutations();
+    const handleOnline = async () => {
+      checkMutations();
+      try {
+        const syncResult = await syncOfflineMutations(getActiveProfileId());
+        if (syncResult.synced > 0) {
+          setNotice(`Офлайн-изменения (${syncResult.synced}) успешно синхронизированы с сервером! ✅`);
+          await refreshVocabulary();
+        }
+      } catch (err) {
+        console.warn('Auto sync on online failed:', err);
+      } finally {
+        checkMutations();
+      }
+    };
+    window.addEventListener('online', handleOnline);
     fetchDailyVocabProgress();
     const handleUpdate = () => fetchDailyVocabProgress();
     window.addEventListener('gamification_updated', handleUpdate);
-    return () => window.removeEventListener('gamification_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('gamification_updated', handleUpdate);
+      window.removeEventListener('online', handleOnline);
+    };
   }, [fetchDailyVocabProgress]);
   const [queueStats, setQueueStats] = useState({ total_due: 0, returned: 0, limit: 40 });
   const [showAnswer, setShowAnswer] = useState(false);
@@ -605,6 +628,16 @@ function Vocabulary() {
   const [activeGroupMenuWordId, setActiveGroupMenuWordId] = useState(null);
   const [pendingGroupWordIds, setPendingGroupWordIds] = useState(() => new Set());
   const [deletingWordIds, setDeletingWordIds] = useState(() => new Set());
+  const [offlineMutationsCount, setOfflineMutationsCount] = useState(0);
+
+  const checkMutations = useCallback(() => {
+    try {
+      const list = getOfflineMutations(getActiveProfileId());
+      setOfflineMutationsCount(list.length);
+    } catch {
+      setOfflineMutationsCount(0);
+    }
+  }, []);
 
 
   const fetchGroups = useCallback(async () => {
@@ -867,6 +900,16 @@ function Vocabulary() {
   }, [currentCard, isSpeaking, isVoicePracticeBusy, showAnswer, stopSpeaking]);
 
   const refreshVocabulary = async () => {
+    const activeProfileId = getActiveProfileId();
+    if (typeof navigator !== 'undefined' && navigator.onLine !== false) {
+      try {
+        await syncOfflineMutations(activeProfileId);
+      } catch (e) {
+        console.warn('Pre-refresh sync note:', e);
+      } finally {
+        checkMutations();
+      }
+    }
     const refreshId = ++latestRefreshIdRef.current;
     const [entriesResponse, queueResponse, groupsResponse] = await Promise.all([
       profileFetch(profileApiUrl('/spanish/api/vocabulary')),
@@ -921,6 +964,7 @@ function Vocabulary() {
     setQueueStats(cached.queueStats || { total_due: 0, returned: 0, limit: 40 });
     setGroups(cached.groups || []);
     setOfflineSnapshot(cached);
+    checkMutations();
     setNotice(`Офлайн-словарь активен: ${cached.entries.length} слов загружено локально (${formatOfflineCacheTime(cached.cachedAt)}).`);
     return true;
   }, []);
@@ -1410,8 +1454,29 @@ function Vocabulary() {
 
   const addWord = async () => {
     if (!newWord.word.trim() || !newWord.translation.trim()) return;
+    const activeProfileId = getActiveProfileId();
+
     if (isOfflineRuntime()) {
-      setError('Adding vocabulary needs internet. Offline mode can review the last synced words.');
+      setIsSubmitting(true);
+      setError('');
+      try {
+        const res = applyOfflineAddWord(newWord, activeProfileId);
+        if (res && res.entry) {
+          setEntries((prev) => [res.entry, ...prev]);
+          if (res.cached?.stats) {
+            setStats(res.cached.stats);
+          }
+          setNewWord({ word: '', translation: '', example: '', groupIds: [] });
+          setShowAddForm(false);
+          checkMutations();
+          setNotice(`Слово «${res.entry.word}» сохранено в офлайн-память! Доступно для всех тренировок и синхронизируется при подключении. 💾`);
+        }
+      } catch (offlineErr) {
+        console.error('Error saving offline word:', offlineErr);
+        setError('Не удалось сохранить слово локально.');
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
@@ -1433,8 +1498,25 @@ function Vocabulary() {
       setNewWord({ word: '', translation: '', example: '', groupIds: [] });
       setShowAddForm(false);
       await refreshVocabulary();
+      checkMutations();
     } catch (submitError) {
       console.error('Error adding word:', submitError);
+      const isNetError = (typeof navigator !== 'undefined' && !navigator.onLine) ||
+        /failed to fetch|networkerror|load failed/i.test(submitError.message || '');
+      if (isNetError) {
+        const res = applyOfflineAddWord(newWord, activeProfileId);
+        if (res && res.entry) {
+          setEntries((prev) => [res.entry, ...prev]);
+          if (res.cached?.stats) {
+            setStats(res.cached.stats);
+          }
+          setNewWord({ word: '', translation: '', example: '', groupIds: [] });
+          setShowAddForm(false);
+          checkMutations();
+          setNotice(`Связь отсутствует: слово «${res.entry.word}» сохранено локально и синхронизируется позже. 💾`);
+          return;
+        }
+      }
       setError(submitError.message || 'Failed to add word');
     } finally {
       setIsSubmitting(false);
@@ -1776,10 +1858,7 @@ function Vocabulary() {
   const deleteWord = async (entryId) => {
     const id = Number(entryId);
     if (!id) return;
-    if (isOfflineRuntime()) {
-      setError('Deleting vocabulary needs internet.');
-      return;
-    }
+    const activeProfileId = getActiveProfileId();
 
     // 1. Optimistic removal: instantly remove from UI and session queue
     const removedEntry = entries.find((e) => Number(e.id) === id);
@@ -1789,7 +1868,7 @@ function Vocabulary() {
 
     setReviewSession((prev) => {
       if (!prev?.choices?.length) return prev;
-      const filteredChoices = prev.choices.filter((item) => Number(item?.entry?.id) !== id);
+      const filteredChoices = prev.choices.filter((item) => Number(item?.entry?.id) !== id && Number(item?.id) !== id);
       const newIndex = prev.currentIndex >= filteredChoices.length
         ? Math.max(0, filteredChoices.length - 1)
         : prev.currentIndex;
@@ -1799,6 +1878,18 @@ function Vocabulary() {
         currentIndex: newIndex,
       };
     });
+
+    if (isOfflineRuntime()) {
+      applyOfflineDeleteWord(id, activeProfileId);
+      checkMutations();
+      setNotice(removedEntry ? `Слово «${removedEntry.word}» удалено из локальной памяти. 🗑️` : 'Слово удалено из памяти. 🗑️');
+      setDeletingWordIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      return;
+    }
 
     // 2. Perform background delete request without blocking other UI actions
     try {
@@ -1810,12 +1901,24 @@ function Vocabulary() {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error || 'Failed to delete word');
       }
+
+      applyOfflineDeleteWord(id, activeProfileId);
+      checkMutations();
+      setNotice(removedEntry ? `Слово «${removedEntry.word}» удалено. 🗑️` : 'Слово удалено. 🗑️');
     } catch (deleteError) {
       console.error('Error deleting word:', deleteError);
-      setError(deleteError.message || 'Failed to delete word');
-      // Rollback on error
-      if (removedEntry) {
-        setEntries((prev) => [removedEntry, ...prev]);
+      const isNetError = (typeof navigator !== 'undefined' && !navigator.onLine) ||
+        /failed to fetch|networkerror|load failed/i.test(deleteError.message || '');
+      if (isNetError) {
+        applyOfflineDeleteWord(id, activeProfileId);
+        checkMutations();
+        setNotice(removedEntry ? `Связь прервалась: слово «${removedEntry.word}» удалено локально и синхронизируется позже. 🗑️` : 'Слово удалено локально. 🗑️');
+      } else {
+        setError(deleteError.message || 'Failed to delete word');
+        // Rollback on server business rejection
+        if (removedEntry) {
+          setEntries((prev) => [removedEntry, ...prev]);
+        }
       }
     } finally {
       setDeletingWordIds((prev) => {
@@ -3177,6 +3280,39 @@ function Vocabulary() {
           </div>
         </div>
 
+        {offlineMutationsCount > 0 && (
+          <div className="mb-4 flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-amber-900 text-sm shadow-sm animate-fade-in">
+            <div className="flex items-center gap-2">
+              <span className="text-base">💾</span>
+              <span>Офлайн-изменения: <strong>{offlineMutationsCount}</strong> ожидают синхронизации с сервером</span>
+            </div>
+            {typeof navigator !== 'undefined' && navigator.onLine !== false && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsSubmitting(true);
+                  try {
+                    const res = await syncOfflineMutations(getActiveProfileId());
+                    if (res.synced > 0) {
+                      setNotice(`Синхронизировано изменений: ${res.synced} ✅`);
+                      await refreshVocabulary();
+                    }
+                  } catch (e) {
+                    console.warn('Manual sync failed:', e);
+                  } finally {
+                    setIsSubmitting(false);
+                    checkMutations();
+                  }
+                }}
+                disabled={isSubmitting}
+                className="text-xs font-bold text-amber-900 bg-amber-200/80 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Синхронизировать сейчас 🔄
+              </button>
+            )}
+          </div>
+        )}
+
         {entries.length === 0 ? (
           <p className="text-gray-600 text-center py-8">No vocabulary yet. Add your first entry above.</p>
         ) : filteredEntries.length === 0 ? (
@@ -3228,6 +3364,11 @@ function Vocabulary() {
                         )}
                         {entry.learned_permanently_at && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800"><Check className="h-3.5 w-3.5" /> Learned forever</span>
+                        )}
+                        {(entry.is_offline_pending || Number(entry.id) < 0) && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-xs font-semibold text-amber-800 shadow-xs">
+                            💾 Офлайн
+                          </span>
                         )}
                         {entry.needs_completion && (
                           <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold border border-amber-200">
