@@ -7,7 +7,8 @@
     "server": "node server/index.js",
     "client": "vite",
     "build": "vite build && node scripts/inject-sw-assets.js && chmod -R a+rX dist",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/offlineVocabularySync.test.js tests/vocabularyRounds.test.js tests/verbDrills.test.js tests/answerMatching.test.js tests/a1CourseEngine.test.js tests/a1Practice.test.js tests/a1SkillEvaluator.test.js tests/a1StoryEngine.test.js tests/profileLockRouting.test.js tests/profileManagementOrigins.test.js tests/profileNameMigration.test.js tests/profilePinProtection.test.js tests/profileSelectApiFallback.test.js tests/profileSelection.test.js tests/tagParser.test.js tests/topicCatalog.test.js tests/vocabularyReviewCards.test.js tests/vocabularyUniquenessMigration.test.js",
+    "test:e2e": "node --test tests/profileUnlockFlow.test.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

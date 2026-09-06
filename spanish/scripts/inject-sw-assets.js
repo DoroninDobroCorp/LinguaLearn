@@ -24,7 +24,7 @@ const assetFiles = fs.readdirSync(assetsDir)
 console.log(`[inject-sw-assets] Found ${assetFiles.length} built assets in dist/assets:`);
 assetFiles.forEach(f => console.log('  -', f));
 
-const versionStamp = `spanish-pwa-v12-offline-transit-${Date.now()}`;
+const versionStamp = `spanish-pwa-v13-offline-bulletproof-${Date.now()}`;
 
 function updateSwContent(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -42,6 +42,7 @@ function updateSwContent(filePath) {
 
   // Replace or inject PRECACHE_ASSETS
   const baseAssets = [
+    "/spanish",
     "/spanish/",
     "/spanish/index.html",
     "/spanish/exercises",

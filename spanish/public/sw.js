@@ -1,8 +1,9 @@
-const CACHE_VERSION = "spanish-pwa-v12-offline-transit-1788703990994";
+const CACHE_VERSION = "spanish-pwa-v13-offline-bulletproof-1788705061517";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 
 const PRECACHE_ASSETS = [
+  "/spanish",
   "/spanish/",
   "/spanish/index.html",
   "/spanish/exercises",
@@ -15,7 +16,7 @@ const PRECACHE_ASSETS = [
   "/spanish/pwa-192.png",
   "/spanish/pwa-512.png",
   "/spanish/a1_first_18_offline_pack_100.json",
-  "/spanish/assets/index-qK9Pdbgm.js",
+  "/spanish/assets/index-EIjYhOF-.js",
   "/spanish/assets/index-qbb0Z-ga.css"
 ];
 
@@ -108,40 +109,53 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 1. Navigation requests (HTML SPA routes: /spanish/, /spanish/exercises, /spanish/vocabulary, etc.)
+  // 1. Navigation requests (HTML SPA routes: /spanish, /spanish/, /spanish/exercises, /spanish/vocabulary, etc.)
   if (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html")) {
     event.respondWith((async () => {
-      // If client is explicitly offline, immediately serve cached HTML (fastest)
-      if (typeof self.navigator !== "undefined" && self.navigator.onLine === false) {
-        const cached = (await caches.match(request)) ||
-                       (await caches.match("/spanish/index.html")) ||
-                       (await caches.match("/spanish/"));
-        if (cached) return cached;
+      // Step A: Immediate Cache Match (Instant offline startup, 0ms latency)
+      const cached = (await caches.match(request)) ||
+                     (await caches.match("/spanish/index.html")) ||
+                     (await caches.match("/spanish/")) ||
+                     (await caches.match("/spanish")) ||
+                     (await caches.match("/spanish/exercises")) ||
+                     (await caches.match("/spanish/vocabulary"));
+      if (cached) {
+        // Stale-While-Revalidate: revalidate in background if online
+        if (typeof self.navigator === "undefined" || self.navigator.onLine !== false) {
+          fetch(request).then(async (networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const cache = await caches.open(STATIC_CACHE);
+              await putSanitizedResponse(cache, request, networkResponse);
+              await putSanitizedResponse(cache, "/spanish/index.html", networkResponse.clone());
+            }
+          }).catch(() => {});
+        }
+        return cached;
       }
 
-      // If online/transit, race network against a 1200ms timeout to avoid hanging on weak cell signal!
+      // Step B: If not in cache (first install), fetch with network timeout
       try {
         const networkResponse = await Promise.race([
           fetch(request),
-          timeoutPromise(1200)
+          timeoutPromise(2500)
         ]);
         if (networkResponse && networkResponse.status === 200) {
           const cache = await caches.open(STATIC_CACHE);
           putSanitizedResponse(cache, request, networkResponse.clone()).catch(() => {});
+          putSanitizedResponse(cache, "/spanish/index.html", networkResponse.clone()).catch(() => {});
           return networkResponse;
         }
-      } catch {
-        // Network failed or timed out (e.g. in transit / bus / tunnel)
+      } catch (err) {
+        // Network failed or timed out
       }
 
-      // Fast fallback to cached index.html
-      const cached = (await caches.match(request)) ||
-                     (await caches.match("/spanish/index.html")) ||
-                     (await caches.match("/spanish/")) ||
-                     (await caches.match("/spanish/exercises"));
-      if (cached) return cached;
+      // Step C: Fallback to any cached HTML
+      const anyCached = (await caches.match("/spanish/index.html")) ||
+                        (await caches.match("/spanish/")) ||
+                        (await caches.match("/spanish"));
+      if (anyCached) return anyCached;
 
-      // Ultimate fallback: inline branded HTML (never a blank white screen!)
+      // Step D: Ultimate fallback HTML card (Never a blank white screen!)
       return new Response(
         "<!doctype html><html lang='ru'><head><meta charset='utf-8'/><meta name='viewport' content='width=device-width,initial-scale=1'/><title>LinguaLearn Spanish (Офлайн)</title></head><body style='font-family:system-ui;padding:24px;text-align:center;background:#fdf2f8;'><h1 style='color:#9333ea'>LinguaLearn Spanish 🇪🇸</h1><p style='color:#6b7280;'>Для первой загрузки требуется подключение к интернету.</p><button onclick='location.reload()' style='margin-top:16px;padding:10px 20px;border-radius:12px;background:#9333ea;color:#fff;font-weight:bold;border:none;cursor:pointer;'>Перезагрузить 🔄</button></body></html>",
         { headers: { "Content-Type": "text/html; charset=utf-8" } }
@@ -223,9 +237,12 @@ self.addEventListener("fetch", (event) => {
       }
     }
 
-    // D. Fetch from network
+    // D. Fetch from network with timeout so it never hangs in Lie-Fi
     try {
-      const networkResponse = await fetch(request);
+      const networkResponse = await Promise.race([
+        fetch(request),
+        timeoutPromise(3000)
+      ]);
       if (networkResponse && networkResponse.status === 200) {
         const cache = await caches.open(STATIC_CACHE);
         putSanitizedResponse(cache, request, networkResponse.clone()).catch(() => {});

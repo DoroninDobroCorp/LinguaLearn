@@ -13,6 +13,43 @@
     <link rel="icon" type="image/svg+xml" href="/spanish/pwa-icon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/spanish/apple-touch-icon.png" />
     <title>Spanish Learning Assistant</title>
+    <script>
+      // 1. Register Service Worker immediately in head
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/spanish/sw.js', { scope: '/spanish' }).catch(function() {});
+      }
+
+      // 2. Offline fallback card function
+      function showOfflineFallback(msg) {
+        var statusEl = document.getElementById('offline-load-status');
+        if (statusEl) {
+          var spinEl = document.getElementById('offline-spinner');
+          if (spinEl) spinEl.style.display = 'none';
+          statusEl.innerHTML = '<div style="background:#fff;padding:18px;border-radius:20px;box-shadow:0 10px 25px rgba(0,0,0,0.08);max-width:320px;margin:12px auto;border:1px solid #fbcfe8;">' +
+            '<div style="color:#9333ea;font-weight:900;font-size:16px;margin-bottom:6px;">Офлайн-режим 🇪🇸</div>' +
+            '<div style="font-size:12px;color:#6b7280;margin-bottom:14px;line-height:1.4;">' + (msg || 'Приложение готово к офлайн-тренировкам.') + '</div>' +
+            '<div style="display:flex;flex-direction:column;gap:8px;">' +
+              '<a href="/spanish/exercises" style="display:block;padding:11px 16px;background:linear-gradient(to right,#d946ef,#9333ea);color:#fff;border-radius:14px;font-weight:bold;font-size:13px;text-decoration:none;box-shadow:0 4px 12px rgba(147,51,234,0.3);">🎯 Открыть Тренажер</a>' +
+              '<a href="/spanish/vocabulary" style="display:block;padding:11px 16px;background:#fdf4ff;border:1.5px solid #e9d5ff;color:#9333ea;border-radius:14px;font-weight:bold;font-size:13px;text-decoration:none;">📖 Открыть Словарь</a>' +
+              '<button onclick="location.reload()" style="margin-top:4px;padding:8px 16px;background:transparent;color:#9ca3af;border:none;font-size:12px;font-weight:bold;cursor:pointer;">Повторить запуск 🔄</button>' +
+            '</div>' +
+          '</div>';
+        }
+      }
+
+      // 3. Capture errors during script download or execution (useCapture=true)
+      window.addEventListener('error', function(e) {
+        showOfflineFallback('Офлайн-запуск: соединение отсутствует или нестабильно');
+      }, true);
+
+      // 4. Watchdog timer: if React hasn't mounted in 3.5s, display recovery launcher
+      setTimeout(function() {
+        var statusEl = document.getElementById('offline-load-status');
+        if (statusEl && statusEl.innerText.indexOf('Запуск') !== -1) {
+          showOfflineFallback('Приложение готово к офлайн-занятиям.');
+        }
+      }, 3500);
+    </script>
   </head>
   <body>
     <div id="root">
@@ -24,16 +61,6 @@
         <style>@keyframes pwa-spin{to{transform:rotate(360deg)}}</style>
       </div>
     </div>
-    <script>
-      window.addEventListener('error', function(e) {
-        var statusEl = document.getElementById('offline-load-status');
-        var spinEl = document.getElementById('offline-spinner');
-        if (statusEl) {
-          if (spinEl) spinEl.style.display = 'none';
-          statusEl.innerHTML = '<div style="background:#fff;padding:16px;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.05);max-width:320px;margin:0 auto;border:1px solid #fbcfe8;"><div style="color:#e11d48;font-weight:bold;margin-bottom:6px;">⚠️ Запуск в офлайне</div><div style="font-size:12px;color:#4b5563;margin-bottom:12px;">' + (e.message || 'Сбой скрипта при запуске') + '</div><button onclick="location.reload()" style="padding:8px 18px;background:linear-gradient(to right,#d946ef,#9333ea);color:#fff;border:none;border-radius:12px;font-weight:bold;font-size:13px;cursor:pointer;">Повторить запуск 🔄</button></div>';
-        }
-      });
-    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

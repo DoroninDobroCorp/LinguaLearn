@@ -22,7 +22,7 @@ class AppErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div style={{
-          minHeight: '100vh',
+          minHeight: '100dvh',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -98,7 +98,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/spanish/sw.js', { scope: '/spanish/' }).catch((error) => {
+    navigator.serviceWorker.register('/spanish/sw.js', { scope: '/spanish' }).catch((error) => {
       console.error('Spanish offline service worker registration failed:', error);
     });
   });
