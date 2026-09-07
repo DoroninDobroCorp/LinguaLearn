@@ -1,4 +1,4 @@
-const CACHE_VERSION = "spanish-pwa-v13-offline-bulletproof-1788705061517";
+const CACHE_VERSION = "spanish-pwa-v13-offline-bulletproof-1788746881183";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 
@@ -16,8 +16,8 @@ const PRECACHE_ASSETS = [
   "/spanish/pwa-192.png",
   "/spanish/pwa-512.png",
   "/spanish/a1_first_18_offline_pack_100.json",
-  "/spanish/assets/index-EIjYhOF-.js",
-  "/spanish/assets/index-qbb0Z-ga.css"
+  "/spanish/assets/index--5Jp05mA.js",
+  "/spanish/assets/index-V6gMOPox.css"
 ];
 
 // Helper to sanitize responses before storing into cache so WebKit on iOS never discards them

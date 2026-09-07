@@ -1867,16 +1867,10 @@ function Vocabulary() {
     setStats((prev) => (prev ? { ...prev, total_entries: Math.max(0, (prev.total_entries || 1) - 1) } : prev));
 
     setReviewSession((prev) => {
-      if (!prev?.choices?.length) return prev;
-      const filteredChoices = prev.choices.filter((item) => Number(item?.entry?.id) !== id && Number(item?.id) !== id);
-      const newIndex = prev.currentIndex >= filteredChoices.length
-        ? Math.max(0, filteredChoices.length - 1)
-        : prev.currentIndex;
-      return {
-        ...prev,
-        choices: filteredChoices,
-        currentIndex: newIndex,
-      };
+      if (prev?.entries?.length) {
+        return removeEntryFromReviewSession(prev, id).session;
+      }
+      return prev;
     });
 
     if (isOfflineRuntime()) {
@@ -1928,6 +1922,25 @@ function Vocabulary() {
       });
     }
   };
+
+  const handleDeleteCurrentWord = useCallback(async (cardToDelete = currentCard) => {
+    if (!cardToDelete) return;
+    const entryId = Number(cardToDelete.id || cardToDelete.entry_id);
+    if (!entryId) return;
+
+    const wordName = cardToDelete.word || 'это слово';
+    const confirmed = window.confirm(
+      `Точно удалить слово «${wordName}» навсегда? Оно будет полностью удалено из базы данных и всех тренировок.`
+    );
+    if (!confirmed) return;
+
+    // Immediately advance/remove this word from the active practice session
+    if (currentCard && Number(currentCard.id || currentCard.entry_id) === entryId) {
+      advanceCurrentSessionCard(currentCard, { removeEntry: true });
+    }
+
+    await deleteWord(entryId);
+  }, [currentCard, advanceCurrentSessionCard, deleteWord]);
 
   const handleExport = async () => {
     setIsSubmitting(true);
@@ -2596,6 +2609,16 @@ function Vocabulary() {
 
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
               {remainingSessionEntries > 0 && <span>Осталось: {remainingSessionEntries}</span>}
+              <button
+                type="button"
+                onClick={() => handleDeleteCurrentWord(currentCard)}
+                disabled={deletingWordIds.has(Number(currentCard.id)) || isVoicePracticeBusy}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-800 border border-rose-200 transition-colors cursor-pointer disabled:opacity-50"
+                title="Удалить это слово навсегда из словаря"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-rose-500" />
+                <span>Удалить</span>
+              </button>
               {isCurrentGroupRound && (
                 <button
                   type="button"
@@ -2889,6 +2912,17 @@ function Vocabulary() {
                     <span>Выучено навсегда</span>
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => handleDeleteCurrentWord(currentCard)}
+                  disabled={deletingWordIds.has(Number(currentCard.id)) || isVoicePracticeBusy}
+                  className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-300 transition-all inline-flex items-center gap-1 active:scale-95 disabled:opacity-60 cursor-pointer"
+                  title="Удалить это слово навсегда из базы данных"
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-rose-500" />
+                  <span>Удалить слово совсем</span>
+                </button>
               </div>
 
               {/* Collapsible advanced voice/mic recording */}
