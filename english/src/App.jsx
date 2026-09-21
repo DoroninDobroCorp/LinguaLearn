@@ -160,7 +160,19 @@ function NavBar() {
 
 function AppContent() {
   const { isDark } = useTheme();
-  
+  const [isOffline, setIsOffline] = React.useState(() => typeof navigator !== "undefined" && !navigator.onLine);
+
+  React.useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen transition-all duration-300" style={{ 
       background: isDark ? 
@@ -168,6 +180,12 @@ function AppContent() {
         "linear-gradient(135deg, #fef3c7 0%, #d9f99d 50%, #fef3c7 100%)"
     }}>
       <NavBar />
+      {isOffline && (
+        <div className="bg-amber-600 text-white text-xs font-bold py-1.5 px-4 text-center shadow-md flex items-center justify-center gap-2 sticky top-16 z-40 animate-fadeIn">
+          <span>📴 Офлайн-режим</span>
+          <span className="opacity-90 font-medium">— доступна тренировка слов с сохранением прогресса в памяти устройства</span>
+        </div>
+      )}
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
         <Routes>

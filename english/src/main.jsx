@@ -11,3 +11,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </React.StrictMode>
 );
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/english/sw.js', { scope: '/english' }).catch((error) => {
+      console.warn('English offline service worker registration note:', error);
+    });
+  });
+}

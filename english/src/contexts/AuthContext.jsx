@@ -16,11 +16,26 @@ export function AuthProvider({ children }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
+        try {
+          if (data.user) {
+            localStorage.setItem('lingua_english_cached_user', JSON.stringify(data.user));
+          }
+        } catch {}
       } else {
         setUser(null);
+        try {
+          localStorage.removeItem('lingua_english_cached_user');
+        } catch {}
       }
     } catch (err) {
-      console.error('Failed to check auth:', err);
+      console.warn('Failed to check auth over network, trying offline cache:', err);
+      try {
+        const cached = localStorage.getItem('lingua_english_cached_user');
+        if (cached) {
+          setUser(JSON.parse(cached));
+          return;
+        }
+      } catch {}
       setUser(null);
     } finally {
       setLoading(false);
@@ -51,6 +66,11 @@ export function AuthProvider({ children }) {
       const data = await res.json();
       if (res.ok) {
         setUser(data.user);
+        try {
+          if (data.user) {
+            localStorage.setItem('lingua_english_cached_user', JSON.stringify(data.user));
+          }
+        } catch {}
         return { success: true, user: data.user };
       } else {
         const msg = data.error || 'Login failed';
@@ -84,6 +104,11 @@ export function AuthProvider({ children }) {
       const data = await res.json();
       if (res.ok) {
         setUser(data.user);
+        try {
+          if (data.user) {
+            localStorage.setItem('lingua_english_cached_user', JSON.stringify(data.user));
+          }
+        } catch {}
         return { success: true, user: data.user };
       } else {
         const msg = data.error || 'Signup failed';
@@ -103,6 +128,9 @@ export function AuthProvider({ children }) {
     } catch (e) {
       // ignore
     }
+    try {
+      localStorage.removeItem('lingua_english_cached_user');
+    } catch {}
     setUser(null);
   };
 
