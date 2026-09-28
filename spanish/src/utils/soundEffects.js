@@ -1,5 +1,7 @@
 // Web Audio API Synthesizer & Speech Synthesis for LinguaLearn Spanish
 
+import { selectBestSpanishVoice, ARGENTINE_VOICE_LOCALES } from './speechPractice';
+
 class SoundEngine {
   constructor() {
     this.ctx = null;
@@ -143,9 +145,9 @@ export function speakSpanish(text, dialect = 'es-AR') {
   utterance.pitch = 1.0;
 
   const voices = window.speechSynthesis.getVoices();
-  const spanishVoice = voices.find(v => v.lang.startsWith(dialect.slice(0, 2))) || voices.find(v => v.lang.includes('es'));
-  if (spanishVoice) {
-    utterance.voice = spanishVoice;
+  const preferredVoice = selectBestSpanishVoice(voices, ARGENTINE_VOICE_LOCALES);
+  if (preferredVoice) {
+    utterance.voice = preferredVoice;
   }
 
   window.speechSynthesis.speak(utterance);

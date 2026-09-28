@@ -1,6 +1,7 @@
 import React from 'react';
 import { Volume2 } from 'lucide-react';
 import { speakSpanish } from '../utils/soundEffects';
+import { getWordVisualMeta as getExtendedVisualMeta } from '../utils/wordVisuals';
 
 // Smart visual mapping for Spanish vocabulary
 export function getWordVisualMeta(word, translation) {
@@ -135,12 +136,10 @@ export function getWordVisualMeta(word, translation) {
     };
   }
 
-  // General default fallback
+  // General default fallback - use extended rich visual dictionary
+  const extended = getExtendedVisualMeta(word, translation);
   return {
-    emoji: '📇',
-    gradient: 'from-purple-500 via-fuchsia-500 to-indigo-600',
-    bgCard: 'bg-purple-50/70 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800',
-    tag: 'Слово темы',
+    ...extended,
     mateoMood: 'guiding'
   };
 }

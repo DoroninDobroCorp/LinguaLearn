@@ -9,6 +9,17 @@ export const SPANISH_VOICE_LOCALES = [
   'es-PE',
 ];
 
+export const ARGENTINE_VOICE_LOCALES = [
+  'es-AR',
+  'es-419',
+  'es-US',
+  'es-MX',
+  'es-ES',
+  'es-CO',
+  'es-CL',
+  'es-PE',
+];
+
 export const RECORDING_MIME_CANDIDATES = [
   'audio/webm;codecs=opus',
   'audio/mp4',

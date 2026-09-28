@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { profileApiUrl, profileFetch } from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
+import { speakSpanish } from '../utils/soundEffects';
 
 export default function ExamModal({ level = 'A1', examType = 'milestone', topicIds = [], isOpen, onClose, onExamFinished }) {
   const { isDark } = useTheme();
@@ -136,16 +137,7 @@ export default function ExamModal({ level = 'A1', examType = 'milestone', topicI
   };
 
   const handleSpeak = (text) => {
-    if (!('speechSynthesis' in window)) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'es-ES';
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    } catch (e) {
-      console.warn('Speech synthesis error:', e);
-    }
+    speakSpanish(text);
   };
 
   const handleSelectOption = (opt) => {

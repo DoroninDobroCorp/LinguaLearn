@@ -122,6 +122,9 @@ function ensureVocabularyCollectionColumns(db) {
   if (!columns.has('learned_permanently_at')) {
     db.exec('ALTER TABLE vocabulary ADD COLUMN learned_permanently_at TEXT');
   }
+  if (!columns.has('image_url')) {
+    db.exec('ALTER TABLE vocabulary ADD COLUMN image_url TEXT');
+  }
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_vocabulary_profile_favorite
       ON vocabulary(profile_id, is_favorite);
@@ -314,6 +317,7 @@ function buildCardPresentation(row, now = new Date()) {
     word: stripStudyHints(row.word),
     translation: stripStudyHints(row.translation),
     example: row.example,
+    image_url: row.image_url || null,
     state: row.state,
     status,
     is_due: due,
@@ -644,6 +648,7 @@ function fetchEntryRows(db, profileId) {
       v.word,
       v.translation,
       v.example,
+      v.image_url,
       v.is_favorite,
       v.learned_permanently_at,
       v.created_at AS entry_created_at,
@@ -676,6 +681,7 @@ function fetchReviewCardRow(db, profileId, cardId) {
       v.word,
       v.translation,
       v.example,
+      v.image_url,
       v.learned_permanently_at
     FROM vocabulary_review_cards c
     JOIN vocabulary v ON v.id = c.vocabulary_id
@@ -697,6 +703,7 @@ function fetchEntryById(db, profileId, entryId, now = new Date()) {
       v.word,
       v.translation,
       v.example,
+      v.image_url,
       v.is_favorite,
       v.learned_permanently_at,
       v.created_at AS entry_created_at,
@@ -754,6 +761,7 @@ function buildVocabularyEntries(rows, now = new Date(), groupRows = []) {
         word: stripStudyHints(row.word),
         translation: stripStudyHints(row.translation),
         example: row.example,
+        image_url: row.image_url || null,
         is_favorite: Boolean(row.is_favorite),
         learned_permanently_at: row.learned_permanently_at ? toIso(row.learned_permanently_at) : null,
         created_at: toIso(row.entry_created_at),
@@ -775,7 +783,7 @@ function buildVocabularyEntries(rows, now = new Date(), groupRows = []) {
   }));
 }
 
-function insertVocabularyEntryRow(db, profileId, { word, translation, example, created_at }, now = new Date()) {
+function insertVocabularyEntryRow(db, profileId, { word, translation, example, image_url, created_at }, now = new Date()) {
   const createdAt = created_at ? toIso(created_at, now) : toIso(now);
   const wordKey = buildVocabularyTextKey(word);
   const translationKey = buildVocabularyTextKey(translation);
@@ -786,6 +794,7 @@ function insertVocabularyEntryRow(db, profileId, { word, translation, example, c
       translation,
       translation_key,
       example,
+      image_url,
       level,
       next_review,
       review_count,
@@ -793,8 +802,8 @@ function insertVocabularyEntryRow(db, profileId, { word, translation, example, c
       created_at,
       profile_id
     )
-    VALUES (?, ?, ?, ?, ?, 0, ?, 0, NULL, ?, ?)
-  `).run(word, wordKey, translation, translationKey, example, createdAt, createdAt, profileId);
+    VALUES (?, ?, ?, ?, ?, ?, 0, ?, 0, NULL, ?, ?)
+  `).run(word, wordKey, translation, translationKey, example, image_url || null, createdAt, createdAt, profileId);
 
   db.prepare(`
     INSERT INTO vocabulary_review_cards (
@@ -1728,6 +1737,7 @@ function buildLegacyWordPresentation(entry, now = new Date()) {
     word: entry.word,
     translation: entry.translation,
     example: entry.example,
+    image_url: entry.image_url || null,
     is_favorite: entry.is_favorite,
     learned_permanently_at: entry.learned_permanently_at,
     level: deriveLegacyLevelFromCard(primaryCard, now),

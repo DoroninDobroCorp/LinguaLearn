@@ -10,6 +10,7 @@ import {
   shouldAbortRecordingStart,
   shouldStoreCompletedRecording,
   selectBestSpanishVoice,
+  ARGENTINE_VOICE_LOCALES,
 } from '../utils/speechPractice';
 
 export function useSpeechPractice() {
@@ -43,7 +44,7 @@ export function useSpeechPractice() {
     [],
   );
 
-  const selectedVoice = useMemo(() => selectBestSpanishVoice(voices), [voices]);
+  const selectedVoice = useMemo(() => selectBestSpanishVoice(voices, ARGENTINE_VOICE_LOCALES), [voices]);
   const playbackSupport = useMemo(
     () => getLocalSpanishPlaybackSupport({
       ttsSupported: capabilities.ttsSupported,
@@ -148,7 +149,7 @@ export function useSpeechPractice() {
     }
 
     const utterance = new window.SpeechSynthesisUtterance(availability.text);
-    utterance.lang = selectedVoice?.lang || 'es-ES';
+    utterance.lang = selectedVoice?.lang || 'es-AR';
     utterance.rate = 0.95;
     utterance.pitch = 1;
 

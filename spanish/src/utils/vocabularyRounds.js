@@ -78,6 +78,7 @@ export function pickNextSessionCard(sessionEntries, sessionMode = 'due', previou
       session_mode: sessionMode,
       study_variant: selectedVariant.key,
       ...selectedVariant,
+      image_url: selectedVariant.image_url || selectedEntry.image_url || null,
     },
   };
 }

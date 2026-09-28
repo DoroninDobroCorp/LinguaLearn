@@ -34,7 +34,11 @@ import {
   Layers,
   Search,
   Filter,
+  Image as ImageIcon,
+  Film,
 } from 'lucide-react';
+import WordIllustration from './WordIllustration';
+import AttachMediaModal from './AttachMediaModal';
 import { useSpeechPractice } from '../hooks/useSpeechPractice';
 import VocabularyDecksModal from './VocabularyDecksModal';
 import { profileApiUrl, profileFetch, getActiveProfileId } from '../utils/api';
@@ -357,6 +361,7 @@ function buildSessionVariant(card, {
     prompt: card.prompt,
     answer: card.answer,
     card_id: card.id,
+    image_url: card.image_url || null,
     status: card.status,
     review_count: card.review_count,
     next_review_at: card.next_review_at,
@@ -431,6 +436,7 @@ function buildReviewSessionEntries(entries, mode = 'due') {
         word: entry.word,
         translation: entry.translation,
         example: entry.example,
+        image_url: entry.image_url || null,
         isFavorite: Boolean(entry.is_favorite),
         groups: entry.groups || [],
         group_ids: entry.group_ids || [],
@@ -491,6 +497,7 @@ function restorePersistedReviewSession(saved, liveEntries) {
         word: live.word,
         translation: live.translation,
         example: live.example,
+        image_url: live.image_url || null,
         isFavorite: Boolean(live.is_favorite),
         groups: live.groups || [],
         group_ids: live.group_ids || [],
@@ -504,6 +511,7 @@ function restorePersistedReviewSession(saved, liveEntries) {
         word: currentEntry.word,
         translation: currentEntry.translation,
         example: currentEntry.example,
+        image_url: currentEntry.image_url || state.currentCard?.image_url || null,
         is_favorite: currentEntry.isFavorite,
         groups: currentEntry.groups,
         group_ids: currentEntry.group_ids,
@@ -597,6 +605,29 @@ function Vocabulary() {
   }, [fetchDailyVocabProgress]);
   const [queueStats, setQueueStats] = useState({ total_due: 0, returned: 0, limit: 40 });
   const [showAnswer, setShowAnswer] = useState(false);
+  const [showCardIllustration, setShowCardIllustration] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('showVocabIllustration');
+      if (saved !== null) return saved === 'true';
+    }
+    return true;
+  });
+
+  const toggleCardIllustration = useCallback(() => {
+    setShowCardIllustration((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('showVocabIllustration', String(next));
+      }
+      return next;
+    });
+  }, []);
+  const [mediaModalEntry, setMediaModalEntry] = useState(null);
+
+  const handleMediaUpdated = useCallback((vocabId, nextMediaUrl) => {
+    setEntries((prev) => prev.map((e) => (e.id === vocabId ? { ...e, image_url: nextMediaUrl } : e)));
+    setReviewQueue((prev) => prev.map((c) => (c.id === vocabId || c.vocabulary_id === vocabId ? { ...c, image_url: nextMediaUrl } : c)));
+  }, []);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newWord, setNewWord] = useState({ word: '', translation: '', example: '', groupIds: [] });
   const [isLoading, setIsLoading] = useState(true);
@@ -863,6 +894,16 @@ function Vocabulary() {
   } = useSpeechPractice();
 
   const currentCard = reviewQueue[0] || null;
+  const currentCardImageUrl = useMemo(() => {
+    if (!currentCard) return null;
+    if (currentCard.image_url) return currentCard.image_url;
+    const match = entries.find(
+      (e) => Number(e.id) === Number(currentCard.id) ||
+             Number(e.id) === Number(currentCard.entry_id) ||
+             (e.word && (e.word === currentCard.word || e.word === currentCard.prompt))
+    );
+    return match?.image_url || null;
+  }, [currentCard, entries]);
   const isOfflineRuntime = () => Boolean(offlineSnapshot) || (typeof navigator !== 'undefined' && navigator.onLine === false);
   const automaticTypingStage = isAutomaticSpanishTypingCard(currentCard);
   const typingStageActive = automaticTypingStage;
@@ -2608,6 +2649,28 @@ function Vocabulary() {
             </div>
 
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+              <button
+                type="button"
+                onClick={toggleCardIllustration}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                  showCardIllustration
+                    ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
+                    : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
+                }`}
+                title={showCardIllustration ? 'Скрыть картинку со слова' : 'Показывать картинку слова'}
+              >
+                <ImageIcon className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{showCardIllustration ? 'Картинка вкл' : 'Картинка выкл'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMediaModalEntry(currentCard)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors cursor-pointer"
+                title="Вставить видео, GIF, Flash или фото"
+              >
+                <Film className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Медиа</span>
+              </button>
               {remainingSessionEntries > 0 && <span>Осталось: {remainingSessionEntries}</span>}
               <button
                 type="button"
@@ -2682,6 +2745,17 @@ function Vocabulary() {
             aria-disabled={isVoicePracticeBusy}
             className={`bg-gradient-to-br from-indigo-50/80 to-purple-50/80 rounded-2xl p-4 sm:p-6 min-h-[120px] sm:min-h-[160px] md:min-h-[200px] flex flex-col items-center justify-center border-2 border-indigo-200 transition-all text-center select-none ${typingStageActive ? 'cursor-default' : (isVoicePracticeBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:border-indigo-400 active:scale-[0.99]')}`}
           >
+            {/* Visual Word Illustration */}
+            {showCardIllustration && currentCard && (
+              <div className="mb-3 flex justify-center w-full pointer-events-none">
+                <WordIllustration
+                  word={currentCard.word || currentCard.prompt}
+                  translation={currentCard.translation || currentCard.answer}
+                  imageUrl={currentCardImageUrl}
+                  size="md"
+                />
+              </div>
+            )}
             {!hidePromptOnSpanishAnswer && (
               <div className="w-full">
                 <p className="text-[11px] sm:text-xs uppercase tracking-wide text-indigo-600 font-bold mb-1">
@@ -3380,6 +3454,15 @@ function Vocabulary() {
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-3 mb-2">
+                        {showCardIllustration && (
+                          <WordIllustration
+                            word={entry.word}
+                            translation={entry.translation}
+                            imageUrl={entry.image_url}
+                            size="sm"
+                            showTag={false}
+                          />
+                        )}
                         <p className="font-bold text-gray-900 text-xl">{entry.word}</p>
                         <button
                           type="button"
@@ -3608,6 +3691,16 @@ function Vocabulary() {
                         <span className="hidden xl:inline">{entry.learned_permanently_at ? 'Learned' : 'Learn'}</span>
                       </button>
 
+                      {/* Attach media button (Video / GIF / Flash / Image) */}
+                      <button
+                        type="button"
+                        onClick={() => setMediaModalEntry(entry)}
+                        className="p-2 rounded-xl text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors cursor-pointer"
+                        title="Вставить видео, GIF, Flash или фото"
+                      >
+                        <Film className="h-4 w-4" />
+                      </button>
+
                       {/* Favorite star toggle button */}
                       <button
                         type="button"
@@ -3655,6 +3748,13 @@ function Vocabulary() {
           fetchGroups();
           fetchVocabulary();
         }}
+      />
+      {/* Attach Media Modal (Video / GIF / Flash / Image) */}
+      <AttachMediaModal
+        isOpen={Boolean(mediaModalEntry)}
+        onClose={() => setMediaModalEntry(null)}
+        entry={mediaModalEntry ? { ...mediaModalEntry, image_url: mediaModalEntry.image_url || currentCardImageUrl } : null}
+        onMediaUpdated={handleMediaUpdated}
       />
     </div>
   );

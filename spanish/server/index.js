@@ -47,6 +47,7 @@ import { generateSpanishExercise } from './grammarExerciseEngine.js';
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import fs from 'fs';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Database from 'better-sqlite3';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -652,6 +653,7 @@ const vocabularyImportJsonParser = express.json({
 });
 const vocabularyStudySessionJsonParser = express.json({ limit: '2mb' });
 const a1SkillEvaluationJsonParser = express.json({ limit: '6mb' });
+const vocabularyMediaJsonParser = express.json({ limit: '25mb' });
 
 app.use((req, res, next) => {
   if (req.path === '/api/vocabulary/import') {
@@ -659,6 +661,9 @@ app.use((req, res, next) => {
   }
   if (req.path === '/api/vocabulary/study-session' && req.method === 'PUT') {
     return vocabularyStudySessionJsonParser(req, res, next);
+  }
+  if (/^\/api\/vocabulary\/\d+\/media$/.test(req.path) && req.method === 'PATCH') {
+    return vocabularyMediaJsonParser(req, res, next);
   }
   if (/^\/api\/a1\/skills\/[^/]+\/[^/]+\/evaluate$/.test(req.path) && req.method === 'POST') {
     return a1SkillEvaluationJsonParser(req, res, next);
@@ -2119,6 +2124,66 @@ app.post('/api/vocabulary/:id/learned', (req, res) => {
     res.json(markedWord);
   } catch (error) {
     handleVocabularyError(res, error, 'Error marking vocabulary entry learned:');
+  }
+});
+
+app.patch('/api/vocabulary/:id/media', (req, res) => {
+  try {
+    const profileId = getProfileId(req);
+    const entryId = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(entryId) || entryId <= 0) {
+      throw new VocabularyApiError(400, 'Vocabulary id must be a positive integer', 'INVALID_VOCAB_ID');
+    }
+
+    const { mediaUrl, mediaData, fileName } = req.body || {};
+    let finalUrl = mediaUrl ? String(mediaUrl).trim() : null;
+
+    if (mediaData && typeof mediaData === 'string' && mediaData.includes(',')) {
+      const [header, base64Content] = mediaData.split(',');
+      const mimeMatch = header.match(/data:([^;]+);base64/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+
+      let ext = 'jpg';
+      if (fileName && fileName.includes('.')) {
+        ext = fileName.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '');
+      } else if (mimeType.includes('mp4')) {
+        ext = 'mp4';
+      } else if (mimeType.includes('webm')) {
+        ext = 'webm';
+      } else if (mimeType.includes('gif')) {
+        ext = 'gif';
+      } else if (mimeType.includes('flash') || mimeType.includes('shockwave')) {
+        ext = 'swf';
+      } else if (mimeType.includes('png')) {
+        ext = 'png';
+      } else if (mimeType.includes('webp')) {
+        ext = 'webp';
+      }
+
+      const safeBaseName = (fileName ? fileName.replace(/\.[^.]+$/, '') : `media_${entryId}_${Date.now()}`)
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '_');
+      const finalFileName = `${safeBaseName}_${Date.now()}.${ext}`;
+      const saveDir = join(__dirname, '../public/images/vocab');
+      fs.mkdirSync(saveDir, { recursive: true });
+      const filePath = join(saveDir, finalFileName);
+
+      fs.writeFileSync(filePath, Buffer.from(base64Content, 'base64'));
+      try {
+        fs.chmodSync(filePath, 0o644);
+      } catch {}
+      finalUrl = `/spanish/images/vocab/${finalFileName}`;
+    }
+
+    const exists = db.prepare('SELECT id FROM vocabulary WHERE id = ? AND profile_id = ?').get(entryId, profileId);
+    if (!exists) {
+      throw new VocabularyApiError(404, 'Vocabulary entry not found', 'VOCAB_NOT_FOUND');
+    }
+
+    db.prepare('UPDATE vocabulary SET image_url = ? WHERE id = ? AND profile_id = ?').run(finalUrl, entryId, profileId);
+    res.json({ success: true, image_url: finalUrl });
+  } catch (error) {
+    handleVocabularyError(res, error, 'Error updating vocabulary media:');
   }
 });
 
