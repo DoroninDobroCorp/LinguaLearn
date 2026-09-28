@@ -293,15 +293,17 @@ function MediaRenderer({ url, word, onError, className = '' }) {
 
   if (type === 'video') {
     return (
-      <video
-        src={url}
-        autoPlay
-        loop
-        muted
-        playsInline
-        onError={onError}
-        className={`w-full h-full object-cover rounded-xl ${className}`}
-      />
+      <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-2xl bg-black/5">
+        <video
+          src={url}
+          autoPlay
+          loop
+          muted
+          playsInline
+          onError={onError}
+          className={`max-w-full max-h-full w-auto h-auto object-contain rounded-xl ${className}`}
+        />
+      </div>
     );
   }
 
@@ -313,7 +315,7 @@ function MediaRenderer({ url, word, onError, className = '' }) {
           type="application/x-shockwave-flash"
           width="100%"
           height="100%"
-          className="w-full h-full rounded-xl"
+          className="w-full h-full object-contain rounded-xl"
         />
       </div>
     );
@@ -331,19 +333,27 @@ function MediaRenderer({ url, word, onError, className = '' }) {
         title={word}
         frameBorder="0"
         allow="autoplay; encrypted-media"
-        className={`w-full h-full object-cover rounded-xl ${className}`}
+        className={`w-full h-full object-contain rounded-xl ${className}`}
       />
     );
   }
 
-  // Standard Image or GIF
+  // Standard Image or GIF: 100% visible without cropping (object-contain) + soft blurred ambient backdrop
   return (
-    <img
-      src={url}
-      alt={word}
-      onError={onError}
-      className={`w-full h-full object-cover rounded-xl ${className}`}
-    />
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-2xl">
+      <img
+        src={url}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full object-cover blur-xl opacity-30 scale-110 pointer-events-none select-none"
+      />
+      <img
+        src={url}
+        alt={word}
+        onError={onError}
+        className={`relative z-10 max-w-full max-h-full w-auto h-auto object-contain rounded-xl shadow-xs ${className}`}
+      />
+    </div>
   );
 }
 
