@@ -1,4 +1,4 @@
-const CACHE_VERSION = "spanish-pwa-v13-offline-bulletproof-1790565821232";
+const CACHE_VERSION = "spanish-pwa-v13-offline-bulletproof-1790566744787";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 
