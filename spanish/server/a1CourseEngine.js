@@ -234,6 +234,10 @@ export function ensureA1CourseSchema(db) {
 }
 
 export function seedCoreA1Vocabulary(db, profileId) {
+  if (Number(profileId) === 9) {
+    // Profile 9 (Майя) has her own dedicated 100-word child curriculum.
+    return { inserted: 0, updated: 0, total: 100 };
+  }
   ensureA1CourseSchema(db);
 
   const selectExisting = db.prepare(`
@@ -475,13 +479,15 @@ export function recordA1Attempt(db, profileId, input, now = new Date()) {
 }
 
 function vocabularyCoverage(db, profileId, now = new Date()) {
-  // Check if profile needs A1 vocabulary seeding
-  const countRow = db.prepare('SELECT COUNT(*) AS c FROM vocabulary WHERE profile_id = ? AND is_core_a1 = 1').get(profileId);
-  if (!countRow || countRow.c < A1_CORE_VOCABULARY_TARGET) {
-    try {
-      seedCoreA1Vocabulary(db, profileId);
-    } catch (e) {
-      console.warn('Auto-seed vocabulary warning:', e.message);
+  // Check if profile needs A1 vocabulary seeding (skip Maya's custom profile)
+  if (Number(profileId) !== 9) {
+    const countRow = db.prepare('SELECT COUNT(*) AS c FROM vocabulary WHERE profile_id = ? AND is_core_a1 = 1').get(profileId);
+    if (!countRow || countRow.c < A1_CORE_VOCABULARY_TARGET) {
+      try {
+        seedCoreA1Vocabulary(db, profileId);
+      } catch (e) {
+        console.warn('Auto-seed vocabulary warning:', e.message);
+      }
     }
   }
 

@@ -357,6 +357,47 @@ function MediaRenderer({ url, word, onError, className = '' }) {
   );
 }
 
+export const KNOWN_VOCAB_PHOTOS = new Set([
+  'abuela', 'abuelo', 'adios', 'adiós', 'agua', 'ahi', 'ahí', 'alfajor', 'alla', 'allá',
+  'alma', 'amarillo', 'amiga', 'amigo', 'aquel', 'arma', 'auto', 'ayudar', 'azul',
+  'banana', 'bano', 'baño', 'bien', 'blanco', 'boca', 'bolsa', 'bueno', 'cabeza',
+  'calle', 'calor', 'cama', 'cansada', 'cara', 'carro', 'casa', 'cero', 'chau',
+  'chiquito', 'chocolate', 'cinco', 'cine', 'colegio', 'colores', 'comer', 'comprar',
+  'con', 'copado', 'correr', 'cuaderno', 'cuatro', 'cuanto_cuesta', 'cuánto_cuesta',
+  'como_estas', 'cómo_estás', 'dale', 'despacio', 'dibujar', 'diez', 'doler', 'dia', 'día',
+  'donde', 'dónde', 'entender', 'escuchar', 'ese', 'esperar', 'este', 'estudiar',
+  'feliz', 'frio', 'frío', 'galletitas', 'gane', 'gané', 'gato', 'gente', 'goma',
+  'gracias', 'grande', 'hablar', 'hamaca', 'hambre', 'helado', 'hermana', 'hermano',
+  'hija', 'hijo', 'hola', 'ingles', 'inglés', 'jugar', 'jugo', 'leche', 'libro',
+  'lindo', 'llamo', 'lluvia', 'lapiz', 'lápiz', 'madre', 'mama', 'mamá', 'mano',
+  'manzana', 'medialuna', 'mercado', 'merienda', 'mesa', 'mirar', 'mochila', 'mucho',
+  'mujer', 'museo', 'muy', 'negro', 'nino', 'niño', 'no', 'no_entiendo', 'no_se',
+  'noche', 'nueve', 'ocho', 'ojos', 'padre', 'pan', 'papa', 'papá', 'pelota',
+  'perdon', 'perdón', 'pero', 'perro', 'pie', 'pintar', 'pizza', 'plata', 'plato',
+  'plaza', 'por_favor', 'puerta', 'queso', 'quiero', 'quiosco', 'razon', 'razón',
+  'recreo', 'rico', 'rojo', 'rapido', 'rápido', 'saber', 'saltar', 'sed', 'seis',
+  'ser', 'seno', 'seño', 'siete', 'silla', 'sin', 'sol', 'si', 'sí', 'tengo',
+  'tijera', 'tobogan', 'tobogán', 'todo', 'trabajar', 'tres', 'turno', 'vaso',
+  'ventana', 'veo', 'verde', 'vivir'
+]);
+
+export function resolveVocabPhoto(word = '') {
+  if (!word || typeof word !== 'string') return null;
+  const clean = word.toLowerCase().trim()
+    .replace(/^[¿¡!?,.]+|[¿¡!?,.]+$|\?|\!/g, '')
+    .replace(/^(el|la|los|las|un|una|unos|unas)\s+/i, '')
+    .trim()
+    .replace(/\s+/g, '_');
+  if (KNOWN_VOCAB_PHOTOS.has(clean)) {
+    return `/spanish/images/vocab/${clean}.jpg`;
+  }
+  const noAccents = clean.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace('ñ', 'n');
+  if (KNOWN_VOCAB_PHOTOS.has(noAccents)) {
+    return `/spanish/images/vocab/${noAccents}.jpg`;
+  }
+  return null;
+}
+
 export default function WordIllustration({
   word = '',
   translation = '',
@@ -365,9 +406,12 @@ export default function WordIllustration({
   showTag = true,
   className = ''
 }) {
-  const currentKey = `${imageUrl || ''}:${word}`;
-  const [prevKey, setPrevKey] = useState(currentKey);
   const [imageError, setImageError] = useState(false);
+  const resolvedPhoto = (!imageError && !imageUrl) ? resolveVocabPhoto(word) : null;
+  const activeUrl = (!imageError && (imageUrl || resolvedPhoto)) || null;
+
+  const currentKey = `${activeUrl || ''}:${word}`;
+  const [prevKey, setPrevKey] = useState(currentKey);
 
   if (prevKey !== currentKey) {
     setPrevKey(currentKey);
@@ -375,14 +419,14 @@ export default function WordIllustration({
   }
 
   const meta = getWordVisualMeta(word, translation);
-  const mediaType = imageUrl && !imageError ? detectMediaType(imageUrl) : 'none';
+  const mediaType = activeUrl ? detectMediaType(activeUrl) : 'none';
 
   // Thumbnail mode (for tables and lists: comfortable 56px to 80px on desktop)
   if (size === 'sm') {
-    if (imageUrl && !imageError) {
+    if (activeUrl) {
       return (
         <div className={`w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-2xl overflow-hidden shadow-xs border border-purple-200 dark:border-purple-800 flex-shrink-0 relative ${className}`}>
-          <MediaRenderer url={imageUrl} word={word} onError={() => setImageError(true)} />
+          <MediaRenderer url={activeUrl} word={word} onError={() => setImageError(true)} />
           {mediaType === 'video' && (
             <span className="absolute bottom-1 right-1 bg-black/70 text-[9px] text-white px-1 rounded-md font-bold">▶</span>
           )}
@@ -422,8 +466,8 @@ export default function WordIllustration({
         )}
 
         <div className="w-full h-56 sm:h-72 md:h-80 lg:h-[420px] xl:h-[500px] 2xl:h-[560px] mx-auto my-1 flex items-center justify-center relative z-10 rounded-2xl overflow-hidden shadow-sm bg-black/5 dark:bg-white/5">
-          {imageUrl && !imageError ? (
-            <MediaRenderer url={imageUrl} word={word} onError={() => setImageError(true)} />
+          {activeUrl ? (
+            <MediaRenderer url={activeUrl} word={word} onError={() => setImageError(true)} />
           ) : (
             <ThematicSvgScene kind={meta.svgKind} accent={meta.accentColor} />
           )}
@@ -453,8 +497,8 @@ export default function WordIllustration({
 
       {/* Center artwork / photo / video / flash (on the flashcard: up to 540px height on large desktop) */}
       <div className="w-full h-52 sm:h-64 md:h-80 lg:h-[400px] xl:h-[480px] 2xl:h-[540px] mx-auto flex items-center justify-center relative z-10 rounded-2xl overflow-hidden shadow-sm bg-black/5 dark:bg-white/5">
-        {imageUrl && !imageError ? (
-          <MediaRenderer url={imageUrl} word={word} onError={() => setImageError(true)} />
+        {activeUrl ? (
+          <MediaRenderer url={activeUrl} word={word} onError={() => setImageError(true)} />
         ) : (
           <ThematicSvgScene kind={meta.svgKind} accent={meta.accentColor} />
         )}

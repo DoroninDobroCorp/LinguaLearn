@@ -38,7 +38,7 @@ import {
   Film,
   Keyboard,
 } from 'lucide-react';
-import WordIllustration from './WordIllustration';
+import WordIllustration, { resolveVocabPhoto } from './WordIllustration';
 import AttachMediaModal from './AttachMediaModal';
 import { useSpeechPractice } from '../hooks/useSpeechPractice';
 import VocabularyDecksModal from './VocabularyDecksModal';
@@ -922,7 +922,8 @@ function Vocabulary() {
              Number(e.id) === Number(currentCard.entry_id) ||
              (e.word && (e.word === currentCard.word || e.word === currentCard.prompt))
     );
-    return match?.image_url || null;
+    if (match?.image_url) return match.image_url;
+    return resolveVocabPhoto(currentCard.word || currentCard.prompt || currentCard.answer);
   }, [currentCard, entries]);
   const isOfflineRuntime = () => Boolean(offlineSnapshot) || (typeof navigator !== 'undefined' && navigator.onLine === false);
   const automaticTypingStage = isAutomaticSpanishTypingCard(currentCard);

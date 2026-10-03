@@ -2,6 +2,7 @@ import React from 'react';
 import { Volume2 } from 'lucide-react';
 import { speakSpanish } from '../utils/soundEffects';
 import { getWordVisualMeta as getExtendedVisualMeta } from '../utils/wordVisuals';
+import { resolveVocabPhoto } from './WordIllustration';
 
 // Smart visual mapping for Spanish vocabulary
 export function getWordVisualMeta(word, translation) {
@@ -156,6 +157,7 @@ export default function VocabularyWordIllustration({
   className = ''
 }) {
   const meta = getWordVisualMeta(word, translation);
+  const effectiveImageUrl = imageUrl || resolveVocabPhoto(word);
 
   return (
     <div className={`p-6 sm:p-8 lg:p-10 rounded-3xl ${meta.bgCard} border-2 shadow-xl relative overflow-hidden text-center transition-all max-w-2xl lg:max-w-3xl mx-auto ${className}`}>
@@ -181,16 +183,16 @@ export default function VocabularyWordIllustration({
       </div>
 
       {/* Center Illustrated Photo or Mascot Banner */}
-      {imageUrl ? (
+      {effectiveImageUrl ? (
         <div className="my-3 w-full h-56 sm:h-72 md:h-80 lg:h-96 rounded-2xl overflow-hidden shadow-md relative z-10 bg-black/5 flex items-center justify-center">
           <img
-            src={imageUrl}
+            src={effectiveImageUrl}
             alt=""
             aria-hidden="true"
             className="absolute inset-0 w-full h-full object-cover blur-xl opacity-30 scale-110 pointer-events-none select-none"
           />
           <img
-            src={imageUrl}
+            src={effectiveImageUrl}
             alt={word}
             className="relative z-10 max-w-full max-h-full w-auto h-auto object-contain rounded-xl shadow-xs"
           />
