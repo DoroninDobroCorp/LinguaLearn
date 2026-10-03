@@ -34,47 +34,43 @@ class AppErrorBoundary extends React.Component {
         }}>
           <div style={{ fontSize: '48px', marginBottom: '12px' }}>🇪🇸</div>
           <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#9333ea', marginBottom: '8px' }}>
-            LinguaLearn Spanish (Офлайн)
+            LinguaLearn Spanish
           </h2>
           <p style={{ fontSize: '13px', color: '#6b7280', maxWidth: '360px', marginBottom: '20px', lineHeight: 1.5 }}>
-            При запуске интерфейса возникла заминка. Вы можете перейти напрямую в тренажер или словарь:
+            Произошла заминка при отображении страницы.
           </p>
+          {this.state.error && (
+            <div style={{
+              textAlign: 'left',
+              background: '#fef2f2',
+              color: '#991b1b',
+              padding: '12px 14px',
+              borderRadius: '12px',
+              fontSize: '11px',
+              maxWidth: '380px',
+              marginBottom: '16px',
+              overflowX: 'auto',
+              fontFamily: 'monospace',
+              border: '1px solid #fecaca'
+            }}>
+              <strong>{String(this.state.error?.message || this.state.error)}</strong>
+            </div>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '280px' }}>
-            <a href="/spanish/exercises" style={{
-              padding: '12px 16px',
-              borderRadius: '14px',
-              background: 'linear-gradient(to right, #d946ef, #9333ea)',
-              color: '#ffffff',
-              fontWeight: 700,
-              fontSize: '14px',
-              textDecoration: 'none',
-              boxShadow: '0 4px 12px rgba(147, 51, 234, 0.3)'
-            }}>
-              🎯 Открыть Тренажер
-            </a>
-            <a href="/spanish/vocabulary" style={{
-              padding: '12px 16px',
-              borderRadius: '14px',
-              background: '#ffffff',
-              border: '2px solid #e9d5ff',
-              color: '#9333ea',
-              fontWeight: 700,
-              fontSize: '14px',
-              textDecoration: 'none'
-            }}>
-              📖 Открыть Словарь
-            </a>
-            <button onClick={() => window.location.reload()} style={{
-              marginTop: '6px',
-              padding: '10px 16px',
-              borderRadius: '14px',
-              background: 'transparent',
-              border: 'none',
-              color: '#6b7280',
-              fontWeight: 600,
-              fontSize: '13px',
-              cursor: 'pointer'
-            }}>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                padding: '12px 16px',
+                borderRadius: '14px',
+                background: 'linear-gradient(to right, #d946ef, #9333ea)',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 700,
+                fontSize: '14px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(147, 51, 234, 0.3)'
+              }}
+            >
               Перезагрузить страницу 🔄
             </button>
           </div>

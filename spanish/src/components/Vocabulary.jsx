@@ -579,6 +579,18 @@ function Vocabulary() {
     }
   }, []);
 
+  const [notice, setNotice] = useState('');
+  const [offlineMutationsCount, setOfflineMutationsCount] = useState(0);
+
+  const checkMutations = useCallback(() => {
+    try {
+      const list = getOfflineMutations(getActiveProfileId());
+      setOfflineMutationsCount(list.length);
+    } catch {
+      setOfflineMutationsCount(0);
+    }
+  }, []);
+
   useEffect(() => {
     checkMutations();
     const handleOnline = async () => {
@@ -634,7 +646,6 @@ function Vocabulary() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [offlineSnapshot, setOfflineSnapshot] = useState(null);
   const [entryFilter, setEntryFilter] = useState('all');
   const [typedAnswer, setTypedAnswer] = useState('');
@@ -679,17 +690,6 @@ function Vocabulary() {
   const [activeGroupMenuWordId, setActiveGroupMenuWordId] = useState(null);
   const [pendingGroupWordIds, setPendingGroupWordIds] = useState(() => new Set());
   const [deletingWordIds, setDeletingWordIds] = useState(() => new Set());
-  const [offlineMutationsCount, setOfflineMutationsCount] = useState(0);
-
-  const checkMutations = useCallback(() => {
-    try {
-      const list = getOfflineMutations(getActiveProfileId());
-      setOfflineMutationsCount(list.length);
-    } catch {
-      setOfflineMutationsCount(0);
-    }
-  }, []);
-
 
   const fetchGroups = useCallback(async () => {
     try {
@@ -1312,6 +1312,22 @@ function Vocabulary() {
     hiddenDurationRef.current = 0;
   }, [currentCard?.id, currentCard?.direction, currentCard?.card_id]);
 
+  const isSingleGroupRound = typeof reviewSession.mode === 'string' && reviewSession.mode.startsWith('group_once:');
+  const isMultiGroupRound = typeof reviewSession.mode === 'string' && reviewSession.mode.startsWith('groups_once:');
+  const isCurrentGroupRound = isSingleGroupRound || isMultiGroupRound;
+  const currentGroupName = useMemo(() => {
+    if (isSingleGroupRound) {
+      const gid = Number(reviewSession.mode.split(':')[1]);
+      return groups.find((g) => g.id === gid)?.name || 'Group';
+    }
+    if (isMultiGroupRound) {
+      const gids = reviewSession.mode.split(':')[1].split(',').map(Number).filter(Boolean);
+      const names = groups.filter((g) => gids.includes(g.id)).map((g) => g.name);
+      return names.length > 0 ? names.join(' + ') : 'Selected Groups';
+    }
+    return 'Group';
+  }, [isSingleGroupRound, isMultiGroupRound, reviewSession.mode, groups]);
+
   const checkTypedAnswer = useCallback(() => {
     if (!currentCard) return;
     const result = scoreTypedAnswer(typedAnswer, currentCard.answer);
@@ -1379,55 +1395,6 @@ function Vocabulary() {
     speakText,
     visibleSpanish.text,
   ]);
-
-  const keyHandlersRef = useRef({});
-  useEffect(() => {
-    keyHandlersRef.current = {
-      currentCard,
-      showAnswer,
-      mediaModalEntry,
-      showAddForm,
-      showDecksModal,
-      handleReview,
-      toggleShowAnswer
-    };
-  });
-
-  // Desktop keyboard navigation (Space/Enter to flip, 1/2/3/4 to grade) - attached once on mount
-  useEffect(() => {
-    const handleGlobalKeyDown = (e) => {
-      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
-      const { currentCard, showAnswer, mediaModalEntry, showAddForm, showDecksModal, handleReview, toggleShowAnswer } = keyHandlersRef.current;
-      if (mediaModalEntry || showAddForm || showDecksModal || !currentCard || isReviewingRef.current) return;
-
-      if (!showAnswer) {
-        if (e.key === ' ' || e.key === 'Enter') {
-          e.preventDefault();
-          toggleShowAnswer?.();
-        }
-      } else {
-        if (e.key === '1') {
-          e.preventDefault();
-          handleReview?.('dont_know');
-        } else if (e.key === '2') {
-          e.preventDefault();
-          handleReview?.('hard');
-        } else if (e.key === '3') {
-          e.preventDefault();
-          handleReview?.('good');
-        } else if (e.key === '4') {
-          e.preventDefault();
-          handleReview?.('easy');
-        } else if (e.key === ' ' || e.key === 'Enter') {
-          e.preventDefault();
-          handleReview?.('good');
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, []);
 
   const effectiveDueTotal = Number.isFinite(stats.due_entries)
     ? stats.due_entries
@@ -1509,22 +1476,6 @@ function Vocabulary() {
   }, [entries, entryFilter, wordSearchQuery, selectedGroupFilterIds, sortBy]);
 
   const filteredEntryLabel = ENTRY_FILTERS[entryFilter]?.label || ENTRY_FILTERS.all.label;
-
-  const isSingleGroupRound = typeof reviewSession.mode === 'string' && reviewSession.mode.startsWith('group_once:');
-  const isMultiGroupRound = typeof reviewSession.mode === 'string' && reviewSession.mode.startsWith('groups_once:');
-  const isCurrentGroupRound = isSingleGroupRound || isMultiGroupRound;
-  const currentGroupName = useMemo(() => {
-    if (isSingleGroupRound) {
-      const gid = Number(reviewSession.mode.split(':')[1]);
-      return groups.find((g) => g.id === gid)?.name || 'Group';
-    }
-    if (isMultiGroupRound) {
-      const gids = reviewSession.mode.split(':')[1].split(',').map(Number).filter(Boolean);
-      const names = groups.filter((g) => gids.includes(g.id)).map((g) => g.name);
-      return names.length > 0 ? names.join(' + ') : 'Selected Groups';
-    }
-    return 'Group';
-  }, [isSingleGroupRound, isMultiGroupRound, reviewSession.mode, groups]);
 
   const dueLabel = useMemo(() => {
     if (reviewSession.totalEntries > 0 && currentCard) {
@@ -1812,6 +1763,55 @@ function Vocabulary() {
         });
       });
   };
+
+  const keyHandlersRef = useRef({});
+  useEffect(() => {
+    keyHandlersRef.current = {
+      currentCard,
+      showAnswer,
+      mediaModalEntry,
+      showAddForm,
+      showDecksModal,
+      handleReview,
+      toggleShowAnswer
+    };
+  });
+
+  // Desktop keyboard navigation (Space/Enter to flip, 1/2/3/4 to grade) - attached once on mount
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      const { currentCard, showAnswer, mediaModalEntry, showAddForm, showDecksModal, handleReview, toggleShowAnswer } = keyHandlersRef.current;
+      if (mediaModalEntry || showAddForm || showDecksModal || !currentCard || isReviewingRef.current) return;
+
+      if (!showAnswer) {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          toggleShowAnswer?.();
+        }
+      } else {
+        if (e.key === '1') {
+          e.preventDefault();
+          handleReview?.('dont_know');
+        } else if (e.key === '2') {
+          e.preventDefault();
+          handleReview?.('hard');
+        } else if (e.key === '3') {
+          e.preventDefault();
+          handleReview?.('good');
+        } else if (e.key === '4') {
+          e.preventDefault();
+          handleReview?.('easy');
+        } else if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          handleReview?.('good');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   const updateFavorite = (entry, favorite) => {
     if (isOfflineRuntime()) {
