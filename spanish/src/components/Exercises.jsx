@@ -5,6 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { soundEngine } from '../utils/soundEffects';
 
 import SentenceTranslationSection from './exercises/SentenceTranslationSection';
+import DemonstrativesPracticeSection from './exercises/DemonstrativesPracticeSection';
 import ClassicQuizSection from './exercises/ClassicQuizSection';
 import VerbDrillsSection from './exercises/VerbDrillsSection';
 import WordTilesSection from './exercises/WordTilesSection';
@@ -12,7 +13,7 @@ import SpeedMatchSection from './exercises/SpeedMatchSection';
 import ErrorDetectiveSection from './exercises/ErrorDetectiveSection';
 import CognateBridgesSection from './exercises/CognateBridgesSection';
 
-const VALID_EXERCISE_TABS = ['translation', 'classic_quiz', 'verb_drills', 'cognates', 'word_tiles', 'speed_match', 'error_detective'];
+const VALID_EXERCISE_TABS = ['translation', 'demonstratives', 'classic_quiz', 'verb_drills', 'cognates', 'word_tiles', 'speed_match', 'error_detective'];
 
 export default function Exercises() {
   const { t } = useLanguage();
@@ -47,6 +48,7 @@ export default function Exercises() {
 
   const tabs = [
     { id: 'translation', label: 'Перевод предложений', emoji: '🌐' },
+    { id: 'demonstratives', label: 'Указатели & Дистанция', emoji: '📍' },
     { id: 'classic_quiz', label: 'Тесты & Экзамены (ИИ)', emoji: '🧠' },
     { id: 'verb_drills', label: 'Спряжения глаголов', emoji: '🎯' },
     { id: 'cognates', label: 'Когнаты и ложные друзья', emoji: '🌉' },
@@ -98,6 +100,7 @@ export default function Exercises() {
       </div>
 
       {activeTab === 'translation' && <SentenceTranslationSection />}
+      {activeTab === 'demonstratives' && <DemonstrativesPracticeSection />}
       {activeTab === 'cognates' && <CognateBridgesSection />}
       {activeTab === 'word_tiles' && <WordTilesSection />}
       {activeTab === 'speed_match' && <SpeedMatchSection />}

@@ -440,6 +440,14 @@ export default function CurriculumMap() {
                                 </span>
                                 {topic.name}
                               </div>
+                              {Number(topic.id) === 9 && (
+                                <div className="mt-1 flex items-center gap-1">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 inline-flex items-center gap-1">
+                                    <span>📍</span>
+                                    <span>Тренажер 15 форм + Мнемоника</span>
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <span className="text-sm font-black text-purple-600 dark:text-purple-400">
                               {score}%

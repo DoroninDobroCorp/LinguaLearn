@@ -12,6 +12,7 @@ import { soundEngine, speakSpanish } from '../utils/soundEffects';
 import MateoCharacter from './MateoCharacter';
 import InteractiveVocabularyIntro from './InteractiveVocabularyIntro';
 import BiteSizedTheoryDeck from './BiteSizedTheoryDeck';
+import DemonstrativesPracticeSection from './exercises/DemonstrativesPracticeSection';
 
 function normalizeExerciseText(text) {
   if (!text) return '';
@@ -306,6 +307,10 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
   const currentEx = exercisesList[exerciseIndex];
   const starterVocabulary = lesson?.starterVocabulary || [];
   const exercisesUnlocked = !lesson || lesson.isIntroduced || (vocabularyConfirmed && theoryViewed);
+  const isDemonstrativesTopic = Number(topicId) === 9 ||
+    String(topicName || '').toLowerCase().includes('demonstrative') ||
+    String(theoryData?.topicName || '').toLowerCase().includes('demonstrative') ||
+    String(theoryData?.russianTitle || '').toLowerCase().includes('указательн');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
@@ -388,6 +393,24 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
               </button>
             )}
 
+            {isDemonstrativesTopic && (
+              <button
+                onClick={() => {
+                  setVocabularyConfirmed(true);
+                  setTheoryViewed(true);
+                  setActiveTab('demonstratives');
+                }}
+                className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 ${
+                  activeTab === 'demonstratives'
+                    ? 'border-amber-500 text-amber-600 dark:text-amber-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>📍 Тренажер всех форм (3 зоны)</span>
+              </button>
+            )}
+
             <button
               onClick={() => setActiveTab('tutor')}
               className={`py-3 px-4 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 ${
@@ -434,17 +457,51 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
                 setActiveTab('theory');
               }}
             />
+          ) : activeTab === 'demonstratives' ? (
+            <div className="space-y-4">
+              <DemonstrativesPracticeSection />
+            </div>
           ) : activeTab === 'theory' ? (
             theoryData ? (
-              <BiteSizedTheoryDeck
-                theoryData={theoryData}
-                topicName={theoryData.russianTitle || topicName}
-                onFinishTheory={() => setExercisesUnlocked(true)}
-                onStartExercises={() => {
-                  setExercisesUnlocked(true);
-                  if (exercisesList.length > 0) setActiveTab('exercises');
-                }}
-              />
+              <div className="space-y-5">
+                {isDemonstrativesTopic && (
+                  <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-pink-500/10 border-2 border-amber-300 dark:border-amber-700 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black text-2xl shadow-md flex-shrink-0">
+                        📍
+                      </div>
+                      <div>
+                        <div className="text-sm sm:text-base font-black text-gray-900 dark:text-white">
+                          Доступен интерактивный тренажер всех 15 форм и комикс-мнемоника!
+                        </div>
+                        <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                          «ЭСТЭт — АКа», «ЭСЭ — АИ», «Акела — АША» • Матрица форм, наречия дистанции и тест
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setTheoryViewed(true);
+                        setActiveTab('demonstratives');
+                      }}
+                      className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow hover:opacity-95 flex items-center gap-2 whitespace-nowrap active:scale-95 transition-all"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Открыть тренажер</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+                <BiteSizedTheoryDeck
+                  theoryData={theoryData}
+                  topicName={theoryData.russianTitle || topicName}
+                  onFinishTheory={() => setExercisesUnlocked(true)}
+                  onStartExercises={() => {
+                    setExercisesUnlocked(true);
+                    if (exercisesList.length > 0) setActiveTab('exercises');
+                  }}
+                />
+              </div>
             ) : (
               <div className="text-center py-12 text-gray-500">
                 Теоретические материалы для этой темы пока готовятся...
@@ -657,22 +714,37 @@ export default function TopicTheoryModal({ topicId, topicName, isOpen, onClose, 
             Закрыть
           </button>
 
-          {exercisesList.length > 0 && activeTab === 'theory' && (
-            <button
-              onClick={() => {
-                setTheoryViewed(true);
-                setActiveTab('exercises');
-              }}
-              className="px-5 sm:px-6 py-2.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition-transform active:scale-95 text-xs sm:text-sm flex items-center gap-2"
-            >
-              <span>
-                {exercisesUnlocked
-                  ? `Тренировать упражнения (${exercisesList.length})`
-                  : 'Правило прочитано — перейти к упражнениям'}
-              </span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {isDemonstrativesTopic && activeTab !== 'demonstratives' && (
+              <button
+                onClick={() => {
+                  setTheoryViewed(true);
+                  setActiveTab('demonstratives');
+                }}
+                className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl shadow transition-transform active:scale-95 text-xs sm:text-sm flex items-center gap-1.5"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Тренажер 15 форм</span>
+              </button>
+            )}
+
+            {exercisesList.length > 0 && activeTab === 'theory' && (
+              <button
+                onClick={() => {
+                  setTheoryViewed(true);
+                  setActiveTab('exercises');
+                }}
+                className="px-5 sm:px-6 py-2.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition-transform active:scale-95 text-xs sm:text-sm flex items-center gap-2"
+              >
+                <span>
+                  {exercisesUnlocked
+                    ? `Тренировать упражнения (${exercisesList.length})`
+                    : 'Правило прочитано — перейти к упражнениям'}
+                </span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
