@@ -44,9 +44,9 @@ CURATED_100_PHOTOS = {
     'el gato': 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&auto=format&fit=crop&q=80',  # gorgeous domestic cat
     'el perro': 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&auto=format&fit=crop&q=80',  # cute friendly dog
     'jugar': 'https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?w=800&auto=format&fit=crop&q=80',  # kids playing with rainbow parachute
-    'comer': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&auto=format&fit=crop&q=80',  # delicious meal dish
-    'quiero': 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=800&auto=format&fit=crop&q=80',  # shiny red heart
-    'tengo': 'https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=800&auto=format&fit=crop&q=80',  # wrapped gift box with ribbon
+    'comer': 'https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=800&auto=format&fit=crop&q=80',  # happy young girl eating watermelon with big smile
+    'quiero': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/Child_blowing_on_dandelion_puff_in_a_sunny_field_during_golden_hour.jpg/960px-Child_blowing_on_dandelion_puff_in_a_sunny_field_during_golden_hour.jpg',  # child blowing dandelion puff making a wish (wanting)
+    'tengo': 'https://upload.wikimedia.org/wikipedia/commons/d/d0/Little_girl_hugging_a_miniature_schnauzer_%282007%29.jpg',  # happy young girl holding her puppy (having a puppy)
     'dale': 'https://live.staticflickr.com/3223/2528741730_7052b986dd_b.jpg',  # boy and girl smiling and high-fiving
 
     # 🎒 3. Школьный рюкзак
