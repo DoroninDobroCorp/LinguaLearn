@@ -507,7 +507,25 @@ export function getWordVisualMeta(word = '', translation = '', domain = '') {
       accentColor: '#a855f7'
     };
   }
-  if (normW.includes('plata') || normT.includes('деньг') || normW.includes('cuanto') || normT.includes('сто')) {
+  // NUMBERS & COUNTING (🔢 Числа и счёт: 10, 20... 1000)
+  if (
+    normD.includes('number') ||
+    ['diez', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa',
+     'cien', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos',
+     'setecientos', 'ochocientos', 'novecientos', 'mil'].includes(normW) ||
+    /^(десять|двадцать|тридцать|сорок|пятьдесят|шестьдесят|семьдесят|восемьдесят|девяносто|сто|двести|триста|четыреста|пятьсот|шестьсот|семьсот|восемьсот|девятьсот|тысяча)/.test(normT)
+  ) {
+    return {
+      emoji: '🔢',
+      tag: 'Числа и счёт',
+      svgKind: 'numbers_math',
+      gradient: 'from-blue-500 via-indigo-500 to-purple-600',
+      bgCard: 'bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700',
+      accentColor: '#6366f1'
+    };
+  }
+
+  if (normW.includes('plata') || normT.includes('деньг') || normW.includes('cuanto') || normT.includes('стоимост') || normT.includes('стоит')) {
     return {
       emoji: '🪙',
       tag: 'Покупки и деньги',
