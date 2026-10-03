@@ -106,6 +106,15 @@ import {
 } from './profilePin.js';
 import { buildProfileNameKey } from './unicodeKeys.js';
 import { ensureVocabularyExactDuplicateIndex } from './vocabularyUniquenessMigration.js';
+import {
+  ensureStudentLogsSchema,
+  logStudentAttempt,
+  getStudentLogs,
+  getStudentSummary,
+  resolveStudentProfile,
+  renderParentReportHtml,
+  studentLogEvents
+} from './studentLogger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -257,6 +266,9 @@ if (!db.prepare('SELECT id FROM profiles WHERE id = 1').get()) {
 
 // Prevent duplicate profile names (case-insensitive) while preserving existing profile data.
 ensureCaseInsensitiveProfileNameIndex(db);
+
+// Ensure student vocabulary attempt logs schema
+ensureStudentLogsSchema(db);
 
 // Add profile_id to chat_history
 try {
@@ -976,7 +988,15 @@ app.use((req, res, next) => {
     return next();
   }
 
-  const raw = req.query.profileId || req.headers['x-profile-id'] || req.body?.profileId;
+  let raw = req.query.profileId || req.headers['x-profile-id'] || req.body?.profileId;
+  const student = req.query.student || req.body?.student;
+  if ((raw === undefined || raw === null || raw === '') && student) {
+    const resolved = resolveStudentProfile(db, student);
+    if (resolved) {
+      raw = resolved.id;
+    }
+  }
+
   if (raw === undefined || raw === null || raw === '') {
     req.profileId = 1;
     return next();
@@ -2064,6 +2084,19 @@ app.post('/api/vocabulary/review-cards/:id/review', (req, res) => {
     try {
       updateDailyQuestProgress(db, profileId, 'vocab_review', 1);
       addProfileXp(db, profileId, 3, 'vocab_card_reviewed');
+      logStudentAttempt(db, {
+        profileId,
+        cardId,
+        vocabularyId: updatedCard.id || null,
+        word: updatedCard.word || updatedCard.prompt || '',
+        translation: updatedCard.translation || updatedCard.answer || '',
+        direction: updatedCard.direction || 'source_to_target',
+        prompt: updatedCard.prompt || updatedCard.word || '',
+        expectedAnswer: updatedCard.answer || updatedCard.translation || '',
+        grade,
+        isCorrect: (grade === 'good' || grade === 'easy'),
+        practiceMode: 'due_review'
+      });
     } catch (e) {
       console.error('Error updating quest progress on vocab review:', e);
     }
@@ -2085,6 +2118,16 @@ function handleLegacyVocabularyReview(req, res) {
     try {
       updateDailyQuestProgress(db, profileId, 'vocab_review', 1);
       addProfileXp(db, profileId, 3, 'vocab_card_reviewed');
+      logStudentAttempt(db, {
+        profileId,
+        vocabularyId: entryId,
+        word: reviewedWord.word || '',
+        translation: reviewedWord.translation || '',
+        direction: req.body?.direction || 'source_to_target',
+        grade: req.body?.grade || '',
+        isCorrect: (req.body?.grade === 'good' || req.body?.grade === 'easy'),
+        practiceMode: 'legacy_review'
+      });
     } catch (e) {
       console.error('Error updating quest progress on legacy vocab review:', e);
     }
@@ -2226,6 +2269,272 @@ app.delete('/api/vocabulary/:id', (req, res) => {
     handleVocabularyError(res, error, 'Error deleting word:');
   }
 });
+
+// ==================== STUDENT VOCABULARY LOGGING & PARENT REPORT ====================
+
+app.post('/api/vocabulary/log-attempt', (req, res) => {
+  try {
+    let profileId = getProfileId(req);
+    const student = req.body?.student || req.query?.student;
+    if (student) {
+      const resolved = resolveStudentProfile(db, student);
+      if (!resolved) {
+        return res.status(404).json({ error: 'Student profile not found' });
+      }
+      profileId = resolved.id;
+    }
+
+    const rawWord = req.body?.word || req.body?.prompt;
+    if (!rawWord || !String(rawWord).trim()) {
+      return res.status(400).json({ error: 'Word or prompt is required for vocabulary attempt logging' });
+    }
+
+    const result = logStudentAttempt(db, {
+      profileId,
+      clientEventId: req.body?.clientEventId || null,
+      sessionId: req.body?.sessionId,
+      studentToken: req.body?.studentToken || req.body?.student,
+      vocabularyId: req.body?.vocabularyId,
+      cardId: req.body?.cardId,
+      word: req.body?.word,
+      translation: req.body?.translation,
+      direction: req.body?.direction,
+      prompt: req.body?.prompt,
+      expectedAnswer: req.body?.expectedAnswer,
+      userInput: req.body?.userInput,
+      grade: req.body?.grade,
+      isCorrect: req.body?.isCorrect !== undefined ? req.body.isCorrect : (req.body?.grade === 'good' || req.body?.grade === 'easy'),
+      practiceMode: req.body?.practiceMode,
+      groupName: req.body?.groupName,
+      responseTimeMs: req.body?.responseTimeMs,
+      createdAt: req.body?.createdAt
+    });
+
+    if (!result) {
+      return res.status(500).json({ error: 'Failed to log attempt' });
+    }
+
+    if (!result.deduplicated) {
+      try {
+        updateDailyQuestProgress(db, profileId, 'vocab_review', 1);
+        addProfileXp(db, profileId, 2, 'vocab_practice_attempt');
+      } catch {}
+    }
+
+    res.json({ success: true, logId: result.logId, deduplicated: Boolean(result.deduplicated) });
+  } catch (error) {
+    console.error('Error logging student vocabulary attempt:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/student-logs', (req, res) => {
+  try {
+    let profileId = getProfileId(req);
+    const student = req.query.student;
+    if (student) {
+      const resolved = resolveStudentProfile(db, student);
+      if (!resolved) {
+        return res.status(404).json({ error: 'Student profile not found' });
+      }
+      profileId = resolved.id;
+    }
+    const result = getStudentLogs(db, profileId, {
+      limit: req.query.limit,
+      offset: req.query.offset,
+      period: req.query.period,
+      fromDate: req.query.fromDate,
+      toDate: req.query.toDate,
+      filterCorrect: req.query.correct ?? req.query.filterCorrect
+    });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/student-logs/summary', (req, res) => {
+  try {
+    let profileId = getProfileId(req);
+    const student = req.query.student;
+    if (student) {
+      const resolved = resolveStudentProfile(db, student);
+      if (!resolved) {
+        return res.status(404).json({ error: 'Student profile not found' });
+      }
+      profileId = resolved.id;
+    }
+    const summary = getStudentSummary(db, profileId, {
+      period: req.query.period,
+      fromDate: req.query.fromDate,
+      toDate: req.query.toDate
+    });
+    if (!summary) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/student-logs/export-csv', (req, res) => {
+  try {
+    let profileId = getProfileId(req);
+    const student = req.query.student;
+    if (student) {
+      const resolved = resolveStudentProfile(db, student);
+      if (!resolved) {
+        return res.status(404).json({ error: 'Student profile not found' });
+      }
+      profileId = resolved.id;
+    }
+    const { logs } = getStudentLogs(db, profileId, {
+      limit: 10000,
+      period: req.query.period,
+      fromDate: req.query.fromDate,
+      toDate: req.query.toDate
+    });
+    const profile = db.prepare('SELECT name FROM profiles WHERE id = ?').get(profileId);
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const latinName = profileId === 9 ? 'maya' : `student_${profileId}`;
+    const periodSuffix = req.query.period && req.query.period !== 'all' ? `_${req.query.period}` : '';
+    const filename = `student_logs_${latinName}${periodSuffix}_${dateStr}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.write('\uFEFF');
+    res.write('ID,Время,Слово,Перевод,Направление,Оценка,Верно?,Режим,Группа,Ввод ученика,Время ответа (мс)\n');
+    const cleanCell = (str) => `"${String(str || '').replace(/"/g, '""').replace(/[\r\n]+/g, ' ')}"`;
+    for (const l of logs) {
+      const line = [
+        l.id,
+        cleanCell(l.created_at),
+        cleanCell(l.word),
+        cleanCell(l.translation),
+        cleanCell(l.direction),
+        cleanCell(l.grade),
+        l.is_correct ? 'Да' : 'Нет',
+        cleanCell(l.practice_mode),
+        cleanCell(l.group_name),
+        cleanCell(l.user_input),
+        typeof l.response_time_ms === 'number' ? l.response_time_ms : ''
+      ].join(',');
+      res.write(line + '\n');
+    }
+    res.end();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/student-logs/stream', (req, res) => {
+  let profileId = getProfileId(req);
+  const student = req.query.student;
+  if (student) {
+    const resolved = resolveStudentProfile(db, student);
+    if (!resolved) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
+    profileId = resolved.id;
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+
+  res.write(`data: ${JSON.stringify({ type: 'connected', profileId })}\n\n`);
+
+  let cleanedUp = false;
+  let pingInterval = null;
+
+  const cleanup = () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    if (pingInterval) clearInterval(pingInterval);
+    studentLogEvents.removeListener('attempt', onAttempt);
+  };
+
+  const onAttempt = (data) => {
+    if (res.writableEnded || res.destroyed) {
+      cleanup();
+      return;
+    }
+    if (data.profileId === profileId) {
+      try {
+        const summary = getStudentSummary(db, profileId);
+        res.write(`data: ${JSON.stringify({ type: 'attempt', log: data.log, summary: summary?.summary })}\n\n`);
+      } catch (err) {
+        cleanup();
+      }
+    }
+  };
+
+  studentLogEvents.on('attempt', onAttempt);
+
+  pingInterval = setInterval(() => {
+    try {
+      if (res.writableEnded || res.destroyed) {
+        cleanup();
+        return;
+      }
+      res.write(': ping\n\n');
+    } catch {
+      cleanup();
+    }
+  }, 25000);
+
+  req.on('close', cleanup);
+  res.on('error', cleanup);
+});
+
+app.get('/api/student-logs/stream-stats', (req, res) => {
+  res.json({
+    activeListeners: studentLogEvents.listenerCount('attempt'),
+  });
+});
+
+app.get('/api/profiles/resolve-student', (req, res) => {
+  try {
+    const student = req.query.student || req.query.name || req.query.token || req.query.profileId || req.query.id || req.query.studentId;
+    if (!student) return res.status(400).json({ error: 'Missing student param' });
+    const profile = resolveStudentProfile(db, student);
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+    res.json({ profile, studentToken: student });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+function handleParentReport(req, res) {
+  try {
+    const student = req.query.student || req.query.name || 'maya';
+    const profile = resolveStudentProfile(db, student);
+    if (!profile) {
+      return res.status(404).send('Профиль ученика не найден');
+    }
+    const period = req.query.period || 'all';
+    const summaryData = getStudentSummary(db, profile.id, {
+      period,
+      fromDate: req.query.fromDate,
+      toDate: req.query.toDate
+    });
+    const allowedHosts = new Set(['145.239.82.124.sslip.io', '145.239.82.124', 'localhost', '127.0.0.1']);
+    const rawHost = String(req.get('host') || '').trim();
+    const host = (allowedHosts.has(rawHost) || allowedHosts.has(rawHost.split(':')[0])) ? rawHost : '145.239.82.124.sslip.io';
+    const html = renderParentReportHtml(summaryData, student, host, period);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (error) {
+    console.error('Error rendering parent report:', error);
+    res.status(500).send('Ошибка формирования отчета: ' + error.message);
+  }
+}
+
+app.get('/api/parent-report', handleParentReport);
+app.get('/parent-report', handleParentReport);
 
 // ==================== CURRICULUM API ====================
 

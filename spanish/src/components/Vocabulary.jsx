@@ -36,12 +36,13 @@ import {
   Filter,
   Image as ImageIcon,
   Film,
+  Keyboard,
 } from 'lucide-react';
 import WordIllustration from './WordIllustration';
 import AttachMediaModal from './AttachMediaModal';
 import { useSpeechPractice } from '../hooks/useSpeechPractice';
 import VocabularyDecksModal from './VocabularyDecksModal';
-import { profileApiUrl, profileFetch, getActiveProfileId } from '../utils/api';
+import { profileApiUrl, profileFetch, getActiveProfileId, logVocabularyAttempt } from '../utils/api';
 import {
   getVoicePracticeSpanishContent,
   getVisibleSpanishContent,
@@ -638,6 +639,25 @@ function Vocabulary() {
   const [entryFilter, setEntryFilter] = useState('all');
   const [typedAnswer, setTypedAnswer] = useState('');
   const [typingFeedback, setTypingFeedback] = useState(null);
+  const [forceTypingMode, setForceTypingMode] = useState(false);
+  const isReviewingRef = useRef(false);
+  const [isReviewBusy, setIsReviewBusy] = useState(false);
+  const cardStartTimeRef = useRef(Date.now());
+  const hiddenStartTimeRef = useRef(null);
+  const hiddenDurationRef = useRef(0);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        hiddenStartTimeRef.current = Date.now();
+      } else if (hiddenStartTimeRef.current) {
+        hiddenDurationRef.current += (Date.now() - hiddenStartTimeRef.current);
+        hiddenStartTimeRef.current = null;
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
   const [showTools, setShowTools] = useState(false);
   const [expandedEntries, setExpandedEntries] = useState({});
   const [studySessionHydrated, setStudySessionHydrated] = useState(false);
@@ -906,7 +926,7 @@ function Vocabulary() {
   }, [currentCard, entries]);
   const isOfflineRuntime = () => Boolean(offlineSnapshot) || (typeof navigator !== 'undefined' && navigator.onLine === false);
   const automaticTypingStage = isAutomaticSpanishTypingCard(currentCard);
-  const typingStageActive = automaticTypingStage;
+  const typingStageActive = forceTypingMode || automaticTypingStage;
   const hidePromptOnSpanishAnswer = showAnswer && currentCard?.response_mode === 'typing';
   const visibleSpanish = useMemo(
     () => getVisibleSpanishContent(currentCard, showAnswer),
@@ -1286,6 +1306,12 @@ function Vocabulary() {
     }
   }, [currentCard?.card_id, currentCard?.direction, currentCard?.study_variant, typingStageActive, showAnswer, currentCard]);
 
+  useEffect(() => {
+    cardStartTimeRef.current = Date.now();
+    hiddenStartTimeRef.current = null;
+    hiddenDurationRef.current = 0;
+  }, [currentCard?.id, currentCard?.direction, currentCard?.card_id]);
+
   const checkTypedAnswer = useCallback(() => {
     if (!currentCard) return;
     const result = scoreTypedAnswer(typedAnswer, currentCard.answer);
@@ -1294,7 +1320,29 @@ function Vocabulary() {
     }
     setTypingFeedback(result);
     setShowAnswer(true);
-  }, [currentCard, typedAnswer]);
+
+    const isMatch = result.status === 'correct' || result.status === 'close';
+    const now = Date.now();
+    const paused = hiddenDurationRef.current + (hiddenStartTimeRef.current ? (now - hiddenStartTimeRef.current) : 0);
+    const rawElapsed = now - cardStartTimeRef.current - paused;
+    const responseTime = Math.min(30000, Math.max(200, rawElapsed));
+
+    logVocabularyAttempt({
+      vocabularyId: Number(currentCard.id) || null,
+      cardId: Number(currentCard.card_id || currentCard.id) || null,
+      word: currentCard.word || currentCard.prompt || '',
+      translation: currentCard.translation || currentCard.answer || '',
+      direction: currentCard.direction || 'source_to_target',
+      prompt: currentCard.prompt || currentCard.word || '',
+      expectedAnswer: currentCard.answer || currentCard.translation || '',
+      userInput: typedAnswer || '',
+      grade: isMatch ? 'good' : 'dont_know',
+      isCorrect: isMatch ? 1 : 0,
+      practiceMode: 'typing_check',
+      groupName: currentGroupName || null,
+      responseTimeMs: responseTime
+    });
+  }, [currentCard, typedAnswer, currentGroupName]);
 
   useEffect(() => {
     const currentCardKey = currentCard
@@ -1331,6 +1379,55 @@ function Vocabulary() {
     speakText,
     visibleSpanish.text,
   ]);
+
+  const keyHandlersRef = useRef({});
+  useEffect(() => {
+    keyHandlersRef.current = {
+      currentCard,
+      showAnswer,
+      mediaModalEntry,
+      showAddForm,
+      showDecksModal,
+      handleReview,
+      toggleShowAnswer
+    };
+  });
+
+  // Desktop keyboard navigation (Space/Enter to flip, 1/2/3/4 to grade) - attached once on mount
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      const { currentCard, showAnswer, mediaModalEntry, showAddForm, showDecksModal, handleReview, toggleShowAnswer } = keyHandlersRef.current;
+      if (mediaModalEntry || showAddForm || showDecksModal || !currentCard || isReviewingRef.current) return;
+
+      if (!showAnswer) {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          toggleShowAnswer?.();
+        }
+      } else {
+        if (e.key === '1') {
+          e.preventDefault();
+          handleReview?.('dont_know');
+        } else if (e.key === '2') {
+          e.preventDefault();
+          handleReview?.('hard');
+        } else if (e.key === '3') {
+          e.preventDefault();
+          handleReview?.('good');
+        } else if (e.key === '4') {
+          e.preventDefault();
+          handleReview?.('easy');
+        } else if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          handleReview?.('good');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   const effectiveDueTotal = Number.isFinite(stats.due_entries)
     ? stats.due_entries
@@ -1599,30 +1696,65 @@ function Vocabulary() {
   };
 
   const handleReview = (grade) => {
-    if (!currentCard) return;
+    if (!currentCard || isReviewingRef.current) return;
+    isReviewingRef.current = true;
+    setIsReviewBusy(true);
 
-    if (currentCard.submits_review) {
-      const success = submitReview(`/spanish/api/vocabulary/${currentCard.id}/review`, {
+    try {
+      const isMistake = isReviewMistake(grade);
+      const isCorrect = !isMistake;
+      const now = Date.now();
+      const paused = hiddenDurationRef.current + (hiddenStartTimeRef.current ? (now - hiddenStartTimeRef.current) : 0);
+      const rawElapsed = now - cardStartTimeRef.current - paused;
+      const responseTime = Math.min(30000, Math.max(200, rawElapsed));
+      const activeMode = typingStageActive
+        ? 'typing'
+        : (isCurrentGroupRound ? 'group_practice' : (reviewSession.mode || 'flashcard'));
+
+      // Reliably log student attempt to backend database & server logs
+      logVocabularyAttempt({
+        vocabularyId: Number(currentCard.id) || null,
+        cardId: Number(currentCard.card_id || currentCard.id) || null,
+        word: currentCard.word || currentCard.prompt || '',
+        translation: currentCard.translation || currentCard.answer || '',
+        direction: currentCard.direction || 'source_to_target',
+        prompt: currentCard.prompt || currentCard.word || '',
+        expectedAnswer: currentCard.answer || currentCard.translation || '',
+        userInput: typedAnswer || null,
         grade,
-        direction: currentCard.direction,
+        isCorrect: isCorrect ? 1 : 0,
+        practiceMode: activeMode,
+        groupName: currentGroupName || null,
+        responseTimeMs: responseTime,
       });
-      if (!success) {
-        return;
-      }
-    } else {
-      setNotice(
-        currentCard.session_mode === 'practice_all'
-          ? 'Practice-only round: this extra repetition does not change the spaced repetition timer.'
-          : 'Extra form completed. The timer changes only for the due directions in this round.',
-      );
-    }
 
-    const isMistake = isReviewMistake(grade);
-    advanceCurrentSessionCard(currentCard, { repeatMistake: isMistake });
+      if (currentCard.submits_review) {
+        const success = submitReview(`/spanish/api/vocabulary/${currentCard.id}/review`, {
+          grade,
+          direction: currentCard.direction,
+        });
+        if (!success) {
+          return;
+        }
+      } else {
+        setNotice(
+          currentCard.session_mode === 'practice_all'
+            ? 'Practice-only round: this extra repetition does not change the spaced repetition timer.'
+            : 'Extra form completed. The timer changes only for the due directions in this round.',
+        );
+      }
+
+      advanceCurrentSessionCard(currentCard, { repeatMistake: isMistake });
+    } finally {
+      setTimeout(() => {
+        isReviewingRef.current = false;
+        setIsReviewBusy(false);
+      }, 350);
+    }
   };
 
   const handleLearned = () => {
-    if (!currentCard) return;
+    if (!currentCard || isReviewingRef.current) return;
     if (isOfflineRuntime()) {
       setError('Marking a word learned forever needs internet.');
       return;
@@ -1639,6 +1771,18 @@ function Vocabulary() {
       : item));
     advanceCurrentSessionCard(learnedCard, { removeEntry: true });
     setNotice('Saved as learned forever. Syncing…');
+
+    // Also log learned attempt
+    logVocabularyAttempt({
+      vocabularyId: entryId,
+      word: learnedCard.word || '',
+      translation: learnedCard.translation || '',
+      direction: learnedCard.direction || 'source_to_target',
+      grade: 'learned',
+      isCorrect: 1,
+      practiceMode: 'learned_forever',
+      groupName: currentGroupName || null,
+    });
 
     profileFetch(profileApiUrl(`/spanish/api/vocabulary/${learnedCard.id}/permanent-learned`), {
         method: 'PUT',
@@ -2664,6 +2808,23 @@ function Vocabulary() {
               </button>
               <button
                 type="button"
+                onClick={() => {
+                  setForceTypingMode((prev) => !prev);
+                  setTypingFeedback(null);
+                  setShowAnswer(false);
+                }}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                  typingStageActive
+                    ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                }`}
+                title={typingStageActive ? 'Переключить на переворот карточек' : 'Включить проверку вводом слова'}
+              >
+                <Keyboard className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{typingStageActive ? 'Ввод: вкл' : 'Ввод: выкл'}</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setMediaModalEntry(currentCard)}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors cursor-pointer"
                 title="Вставить видео, GIF, Flash или фото"
@@ -2671,6 +2832,16 @@ function Vocabulary() {
                 <Film className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Медиа</span>
               </button>
+              <a
+                href={profileApiUrl('/spanish/api/parent-report')}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors"
+                title="Открыть подробный отчёт для родителей"
+              >
+                <span>📊</span>
+                <span className="hidden sm:inline">Отчёт родителей</span>
+              </a>
               {remainingSessionEntries > 0 && <span>Осталось: {remainingSessionEntries}</span>}
               <button
                 type="button"
@@ -2743,11 +2914,11 @@ function Vocabulary() {
               }
             }}
             aria-disabled={isVoicePracticeBusy}
-            className={`bg-gradient-to-br from-indigo-50/80 to-purple-50/80 rounded-2xl p-4 sm:p-6 min-h-[120px] sm:min-h-[160px] md:min-h-[200px] flex flex-col items-center justify-center border-2 border-indigo-200 transition-all text-center select-none ${typingStageActive ? 'cursor-default' : (isVoicePracticeBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:border-indigo-400 active:scale-[0.99]')}`}
+            className={`bg-gradient-to-br from-indigo-50/80 to-purple-50/80 rounded-2xl p-4 sm:p-6 lg:p-8 min-h-[140px] sm:min-h-[180px] md:min-h-[240px] lg:min-h-[440px] xl:min-h-[520px] flex flex-col items-center justify-center border-2 border-indigo-200 transition-all text-center select-none ${typingStageActive ? 'cursor-default' : (isVoicePracticeBusy ? 'cursor-not-allowed' : 'cursor-pointer hover:border-indigo-400 active:scale-[0.99]')}`}
           >
-            {/* Visual Word Illustration */}
+            {/* Visual Word Illustration (enlarged for desktop screens) */}
             {showCardIllustration && currentCard && (
-              <div className="mb-3 flex justify-center w-full pointer-events-none">
+              <div className="mb-3 lg:mb-4 flex justify-center w-full pointer-events-none">
                 <WordIllustration
                   word={currentCard.word || currentCard.prompt}
                   translation={currentCard.translation || currentCard.answer}
@@ -2758,11 +2929,11 @@ function Vocabulary() {
             )}
             {!hidePromptOnSpanishAnswer && (
               <div className="w-full">
-                <p className="text-[11px] sm:text-xs uppercase tracking-wide text-indigo-600 font-bold mb-1">
+                <p className="text-[11px] sm:text-xs lg:text-sm uppercase tracking-wider text-indigo-600 font-bold mb-1">
                   {currentCard.prompt_label}
                 </p>
                 <div className="flex items-center justify-center gap-2 flex-wrap">
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-indigo-950 break-words">
+                  <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-indigo-950 break-words">
                     {currentCard.prompt}
                   </span>
                   {practiceSpanish.text && !showAnswer && (
@@ -2846,11 +3017,11 @@ function Vocabulary() {
                   </div>
                 )}
                 <div>
-                  <p className="text-[11px] sm:text-xs uppercase tracking-wide text-purple-600 font-bold">
+                  <p className="text-[11px] sm:text-xs lg:text-sm uppercase tracking-wider text-purple-600 font-bold">
                     {currentCard.answer_label}
                   </p>
                   <div className="flex items-center justify-center gap-2 flex-wrap">
-                    <span className="text-xl sm:text-2xl md:text-3xl font-extrabold text-purple-900 break-words">
+                    <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-purple-900 break-words">
                       {currentCard.answer}
                     </span>
                     {practiceSpanish.text && (
@@ -2895,7 +3066,7 @@ function Vocabulary() {
             <div className="mt-3 space-y-2">
               {/* 4 Review Rating Buttons in a Single Responsive Row */}
               <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5">
-                {REVIEW_ACTIONS.map((action) => {
+                {REVIEW_ACTIONS.map((action, idx) => {
                   const Icon = action.icon;
                   const btnLabel = language === 'ru' ? (action.labelRu || action.label) : action.label;
                   return (
@@ -2903,11 +3074,13 @@ function Vocabulary() {
                       key={action.key}
                       type="button"
                       onClick={() => handleReview(action.key)}
-                      disabled={isVoicePracticeBusy}
+                      disabled={isVoicePracticeBusy || isReviewBusy}
                       className={`rounded-xl px-1.5 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-white transition-all shadow-sm flex flex-col items-center justify-center gap-1 text-center leading-tight active:scale-95 disabled:opacity-60 cursor-pointer ${action.className}`}
                     >
                       <Icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                      <span className="truncate w-full text-[11px] sm:text-xs">{btnLabel}</span>
+                      <span className="truncate w-full text-[11px] sm:text-xs">
+                        {btnLabel} <span className="opacity-60 font-mono hidden md:inline text-[10px]">[{idx + 1}]</span>
+                      </span>
                     </button>
                   );
                 })}

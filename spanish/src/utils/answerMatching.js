@@ -14,6 +14,10 @@ export function stripDiacritics(value = '') {
   return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
+export function stripArticle(str = '') {
+  return String(str || '').replace(/^(el|la|los|las|un|una|unos|unas)\s+/i, '').trim();
+}
+
 export function normalizeAnswer(value = '') {
   const lowered = String(value).toLowerCase();
   const simplifiedLetters = collapseSpanishLetterVariants(lowered);
@@ -25,11 +29,45 @@ export function normalizeAnswer(value = '') {
 }
 
 export function splitAnswerAlternatives(value = '') {
-  // Allow multiple acceptable answers separated by "/", "|" or ";".
-  return String(value)
-    .split(/[/|;]/)
+  // Allow multiple acceptable answers separated by "/", "|", ";" or ",".
+  const rawParts = String(value)
+    .split(/[/|;,]/)
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
+
+  const results = new Set();
+  for (const part of rawParts) {
+    results.add(part);
+
+    // If part has parenthetical text like "альфахор (аргентинское печенье)"
+    if (part.includes('(') && part.includes(')')) {
+      // 1. Text without parentheses: "альфахор"
+      const withoutParen = part.replace(/\([^)]*\)/g, '').trim();
+      if (withoutParen) results.add(withoutParen);
+
+      // 2. Text inside parentheses: "аргентинское печенье"
+      const matches = part.match(/\(([^)]+)\)/g);
+      if (matches) {
+        for (const m of matches) {
+          const inside = m.replace(/[()]/g, '').trim();
+          if (inside && inside.length > 1 && !['m', 'f', 'v', 'adj', 'adv', 'n'].includes(inside.toLowerCase())) {
+            results.add(inside);
+          }
+        }
+      }
+    }
+  }
+
+  // Also for Spanish answers with leading articles, add a version without article
+  const expanded = new Set(results);
+  for (const item of results) {
+    const withoutArt = stripArticle(item);
+    if (withoutArt && withoutArt !== item) {
+      expanded.add(withoutArt);
+    }
+  }
+
+  return Array.from(expanded);
 }
 
 function levenshtein(a, b) {
@@ -80,15 +118,30 @@ export function scoreTypedAnswer(typed, expected) {
   let bestDistance = Number.POSITIVE_INFINITY;
   let bestNormalizedExpected = normalizeAnswer(expectedRaw);
 
+  const normalizedTypedVariants = [
+    normalizedTyped,
+    stripArticle(normalizedTyped),
+  ].filter(Boolean);
+
   for (const candidate of candidates) {
     const normalizedCandidate = normalizeAnswer(candidate);
     if (!normalizedCandidate) {
       continue;
     }
-    const distance = levenshtein(normalizedTyped, normalizedCandidate);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      bestNormalizedExpected = normalizedCandidate;
+
+    const candidateVariants = [
+      normalizedCandidate,
+      stripArticle(normalizedCandidate),
+    ].filter(Boolean);
+
+    for (const tVar of normalizedTypedVariants) {
+      for (const cVar of candidateVariants) {
+        const distance = levenshtein(tVar, cVar);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestNormalizedExpected = normalizedCandidate;
+        }
+      }
     }
   }
 

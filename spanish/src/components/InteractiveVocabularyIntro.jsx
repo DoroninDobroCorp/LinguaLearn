@@ -293,6 +293,7 @@ export default function InteractiveVocabularyIntro({
           partOfSpeech={currentWord.partOfSpeech}
           overallIndex={overallWordIndex}
           totalWords={words.length}
+          imageUrl={currentWord.imageUrl || currentWord.image_url}
         />
 
         {/* Navigation Buttons */}

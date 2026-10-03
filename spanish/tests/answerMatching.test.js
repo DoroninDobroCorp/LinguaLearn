@@ -75,4 +75,29 @@ describe('answer matching helpers', () => {
     assert.equal(result.status, 'empty');
     assert.equal(result.grade, null);
   });
+
+  it('matches Spanish words with or without leading articles (el, la, etc.)', () => {
+    assert.equal(scoreTypedAnswer('papa', 'el papá').status, 'correct');
+    assert.equal(scoreTypedAnswer('el papa', 'papá').status, 'correct');
+    assert.equal(scoreTypedAnswer('manzana', 'la manzana').status, 'correct');
+    assert.equal(scoreTypedAnswer('el agua', 'agua').status, 'correct');
+  });
+
+  it('matches Russian translations with parenthetical explanations', () => {
+    assert.equal(scoreTypedAnswer('альфахор', 'альфахор (аргентинское печенье)').status, 'correct');
+    assert.equal(scoreTypedAnswer('аргентинское печенье', 'альфахор (аргентинское печенье)').status, 'correct');
+    assert.equal(scoreTypedAnswer('медиалуна', 'медиалуна (круассан)').status, 'correct');
+    assert.equal(scoreTypedAnswer('круассан', 'медиалуна (круассан)').status, 'correct');
+  });
+
+  it('matches Russian synonyms separated by slashes or commas', () => {
+    assert.equal(scoreTypedAnswer('кот', 'кот / кошка').status, 'correct');
+    assert.equal(scoreTypedAnswer('кошка', 'кот / кошка').status, 'correct');
+    assert.equal(scoreTypedAnswer('здравствуй', 'привет / здравствуй').status, 'correct');
+  });
+
+  it('tolerates Russian ё vs е variations', () => {
+    assert.equal(scoreTypedAnswer('желтый', 'жёлтый').status, 'correct');
+    assert.equal(scoreTypedAnswer('зеленый', 'зелёный').status, 'correct');
+  });
 });

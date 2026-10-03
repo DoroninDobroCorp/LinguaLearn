@@ -377,11 +377,11 @@ export default function WordIllustration({
   const meta = getWordVisualMeta(word, translation);
   const mediaType = imageUrl && !imageError ? detectMediaType(imageUrl) : 'none';
 
-  // Thumbnail mode (for tables and lists: comfortable 56px to 64px)
+  // Thumbnail mode (for tables and lists: comfortable 56px to 80px on desktop)
   if (size === 'sm') {
     if (imageUrl && !imageError) {
       return (
-        <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-xs border border-purple-200 dark:border-purple-800 flex-shrink-0 relative ${className}`}>
+        <div className={`w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-2xl overflow-hidden shadow-xs border border-purple-200 dark:border-purple-800 flex-shrink-0 relative ${className}`}>
           <MediaRenderer url={imageUrl} word={word} onError={() => setImageError(true)} />
           {mediaType === 'video' && (
             <span className="absolute bottom-1 right-1 bg-black/70 text-[9px] text-white px-1 rounded-md font-bold">▶</span>
@@ -394,7 +394,7 @@ export default function WordIllustration({
     }
     return (
       <div
-        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${meta.gradient} shadow-xs flex items-center justify-center text-2xl flex-shrink-0 border border-white/40 select-none ${className}`}
+        className={`w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-2xl bg-gradient-to-br ${meta.gradient} shadow-xs flex items-center justify-center text-2xl lg:text-3xl flex-shrink-0 border border-white/40 select-none ${className}`}
         title={`${word} (${meta.tag})`}
       >
         <span>{meta.emoji}</span>
@@ -402,26 +402,26 @@ export default function WordIllustration({
     );
   }
 
-  // Large Hero mode (for intros, study modals)
+  // Large Hero mode (for intros, study modals - extra generous on desktop)
   if (size === 'lg') {
     return (
-      <div className={`w-full max-w-lg p-4 sm:p-6 rounded-3xl ${meta.bgCard} border-2 shadow-md relative overflow-hidden text-center transition-all ${className}`}>
+      <div className={`w-full max-w-lg lg:max-w-3xl xl:max-w-4xl p-4 sm:p-6 lg:p-8 rounded-3xl ${meta.bgCard} border-2 shadow-md relative overflow-hidden text-center transition-all ${className}`}>
         {/* Glow circle */}
-        <div className={`absolute -right-8 -top-8 w-36 h-36 rounded-full bg-gradient-to-br ${meta.gradient} opacity-25 blur-2xl pointer-events-none`} />
+        <div className={`absolute -right-8 -top-8 w-48 h-48 rounded-full bg-gradient-to-br ${meta.gradient} opacity-25 blur-2xl pointer-events-none`} />
 
         {showTag && (
           <div className="flex items-center justify-center mb-3 relative z-10">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 dark:bg-gray-800/90 shadow-xs text-xs font-black text-gray-800 dark:text-gray-100">
-              <span>{meta.emoji}</span>
+            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/95 dark:bg-gray-800/95 shadow-xs text-xs sm:text-sm font-black text-gray-800 dark:text-gray-100 border border-black/5">
+              <span className="text-base">{meta.emoji}</span>
               <span>{meta.tag}</span>
-              {mediaType === 'video' && <span className="text-[10px] text-purple-600 font-extrabold ml-1">🎬 Видео</span>}
-              {mediaType === 'gif' && <span className="text-[10px] text-pink-600 font-extrabold ml-1">🎞️ GIF</span>}
-              {mediaType === 'flash' && <span className="text-[10px] text-amber-600 font-extrabold ml-1">⚡ Flash</span>}
+              {mediaType === 'video' && <span className="text-xs text-purple-600 font-extrabold ml-1">🎬 Видео</span>}
+              {mediaType === 'gif' && <span className="text-xs text-pink-600 font-extrabold ml-1">🎞️ GIF</span>}
+              {mediaType === 'flash' && <span className="text-xs text-amber-600 font-extrabold ml-1">⚡ Flash</span>}
             </span>
           </div>
         )}
 
-        <div className="w-full h-56 sm:h-72 md:h-80 mx-auto my-1 flex items-center justify-center relative z-10 rounded-2xl overflow-hidden shadow-sm bg-black/5 dark:bg-white/5">
+        <div className="w-full h-56 sm:h-72 md:h-80 lg:h-[420px] xl:h-[500px] 2xl:h-[560px] mx-auto my-1 flex items-center justify-center relative z-10 rounded-2xl overflow-hidden shadow-sm bg-black/5 dark:bg-white/5">
           {imageUrl && !imageError ? (
             <MediaRenderer url={imageUrl} word={word} onError={() => setImageError(true)} />
           ) : (
@@ -432,18 +432,18 @@ export default function WordIllustration({
     );
   }
 
-  // Medium mode (optimized for Vocabulary Flashcards - bold, large, high-res)
+  // Medium mode (optimized for Vocabulary Flashcards - bold, significantly enlarged on desktop for clear visual learning)
   return (
-    <div className={`w-full max-w-[420px] sm:max-w-[480px] p-3 sm:p-4 rounded-3xl ${meta.bgCard} border-2 shadow-sm relative overflow-hidden text-center select-none transition-all ${className}`}>
+    <div className={`w-full max-w-[420px] sm:max-w-[500px] md:max-w-[600px] lg:max-w-[720px] xl:max-w-[800px] 2xl:max-w-[880px] p-3 sm:p-4 lg:p-6 rounded-3xl ${meta.bgCard} border-2 shadow-sm relative overflow-hidden text-center select-none transition-all ${className}`}>
       {/* Background glow */}
-      <div className={`absolute -right-6 -top-6 w-32 h-32 rounded-full bg-gradient-to-br ${meta.gradient} opacity-25 blur-xl pointer-events-none`} />
+      <div className={`absolute -right-8 -top-8 w-44 h-44 rounded-full bg-gradient-to-br ${meta.gradient} opacity-25 blur-2xl pointer-events-none`} />
 
       {/* Top category chip */}
       {showTag && (
-        <div className="flex items-center justify-center mb-2 relative z-10">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 dark:bg-gray-800/95 shadow-xs text-xs font-extrabold text-gray-700 dark:text-gray-200 border border-black/5">
-            <span className="text-sm">{meta.emoji}</span>
-            <span className="truncate max-w-[240px]">{meta.tag}</span>
+        <div className="flex items-center justify-center mb-2.5 relative z-10">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/95 dark:bg-gray-800/95 shadow-xs text-xs sm:text-sm font-extrabold text-gray-700 dark:text-gray-200 border border-black/5">
+            <span className="text-sm sm:text-base">{meta.emoji}</span>
+            <span className="truncate max-w-[320px]">{meta.tag}</span>
             {mediaType === 'video' && <span className="text-[10px] text-purple-600 font-black">🎬</span>}
             {mediaType === 'gif' && <span className="text-[10px] text-pink-600 font-black">🎞️</span>}
             {mediaType === 'flash' && <span className="text-[10px] text-amber-600 font-black">⚡</span>}
@@ -451,8 +451,8 @@ export default function WordIllustration({
         </div>
       )}
 
-      {/* Center artwork / photo / video / flash (on the flashcard) */}
-      <div className="w-full h-48 sm:h-64 md:h-72 mx-auto flex items-center justify-center relative z-10 rounded-2xl overflow-hidden shadow-sm bg-black/5 dark:bg-white/5">
+      {/* Center artwork / photo / video / flash (on the flashcard: up to 540px height on large desktop) */}
+      <div className="w-full h-52 sm:h-64 md:h-80 lg:h-[400px] xl:h-[480px] 2xl:h-[540px] mx-auto flex items-center justify-center relative z-10 rounded-2xl overflow-hidden shadow-sm bg-black/5 dark:bg-white/5">
         {imageUrl && !imageError ? (
           <MediaRenderer url={imageUrl} word={word} onError={() => setImageError(true)} />
         ) : (

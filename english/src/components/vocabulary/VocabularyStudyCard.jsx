@@ -136,7 +136,7 @@ export default function VocabularyStudyCard({
       {practiceStyle === 'flip' ? (
         <div
           onClick={() => setShowTranslation((v) => !v)}
-          className="bg-gradient-to-br from-indigo-50/70 to-purple-50/70 rounded-2xl p-10 min-h-[240px] flex flex-col items-center justify-center cursor-pointer border-2 border-indigo-200 hover:border-indigo-300 transition-colors select-none text-center relative"
+          className="bg-gradient-to-br from-indigo-50/70 to-purple-50/70 rounded-2xl p-10 lg:p-14 min-h-[240px] lg:min-h-[340px] flex flex-col items-center justify-center cursor-pointer border-2 border-indigo-200 hover:border-indigo-300 transition-colors select-none text-center relative"
         >
           <button
             type="button"
@@ -144,29 +144,29 @@ export default function VocabularyStudyCard({
               e.stopPropagation();
               speakEnglish(currentWord.word);
             }}
-            className="absolute top-4 right-4 p-2 rounded-xl bg-white/80 hover:bg-white text-indigo-600 shadow-sm transition-all"
+            className="absolute top-4 right-4 p-2 rounded-xl bg-white/80 hover:bg-white text-indigo-600 shadow-sm transition-all cursor-pointer"
             title="Озвучить"
           >
             <Volume2 className="h-5 w-5" />
           </button>
-          <p className="text-4xl sm:text-5xl font-bold text-indigo-950 mb-4">
+          <p className="text-4xl sm:text-5xl lg:text-6xl font-bold text-indigo-950 mb-4">
             {practiceDirection === 'en_to_ru' ? currentWord.word : currentWord.translation}
           </p>
           {showTranslation ? (
             <div className="animate-fade-in space-y-2">
-              <p className="text-2xl sm:text-3xl font-semibold text-purple-900">
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-purple-900">
                 {practiceDirection === 'en_to_ru' ? currentWord.translation : currentWord.word}
               </p>
               {currentWord.example && (
-                <p className="text-base text-slate-600 italic mt-2 max-w-lg">“{currentWord.example}”</p>
+                <p className="text-base lg:text-lg text-slate-600 italic mt-2 max-w-lg">“{currentWord.example}”</p>
               )}
             </div>
           ) : (
-            <p className="text-sm text-slate-500 font-medium">Нажмите на карточку, чтобы перевернуть</p>
+            <p className="text-sm lg:text-base text-slate-500 font-medium">Нажмите на карточку, чтобы перевернуть</p>
           )}
         </div>
       ) : practiceStyle === 'typing' ? (
-        <div className="bg-gradient-to-br from-indigo-50/70 to-purple-50/70 rounded-2xl p-8 min-h-[240px] flex flex-col items-center justify-center border-2 border-indigo-200 text-center space-y-4 relative">
+        <div className="bg-gradient-to-br from-indigo-50/70 to-purple-50/70 rounded-2xl p-8 lg:p-12 min-h-[240px] lg:min-h-[340px] flex flex-col items-center justify-center border-2 border-indigo-200 text-center space-y-4 relative">
           <button
             type="button"
             onClick={() => speakEnglish(currentWord.word)}

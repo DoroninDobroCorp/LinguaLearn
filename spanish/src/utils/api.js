@@ -37,9 +37,81 @@ export async function fetchJsonWithFallback(primaryInput, fallbackInput, init) {
 }
 
 export function getActiveProfileId() {
+  if (typeof window !== 'undefined' && window.location && window.location.search) {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const student = params.get('student') || params.get('profile') || params.get('profileId') || params.get('studentId');
+      if (student) {
+        const sLower = String(student).toLowerCase().trim();
+        if (sLower === 'maya' || sLower === 'майя' || sLower === '9') {
+          localStorage.setItem(PROFILE_STORAGE_KEY, '9');
+          sessionStorage.setItem('studentToken', 'maya');
+          sessionStorage.setItem('studentProfileId', '9');
+          return 9;
+        }
+        const num = parseInt(student, 10);
+        if (Number.isFinite(num) && num > 0) {
+          localStorage.setItem(PROFILE_STORAGE_KEY, String(num));
+          sessionStorage.setItem('studentProfileId', String(num));
+          return num;
+        }
+      }
+    } catch {}
+  }
+
+  // Also check if we saved student session in sessionStorage
+  if (typeof window !== 'undefined') {
+    try {
+      const sessionStudent = sessionStorage.getItem('studentToken');
+      if (sessionStudent) {
+        const sLower = sessionStudent.toLowerCase().trim();
+        if (sLower === 'maya' || sLower === 'майя') return 9;
+      }
+      const sessionPid = Number(sessionStorage.getItem('studentProfileId'));
+      if (Number.isFinite(sessionPid) && sessionPid > 0) {
+        return sessionPid;
+      }
+    } catch {}
+  }
+
   const stored = localStorage.getItem(PROFILE_STORAGE_KEY);
   const id = Number(stored);
   return Number.isFinite(id) && id > 0 ? id : 1;
+}
+
+export function getStudentSessionId() {
+  if (typeof window === 'undefined') return 'server_session';
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get('session') || params.get('sessionId');
+    if (fromUrl) {
+      sessionStorage.setItem('studentSessionId', fromUrl);
+      return fromUrl;
+    }
+    let existing = sessionStorage.getItem('studentSessionId');
+    if (!existing) {
+      existing = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      sessionStorage.setItem('studentSessionId', existing);
+    }
+    return existing;
+  } catch {
+    return 'default_session';
+  }
+}
+
+export function getStudentToken() {
+  if (typeof window === 'undefined') return '';
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get('token') || params.get('student');
+    if (fromUrl) {
+      sessionStorage.setItem('studentToken', fromUrl);
+      return fromUrl;
+    }
+    return sessionStorage.getItem('studentToken') || '';
+  } catch {
+    return '';
+  }
 }
 
 export function setActiveProfileId(id) {
@@ -91,7 +163,132 @@ export function clearActiveProfileToken(profileId) {
 export function profileApiUrl(path) {
   const profileId = getActiveProfileId();
   const sep = path.includes('?') ? '&' : '?';
-  return `${path}${sep}profileId=${profileId}`;
+  const student = getStudentToken();
+  const studentQuery = student ? `&student=${encodeURIComponent(student)}` : '';
+  return `${path}${sep}profileId=${profileId}${studentQuery}`;
+}
+
+const PENDING_STUDENT_LOGS_KEY = 'pendingStudentLogsQueue';
+let isFlushingStudentLogs = false;
+
+export function queuePendingStudentLog(payload) {
+  try {
+    const raw = localStorage.getItem(PENDING_STUDENT_LOGS_KEY);
+    const queue = raw ? JSON.parse(raw) : [];
+    // Ensure item has clientEventId
+    if (!payload.clientEventId) {
+      payload.clientEventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    }
+    // Avoid exact duplicate clientEventId in the queue
+    if (!queue.some(q => q.clientEventId === payload.clientEventId)) {
+      queue.push(payload);
+    }
+    if (queue.length > 500) queue.shift();
+    localStorage.setItem(PENDING_STUDENT_LOGS_KEY, JSON.stringify(queue));
+  } catch {}
+}
+
+export async function flushPendingStudentLogs() {
+  if (typeof window === 'undefined' || isFlushingStudentLogs) return;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+
+  isFlushingStudentLogs = true;
+  try {
+    const raw = localStorage.getItem(PENDING_STUDENT_LOGS_KEY);
+    if (!raw) return;
+    const queue = JSON.parse(raw);
+    if (!Array.isArray(queue) || queue.length === 0) return;
+
+    const remaining = [];
+    let serverUnavailable = false;
+
+    for (const item of queue) {
+      if (serverUnavailable) {
+        remaining.push(item);
+        continue;
+      }
+
+      try {
+        const res = await fetch(profileApiUrl('/spanish/api/vocabulary/log-attempt'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item),
+        });
+
+        if (!res.ok) {
+          // If server error (5xx) or rate limit (429), retain in queue and pause flushing
+          if (res.status >= 500 || res.status === 429) {
+            serverUnavailable = true;
+            remaining.push(item);
+          }
+          // 4xx client errors are discarded (not re-queued) to avoid poison pill loops
+        }
+      } catch {
+        serverUnavailable = true;
+        remaining.push(item);
+      }
+    }
+
+    if (remaining.length > 0) {
+      localStorage.setItem(PENDING_STUDENT_LOGS_KEY, JSON.stringify(remaining));
+    } else {
+      localStorage.removeItem(PENDING_STUDENT_LOGS_KEY);
+    }
+  } catch {} finally {
+    isFlushingStudentLogs = false;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', flushPendingStudentLogs);
+}
+
+/**
+ * Log a student vocabulary review attempt reliably to the server backend.
+ * Resilient against temporary offline or network hiccups via background retry queue and clientEventId deduplication.
+ */
+export async function logVocabularyAttempt(logData) {
+  try {
+    const profileId = getActiveProfileId();
+    const sessionId = getStudentSessionId();
+    const studentToken = getStudentToken();
+    const clientEventId = logData.clientEventId || `evt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+    const payload = {
+      clientEventId,
+      profileId,
+      sessionId,
+      studentToken,
+      ...logData,
+      createdAt: logData.createdAt || new Date().toISOString()
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      queuePendingStudentLog(payload);
+      return;
+    }
+
+    try {
+      const res = await fetch(profileApiUrl('/spanish/api/vocabulary/log-attempt'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        if (res.status >= 500 || res.status === 429) {
+          queuePendingStudentLog(payload);
+        }
+      } else {
+        // Trigger background flush of any previously queued items
+        flushPendingStudentLogs();
+      }
+    } catch {
+      queuePendingStudentLog(payload);
+    }
+  } catch (err) {
+    console.warn('Error queuing vocabulary attempt log:', err);
+  }
 }
 
 /**

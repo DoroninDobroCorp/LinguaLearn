@@ -26,28 +26,28 @@ HEADERS = {
 # 100% curated, verified, intuitive real photos for each of Maya's 100 words
 CURATED_100_PHOTOS = {
     # 🌟 1. Первые слова (Старт)
-    'hola': 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80',  # waving hand greeting
-    'chau': 'https://images.unsplash.com/photo-1516726817505-f5ed825624d8?w=800&auto=format&fit=crop&q=80',  # waving goodbye
+    'hola': 'https://live.staticflickr.com/65535/55083367755_c35174e019_b.jpg',  # smiling young girl waving hello
+    'chau': 'https://live.staticflickr.com/65535/52633815006_834fd50cc2_b.jpg',  # happy girl on dad shoulders waving goodbye
     'gracias': 'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?w=800&auto=format&fit=crop&q=80',  # thank you flower bouquet
-    'por favor': 'https://images.unsplash.com/photo-1516585427167-9f4af9627e6c?w=800&auto=format&fit=crop&q=80',  # polite please / heart gesture
-    'sí': 'https://images.unsplash.com/photo-1589156280159-27698a70f29e?w=800&auto=format&fit=crop&q=80',  # bright green checkmark / thumbs up
-    'no': 'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=800&auto=format&fit=crop&q=80',  # red octagonal stop sign
+    'por favor': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Smiling_girl_holding_a_lotus_flower.jpg/960px-Smiling_girl_holding_a_lotus_flower.jpg',  # polite please / smiling girl with lotus flower
+    'sí': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/Child_gives_thumbs_up_during_visit_at_a_doctors_office.jpg/960px-Child_gives_thumbs_up_during_visit_at_a_doctors_office.jpg',  # cheerful child giving thumbs up
+    'no': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/STOP_sign.jpg/960px-STOP_sign.jpg',  # bright red octagonal stop sign
     'el agua': 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=800&auto=format&fit=crop&q=80',  # fresh clean glass of water pouring
     'el baño': 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&auto=format&fit=crop&q=80',  # modern clean bathroom sink
-    'la mamá': 'https://images.unsplash.com/photo-1492725764893-90b379c2b6e7?w=800&auto=format&fit=crop&q=80',  # happy mother hugging daughter
-    'el papá': 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=800&auto=format&fit=crop&q=80',  # happy father smiling
+    'la mamá': 'https://live.staticflickr.com/65535/55416715381_74de42a4dd_b.jpg',  # warm loving mother hugging daughter
+    'el papá': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/04/Father_and_daughter_bonding_with_a_geometric_ornament_in_festive_holiday_decor_setting_indoors_pexels.jpg/960px-Father_and_daughter_bonding_with_a_geometric_ornament_in_festive_holiday_decor_setting_indoors_pexels.jpg',  # happy father and daughter smiling together
 
     # 🏠 2. Мой мир и друзья
     'la casa': 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=800&auto=format&fit=crop&q=80',  # cozy house with garden
-    'la amiga': 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&auto=format&fit=crop&q=80',  # two smiling girl friends
-    'el amigo': 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800&auto=format&fit=crop&q=80',  # two smiling friends
+    'la amiga': 'https://live.staticflickr.com/65535/54736432552_bd02a949ef_b.jpg',  # two smiling young girl friends with flower crowns
+    'el amigo': 'https://live.staticflickr.com/65535/54720330838_a1598d540e_b.jpg',  # happy young boy friends smiling and making signs
     'el gato': 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&auto=format&fit=crop&q=80',  # gorgeous domestic cat
     'el perro': 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&auto=format&fit=crop&q=80',  # cute friendly dog
-    'jugar': 'https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?w=800&auto=format&fit=crop&q=80',  # kids playing board game
+    'jugar': 'https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?w=800&auto=format&fit=crop&q=80',  # kids playing with rainbow parachute
     'comer': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&auto=format&fit=crop&q=80',  # delicious meal dish
     'quiero': 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=800&auto=format&fit=crop&q=80',  # shiny red heart
     'tengo': 'https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=800&auto=format&fit=crop&q=80',  # wrapped gift box with ribbon
-    'dale': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80',  # cheerful thumbs up
+    'dale': 'https://live.staticflickr.com/3223/2528741730_7052b986dd_b.jpg',  # boy and girl smiling and high-fiving
 
     # 🎒 3. Школьный рюкзак
     'la mochila': 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&auto=format&fit=crop&q=80',  # school backpack
@@ -56,18 +56,18 @@ CURATED_100_PHOTOS = {
     'la goma': 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800&auto=format&fit=crop&q=80',  # stationery eraser
     'la tijera': 'https://images.unsplash.com/photo-1503792501406-2c40da09e1e2?w=800&auto=format&fit=crop&q=80',  # craft scissors
     'el libro': 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&auto=format&fit=crop&q=80',  # stack of books
-    'dibujar': 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&auto=format&fit=crop&q=80',  # drawing with pencils
-    'pintar': 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80',  # paint palette and brush
+    'dibujar': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Child_drawing_with_color_pencils_from_above.jpg/960px-Child_drawing_with_color_pencils_from_above.jpg',  # child drawing on paper with colored pencils
+    'pintar': 'https://live.staticflickr.com/65535/53610564588_62f6bc1595_b.jpg',  # painting watercolor flowers on paper with paints and brush
     'escuchar': 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800&auto=format&fit=crop&q=80',  # headphones music listening
-    'mirar': 'https://images.unsplash.com/photo-1516726817505-f5ed825624d8?w=800&auto=format&fit=crop&q=80',  # looking binoculars
+    'mirar': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Girl_Looking_Through_Binoculars_%2851842300811%29.jpg/960px-Girl_Looking_Through_Binoculars_%2851842300811%29.jpg',  # happy girl looking through binoculars
 
     # 🎨 4. Школа и цвета
     'entender': 'https://images.unsplash.com/photo-1493612276216-ee3925520721?w=800&auto=format&fit=crop&q=80',  # glowing lightbulb idea
-    'la seño': 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=800&auto=format&fit=crop&q=80',  # friendly teacher in classroom!
+    'la seño': 'https://live.staticflickr.com/65535/54955125876_894abe41ec_b.jpg',  # friendly smiling female teacher in classroom
     'el recreo': 'https://images.unsplash.com/photo-1588072432836-e10032774350?w=800&auto=format&fit=crop&q=80',  # school recess playground
     'los colores': 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&auto=format&fit=crop&q=80',  # rainbow colored pencils
     'rojo': 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=800&auto=format&fit=crop&q=80',  # fresh red strawberries
-    'azul': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=80',  # crystal blue ocean
+    'azul': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6b/Clear_blue_sky.jpg/960px-Clear_blue_sky.jpg',  # clear bright blue sky
     'amarillo': 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?w=800&auto=format&fit=crop&q=80',  # yellow sunflower
     'verde': 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=800&auto=format&fit=crop&q=80',  # green tropical leaves
     'blanco': 'https://images.unsplash.com/photo-1460036521480-ff49c08c2781?w=800&auto=format&fit=crop&q=80',  # white daisy flower
@@ -100,32 +100,32 @@ CURATED_100_PHOTOS = {
     # 🛝 7. Площадка и игры
     'la pelota': 'https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aab?w=800&auto=format&fit=crop&q=80',  # soccer ball on green grass
     'la plaza': 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=800&auto=format&fit=crop&q=80',  # green city park
-    'la hamaca': 'https://images.unsplash.com/photo-1526481280693-3bfa7568e0f3?w=800&auto=format&fit=crop&q=80',  # swing in park
-    'el tobogán': 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=800&auto=format&fit=crop&q=80',  # playground slide
+    'la hamaca': 'https://live.staticflickr.com/65535/52420047733_d198693659_b.jpg',  # playground swing set with swings and kids
+    'el tobogán': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7d/Playground_Slide_Metal.jpg/960px-Playground_Slide_Metal.jpg',  # playground slide on green grass
     'correr': 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=800&auto=format&fit=crop&q=80',  # runner athlete
     'saltar': 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&auto=format&fit=crop&q=80',  # jumping girl
     '¡gané!': 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&auto=format&fit=crop&q=80',  # gold trophy cup
-    'el turno': 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&auto=format&fit=crop&q=80',  # hourglass timer
+    'el turno': 'https://live.staticflickr.com/65535/55372776541_784136a922_b.jpg',  # boy waiting his turn while another child plays
     'rápido': 'https://images.unsplash.com/photo-1534177616072-ef7dc120449d?w=800&auto=format&fit=crop&q=80',  # cheetah running fast
     'despacio': 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=800&auto=format&fit=crop&q=80',  # tortoise slow
 
     # 🧘‍♀️ 8. Тело и эмоции
-    'la mano': 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80',  # open human hand
-    'la cabeza': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&auto=format&fit=crop&q=80',  # human face
-    'los ojos': 'https://images.unsplash.com/photo-1544717302-de2939b7ef71?w=800&auto=format&fit=crop&q=80',  # expressive eyes
-    'la boca': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&auto=format&fit=crop&q=80',  # smiling mouth
-    'el pie': 'https://images.unsplash.com/photo-1519415943484-9fa1873496d4?w=800&auto=format&fit=crop&q=80',  # feet in sand
-    'doler': 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&auto=format&fit=crop&q=80',  # medical band-aid
-    'cansada': 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=800&auto=format&fit=crop&q=80',  # cozy sleeping in bed
+    'la mano': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Left-palm.jpg/960px-Left-palm.jpg',  # open human hand palm
+    'la cabeza': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Children_baseball_cap_street_style.jpg/960px-Children_baseball_cap_street_style.jpg',  # boy putting cap on head
+    'los ojos': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/08/Human_eye%2C_anterior_view.jpg/960px-Human_eye%2C_anterior_view.jpg',  # macro close-up of human eye
+    'la boca': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/A_smile_a_day_keeps_the_pain_and_the_doctor_away.jpg/960px-A_smile_a_day_keeps_the_pain_and_the_doctor_away.jpg',  # smiling mouth with teeth
+    'el pie': 'https://upload.wikimedia.org/wikipedia/commons/4/47/Human_feet.jpg',  # bare human feet
+    'doler': 'https://live.staticflickr.com/870/40039065320_7bb0a25af1_b.jpg',  # child touching colorful band-aid on knee
+    'cansada': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3a/A_child_sleeping.jpg/960px-A_child_sleeping.jpg',  # tired girl fast asleep on cozy blanket
     'feliz': 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&auto=format&fit=crop&q=80',  # radiant happy smiling girl
     'lindo': 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=800&auto=format&fit=crop&q=80',  # beautiful blooming flower
-    'copado': 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&auto=format&fit=crop&q=80',  # stylish sunglasses cool
+    'copado': 'https://live.staticflickr.com/65535/54110893715_96796321f7_b.jpg',  # cool kid in stylish sunglasses on playground
 
     # 👨‍👩‍👧 9. Семья и дом
-    'el hermano': 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&auto=format&fit=crop&q=80',  # young boy / brother
-    'la hermana': 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&auto=format&fit=crop&q=80',  # young girl / sister
-    'el abuelo': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&auto=format&fit=crop&q=80',  # kind grandfather
-    'la abuela': 'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=800&auto=format&fit=crop&q=80',  # kind grandmother
+    'el hermano': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Portrait_in_sunshine_at_golden_hour_of_a_smiling_boy_wearing_a_yellow_sweater_with_hood_pulled_up_in_Laos.jpg/960px-Portrait_in_sunshine_at_golden_hour_of_a_smiling_boy_wearing_a_yellow_sweater_with_hood_pulled_up_in_Laos.jpg',  # young smiling boy / brother
+    'la hermana': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Smiling_girl_holding_a_lotus_flower.jpg/960px-Smiling_girl_holding_a_lotus_flower.jpg',  # young smiling girl / sister
+    'el abuelo': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/The_grandfather_with_his_grandchildren.jpg/960px-The_grandfather_with_his_grandchildren.jpg',  # kind smiling grandfather with grandchildren
+    'la abuela': 'https://cdn.stocksnap.io/img-thumbs/960w/ZK25PFAY2G.jpg',  # kind grandmother baking cookies with granddaughter
     'la cama': 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&auto=format&fit=crop&q=80',  # cozy bedroom bed
     'la mesa': 'https://images.unsplash.com/photo-1530018607912-eff2daa1bac4?w=800&auto=format&fit=crop&q=80',  # wooden dining table
     'la silla': 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=800&auto=format&fit=crop&q=80',  # modern wooden chair
@@ -140,7 +140,7 @@ CURATED_100_PHOTOS = {
     'la noche': 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&auto=format&fit=crop&q=80',  # night sky with stars and moon
     'grande': 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=800&auto=format&fit=crop&q=80',  # huge majestic elephant
     'chiquito': 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=800&auto=format&fit=crop&q=80',  # tiny cute baby kitten in hand
-    'esperar': 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&auto=format&fit=crop&q=80',  # pocket watch dial time
+    'esperar': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Hourglasses.jpg/960px-Hourglasses.jpg',  # sand hourglass timer
     'ayudar': 'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=800&auto=format&fit=crop&q=80',  # helping hands reaching out
     'el calor': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=80',  # sunny hot summer beach
     'el frío': 'https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?w=800&auto=format&fit=crop&q=80',  # snow winter landscape

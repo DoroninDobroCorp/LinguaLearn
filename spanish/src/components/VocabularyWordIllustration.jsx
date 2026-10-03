@@ -152,26 +152,27 @@ export default function VocabularyWordIllustration({
   partOfSpeech = '',
   overallIndex = 1,
   totalWords = 10,
+  imageUrl = null,
   className = ''
 }) {
   const meta = getWordVisualMeta(word, translation);
 
   return (
-    <div className={`p-6 sm:p-8 rounded-3xl ${meta.bgCard} border-2 shadow-xl relative overflow-hidden text-center transition-all ${className}`}>
+    <div className={`p-6 sm:p-8 lg:p-10 rounded-3xl ${meta.bgCard} border-2 shadow-xl relative overflow-hidden text-center transition-all max-w-2xl lg:max-w-3xl mx-auto ${className}`}>
       {/* Background ambient glowing gradient circle */}
-      <div className={`absolute -right-8 -top-8 w-36 h-36 rounded-full bg-gradient-to-br ${meta.gradient} opacity-20 blur-2xl pointer-events-none`} />
+      <div className={`absolute -right-8 -top-8 w-48 h-48 rounded-full bg-gradient-to-br ${meta.gradient} opacity-25 blur-3xl pointer-events-none`} />
 
       {/* Top Tag & Audio Button */}
       <div className="flex items-center justify-between mb-4 relative z-10">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 dark:bg-gray-800/90 shadow-sm text-xs font-black text-gray-800 dark:text-gray-100">
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/95 dark:bg-gray-800/95 shadow-xs text-xs sm:text-sm font-black text-gray-800 dark:text-gray-100">
           <span>{meta.emoji}</span>
           <span>{meta.tag}</span>
-          <span className="opacity-50 text-[10px]">({overallIndex}/{totalWords})</span>
+          <span className="opacity-50 text-[11px] ml-1">({overallIndex}/{totalWords})</span>
         </div>
 
         <button
           onClick={() => speakSpanish(word)}
-          className="p-3 rounded-2xl bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-300 shadow-md hover:scale-105 active:scale-95 transition-all border border-purple-100 dark:border-gray-600 flex items-center gap-1.5"
+          className="p-3 rounded-2xl bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-300 shadow-md hover:scale-105 active:scale-95 transition-all border border-purple-100 dark:border-gray-600 flex items-center gap-1.5 cursor-pointer"
           title="Озвучить слово"
         >
           <Volume2 className="w-5 h-5" />
@@ -179,36 +180,52 @@ export default function VocabularyWordIllustration({
         </button>
       </div>
 
-      {/* Center Illustrated Mascot Icon Banner */}
-      <div className="my-3 flex items-center justify-center gap-4 relative z-10">
-        {/* Animated Mascot Head with contextual mood */}
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-200 via-orange-300 to-amber-400 dark:from-amber-700 dark:via-orange-800 dark:to-amber-900 border-2 border-amber-400 dark:border-amber-600 shadow-lg flex items-center justify-center relative overflow-hidden transform hover:rotate-3 transition-transform">
-          <svg viewBox="0 0 100 100" className="w-[85%] h-[85%] drop-shadow">
-            <path d="M 25 35 Q 50 15 75 35 Q 85 45 65 42 Q 50 40 35 42 Z" fill="#4f46e5" stroke="#3730a3" strokeWidth="2" />
-            <circle cx="50" cy="22" r="3.5" fill="#facc15" />
-            <rect x="25" y="38" width="50" height="42" rx="18" fill="#b45309" />
-            <rect x="32" y="52" width="36" height="25" rx="10" fill="#d97706" />
-            <circle cx="28" cy="38" r="7" fill="#92400e" />
-            <circle cx="28" cy="38" r="4" fill="#fcd34d" />
-            <circle cx="72" cy="38" r="7" fill="#92400e" />
-            <circle cx="72" cy="38" r="4" fill="#fcd34d" />
-            <ellipse cx="38" cy="48" rx="3.5" ry="4" fill="#1e293b" />
-            <circle cx="37" cy="46.5" r="1.2" fill="#ffffff" />
-            <ellipse cx="62" cy="48" rx="3.5" ry="4" fill="#1e293b" />
-            <circle cx="61" cy="46.5" r="1.2" fill="#ffffff" />
-            <ellipse cx="50" cy="58" rx="6" ry="4" fill="#451a03" />
-            <path d="M 46 64 Q 50 67 54 64" fill="none" stroke="#451a03" strokeWidth="2" strokeLinecap="round" />
-            <circle cx="34" cy="56" r="3.5" fill="#f87171" opacity="0.6" />
-            <circle cx="66" cy="56" r="3.5" fill="#f87171" opacity="0.6" />
-          </svg>
-          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white dark:bg-gray-800 rounded-full border border-purple-200 flex items-center justify-center text-xs shadow">
-            {meta.emoji}
+      {/* Center Illustrated Photo or Mascot Banner */}
+      {imageUrl ? (
+        <div className="my-3 w-full h-56 sm:h-72 md:h-80 lg:h-96 rounded-2xl overflow-hidden shadow-md relative z-10 bg-black/5 flex items-center justify-center">
+          <img
+            src={imageUrl}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover blur-xl opacity-30 scale-110 pointer-events-none select-none"
+          />
+          <img
+            src={imageUrl}
+            alt={word}
+            className="relative z-10 max-w-full max-h-full w-auto h-auto object-contain rounded-xl shadow-xs"
+          />
+        </div>
+      ) : (
+        <div className="my-4 flex items-center justify-center gap-4 relative z-10">
+          {/* Animated Mascot Head with contextual mood */}
+          <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-2xl bg-gradient-to-br from-amber-200 via-orange-300 to-amber-400 dark:from-amber-700 dark:via-orange-800 dark:to-amber-900 border-2 border-amber-400 dark:border-amber-600 shadow-lg flex items-center justify-center relative overflow-hidden transform hover:rotate-3 transition-transform">
+            <svg viewBox="0 0 100 100" className="w-[85%] h-[85%] drop-shadow">
+              <path d="M 25 35 Q 50 15 75 35 Q 85 45 65 42 Q 50 40 35 42 Z" fill="#4f46e5" stroke="#3730a3" strokeWidth="2" />
+              <circle cx="50" cy="22" r="3.5" fill="#facc15" />
+              <rect x="25" y="38" width="50" height="42" rx="18" fill="#b45309" />
+              <rect x="32" y="52" width="36" height="25" rx="10" fill="#d97706" />
+              <circle cx="28" cy="38" r="7" fill="#92400e" />
+              <circle cx="28" cy="38" r="4" fill="#fcd34d" />
+              <circle cx="72" cy="38" r="7" fill="#92400e" />
+              <circle cx="72" cy="38" r="4" fill="#fcd34d" />
+              <ellipse cx="38" cy="48" rx="3.5" ry="4" fill="#1e293b" />
+              <circle cx="37" cy="46.5" r="1.2" fill="#ffffff" />
+              <ellipse cx="62" cy="48" rx="3.5" ry="4" fill="#1e293b" />
+              <circle cx="61" cy="46.5" r="1.2" fill="#ffffff" />
+              <ellipse cx="50" cy="58" rx="6" ry="4" fill="#451a03" />
+              <path d="M 46 64 Q 50 67 54 64" fill="none" stroke="#451a03" strokeWidth="2" strokeLinecap="round" />
+              <circle cx="34" cy="56" r="3.5" fill="#f87171" opacity="0.6" />
+              <circle cx="66" cy="56" r="3.5" fill="#f87171" opacity="0.6" />
+            </svg>
+            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white dark:bg-gray-800 rounded-full border border-purple-200 flex items-center justify-center text-sm shadow">
+              {meta.emoji}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Large Spanish Word */}
-      <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tight relative z-10">
+      <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 tracking-tight relative z-10">
         {word}
       </h2>
 
