@@ -12,8 +12,9 @@ import WordTilesSection from './exercises/WordTilesSection';
 import SpeedMatchSection from './exercises/SpeedMatchSection';
 import ErrorDetectiveSection from './exercises/ErrorDetectiveSection';
 import CognateBridgesSection from './exercises/CognateBridgesSection';
+import NumbersPracticeSection from './exercises/NumbersPracticeSection';
 
-const VALID_EXERCISE_TABS = ['translation', 'demonstratives', 'classic_quiz', 'verb_drills', 'cognates', 'word_tiles', 'speed_match', 'error_detective'];
+const VALID_EXERCISE_TABS = ['translation', 'numbers', 'demonstratives', 'classic_quiz', 'verb_drills', 'cognates', 'word_tiles', 'speed_match', 'error_detective'];
 
 export default function Exercises() {
   const { t } = useLanguage();
@@ -48,6 +49,7 @@ export default function Exercises() {
 
   const tabs = [
     { id: 'translation', label: 'Перевод предложений', emoji: '🌐' },
+    { id: 'numbers', label: 'Числа (1–1000)', emoji: '🔢' },
     { id: 'demonstratives', label: 'Указатели & Дистанция', emoji: '📍' },
     { id: 'classic_quiz', label: 'Тесты & Экзамены (ИИ)', emoji: '🧠' },
     { id: 'verb_drills', label: 'Спряжения глаголов', emoji: '🎯' },
@@ -100,6 +102,7 @@ export default function Exercises() {
       </div>
 
       {activeTab === 'translation' && <SentenceTranslationSection />}
+      {activeTab === 'numbers' && <NumbersPracticeSection />}
       {activeTab === 'demonstratives' && <DemonstrativesPracticeSection />}
       {activeTab === 'cognates' && <CognateBridgesSection />}
       {activeTab === 'word_tiles' && <WordTilesSection />}

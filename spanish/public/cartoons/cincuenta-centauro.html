@@ -1,0 +1,850 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Синий Кентавр</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=Unbounded:wght@600;800;900&display=swap">
+<style>
+/* Layout: one cartoon "screen" on a night-plaza ground, controls under it, three lesson cards in a wrapping grid (series 2 of the Entos page) */
+:root{
+  --noche:#160f2a; --noche-2:#211740; --line:#3a2c63;
+  --crema:#fff3df; --muted:#b7a9d9;
+  --sol:#ffc23d; --rosa:#ff4f86; --rosa-soft:#ff4f8626; --turquesa:#22c7b3; --turq-soft:#22c7b326; --azul:#5b9cf5; --ink:#1a1030;
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+html,body{background:var(--noche)}
+body{color:var(--crema);font-family:var(--f-body);font-size:16px;line-height:1.55}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:28px 48px;display:grid;gap:22px}
+header{display:grid;gap:8px}
+.eyebrow{font-family:var(--f-display);font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--turquesa)}
+h1{font-family:var(--f-display);font-weight:900;font-size:clamp(30px,6vw,52px);line-height:1.05;margin:0;text-wrap:balance}
+h1 .hl{color:var(--azul)}
+.lede{margin:0;color:var(--muted);max-width:62ch}
+.screen{position:relative;border-radius:22px;overflow:hidden;border:3px solid var(--ink);box-shadow:0 0 0 6px var(--noche-2),0 24px 60px -20px #000c;background:var(--noche-2)}
+.screen > svg{display:block;width:100%;height:auto}
+.start{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at center,#160f2a55,#160f2acc);border:0;cursor:pointer;color:var(--crema);font:inherit;padding:16px}
+.start-inner{display:grid;justify-items:center;gap:10px;text-align:center}
+.play-disc{width:clamp(60px,13vw,100px);aspect-ratio:1;border-radius:50%;background:var(--sol);color:var(--ink);border:4px solid var(--ink);display:grid;place-items:center;box-shadow:0 6px 0 var(--ink);transition:transform .15s ease}
+.start:hover .play-disc{transform:scale(1.06) rotate(-4deg)}
+.play-disc svg{width:44%;height:auto;margin-left:8%}
+.start-title{font-family:var(--f-display);font-weight:800;font-size:clamp(15px,3vw,24px)}
+.start-sub{color:var(--muted);font-size:clamp(12px,2vw,14px)}
+.start:focus-visible{outline:3px solid var(--turquesa);outline-offset:-6px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font-family:var(--f-display);font-weight:600;font-size:14px;border-radius:999px;padding:11px 18px;border:2px solid var(--line);background:var(--noche-2);color:var(--crema);cursor:pointer;line-height:1.2}
+.btn.primary{background:var(--sol);color:var(--ink);border-color:var(--ink);box-shadow:0 3px 0 var(--ink)}
+.btn:hover{border-color:var(--turquesa)}
+.btn.primary:hover{border-color:var(--ink);filter:brightness(1.06)}
+.btn:active{transform:translateY(2px)}
+.btn:focus-visible{outline:3px solid var(--turquesa);outline-offset:3px}
+.hint{color:var(--muted);font-size:14px;flex:1 1 220px;min-width:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.card{background:var(--noche-2);border:1px solid var(--line);border-radius:16px;padding:18px 18px 20px;display:grid;gap:12px;align-content:start;min-width:0}
+.card h2{font-family:var(--f-display);font-weight:800;font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin:0;color:var(--sol)}
+.card p{margin:0}
+.card a{color:var(--sol);text-underline-offset:3px}
+.card a:focus-visible{outline:2px solid var(--turquesa);outline-offset:2px;border-radius:3px}
+.formula{font-family:var(--f-display);font-weight:800;font-size:17px;line-height:1.35;overflow-wrap:anywhere}
+.formula .ru{color:var(--azul)}
+.formula .ru i{font-style:normal;color:var(--muted);font-weight:600}
+.formula .es{color:var(--sol)}
+.formula .arrow{color:var(--muted);font-weight:600}
+table.nums{width:100%;border-collapse:collapse;font-size:15px}
+table.nums td{padding:5px 0;border-top:1px solid var(--line);vertical-align:middle}
+table.nums tr:first-child td{border-top:0}
+table.nums td.n{width:3.2em;color:var(--muted);font-variant-numeric:tabular-nums;font-family:var(--f-display);font-weight:600;font-size:13px}
+table.nums td.tag{text-align:right}
+table.nums tr.star td{color:var(--sol);font-weight:700}
+.chip{display:inline-block;min-width:3.2em;text-align:center;font-family:var(--f-display);font-weight:800;font-size:11px;letter-spacing:.04em;border-radius:999px;padding:2px 8px;border:1px solid}
+.chip.c{color:var(--turquesa);background:var(--turq-soft);border-color:var(--turquesa)}
+.chip.qu{color:var(--rosa);background:var(--rosa-soft);border-color:var(--rosa)}
+.rule{font-weight:500}
+.rule .c{color:var(--turquesa);font-weight:700}
+.rule .qu{color:var(--rosa);font-weight:700}
+.small{color:var(--muted);font-size:14px}
+.say-big{font-family:var(--f-display);font-weight:900;font-size:26px;letter-spacing:.01em}
+.say-big b{color:var(--azul);font-weight:900}
+ul.pairs{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+ul.pairs li{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+ul.pairs .es{color:var(--sol);font-weight:500}
+ul.pairs .ru{color:var(--muted)}
+.foot{color:var(--muted);font-size:13px;margin:0}
+.t-display{font-family:var(--f-display);font-weight:800}
+.t-black{font-family:var(--f-display);font-weight:900}
+.t-body{font-family:var(--f-body)}
+@media (prefers-reduced-motion: reduce){.play-disc{transition:none}.start:hover .play-disc{transform:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Испанский · числа · серия 2</div>
+    <h1>Синий <span class="hl">Кентавр</span></h1>
+    <p class="lede">Мультик-запоминалка для числа 50. Смотрите со звуком: в конце испанский голос произнесёт слово.</p>
+  </header>
+
+  <div class="screen">
+    <svg id="stage" viewBox="0 0 800 500" role="img" aria-labelledby="stageTitle">
+      <title id="stageTitle">Синий Кентавр пять раз попадает в десятку. «Синий кентавр» звучит как cincuenta, то есть 50.</title>
+      <defs>
+        <linearGradient id="gSky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#2e1a63"/>
+          <stop offset=".42" stop-color="#a8357f"/>
+          <stop offset=".78" stop-color="#ff7d4d"/>
+          <stop offset="1" stop-color="#ffbe4a"/>
+        </linearGradient>
+        <radialGradient id="gSun" cx=".5" cy=".5" r=".5">
+          <stop offset="0" stop-color="#fff6c2"/>
+          <stop offset=".55" stop-color="#ffd447"/>
+          <stop offset="1" stop-color="#ff9b2f"/>
+        </radialGradient>
+        <linearGradient id="gSea" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#27c2b4"/>
+          <stop offset="1" stop-color="#127a8c"/>
+        </linearGradient>
+        <linearGradient id="gSand" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffd99c"/>
+          <stop offset="1" stop-color="#efb465"/>
+        </linearGradient>
+        <clipPath id="clipTail"><path d="M 8,10 C -30,8 -70,-20 -80,-62 C -84,-82 -74,-96 -62,-90 C -50,-84 -50,-60 -40,-46 C -26,-26 -10,-16 4,-14 Z"/></clipPath>
+        <clipPath id="clipSerape"><path d="M 14,-164 L 78,-164 L 82,-124 L 48,-110 L 10,-124 Z"/></clipPath>
+        <clipPath id="clipPanel"><rect x="-310" y="118" width="620" height="300" rx="24"/></clipPath>
+        <g id="leaf">
+          <path d="M 0,0 C 26,-26 66,-26 98,6 C 66,-6 30,-4 0,0 Z" fill="#2f9e6e" stroke="#1a1030" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M 6,-3 C 34,-15 64,-13 90,3" fill="none" stroke="#5ccc93" stroke-width="2" stroke-linecap="round"/>
+        </g>
+        <g id="sombrero">
+          <ellipse rx="74" ry="15" fill="#f2c14e" stroke="#1a1030" stroke-width="3"/>
+          <ellipse rx="63" ry="10.5" fill="none" stroke="#ff4f86" stroke-width="3" stroke-dasharray="7 5"/>
+          <path d="M -26,-2 C -26,-32 -14,-52 0,-52 C 14,-52 26,-32 26,-2 Z" fill="#f2c14e"/>
+          <path d="M -25.6,-13 H 25.6 V -2 H -25.6 Z" fill="#ff4f86"/>
+          <path d="M -22,-5 l 5.5,-5 5.5,5 5.5,-5 5.5,5 5.5,-5 5.5,5 5.5,-5 5.5,5" fill="none" stroke="#22c7b3" stroke-width="2.2" stroke-linejoin="round"/>
+          <path d="M -26,-2 C -26,-32 -14,-52 0,-52 C 14,-52 26,-32 26,-2" fill="none" stroke="#1a1030" stroke-width="3" stroke-linejoin="round"/>
+          <circle cx="-64" cy="9" r="4.5" fill="#22c7b3" stroke="#1a1030" stroke-width="1.6"/>
+          <circle cx="-44" cy="13" r="4.5" fill="#ff4f86" stroke="#1a1030" stroke-width="1.6"/>
+          <circle cx="46" cy="13" r="4.5" fill="#ffc23d" stroke="#1a1030" stroke-width="1.6"/>
+          <circle cx="66" cy="8" r="4.5" fill="#22c7b3" stroke="#1a1030" stroke-width="1.6"/>
+        </g>
+        <g id="legDark">
+          <path d="M 0,0 L 0,56" stroke="#1a1030" stroke-width="17" stroke-linecap="round"/>
+          <path d="M 0,0 L 0,56" stroke="#2c5fc2" stroke-width="11" stroke-linecap="round"/>
+          <rect x="-8" y="56" width="16" height="11" rx="3" fill="#1d2a55" stroke="#1a1030" stroke-width="2.5"/>
+        </g>
+        <g id="legLight">
+          <path d="M 0,0 L 0,56" stroke="#1a1030" stroke-width="17" stroke-linecap="round"/>
+          <path d="M 0,0 L 0,56" stroke="#3f7fe8" stroke-width="11" stroke-linecap="round"/>
+          <rect x="-8" y="56" width="16" height="11" rx="3" fill="#1d2a55" stroke="#1a1030" stroke-width="2.5"/>
+        </g>
+      </defs>
+
+      <!-- sky -->
+      <rect width="800" height="300" fill="url(#gSky)"/>
+      <g id="stars" fill="#fff3df"></g>
+      <g id="rays" fill="#ffd447" opacity=".28"></g>
+      <circle cx="500" cy="298" r="80" fill="url(#gSun)"/>
+      <g id="gulls"></g>
+
+      <!-- sea and sand -->
+      <rect y="288" width="800" height="62" fill="url(#gSea)"/>
+      <g id="shimmer" stroke="#ffe08a" stroke-width="3" stroke-linecap="round"></g>
+      <g id="wavesA"></g>
+      <g id="wavesB"></g>
+      <path d="M 0,338 Q 200,326 400,338 T 800,334 L 800,500 L 0,500 Z" fill="url(#gSand)"/>
+      <path d="M 0,338 Q 200,326 400,338 T 800,334" fill="none" stroke="#fff6e6" stroke-width="4" stroke-linecap="round" opacity=".85"/>
+      <g id="specks" fill="#dc9d4f" opacity=".6"></g>
+      <path id="starfish" fill="#ff7a59" stroke="#1a1030" stroke-width="2" stroke-linejoin="round"/>
+
+      <!-- palm -->
+      <g>
+        <path d="M 58,450 C 70,370 62,292 96,218" fill="none" stroke="#1a1030" stroke-width="24" stroke-linecap="round"/>
+        <path d="M 58,450 C 70,370 62,292 96,218" fill="none" stroke="#a8693a" stroke-width="17" stroke-linecap="round"/>
+        <path d="M 58,450 C 70,370 62,292 96,218" fill="none" stroke="#7a4522" stroke-width="17" stroke-dasharray="3 11"/>
+        <g id="palmCrown" transform="translate(96 216)">
+          <use href="#leaf" transform="rotate(-78)" opacity=".85"/>
+          <use href="#leaf" transform="scale(-1 1) rotate(-78)" opacity=".85"/>
+          <use href="#leaf" transform="rotate(-48)"/>
+          <use href="#leaf" transform="scale(-1 1) rotate(-48)"/>
+          <use href="#leaf" transform="rotate(-14)"/>
+          <use href="#leaf" transform="scale(-1 1) rotate(-14)"/>
+          <use href="#leaf" transform="rotate(20)"/>
+          <use href="#leaf" transform="scale(-1 1) rotate(20)"/>
+          <circle cx="-8" cy="10" r="7.5" fill="#6b3f1f" stroke="#1a1030" stroke-width="2"/>
+          <circle cx="7" cy="12" r="7.5" fill="#6b3f1f" stroke="#1a1030" stroke-width="2"/>
+          <circle cx="0" cy="3" r="7.5" fill="#7d4a26" stroke="#1a1030" stroke-width="2"/>
+        </g>
+      </g>
+
+      <!-- papel picado -->
+      <g id="bunting"></g>
+
+      <!-- archery target -->
+      <g>
+        <path d="M 640,350 L 600,460 M 640,350 L 680,460" stroke="#1a1030" stroke-width="10" stroke-linecap="round"/>
+        <path d="M 640,350 L 600,460 M 640,350 L 680,460" stroke="#a8693a" stroke-width="5" stroke-linecap="round"/>
+        <g id="tFace" transform="translate(640 340)">
+          <circle r="57" fill="#fff3df" stroke="#1a1030" stroke-width="3"/>
+          <circle r="46" fill="#2a2048"/>
+          <circle r="35" fill="#3f7fe8" stroke="#1a1030" stroke-width="1.5"/>
+          <circle r="24" fill="#ff4f86" stroke="#1a1030" stroke-width="1.5"/>
+          <circle r="13" fill="#ffc23d" stroke="#1a1030" stroke-width="1.5"/>
+          <path d="M -3,0 H 3 M 0,-3 V 3" stroke="#1a1030" stroke-width="1.5"/>
+          <g id="stuck"></g>
+        </g>
+      </g>
+      <g id="dust" fill="#fff3df"></g>
+
+      <!-- Blue Centaur -->
+      <g id="cen" transform="translate(300 455)">
+        <g id="cTail" transform="translate(-62 -94)">
+          <path d="M 2,-4 C -24,-14 -46,0 -50,26 C -52,48 -40,64 -30,74 C -32,58 -36,44 -30,30 C -24,16 -12,6 4,6 Z" fill="#1d2a55" stroke="#1a1030" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M -10,0 C -30,4 -40,24 -38,48" fill="none" stroke="#3b4f8f" stroke-width="2" stroke-linecap="round"/>
+        </g>
+        <use id="legBF" href="#legDark" transform="translate(-30 -70)"/>
+        <use id="legFF" href="#legDark" transform="translate(46 -70)"/>
+        <use id="legBN" href="#legLight" transform="translate(-46 -70)"/>
+        <use id="legFN" href="#legLight" transform="translate(32 -70)"/>
+        <ellipse cx="0" cy="-82" rx="64" ry="30" fill="#3f7fe8" stroke="#1a1030" stroke-width="3"/>
+        <ellipse cx="2" cy="-64" rx="44" ry="9" fill="#6ea6f6"/>
+        <g fill="#2c5fc2" opacity=".75"><circle cx="-34" cy="-92" r="6"/><circle cx="-18" cy="-99" r="4"/><circle cx="-44" cy="-78" r="4"/><circle cx="-24" cy="-80" r="3"/></g>
+        <g id="cUp">
+          <path d="M 22,-92 C 18,-122 16,-142 20,-160 L 72,-160 C 74,-142 72,-122 66,-92 Z" fill="#5b9cf5"/>
+          <path d="M 22,-96 C 18,-122 16,-142 20,-160 L 72,-160 C 74,-142 72,-122 66,-96" fill="none" stroke="#1a1030" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M 18,-104 Q 44,-96 70,-104 L 70,-93 Q 44,-85 18,-93 Z" fill="#ffc23d" stroke="#1a1030" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M 14,-164 L 78,-164 L 82,-124 L 48,-110 L 10,-124 Z" fill="#ff4f86"/>
+          <g clip-path="url(#clipSerape)" fill="none" stroke-width="4">
+            <path d="M 0,-152 H 90" stroke="#ffc23d"/>
+            <path d="M 0,-142 H 90" stroke="#22c7b3"/>
+            <path d="M 0,-132 H 90" stroke="#fff3df"/>
+            <path d="M 0,-122 H 90" stroke="#ffc23d"/>
+          </g>
+          <path d="M 14,-164 L 78,-164 L 82,-124 L 48,-110 L 10,-124 Z" fill="none" stroke="#1a1030" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M 14,-122 l -2,7 M 22,-119 l -2,7 M 30,-116 l -1,7 M 38,-113 l -1,7 M 58,-113 l 1,7 M 66,-116 l 1,7 M 74,-119 l 2,7" stroke="#ff4f86" stroke-width="2" stroke-linecap="round"/>
+          <g id="cHead" transform="translate(46 -188)">
+            <path d="M -16,-14 C -36,-14 -44,8 -34,24 C -32,12 -26,4 -14,0 Z" fill="#1d2a55" stroke="#1a1030" stroke-width="2.5" stroke-linejoin="round"/>
+            <ellipse cx="-22" cy="4" rx="6" ry="8" fill="#5b9cf5" stroke="#1a1030" stroke-width="2.5"/>
+            <circle r="25" fill="#5b9cf5" stroke="#1a1030" stroke-width="3"/>
+            <g id="cEyeL" transform="translate(-4 -3)">
+              <circle r="7.5" fill="#ffffff" stroke="#1a1030" stroke-width="2.2"/>
+              <g id="cPupL"><circle r="3.2" fill="#1a1030"/><circle cx="-1" cy="-1.1" r="1" fill="#ffffff"/></g>
+            </g>
+            <g id="cEyeR" transform="translate(13 -4)">
+              <circle r="10" fill="#ffffff" stroke="#1a1030" stroke-width="2.2"/>
+              <g id="cPupR"><circle r="4.4" fill="#1a1030"/><circle cx="-1.4" cy="-1.5" r="1.3" fill="#ffffff"/></g>
+            </g>
+            <path d="M 6,24 Q 16,35 27,23 Q 16,27 6,24 Z" fill="#7a1035" stroke="#1a1030" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M 20,13 C 12,11 2,16 -4,20 C -10,24 -16,18 -12,12 C -12,16 -8,18 -4,15 C 2,10 12,9 20,12 C 28,9 38,10 44,15 C 48,18 52,16 52,11 C 56,18 50,24 44,21 C 38,17 28,12 20,13 Z" fill="#1d2a55" stroke="#1a1030" stroke-width="1.2"/>
+            <ellipse cx="22" cy="6" rx="8" ry="7" fill="#2c5fc2" stroke="#1a1030" stroke-width="2.5"/>
+            <ellipse cx="20" cy="3.5" rx="2.6" ry="1.6" fill="#ffffff" opacity=".6"/>
+            <g id="cHat" transform="translate(2 -27) scale(.72)"><use href="#sombrero"/></g>
+          </g>
+          <path d="M 70,-152 L 120,-150" stroke="#1a1030" stroke-width="14" stroke-linecap="round"/>
+          <path d="M 70,-152 L 120,-150" stroke="#5b9cf5" stroke-width="9" stroke-linecap="round"/>
+          <path d="M 104,-202 Q 140,-150 104,-98" fill="none" stroke="#1a1030" stroke-width="9" stroke-linecap="round"/>
+          <path d="M 104,-202 Q 140,-150 104,-98" fill="none" stroke="#b5742f" stroke-width="5" stroke-linecap="round"/>
+          <path id="cString" d="M 104,-202 L 104,-150 L 104,-98" fill="none" stroke="#fff3df" stroke-width="1.8"/>
+          <circle cx="122" cy="-150" r="7" fill="#5b9cf5" stroke="#1a1030" stroke-width="2.5"/>
+          <path id="cArmO" d="M 24,-152 L 30,-112" stroke="#1a1030" stroke-width="14" stroke-linecap="round"/>
+          <path id="cArmI" d="M 24,-152 L 30,-112" stroke="#5b9cf5" stroke-width="9" stroke-linecap="round"/>
+          <circle id="cHand" cx="30" cy="-112" r="7" fill="#5b9cf5" stroke="#1a1030" stroke-width="2.5"/>
+        </g>
+      </g>
+
+      <!-- cameo: raccoon Entos from series 1, facing left -->
+      <g id="rRacc" transform="translate(744 466) scale(-0.6 0.6)">
+        <g id="rTail" transform="translate(-28 -36)">
+          <path d="M 8,10 C -30,8 -70,-20 -80,-62 C -84,-82 -74,-96 -62,-90 C -50,-84 -50,-60 -40,-46 C -26,-26 -10,-16 4,-14 Z" fill="#9a94b0"/>
+          <g clip-path="url(#clipTail)" stroke="#2b2540" stroke-width="11">
+            <path d="M -34,17 L -10,-37"/>
+            <path d="M -69,-9 L -27,-51"/>
+            <path d="M -91,-42 L -37,-66"/>
+            <path d="M -100,-78 L -44,-86" stroke-width="16"/>
+          </g>
+          <path d="M 8,10 C -30,8 -70,-20 -80,-62 C -84,-82 -74,-96 -62,-90 C -50,-84 -50,-60 -40,-46 C -26,-26 -10,-16 4,-14 Z" fill="none" stroke="#1a1030" stroke-width="3" stroke-linejoin="round"/>
+        </g>
+        <ellipse cx="-18" cy="-5" rx="16" ry="8" fill="#2b2540" stroke="#1a1030" stroke-width="3"/>
+        <ellipse cx="20" cy="-5" rx="16" ry="8" fill="#2b2540" stroke="#1a1030" stroke-width="3"/>
+        <ellipse cx="0" cy="-55" rx="44" ry="52" fill="#8e88a6" stroke="#1a1030" stroke-width="3"/>
+        <ellipse cx="6" cy="-46" rx="26" ry="34" fill="#ece6f5"/>
+        <path d="M -30,-84 Q -52,-68 -50,-48" fill="none" stroke="#1a1030" stroke-width="17" stroke-linecap="round"/>
+        <path d="M -30,-84 Q -52,-68 -50,-48" fill="none" stroke="#8e88a6" stroke-width="11" stroke-linecap="round"/>
+        <g transform="translate(-54 -22)">
+          <circle cx="-7" cy="-21" r="7" fill="#ffc23d" stroke="#1a1030" stroke-width="2"/>
+          <circle cx="6" cy="-23" r="7" fill="#ffc23d" stroke="#1a1030" stroke-width="2"/>
+          <path d="M -17,-17 C -31,4 -25,27 0,28 C 25,27 31,4 17,-17 Q 0,-11 -17,-17 Z" fill="#b9874e" stroke="#1a1030" stroke-width="3" stroke-linejoin="round"/>
+        </g>
+        <circle cx="-50" cy="-46" r="8" fill="#2b2540" stroke="#1a1030" stroke-width="2.5"/>
+        <g id="rArm" transform="translate(36 -82) rotate(-20)">
+          <path d="M 0,0 L 0,42" stroke="#1a1030" stroke-width="17" stroke-linecap="round"/>
+          <path d="M 0,0 L 0,42" stroke="#8e88a6" stroke-width="11" stroke-linecap="round"/>
+          <circle cx="0" cy="47" r="8.5" fill="#2b2540" stroke="#1a1030" stroke-width="2.5"/>
+        </g>
+        <g id="rHead" transform="translate(6 -112)">
+          <path d="M -46,4 L -62,14 L -42,20 C -36,36 -18,44 0,44 C 18,44 36,36 42,20 L 62,14 L 46,4 C 44,-26 24,-40 0,-40 C -24,-40 -44,-26 -46,4 Z" fill="#8e88a6" stroke="#1a1030" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M -42,20 C -36,36 -18,44 0,44 C 18,44 36,36 42,20 C 30,27 16,25 0,27 C -16,25 -30,27 -42,20 Z" fill="#ece6f5"/>
+          <ellipse cx="4" cy="22" rx="22" ry="14" fill="#ece6f5"/>
+          <path d="M -50,2 C -42,-12 -24,-15 2,-7 C 26,-16 46,-13 54,0 C 48,14 34,17 20,11 C 12,8 -4,8 -10,11 C -24,17 -44,15 -50,2 Z" fill="#2b2540"/>
+          <g id="rEyeL" transform="translate(-17 0)">
+            <circle r="10" fill="#ffffff" stroke="#1a1030" stroke-width="2.5"/>
+            <g id="rPupL"><circle r="4.2" fill="#1a1030"/><circle cx="-1.4" cy="-1.5" r="1.3" fill="#ffffff"/></g>
+          </g>
+          <g id="rEyeR" transform="translate(23 -1)">
+            <circle r="13" fill="#ffffff" stroke="#1a1030" stroke-width="2.5"/>
+            <g id="rPupR"><circle r="5.6" fill="#1a1030"/><circle cx="-1.8" cy="-1.9" r="1.6" fill="#ffffff"/></g>
+          </g>
+          <ellipse cx="4" cy="15" rx="7.5" ry="5.5" fill="#1a1030"/>
+          <path d="M -6,29 Q 5,44 18,29 Q 6,33 -6,29 Z" fill="#7a1035" stroke="#1a1030" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M 4,20 C -4,18 -18,24 -28,28 C -38,32 -46,24 -42,16 C -42,22 -36,24 -30,20 C -20,14 -6,14 4,18 C 14,14 28,14 38,20 C 44,24 50,22 50,16 C 54,24 46,32 36,28 C 26,24 12,18 4,20 Z" fill="#1a1030"/>
+          <g id="rHat" transform="translate(4 -30)"><use href="#sombrero"/></g>
+          <path d="M -50,-30 L -44,-64 L -28,-36 Z" fill="#8e88a6" stroke="#1a1030" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M -44,-35 L -42,-54 L -34,-38 Z" fill="#ff8fab"/>
+          <path d="M 36,-36 L 52,-64 L 58,-30 Z" fill="#8e88a6" stroke="#1a1030" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M 42,-38 L 50,-54 L 52,-35 Z" fill="#ff8fab"/>
+        </g>
+      </g>
+
+      <!-- arrow (nocked / in flight) -->
+      <g id="arrow" opacity="0">
+        <path d="M -70,0 L -8,0" stroke="#1a1030" stroke-width="5" stroke-linecap="round"/>
+        <path d="M -70,0 L -8,0" stroke="#d9a066" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M 0,0 L -13,-6 L -10,0 L -13,6 Z" fill="#dfe6f5" stroke="#1a1030" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M -72,0 L -62,-8 L -52,-8 L -60,0 L -52,8 L -62,8 Z" fill="#ff4f86" stroke="#1a1030" stroke-width="1.6" stroke-linejoin="round"/>
+      </g>
+
+      <!-- score -->
+      <g id="counter" opacity="0">
+        <text id="cntText" y="18" text-anchor="middle" class="t-black" font-size="50" fill="#ffc23d" stroke="#1a1030" stroke-width="9" stroke-linejoin="round" paint-order="stroke">10</text>
+        <text y="44" text-anchor="middle" class="t-body" font-size="16" font-weight="700" fill="#fff3df" stroke="#1a1030" stroke-width="5" stroke-linejoin="round" paint-order="stroke">очков</text>
+      </g>
+
+      <!-- crowd -->
+      <g id="crowd"></g>
+
+      <!-- speech bubble -->
+      <g id="bubble" opacity="0">
+        <path d="M -14,26 L -46,104 L 14,26 Z" fill="#ffffff" stroke="#1a1030" stroke-width="3" stroke-linejoin="round"/>
+        <rect id="bubbleBg" x="-130" y="-32" width="260" height="64" rx="30" fill="#ffffff" stroke="#1a1030" stroke-width="3"/>
+        <path d="M -16,31 L 5,31" stroke="#ffffff" stroke-width="5"/>
+        <text id="bubbleText" y="7" text-anchor="middle" class="t-black" font-size="19" fill="#2c5fc2">СИНИЙ КЕНТАВР!</text>
+      </g>
+
+      <!-- caption -->
+      <g id="cap" opacity="0">
+        <rect id="capBg" x="-200" y="-19" width="400" height="38" rx="19" fill="#1a1030" fill-opacity=".8"/>
+        <text id="capText" y="6.5" text-anchor="middle" class="t-body" font-size="18" font-weight="500" fill="#fff3df"></text>
+      </g>
+
+      <!-- mnemonic card -->
+      <rect id="dim" width="800" height="500" fill="#160f2a" opacity="0"/>
+      <g id="panel" opacity="0">
+        <rect x="-310" y="118" width="620" height="300" rx="24" fill="#fff3df"/>
+        <g id="pStrip" clip-path="url(#clipPanel)"></g>
+        <rect x="-310" y="118" width="620" height="300" rx="24" fill="none" stroke="#1a1030" stroke-width="4"/>
+        <text y="172" text-anchor="middle" class="t-display" font-size="13" letter-spacing="3" fill="#7b6aa6">ЗАПОМИНАЛКА · ЧИСЛО 50</text>
+        <g id="pRow1" opacity="0"><text y="13" text-anchor="middle" class="t-black" font-size="36" fill="#1a1030">«<tspan fill="#2c5fc2">СИН</tspan><tspan fill="#a99cc9">ИЙ</tspan> <tspan fill="#2c5fc2">КЕНТА</tspan><tspan fill="#a99cc9">ВР</tspan>»</text></g>
+        <g id="pArrow" opacity="0" transform="translate(0 246)"><path d="M 0,-10 V 8 M -7,2 L 0,9 L 7,2" fill="none" stroke="#7b6aa6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="syl0" opacity="0"><text id="sylT0" text-anchor="middle" class="t-black" font-size="50" fill="#1a1030">CIN</text></g>
+        <g id="syl1" opacity="0"><text id="sylT1" text-anchor="middle" class="t-black" font-size="50" fill="#2c5fc2">CUEN</text></g>
+        <g id="syl2" opacity="0"><text id="sylT2" text-anchor="middle" class="t-black" font-size="50" fill="#1a1030">TA</text></g>
+        <g id="pDots" opacity="0" fill="#7b6aa6"><circle id="dot0" cx="-110" cy="283" r="5"/><circle id="dot1" cx="110" cy="283" r="5"/></g>
+        <g id="pPhon" opacity="0" class="t-body" font-size="19" fill="#7b6aa6" text-anchor="middle">
+          <text id="phon0" x="-170" y="336">син</text>
+          <text id="phon1" x="0" y="336" font-weight="700" fill="#2c5fc2">КУЭН</text>
+          <text id="phon2" x="160" y="336">та</text>
+        </g>
+        <g id="p500" opacity="0">
+          <rect x="-80" y="-30" width="160" height="54" rx="14" fill="#2c5fc2" stroke="#1a1030" stroke-width="3"/>
+          <text y="9" text-anchor="middle" class="t-black" font-size="30" fill="#fff3df">= 50</text>
+        </g>
+      </g>
+      <g id="confetti"></g>
+    </svg>
+
+    <button class="start" id="startOverlay" type="button" aria-label="Смотреть мультик со звуком">
+      <span class="start-inner">
+        <span class="play-disc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5v17l14-8.5z" fill="currentColor"/></svg></span>
+        <span class="start-title">Смотреть со звуком</span>
+        <span class="start-sub">17 секунд · музыка, эффекты и испанский голос</span>
+      </span>
+    </button>
+  </div>
+
+  <div class="controls">
+    <button class="btn primary" id="playBtn" type="button">▶ Смотреть</button>
+    <button class="btn" id="sayBtn" type="button">Произнести «cincuenta»</button>
+    <button class="btn" id="muteBtn" type="button">Звук: вкл</button>
+    <span class="hint" id="hint" aria-live="polite"></span>
+  </div>
+
+  <section class="cards">
+    <article class="card">
+      <h2>Ассоциация</h2>
+      <p>На пляже турнир по стрельбе из лука. Выходит Синий Кентавр, и толпа выкрикивает его имя. Он стреляет пять раз и каждый раз попадает в десятку: 5 × 10 = 50.</p>
+      <p class="formula"><span class="ru">СИН<i>ий</i> КЕНТА<i>вр</i></span> <span class="arrow">→</span> <span class="es">CINCUENTA</span> <span class="arrow">=</span> 50</p>
+    </article>
+    <article class="card">
+      <h2>Не перепутать</h2>
+      <p class="rule">5 и 50 пишутся через <span class="c">C</span>, а 15 и 500 через <span class="qu">QU</span>.</p>
+      <table class="nums">
+        <tr><td class="n">5</td><td>cinco</td><td class="tag"><span class="chip c">C</span></td></tr>
+        <tr><td class="n">15</td><td>quince</td><td class="tag"><span class="chip qu">QU</span></td></tr>
+        <tr class="star"><td class="n">50</td><td>cincuenta</td><td class="tag"><span class="chip c">C</span></td></tr>
+        <tr><td class="n">500</td><td>quinientos</td><td class="tag"><span class="chip qu">QU</span></td></tr>
+      </table>
+      <p class="small">Для 500 есть своя запоминалка: <a href="https://claude.ai/artifact/UQbh7wwcgfzjhai2V4EXwd" target="_blank" rel="noopener">«Кинь, Ентос!»</a>, первая серия. Енот Ентос заглянул и сюда, он справа от мишени.</p>
+    </article>
+    <article class="card">
+      <h2>Как произносить</h2>
+      <p class="say-big">син-<b>КУЭН</b>-та</p>
+      <p>Ударение на КУЭН. В Испании первый звук шепелявый, как английское th.</p>
+      <ul class="pairs">
+        <li><span class="es">cincuenta y uno</span><span class="ru">51</span></li>
+        <li><span class="es">cincuenta y cinco</span><span class="ru">55</span></li>
+        <li><span class="es">cincuenta pesos</span><span class="ru">50 песо</span></li>
+      </ul>
+      <p class="foot">Голос берётся из браузера. Если испанского голоса нет, кнопка «Произнести» промолчит, а транскрипция останется здесь.</p>
+    </article>
+  </section>
+</div>
+
+<script>
+(() => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const $ = id => document.getElementById(id);
+  const mk = (tag, attrs, parent) => { const el = document.createElementNS(NS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); if (parent) parent.appendChild(el); return el; };
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const prog = (t, a, b) => clamp((t - a) / (b - a));
+  const eOutBack = x => { const s = 1.70158; return 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2); };
+  const eOutCubic = x => 1 - Math.pow(1 - x, 3);
+  const eInQuad = x => x * x;
+  const eInOut = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+  const f2 = v => (+v).toFixed(2);
+  const tf = (el, x = 0, y = 0, r = 0, sx = 1, sy = sx) => el.setAttribute('transform', `translate(${f2(x)} ${f2(y)}) rotate(${f2(r)}) scale(${(+sx).toFixed(3)} ${(+sy).toFixed(3)})`);
+  const op = (el, v) => el.setAttribute('opacity', v <= 0.001 ? '0' : (+v).toFixed(3));
+  const INK = '#1a1030';
+  const FC = ['#ff4f86', '#ffc23d', '#22c7b3', '#7b5cff', '#ff8a4c'];
+  const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const R = rng(11);
+
+  /* ---------- scene build ---------- */
+  for (let i = 0; i < 14; i++) mk('circle', { cx: (R() * 800).toFixed(1), cy: (30 + R() * 120).toFixed(1), r: (0.8 + R() * 1.3).toFixed(1), opacity: (0.3 + R() * 0.5).toFixed(2) }, $('stars'));
+  for (let k = 0; k < 12; k++) mk('path', { d: 'M -9,-92 L 0,-175 L 9,-92 Z', transform: `rotate(${k * 30})` }, $('rays'));
+  for (let i = 0; i < 34; i++) mk('circle', { cx: (R() * 800).toFixed(1), cy: (352 + R() * 145).toFixed(1), r: (1 + R() * 1.6).toFixed(1) }, $('specks'));
+  const shimmer = [[470, 300, 40], [492, 312, 26], [476, 324, 34], [498, 337, 18]].map(([x, y, l]) => mk('path', { d: `M ${x - l / 2},${y} h ${l}` }, $('shimmer')));
+  const wave = y => { let d = `M -60,${y}`; for (let i = 0; i < 31; i++) d += ' q 15,-5 30,0'; return d; };
+  mk('path', { d: wave(304), stroke: '#ffffff', 'stroke-opacity': .5, 'stroke-width': 2.5, fill: 'none', 'stroke-linecap': 'round' }, $('wavesA'));
+  mk('path', { d: wave(322), stroke: '#ffffff', 'stroke-opacity': .32, 'stroke-width': 2.5, fill: 'none', 'stroke-linecap': 'round' }, $('wavesB'));
+  (() => { let d = ''; for (let i = 0; i < 10; i++) { const r = i % 2 ? 6 : 14, a = -Math.PI / 2 + i * Math.PI / 5; d += (i ? 'L' : 'M') + (r * Math.cos(a)).toFixed(1) + ',' + (r * Math.sin(a)).toFixed(1) + ' '; } $('starfish').setAttribute('d', d + 'Z'); $('starfish').setAttribute('transform', 'translate(520 482) rotate(18)'); })();
+  const gulls = [0, 1].map(i => { const g = mk('g', {}, $('gulls')); const w = mk('path', { d: 'M -11,0 Q -5,-7 0,0 Q 5,-7 11,0', stroke: INK, 'stroke-width': 2.5, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g); return { g, w, off: i * 0.45, y: 150 + i * 36, s: 1 - i * 0.25 }; });
+
+  const flags = [];
+  mk('path', { d: 'M -10,16 Q 400,44 810,16', stroke: INK, 'stroke-width': 2, fill: 'none' }, $('bunting'));
+  const flagD = 'M -20,0 L 20,0 L 20,36 L 13.3,44 L 6.7,36 L 0,44 L -6.7,36 L -13.3,44 L -20,36 Z M 0,10 L 8,21 L 0,32 L -8,21 Z M -13,7 L -10,11 L -13,15 L -16,11 Z M 13,7 L 16,11 L 13,15 L 10,11 Z M -13,25 L -10,29 L -13,33 L -16,29 Z M 13,25 L 16,29 L 13,33 L 10,29 Z';
+  for (let i = 0; i < 16; i++) { const x = 24 + i * 50.5, t = (x + 10) / 820, y = (1 - t) * (1 - t) * 16 + 2 * (1 - t) * t * 44 + t * t * 16; const g = mk('g', {}, $('bunting')); mk('path', { d: flagD, fill: FC[(i + 2) % 5], 'fill-rule': 'evenodd', stroke: INK, 'stroke-width': 1.5, 'stroke-linejoin': 'round' }, g); flags.push({ el: g, x, y }); }
+
+  const dust = []; for (let j = 0; j < 6; j++) dust.push(mk('circle', { r: 8, opacity: 0 }, $('dust')));
+
+  const crowd = [];
+  [30, 84, 138, 192].forEach((x, i) => {
+    const col = ['#2d1a4f', '#38205e', '#2a1748', '#341d58'][i];
+    const g = mk('g', {}, $('crowd'));
+    const aL = mk('g', {}, g), aR = mk('g', {}, g);
+    mk('path', { d: 'M 0,0 L -14,-38', stroke: col, 'stroke-width': 11, 'stroke-linecap': 'round' }, aL);
+    mk('path', { d: 'M 0,0 L 14,-38', stroke: col, 'stroke-width': 11, 'stroke-linecap': 'round' }, aR);
+    mk('ellipse', { cx: 0, cy: -14, rx: 30, ry: 38, fill: col }, g);
+    mk('circle', { cx: 0, cy: -62, r: 17, fill: col }, g);
+    if (i === 1 || i === 3) { mk('ellipse', { cx: 0, cy: -74, rx: 30, ry: 6, fill: col }, g); mk('path', { d: 'M -12,-74 C -12,-94 12,-94 12,-74 Z', fill: col }, g); }
+    crowd.push({ g, aL, aR, x });
+  });
+
+  (() => { const s = $('pStrip'); for (let i = 0; i < 13; i++) { const x = -325 + i * 50; let d = `M ${x},110 H ${x + 50} V 132`; for (let j = 0; j < 4; j++) d += ` L ${x + 43.75 - j * 12.5},139 L ${x + 37.5 - j * 12.5},132`; mk('path', { d: d + ' Z', fill: FC[(i + 2) % 5] }, s); } })();
+
+  /* ---------- timeline ---------- */
+  const TL = { gallop0: .3, stop: 1.4, boing: 1.95, chant1: 2.6, chant2: 3.5, shot0: 4.7, shotDur: 1.0, big: 9.9, panel: 10.9, row1: 11.35, syl: [11.85, 12.15, 12.45], phon: 12.75, five: 13.1, say1: 13.5, say2: 15.0, end: 16.8 };
+  const CAPS = [[0, 'Знакомьтесь: Синий Кентавр'], [2.4, 'Толпа кричит: «Синий Кентавр!»'], [4.6, 'Он стреляет 5 раз, и каждый раз в десятку'], [9.9, '5 попаданий × 10 = 50 очков!'], [10.9, '']];
+  const CEN = { x: 300, y: 455 }, TGT = { x: 640, y: 340 }, RC = { x: 744, y: 466 };
+  const HITS = [[-5, -4], [6, 4], [-3, 7], [7, -5], [0, 0]];
+  const A0 = [CEN.x + 56 + 72, CEN.y - 150];
+  const hitT = i => TL.shot0 + i * TL.shotDur + 0.82;
+  const ARC = 12;
+
+  // arrows that stay in the target
+  const stuck = HITS.map(([ox, oy]) => {
+    const ang = Math.atan2((TGT.y + oy - A0[1]) + 4 * ARC, TGT.x + ox - A0[0]) * 180 / Math.PI;
+    const g = mk('g', { opacity: 0, transform: `translate(${ox} ${oy}) rotate(${ang.toFixed(1)})` }, $('stuck'));
+    mk('path', { d: 'M -58,0 L -2,0', stroke: INK, 'stroke-width': 5, 'stroke-linecap': 'round' }, g);
+    mk('path', { d: 'M -58,0 L -2,0', stroke: '#d9a066', 'stroke-width': 2.4, 'stroke-linecap': 'round' }, g);
+    mk('path', { d: 'M -60,0 L -50,-8 L -40,-8 L -48,0 L -40,8 L -50,8 Z', fill: '#ff4f86', stroke: INK, 'stroke-width': 1.6, 'stroke-linejoin': 'round' }, g);
+    return g;
+  });
+
+  const confetti = [];
+  [{ t: TL.big, x: 640, y: 300 }, { t: TL.five, x: 400, y: 384 }].forEach(b => {
+    for (let i = 0; i < 44; i++) { const a = -Math.PI / 2 + (R() - .5) * 2.3, sp = 300 + R() * 380; const el = mk('rect', { x: -5, y: -3, width: 10, height: 6, rx: 1.5, fill: FC[i % 5], opacity: 0 }, $('confetti')); confetti.push({ el, b, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vr: (R() - .5) * 900, flip: 6 + R() * 10, ph: R() * 6 }); }
+  });
+
+  /* ---------- audio ---------- */
+  let muted = false;
+  try { muted = localStorage.getItem('kentavr-muted') === '1'; } catch (e) {}
+  let ac = null, master, musicGain, sfxGain, noiseBuf;
+  function initAudio() {
+    if (ac) return;
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    try { ac = new AC(); } catch (e) { ac = null; return; }
+    const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = 0.005; comp.release.value = 0.2; comp.connect(ac.destination);
+    master = ac.createGain(); master.gain.value = muted ? 0 : 0.9; master.connect(comp);
+    musicGain = ac.createGain(); musicGain.gain.value = 0.3; musicGain.connect(master);
+    sfxGain = ac.createGain(); sfxGain.gain.value = 0.85; sfxGain.connect(master);
+    noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  function envGain(t, peak, a, d, dest) { const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); g.connect(dest); return g; }
+  function tone(type, f, t, peak, a, d, dest) { const g = envGain(t, peak, a, d, dest || sfxGain); const o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); o.connect(g); o.start(t); o.stop(t + a + d + 0.05); return o; }
+  function noise(t, dur, vol, type, freq, q, dest, a = 0.004) { if (!ac) return null; const s = ac.createBufferSource(); s.buffer = noiseBuf; const f = ac.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(freq, t); f.Q.value = q; const g = envGain(t, vol, a, dur, dest || sfxGain); s.connect(f); f.connect(g); s.start(t, Math.random() * 0.4); s.stop(t + a + dur + 0.05); return f; }
+  function trumpet(m, t, dur, vol, dest) {
+    if (!ac) return;
+    const f = mtof(m), g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.025); g.gain.linearRampToValueAtTime(vol * 0.75, t + Math.max(0.05, dur - 0.03)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.06);
+    const flt = ac.createBiquadFilter(); flt.type = 'lowpass'; flt.Q.value = 1.5; flt.frequency.setValueAtTime(900, t); flt.frequency.linearRampToValueAtTime(3200, t + 0.05); flt.frequency.linearRampToValueAtTime(2000, t + dur);
+    flt.connect(g); g.connect(dest);
+    const lfo = ac.createOscillator(); lfo.frequency.value = 5.8; const lg = ac.createGain(); lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * 0.008, t + Math.min(0.25, dur)); lfo.connect(lg);
+    [0, 8].forEach(det => { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t); o.detune.value = det; lg.connect(o.frequency); o.connect(flt); o.start(t); o.stop(t + dur + 0.1); });
+    lfo.start(t); lfo.stop(t + dur + 0.1);
+  }
+  function pluck(m, t, vol) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(m); const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(3200, t); f.frequency.exponentialRampToValueAtTime(500, t + 0.18); const g = ac.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22); o.connect(f); f.connect(g); g.connect(musicGain); o.start(t); o.stop(t + 0.25); }
+  function bass(m, t) { tone('triangle', mtof(m), t, 0.32, 0.01, 0.38, musicGain); }
+
+  // Mariachi-style loop in D (series theme): oom-pah-pah with two trumpets in thirds
+  const BEAT = 0.4, CH = ['D', 'D', 'A', 'A', 'A', 'A', 'D', 'D'];
+  const MEL = [[0, 0, 1, 69], [0, 1, 1, 74], [0, 2, 1, 78], [1, 0, 1, 76], [1, 1, 1, 78], [1, 2, 1, 74], [2, 0, 2, 76], [2, 2, 1, 73], [3, 0, 2.5, 69], [4, 0, 1, 67], [4, 1, 1, 73], [4, 2, 1, 76], [5, 0, 1, 79], [5, 1, 1, 78], [5, 2, 1, 76], [6, 0, 2, 78], [6, 2, 1, 74], [7, 0, 2.5, 74]];
+  const SCALE = [59, 61, 62, 64, 66, 67, 69, 71, 73, 74, 76, 78, 79, 81];
+  const third = m => { const i = SCALE.indexOf(m); return i >= 2 ? SCALE[i - 2] : m - 4; };
+  const music = { on: false, start: 0, beat: 0, timer: 0 };
+  function schedMusic() {
+    if (!ac || !music.on) return;
+    while (music.start + music.beat * BEAT < ac.currentTime + 0.3) {
+      const b = music.beat, t = music.start + b * BEAT, bar = Math.floor(b / 3) % 8, bt = b % 3, isD = CH[bar] === 'D';
+      if (bt === 0) bass(isD ? (bar % 2 ? 45 : 50) : (bar % 2 ? 52 : 45), t);
+      else (isD ? [62, 66, 69, 74] : [61, 64, 67, 69]).forEach((m, i) => pluck(m, t + i * 0.012, bt === 1 ? 0.05 : 0.04));
+      noise(t, 0.045, 0.035, 'highpass', 7000, 0.7, musicGain);
+      noise(t + BEAT / 2, 0.035, 0.022, 'highpass', 7500, 0.7, musicGain);
+      for (const n of MEL) if (n[0] === bar && n[1] === bt) { const d = n[2] * BEAT * 0.95; trumpet(n[3], t, d, 0.055, musicGain); trumpet(third(n[3]), t, d, 0.04, musicGain); }
+      music.beat++;
+    }
+  }
+  function startMusic() { if (!ac) return; music.on = true; music.start = ac.currentTime + 0.06; music.beat = 0; const n = ac.currentTime; musicGain.gain.cancelScheduledValues(n); musicGain.gain.setValueAtTime(0.3, n); clearInterval(music.timer); music.timer = setInterval(schedMusic, 50); schedMusic(); }
+  function stopMusic(fade = 0.8) { music.on = false; clearInterval(music.timer); if (!ac) return; const n = ac.currentTime; musicGain.gain.cancelScheduledValues(n); musicGain.gain.setValueAtTime(Math.max(musicGain.gain.value, 0.0001), n); musicGain.gain.exponentialRampToValueAtTime(0.0001, n + fade); }
+  function duck(on) { if (!ac || !music.on) return; musicGain.gain.setTargetAtTime(on ? 0.07 : 0.3, ac.currentTime, 0.1); }
+
+  // Sound effects
+  function sHoof(t) { if (!ac) return; noise(t, 0.05, 0.3, 'bandpass', 1100, 2.2); const o = tone('sine', 190, t, 0.28, 0.003, 0.07); o.frequency.exponentialRampToValueAtTime(90, t + 0.06); }
+  function sSkid(t) { const f = noise(t, 0.4, 0.28, 'bandpass', 2400, 2, sfxGain, 0.03); if (f) f.frequency.exponentialRampToValueAtTime(500, t + 0.42); }
+  function sBoing(t) { if (!ac) return; const o = tone('triangle', 180, t, 0.28, 0.01, 0.6); o.frequency.exponentialRampToValueAtTime(560, t + 0.25); o.frequency.exponentialRampToValueAtTime(420, t + 0.6); const l = ac.createOscillator(); l.frequency.value = 16; const lg = ac.createGain(); lg.gain.setValueAtTime(90, t); lg.gain.exponentialRampToValueAtTime(1, t + 0.6); l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + 0.66); }
+  function sWhoosh(t) { const f = noise(t, 0.2, 0.4, 'bandpass', 400, 1.4, sfxGain, 0.12); if (f) f.frequency.exponentialRampToValueAtTime(3800, t + 0.3); }
+  function sCreak(t) { if (!ac) return; const g = envGain(t, 0.06, 0.06, 0.3, sfxGain); const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(115, t + 0.36); const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 6; o.connect(f); f.connect(g); o.start(t); o.stop(t + 0.42); }
+  function sTwang(t) { if (!ac) return; const o = tone('triangle', 330, t, 0.32, 0.002, 0.35); o.frequency.exponentialRampToValueAtTime(170, t + 0.3); const f = noise(t, 0.14, 0.22, 'highpass', 1500, 0.8); if (f) f.frequency.exponentialRampToValueAtTime(6000, t + 0.14); }
+  function sThunk(t, step) { if (!ac) return; const o = tone('sine', 170, t, 0.7, 0.002, 0.18); o.frequency.exponentialRampToValueAtTime(65, t + 0.15); noise(t, 0.06, 0.35, 'lowpass', 900, 0.8); const f = 1318.5 * Math.pow(2, step / 12); tone('sine', f, t + 0.06, 0.14, 0.003, 0.45); tone('sine', f * 2, t + 0.06, 0.05, 0.003, 0.25); }
+  function sCheer(t) { if (!ac) return; for (let k = 0; k < 4; k++) noise(t + k * 0.05, 1.0, 0.12, 'bandpass', 700 + k * 350, 0.6, sfxGain, 0.25); }
+  function sBells(t) { if (!ac) return; [1568, 1976, 2349].forEach((f, i) => tone('sine', f, t + i * 0.12, 0.14, 0.003, 0.8)); }
+  function sFanfare(t) { if (!ac) return; let tt = t; [[74, 0.13], [74, 0.13], [74, 0.13], [78, 0.22], [81, 0.7]].forEach(([m, d]) => { trumpet(m, tt, d * 0.92, 0.11, sfxGain); trumpet(third(m), tt, d * 0.92, 0.08, sfxGain); tt += d; }); }
+  function sPop(t, step) { if (!ac) return; const f = 520 * Math.pow(2, step / 12); const o = tone('sine', f, t, 0.3, 0.004, 0.12); o.frequency.exponentialRampToValueAtTime(f * 1.7, t + 0.08); }
+  function sStamp(t) { if (!ac) return; const o = tone('sine', 110, t, 0.7, 0.003, 0.2); o.frequency.exponentialRampToValueAtTime(45, t + 0.18); noise(t, 0.1, 0.35, 'bandpass', 1400, 0.9); }
+  function sClaps(t) { if (!ac) return; [0, 0.25, 0.5, 0.62, 0.75].forEach(dt => { for (let k = 0; k < 3; k++) noise(t + dt + k * 0.008, 0.07, 0.22, 'bandpass', 1200 + k * 300, 1.1); }); }
+
+  // Speech (browser voices)
+  let voices = [];
+  const hasTTS = 'speechSynthesis' in window;
+  function loadVoices() { try { voices = speechSynthesis.getVoices() || []; } catch (e) { voices = []; } }
+  if (hasTTS) { loadVoices(); try { speechSynthesis.addEventListener('voiceschanged', loadVoices); } catch (e) {} }
+  function pickVoice(lang) {
+    const pref = lang === 'es' ? ['es-mx', 'es-us', 'es-419', 'es-es', 'es'] : ['ru-ru', 'ru'];
+    const norm = v => (v.lang || '').toLowerCase().replace('_', '-');
+    for (const p of pref) { const v = voices.find(v => norm(v).startsWith(p)); if (v) return v; }
+    return null;
+  }
+  let sayPulseAt = -99;
+  function say(text, lang, opt = {}) {
+    if (muted || !hasTTS) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang === 'es' ? 'es-MX' : 'ru-RU';
+    const v = pickVoice(lang); if (v) { u.voice = v; u.lang = v.lang; }
+    u.rate = opt.rate || 1; u.pitch = opt.pitch || 1; u.volume = 1;
+    u.onstart = () => { if (lang === 'es') sayPulseAt = performance.now() / 1000; duck(true); };
+    u.onend = u.onerror = () => { if (!(playing && T >= TL.panel)) duck(false); };
+    try { speechSynthesis.speak(u); } catch (e) {}
+  }
+
+  const CUES = [
+    [0, () => startMusic()],
+    [TL.stop, t => sSkid(t)],
+    [TL.boing, t => sBoing(t)],
+    [TL.chant1 - 0.05, t => sClaps(t)],
+    [TL.chant1, () => say('Синий кентавр! Синий кентавр!', 'ru', { rate: 1.1, pitch: 1.15 })],
+    [TL.chant1 + 0.78, t => { sHoof(t); sHoof(t + 0.08); }],
+    [TL.chant2, t => sClaps(t)],
+    [TL.chant2 + 0.78, t => { sHoof(t); sHoof(t + 0.08); }],
+    [TL.big, t => { sCheer(t); sFanfare(t + 0.1); sBells(t + 0.9); }],
+    [TL.panel, t => { duck(true); sWhoosh(t); }],
+    [TL.row1, t => sStamp(t)],
+    [TL.syl[0], t => sPop(t, 0)], [TL.syl[1], t => sPop(t, 4)], [TL.syl[2], t => sPop(t, 7)],
+    [TL.five, t => { sStamp(t); if (ac) tone('sine', 2093, t + 0.05, 0.14, 0.003, 0.5); }],
+    [TL.say1, () => say('cincuenta', 'es', { rate: 0.8 })],
+    [TL.say2, () => say('¡Cincuenta!', 'es', { rate: 1 })],
+    [TL.end - 0.6, () => stopMusic(1.2)],
+  ];
+  for (let t = TL.gallop0; t < TL.stop - 0.1; t += 0.27) CUES.push([t, x => sHoof(x)], [t + 0.07, x => sHoof(x)], [t + 0.14, x => sHoof(x)]);
+  for (let i = 0; i < 5; i++) { const s = TL.shot0 + i * TL.shotDur, step = [0, 2, 4, 5, 7][i]; CUES.push([s + 0.18, t => sCreak(t)], [s + 0.62, t => sTwang(t)], [s + 0.82, t => sThunk(t, step)]); }
+  CUES.sort((a, b) => a[0] - b[0]);
+
+  /* ---------- render ---------- */
+  const E = {};
+  ['rays', 'wavesA', 'wavesB', 'palmCrown', 'tFace', 'cen', 'cTail', 'legBF', 'legFF', 'legBN', 'legFN', 'cUp', 'cHead', 'cHat', 'cEyeL', 'cEyeR', 'cPupL', 'cPupR', 'cString', 'cArmO', 'cArmI', 'cHand',
+   'rRacc', 'rTail', 'rArm', 'rHead', 'rHat', 'rEyeL', 'rEyeR', 'rPupL', 'rPupR', 'arrow', 'counter', 'cntText', 'bubble', 'bubbleBg', 'bubbleText', 'cap', 'capBg', 'capText',
+   'dim', 'panel', 'pRow1', 'pArrow', 'pDots', 'pPhon', 'p500', 'dot0', 'dot1'].forEach(id => E[id] = $(id));
+  E.syl = [$('syl0'), $('syl1'), $('syl2')];
+  E.sylT = [$('sylT0'), $('sylT1'), $('sylT2')];
+  E.phon = [$('phon0'), $('phon1'), $('phon2')];
+  let SX = [-170, 0, 160];
+
+  function textW(el, fallback) { try { const w = el.getComputedTextLength(); if (w > 0) return w; } catch (e) {} return fallback; }
+  function layoutSyl() {
+    const ws = E.sylT.map((t, i) => textW(t, [105, 160, 80][i])), gap = 64;
+    let x = -(ws[0] + ws[1] + ws[2] + 2 * gap) / 2;
+    SX = ws.map(w => { const cx = x + w / 2; x += w + gap; return cx; });
+    E.dot0.setAttribute('cx', (SX[0] + ws[0] / 2 + gap / 2).toFixed(1));
+    E.dot1.setAttribute('cx', (SX[1] + ws[1] / 2 + gap / 2).toFixed(1));
+    E.phon.forEach((p, i) => p.setAttribute('x', SX[i].toFixed(1)));
+  }
+  let capIdx = -2;
+  function setCaption(i) {
+    capIdx = i; const txt = i >= 0 ? CAPS[i][1] : '';
+    E.capText.textContent = txt;
+    if (!txt) { op(E.cap, 0); return; }
+    const W = textW(E.capText, txt.length * 9) + 44;
+    E.capBg.setAttribute('x', (-W / 2).toFixed(1)); E.capBg.setAttribute('width', W.toFixed(1)); op(E.cap, 1);
+  }
+  function fitBubble() { const W = Math.max(200, textW(E.bubbleText, 214) + 48); E.bubbleBg.setAttribute('x', (-W / 2).toFixed(1)); E.bubbleBg.setAttribute('width', W.toFixed(1)); }
+
+  let playing = false, poster = true, t0 = 0, T = 0, cueIdx = 0;
+
+  function render(T, c) {
+    const P = !poster;
+    // ambient
+    tf(E.rays, 500, 298, c * 6);
+    E.wavesA.setAttribute('transform', `translate(${f2(-((c * 16) % 30))} 0)`);
+    E.wavesB.setAttribute('transform', `translate(${f2(((c * 10) % 30) - 30)} 0)`);
+    shimmer.forEach((s, i) => op(s, 0.35 + 0.35 * Math.sin(c * 2.6 + i * 1.7)));
+    tf(E.palmCrown, 96, 216, 3.5 * Math.sin(c * 1.3));
+    flags.forEach((f, i) => tf(f.el, f.x, f.y, 5 * Math.sin(c * 2.2 + i * 0.75)));
+    gulls.forEach((g, i) => { const u = ((c / 24) + g.off) % 1; tf(g.g, -40 + 880 * u, g.y + 7 * Math.sin(c * 1.4 + i * 2), 0, g.s); tf(g.w, 0, 0, 0, 1, 0.55 + 0.45 * Math.sin(c * 8 + i)); });
+
+    // shots and hits
+    let shooting = -1, sk = 0, hits = 0, lastHit = -9;
+    if (P) for (let i = 0; i < 5; i++) { const s = TL.shot0 + i * TL.shotDur; if (T >= s && T < s + TL.shotDur) { shooting = i; sk = T - s; } }
+    for (let i = 0; i < 5; i++) { const on = P && T >= hitT(i); op(stuck[i], on ? 1 : 0); if (on) { hits = i + 1; lastHit = hitT(i); } }
+
+    // centaur body: gallop in, skid, rear up on the chants
+    let cx = CEN.x, cy = CEN.y, rot = 0, sx = 1, sy = 1, ph = 0, galloping = false, rear = 0;
+    if (P) {
+      if (T < TL.stop) { const p = prog(T, TL.gallop0, TL.stop), e = 1 - (1 - p) * (1 - p); cx = lerp(-190, CEN.x, e); galloping = p > 0; ph = cx * 0.075; cy -= Math.abs(Math.sin(ph)) * 10 * (1 - 0.6 * p); rot = 4 * (1 - p); }
+      else { const k = T - TL.stop, a = 0.16 * Math.exp(-6 * k) * Math.cos(12 * k); sy = 1 - a; sx = 1 + a * 0.6; rot = -7 * Math.exp(-4 * k) * Math.sin(9 * k); }
+      rear = Math.max(Math.sin(Math.PI * prog(T, TL.chant1, TL.chant1 + 0.8)), Math.sin(Math.PI * prog(T, TL.chant2, TL.chant2 + 0.8)), Math.sin(Math.PI * prog(T, TL.big, TL.big + 0.9)));
+      rot -= 14 * rear;
+    }
+    E.cen.setAttribute('transform', `translate(${f2(cx)} ${f2(cy)}) translate(-44 0) rotate(${f2(rot)}) translate(44 0) scale(${sx.toFixed(3)} ${sy.toFixed(3)})`);
+    let lg = [0, 0, 0, 0];
+    if (galloping) lg = [30 * Math.sin(ph + 0.5), 30 * Math.sin(ph), -30 * Math.sin(ph + 0.9), -30 * Math.sin(ph + 1.4)];
+    else if (rear > 0.05) { const kick = Math.sin(c * 16); lg = [-8 * rear, -12 * rear, -40 * rear + 15 * kick, -55 * rear - 15 * kick]; }
+    else { const pw = c % 4.2; if (pw < 0.5) lg[3] = -35 * Math.sin(Math.PI * pw / 0.5); }
+    tf(E.legBF, -30, -70, lg[0]); tf(E.legBN, -46, -70, lg[1]); tf(E.legFF, 46, -70, lg[2]); tf(E.legFN, 32, -70, lg[3]);
+    tf(E.cTail, -62, -94, 8 * Math.sin(c * 2.8) + (galloping ? 22 + 8 * Math.sin(ph * 2) : 0) + 10 * rear);
+    const chanting = P && T >= TL.chant1 - 0.1 && T < TL.shot0;
+    const excited = P && T >= TL.chant1 - 0.1 && T < TL.panel;
+    E.cUp.setAttribute('transform', `rotate(${f2(shooting >= 0 ? 0 : 1.5 * Math.sin(c * 1.5) + 9 * rear)} 44 -96)`);
+    tf(E.cHead, 46, -188, 3 * Math.sin(c * 1.7) + (chanting ? 5 * Math.sin(c * 10) : 0));
+    const hp1 = P ? prog(T, TL.boing, TL.boing + 0.6) : 0, hp2 = P ? prog(T, TL.big, TL.big + 0.6) : 0;
+    tf(E.cHat, 2, -27 - Math.sin(Math.PI * hp1) * 60 - Math.sin(Math.PI * hp2) * 45, 360 * eInOut(hp1) - 360 * eInOut(hp2), 0.72);
+
+    // bow: nock, draw, release
+    let D = 104, hand = [30, -112], nocked = false, wink = false;
+    if (shooting >= 0) {
+      if (sk < 0.18) { const p = eOutCubic(sk / 0.18); hand = [lerp(30, 104, p), lerp(-112, -150, p)]; nocked = sk > 0.1; }
+      else if (sk < 0.55) { const p = eOutCubic((sk - 0.18) / 0.37); D = lerp(104, 56, p); hand = [D, -150]; nocked = true; wink = p > 0.3; }
+      else if (sk < 0.62) { D = 56 + Math.sin(c * 60) * 0.6; hand = [D, -150]; nocked = true; wink = true; }
+      else { const k = sk - 0.62; D = 104 + 12 * Math.exp(-14 * k) * Math.cos(k * 70); const p = eInOut(clamp(k / 0.3)); hand = [lerp(46, 30, p), lerp(-156, -112, p)]; }
+    }
+    E.cString.setAttribute('d', `M 104,-202 L ${D.toFixed(1)},-150 L 104,-98`);
+    const armD = `M 24,-152 L ${hand[0].toFixed(1)},${hand[1].toFixed(1)}`;
+    E.cArmO.setAttribute('d', armD); E.cArmI.setAttribute('d', armD);
+    E.cHand.setAttribute('cx', hand[0].toFixed(1)); E.cHand.setAttribute('cy', hand[1].toFixed(1));
+
+    // centaur eyes
+    const blink = (c % 3.7) < 0.13 ? 0.12 : 1, wide = 1 + 0.35 * Math.sin(Math.PI * hp1) + 0.2 * Math.sin(Math.PI * hp2);
+    tf(E.cEyeL, -4, -3, 0, wide, wide * blink * (wink ? 0.15 : 1)); tf(E.cEyeR, 13, -4, 0, wide, wide * blink);
+    let pl = [2 * Math.sin(c * 5.3), 1.6 * Math.cos(c * 4.1)], pr = [3 * Math.sin(c * 3.3 + 1), 2.6 * Math.cos(c * 6.7)];
+    if (hp1 > 0 && hp1 < 1) { pl = [3 * Math.cos(c * 18), 3 * Math.sin(c * 18)]; pr = [4.5 * Math.cos(-c * 18), 4.5 * Math.sin(-c * 18)]; }
+    else if (shooting >= 0) { pl = [3, 0.5]; pr = [4.5 + 0.6 * Math.sin(c * 30), 0.5]; }
+    tf(E.cPupL, pl[0], pl[1]); tf(E.cPupR, pr[0], pr[1]);
+
+    // arrow on the string / in flight
+    let av = false;
+    if (shooting >= 0) {
+      if (nocked && sk < 0.62) { tf(E.arrow, CEN.x + D + 72, CEN.y - 150, 0); av = true; }
+      else if (sk >= 0.62 && sk < 0.82) {
+        const p = (sk - 0.62) / 0.2, [ox, oy] = HITS[shooting], x1 = TGT.x + ox, y1 = TGT.y + oy;
+        const ang = Math.atan2((y1 - A0[1]) - 4 * ARC * (1 - 2 * p), x1 - A0[0]) * 180 / Math.PI;
+        tf(E.arrow, lerp(A0[0], x1, p), lerp(A0[1], y1, p) - ARC * 4 * p * (1 - p), ang); av = true;
+      }
+    }
+    op(E.arrow, av ? 1 : 0);
+
+    // target wobble + spin on the big moment
+    let tr = 0, ts = 1;
+    if (hits > 0) { const d = T - lastHit; tr = 5 * Math.exp(-7 * d) * Math.sin(d * 40); ts = 1 + 0.06 * Math.exp(-8 * d); }
+    tr += P ? 360 * eInOut(prog(T, TL.big, TL.big + 0.8)) : 0;
+    tf(E.tFace, TGT.x, TGT.y, tr, ts);
+
+    // score
+    if (hits > 0) {
+      const v = String(hits * 10); if (E.cntText.textContent !== v) E.cntText.textContent = v;
+      let s = 1 + 0.45 * Math.exp(-9 * (T - lastHit)), r = 0;
+      if (T >= TL.big) { const k = T - TL.big; s = 1.3 + 0.5 * Math.exp(-5 * k) * Math.cos(k * 16); r = 8 * Math.exp(-3 * k) * Math.sin(k * 22); }
+      tf(E.counter, TGT.x, 226, r, s); op(E.counter, 1);
+    } else op(E.counter, 0);
+
+    // skid dust
+    const dp = P ? prog(T, TL.stop, TL.stop + 0.6) : 0;
+    dust.forEach((d, j) => {
+      if (dp <= 0 || dp >= 1) { op(d, 0); return; }
+      const k = j % 3, base = j < 3 ? CEN.x + 40 : CEN.x - 38;
+      d.setAttribute('cx', (base - 10 - k * 14 - 40 * eOutCubic(dp)).toFixed(1));
+      d.setAttribute('cy', (CEN.y - 2 - k * 7 - 18 * dp).toFixed(1));
+      d.setAttribute('r', (5 + 9 * dp + k * 2).toFixed(1));
+      op(d, (1 - dp) * 0.9);
+    });
+
+    // Entos cameo: cheers on every hit
+    let rj = 0, rArm = -20, rTilt = 3 * Math.sin(c * 1.9 + 1);
+    if (P) {
+      for (let i = 0; i < 5; i++) { const d = T - hitT(i); if (d >= 0 && d < 0.5) { rj = Math.max(rj, Math.sin(Math.PI * d / 0.5) * 12); rArm = -150 + 15 * Math.sin(c * 25); } }
+      const db = T - TL.big; if (db >= 0 && db < 1.4) { rj = Math.max(rj, Math.abs(Math.sin(db * Math.PI * 2.4)) * 16 * Math.exp(-1.4 * db)); rArm = -150 + 18 * Math.sin(db * 22); }
+      if (chanting) { rTilt += 6 * Math.sin(c * 10); rj = Math.max(rj, Math.abs(Math.sin(c * 9)) * 5); }
+    }
+    tf(E.rRacc, RC.x, RC.y - rj, 0, -0.6, 0.6);
+    tf(E.rArm, 36, -82, rArm);
+    tf(E.rTail, -28, -36, 8 * Math.sin(c * 3.6) + (excited ? 7 * Math.sin(c * 15) : 0));
+    tf(E.rHead, 6, -112, rTilt);
+    tf(E.rHat, 4, -30 - Math.sin(Math.PI * hp2) * 55, -360 * eInOut(hp2));
+    const rb = ((c + 1.3) % 3.9) < 0.13 ? 0.12 : 1;
+    tf(E.rEyeL, -17, 0, 0, 1, rb); tf(E.rEyeR, 23, -1, 0, 1, rb);
+    const look = shooting >= 0 ? [-4, 0] : [3 + Math.sin(c * 4.7), Math.cos(c * 3.9)];
+    tf(E.rPupL, look[0], look[1]); tf(E.rPupR, look[0] * 1.3, look[1]);
+
+    // crowd
+    crowd.forEach((p, i) => {
+      let by, wv;
+      if (chanting) { by = -Math.abs(Math.sin(c * 9 + i * 0.9)) * 14; wv = 24 * Math.sin(c * 12 + i); }
+      else if (excited) {
+        let j = 0;
+        for (let k = 0; k < 5; k++) { const d = T - hitT(k); if (d >= 0 && d < 0.5) j = Math.max(j, Math.sin(d / 0.5 * Math.PI)); }
+        const db = T - TL.big; if (db >= 0 && db < 1) j = Math.max(j, Math.abs(Math.sin(db * Math.PI * 3)) * (1 - db));
+        by = -j * 18 - Math.abs(Math.sin(c * 4 + i)) * 3; wv = 14 * Math.sin(c * 8 + i);
+      } else { by = -Math.abs(Math.sin(c * 1.6 + i * 1.3)) * 3; wv = 6 * Math.sin(c * 2 + i); }
+      tf(p.g, p.x, 500 + by); tf(p.aL, -22, -36, -wv); tf(p.aR, 22, -36, wv);
+    });
+
+    // speech bubble
+    let bs = 0;
+    if (P && T >= TL.chant1 && T < TL.shot0 + 0.25) {
+      bs = eOutBack(prog(T, TL.chant1, TL.chant1 + 0.3));
+      if (T >= TL.chant2) bs *= 1 + 0.2 * Math.exp(-7 * (T - TL.chant2));
+      bs *= 1 - eInQuad(prog(T, TL.shot0, TL.shot0 + 0.25));
+    }
+    if (bs > 0.01) {
+      const txt = T >= TL.chant2 ? 'СИНИЙ КЕНТАВР!!' : 'СИНИЙ КЕНТАВР!';
+      if (E.bubbleText.textContent !== txt) { E.bubbleText.textContent = txt; fitBubble(); }
+      tf(E.bubble, 145, 296, 2.5 * Math.sin(c * 11), bs); op(E.bubble, 1);
+    } else op(E.bubble, 0);
+
+    // caption
+    let ci = -1; if (P) for (let i = 0; i < CAPS.length; i++) if (T >= CAPS[i][0]) ci = i;
+    if (ci !== capIdx) setCaption(ci);
+    if (ci >= 0 && CAPS[ci][1]) { const st = CAPS[ci][0]; tf(E.cap, 400, 104, 0, 0.8 + 0.2 * eOutBack(prog(T, st, st + 0.3))); }
+
+    // mnemonic card
+    const pin = P ? prog(T, TL.panel, TL.panel + 0.6) : 0;
+    op(E.dim, 0.62 * clamp(pin * 1.8));
+    if (pin > 0) { op(E.panel, 1); tf(E.panel, 400, lerp(440, 0, eOutBack(pin))); } else op(E.panel, 0);
+    const r1 = P ? prog(T, TL.row1, TL.row1 + 0.22) : 0;
+    op(E.pRow1, r1 > 0 ? 1 : 0); tf(E.pRow1, 0, 208, lerp(-9, -2, r1), lerp(1.9, 1, eOutCubic(r1)));
+    const pulse = c >= sayPulseAt ? 0.22 * Math.exp(-5 * (c - sayPulseAt)) : 0;
+    E.syl.forEach((g, j) => { const p = P ? prog(T, TL.syl[j], TL.syl[j] + 0.35) : 0; op(g, p > 0 ? 1 : 0); tf(g, SX[j], 300 - 46 * (1 - eOutBack(p)), 0, 1 + (j === 1 ? pulse : pulse * 0.35)); });
+    op(E.pArrow, P ? prog(T, TL.syl[0], TL.syl[0] + 0.3) : 0);
+    op(E.pDots, P ? prog(T, TL.syl[2], TL.syl[2] + 0.3) : 0);
+    op(E.pPhon, P ? prog(T, TL.phon, TL.phon + 0.4) : 0);
+    const p5 = P ? prog(T, TL.five, TL.five + 0.24) : 0;
+    op(E.p500, p5 > 0 ? 1 : 0); tf(E.p500, 0, 384, lerp(-16, -4, p5), lerp(2.3, 1, eOutCubic(p5)));
+
+    // confetti
+    confetti.forEach(q => {
+      const dt = T - q.b.t;
+      if (!P || dt < 0 || dt > 2.8) { op(q.el, 0); return; }
+      const k = 2.2, g = 430, e = 1 - Math.exp(-k * dt);
+      tf(q.el, q.b.x + q.vx / k * e, q.b.y + q.vy / k * e + g / k * (dt - e / k), q.vr * dt, 1, Math.cos(dt * q.flip + q.ph));
+      op(q.el, dt > 2.2 ? 1 - (dt - 2.2) / 0.6 : 1);
+    });
+  }
+
+  function frame(now) {
+    const c = reduceMotion ? 1 : now / 1000;
+    if (playing) {
+      T = (now - t0) / 1000;
+      while (cueIdx < CUES.length && CUES[cueIdx][0] <= T) {
+        const [ct, fn] = CUES[cueIdx++];
+        if (T - ct < 0.6) { try { fn(ac ? ac.currentTime + 0.02 : 0); } catch (e) {} }
+      }
+      if (T >= TL.end) { T = TL.end; playing = false; stopMusic(0.8); }
+    }
+    render(T, c);
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- controls ---------- */
+  const startBtn = $('startOverlay'), playBtn = $('playBtn'), sayBtn = $('sayBtn'), muteBtn = $('muteBtn'), hint = $('hint');
+  function start() {
+    initAudio();
+    if (ac && ac.state === 'suspended') ac.resume().catch(() => {});
+    if (hasTTS) { try { speechSynthesis.cancel(); } catch (e) {} }
+    if (music.on) stopMusic(0.05);
+    poster = false; cueIdx = 0; capIdx = -2; t0 = performance.now(); T = 0; playing = true;
+    startBtn.hidden = true; playBtn.textContent = '↻ Сначала'; hint.textContent = '';
+    if (reduceMotion) { const jump = TL.five + 0.4; t0 -= jump * 1000; T = jump; cueIdx = CUES.findIndex(q => q[0] >= TL.say1); if (cueIdx < 0) cueIdx = CUES.length; }
+  }
+  startBtn.addEventListener('click', start);
+  playBtn.addEventListener('click', start);
+  sayBtn.addEventListener('click', () => {
+    if (muted) { hint.textContent = 'Звук выключен. Включите его кнопкой «Звук».'; return; }
+    if (!hasTTS) { hint.textContent = 'Браузер не умеет говорить. Читается так: син-КУЭН-та.'; return; }
+    loadVoices();
+    if (voices.length && !pickVoice('es')) hint.textContent = 'В этом браузере нет испанского голоса. Читается так: син-КУЭН-та.';
+    else hint.textContent = '';
+    try { speechSynthesis.cancel(); } catch (e) {}
+    say('cincuenta', 'es', { rate: 0.75 });
+  });
+  function applyMute() {
+    muteBtn.textContent = muted ? 'Звук: выкл' : 'Звук: вкл';
+    if (ac && master) master.gain.setTargetAtTime(muted ? 0 : 0.9, ac.currentTime, 0.03);
+    if (muted && hasTTS) { try { speechSynthesis.cancel(); } catch (e) {} }
+    try { localStorage.setItem('kentavr-muted', muted ? '1' : '0'); } catch (e) {}
+  }
+  muteBtn.addEventListener('click', () => { muted = !muted; applyMute(); });
+  applyMute();
+
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { capIdx = -2; fitBubble(); layoutSyl(); });
+  fitBubble(); layoutSyl();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>
