@@ -146,3 +146,84 @@ test('isEntryEligibleForLearnedStudy accepts permanently learned words or all-le
   };
   assert.equal(isEntryEligibleForLearnedStudy(allCardsLearned), true);
 });
+
+test('round queue guarantees one full round of all words before any mistake repetition', () => {
+  const sessionEntries = [
+    { entryId: 1, word: 'uno', remainingVariants: [{ key: 'v1', prompt: 'uno' }] },
+    { entryId: 2, word: 'dos', remainingVariants: [{ key: 'v1', prompt: 'dos' }] },
+    { entryId: 3, word: 'tres', remainingVariants: [{ key: 'v1', prompt: 'tres' }] },
+    { entryId: 4, word: 'cuatro', remainingVariants: [{ key: 'v1', prompt: 'cuatro' }] },
+    { entryId: 5, word: 'cinco', remainingVariants: [{ key: 'v1', prompt: 'cinco' }] },
+  ];
+
+  let session = {
+    mode: 'group_once:386',
+    entries: [...sessionEntries],
+    totalEntries: 5,
+    lap: 1,
+    lastEntryId: null,
+    isComplete: false,
+  };
+
+  const pickedIds = [];
+
+  // Pick 1: Card 1 (fails)
+  let currentCard = pickNextSessionCard(session.entries, session.mode).card;
+  pickedIds.push(currentCard.id);
+  assert.equal(currentCard.id, 1);
+  let res = advanceReviewSession(session, currentCard, { repeatMistake: true });
+  session = res.session;
+  currentCard = res.currentCard;
+
+  // Pick 2: Card 2 (succeeds)
+  pickedIds.push(currentCard.id);
+  assert.equal(currentCard.id, 2);
+  res = advanceReviewSession(session, currentCard, { repeatMistake: false });
+  session = res.session;
+  currentCard = res.currentCard;
+
+  // Pick 3: Card 3 (fails)
+  pickedIds.push(currentCard.id);
+  assert.equal(currentCard.id, 3);
+  res = advanceReviewSession(session, currentCard, { repeatMistake: true });
+  session = res.session;
+  currentCard = res.currentCard;
+
+  // Pick 4: Card 4 (succeeds)
+  pickedIds.push(currentCard.id);
+  assert.equal(currentCard.id, 4);
+  res = advanceReviewSession(session, currentCard, { repeatMistake: false });
+  session = res.session;
+  currentCard = res.currentCard;
+
+  // Pick 5: Card 5 (succeeds)
+  pickedIds.push(currentCard.id);
+  assert.equal(currentCard.id, 5);
+  res = advanceReviewSession(session, currentCard, { repeatMistake: false });
+  session = res.session;
+  currentCard = res.currentCard;
+
+  // VERIFY FIRST FULL ROUND: All 5 cards must have been seen once!
+  assert.deepEqual(pickedIds, [1, 2, 3, 4, 5]);
+
+  // Pick 6: Repeat Card 1 (now marked with is_repeat_mistake)
+  pickedIds.push(currentCard.id);
+  assert.equal(currentCard.id, 1);
+  assert.equal(currentCard.is_repeat_mistake, true);
+  res = advanceReviewSession(session, currentCard, { repeatMistake: false });
+  session = res.session;
+  currentCard = res.currentCard;
+
+  // Pick 7: Repeat Card 3 (now marked with is_repeat_mistake)
+  pickedIds.push(currentCard.id);
+  assert.equal(currentCard.id, 3);
+  assert.equal(currentCard.is_repeat_mistake, true);
+  res = advanceReviewSession(session, currentCard, { repeatMistake: false });
+  session = res.session;
+  currentCard = res.currentCard;
+
+  // VERIFY ENTIRE SEQUENCE: 1, 2, 3, 4, 5, then 1, then 3!
+  assert.deepEqual(pickedIds, [1, 2, 3, 4, 5, 1, 3]);
+  assert.equal(session.isComplete, true);
+  assert.equal(currentCard, null);
+});

@@ -36,6 +36,15 @@ export function isEntryEligibleForPracticeAll(entry) {
     && !entry.cards.every((card) => card.status === 'learned');
 }
 
+export function shuffleSessionEntries(entries = [], random = Math.random) {
+  const copy = [...entries];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const swapIndex = Math.floor(random() * (i + 1));
+    [copy[i], copy[swapIndex]] = [copy[swapIndex], copy[i]];
+  }
+  return copy;
+}
+
 export function chooseRandomItem(values = [], random = Math.random) {
   if (!values || values.length === 0) {
     return null;
@@ -44,7 +53,7 @@ export function chooseRandomItem(values = [], random = Math.random) {
 }
 
 export function pickNextSessionCard(sessionEntries, sessionMode = 'due', previousEntryId = null, random = Math.random) {
-  const activeEntries = sessionEntries.filter((entry) => entry.remainingVariants && entry.remainingVariants.length > 0);
+  const activeEntries = (sessionEntries || []).filter((entry) => entry.remainingVariants && entry.remainingVariants.length > 0);
   if (activeEntries.length === 0) {
     return null;
   }
@@ -53,8 +62,11 @@ export function pickNextSessionCard(sessionEntries, sessionMode = 'due', previou
   const candidateEntries = activeEntries.length > 1 && prevId != null
     ? activeEntries.filter((entry) => Number(entry.entryId) !== prevId)
     : activeEntries;
-  const selectedEntry = chooseRandomItem(candidateEntries.length > 0 ? candidateEntries : activeEntries, random);
-  const selectedVariant = chooseRandomItem(selectedEntry?.remainingVariants || [], random);
+
+  // Strict round queue: always take the head of the candidate queue (FIFO order).
+  // This guarantees every unseen word in the round is presented before any repeated/re-queued card.
+  const selectedEntry = (candidateEntries.length > 0 ? candidateEntries : activeEntries)[0];
+  const selectedVariant = selectedEntry?.remainingVariants?.[0] || null;
 
   if (!selectedEntry || !selectedVariant) {
     return null;
@@ -77,6 +89,7 @@ export function pickNextSessionCard(sessionEntries, sessionMode = 'due', previou
       current_form_index: (selectedEntry.totalVariants - selectedEntry.remainingVariants.length) + 1,
       session_mode: sessionMode,
       study_variant: selectedVariant.key,
+      is_repeat_mistake: Boolean(selectedEntry.isMistakeRepeat),
       ...selectedVariant,
       image_url: selectedVariant.image_url || selectedEntry.image_url || null,
     },
@@ -86,23 +99,30 @@ export function pickNextSessionCard(sessionEntries, sessionMode = 'due', previou
 export function advanceReviewSession(session, completedCard, { repeatMistake = false, random = Math.random } = {}) {
   const completedId = Number(completedCard?.id);
   let nextEntries;
+
   if (repeatMistake) {
     const failedEntry = session.entries.find((entry) => Number(entry.entryId) === completedId);
     const otherEntries = session.entries.filter((entry) => Number(entry.entryId) !== completedId);
-    nextEntries = failedEntry ? [...otherEntries, failedEntry] : session.entries;
+    // Move failed entry to the very end of the round queue so all unseen words get their turn first
+    const markedFailed = failedEntry ? { ...failedEntry, isMistakeRepeat: true } : null;
+    nextEntries = markedFailed ? [...otherEntries, markedFailed] : session.entries;
   } else {
-    nextEntries = session.entries
-      .map((entry) => {
-        if (Number(entry.entryId) !== completedId) {
-          return entry;
-        }
+    const completedEntry = session.entries.find((entry) => Number(entry.entryId) === completedId);
+    const otherEntries = session.entries.filter((entry) => Number(entry.entryId) !== completedId);
 
-        return {
-          ...entry,
-          remainingVariants: entry.remainingVariants.filter((variant) => variant.key !== completedCard?.study_variant),
-        };
-      })
-      .filter((entry) => entry.remainingVariants && entry.remainingVariants.length > 0);
+    if (completedEntry) {
+      const remainingVariants = (completedEntry.remainingVariants || []).filter(
+        (variant) => variant.key !== completedCard?.study_variant
+      );
+      if (remainingVariants.length > 0) {
+        // Multi-variant entry: push remaining variants to end of round so other words get their turn first
+        nextEntries = [...otherEntries, { ...completedEntry, remainingVariants }];
+      } else {
+        nextEntries = otherEntries;
+      }
+    } else {
+      nextEntries = session.entries;
+    }
   }
 
   const selection = pickNextSessionCard(nextEntries, session.mode, completedId || null, random);

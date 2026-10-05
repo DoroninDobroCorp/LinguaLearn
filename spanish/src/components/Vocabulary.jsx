@@ -59,6 +59,7 @@ import {
   pickNextSessionCard,
   advanceReviewSession,
   removeEntryFromReviewSession,
+  shuffleSessionEntries,
 } from '../utils/vocabularyRounds';
 import {
   formatOfflineCacheTime,
@@ -451,7 +452,7 @@ function buildReviewSessionEntries(entries, mode = 'due') {
 
 
 function createReviewSession(entries, mode = 'due') {
-  const sessionEntries = buildReviewSessionEntries(entries, mode);
+  const sessionEntries = shuffleSessionEntries(buildReviewSessionEntries(entries, mode));
   const selection = pickNextSessionCard(sessionEntries, mode);
 
   return {
@@ -1154,8 +1155,10 @@ function Vocabulary() {
           },
           currentCard: freshRound.currentCard,
         };
-        setNotice(`🎉 Круг ${nextLap - 1} завершен! Начинаем круг ${nextLap} (${freshRound.session.totalEntries} слов в случайном порядке).`);
+        setNotice(`🎉 Круг ${nextLap - 1} завершен! Начинаем круг ${nextLap} (${freshRound.session.totalEntries} слов в новом случайном порядке).`);
       }
+    } else if (nextState.currentCard?.is_repeat_mistake && reviewSession.entries.some(e => !e.isMistakeRepeat)) {
+      setNotice(`🔄 Основной круг завершен! Повторяем слова с ошибками (${nextState.session.entries.length} осталось).`);
     }
 
     setReviewSession(nextState.session);
@@ -2297,7 +2300,9 @@ function Vocabulary() {
               <div>
                 <span className="text-xs sm:text-sm font-bold text-indigo-950">
                   {isCurrentGroupRound
-                    ? `📁 ${currentGroupName} (Круг ${reviewSession.lap || 1})`
+                    ? currentCard.is_repeat_mistake
+                      ? `📁 ${currentGroupName} · Повторение ошибок`
+                      : `📁 ${currentGroupName} (Круг ${reviewSession.lap || 1})`
                     : reviewSession.mode === 'learned_once'
                     ? '🎓 Повторение выученных слов'
                     : reviewSession.mode === 'favorites_once'
@@ -2762,7 +2767,9 @@ function Vocabulary() {
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">
                 {isCurrentGroupRound
-                  ? `📁 ${currentGroupName} · Круг ${reviewSession.lap || 1}`
+                  ? currentCard.is_repeat_mistake
+                    ? `📁 ${currentGroupName} · Повтор`
+                    : `📁 ${currentGroupName} · Круг ${reviewSession.lap || 1}`
                   : currentCard.session_mode === 'learned_once'
                   ? '🎓 Выученные слова'
                   : currentCard.session_mode === 'favorites_once'
@@ -2773,6 +2780,12 @@ function Vocabulary() {
                   ? '🎲 Случайная практика'
                   : '⚡ Due round'}
               </span>
+              {currentCard.is_repeat_mistake && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[11px] font-bold animate-pulse">
+                  <RotateCcw className="h-3 w-3" />
+                  Повторение ошибки
+                </span>
+              )}
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-semibold">
                 <Languages className="h-3.5 w-3.5" />
                 {currentCard.direction_label}
