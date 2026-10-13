@@ -7,9 +7,9 @@ import * as http from "node:http";
 export default function (pi: ExtensionAPI) {
   pi.on("input", async (event) => {
     const text = event.text?.trim();
-    if (!text || text.length < 5) return;
+    if (!text || text.length < 4) return;
 
-    // Only forward if the prompt doesn't start with command characters like '/' or '?'
+    // Ignore slash/bang commands
     if (text.startsWith("/") || text.startsWith("!")) return;
 
     const configPath = path.join(
@@ -26,8 +26,10 @@ export default function (pi: ExtensionAPI) {
       if (!token) return;
 
       const payload = JSON.stringify({
+        schemaVersion: 1,
         eventId: `pi-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         sourceApp: "com.earendil.pi",
+        originalText: text,
         text: text,
         sentAt: new Date().toISOString(),
       });
@@ -51,7 +53,18 @@ export default function (pi: ExtensionAPI) {
       );
 
       req.on("error", () => {
-        // Silently ignore if capture server is offline
+        try {
+          const inboxDir = path.join(
+            os.homedir(),
+            "Library/Application Support/LinguaLearnCapture/hook-inbox"
+          );
+          if (fs.existsSync(inboxDir)) {
+            const file = path.join(inboxDir, `pi-${Date.now()}.json`);
+            fs.writeFileSync(file, payload, { mode: 0o600 });
+          }
+        } catch {
+          // Silently ignore if capture server is offline
+        }
       });
 
       req.write(payload);

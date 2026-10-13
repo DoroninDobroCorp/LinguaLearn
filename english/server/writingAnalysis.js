@@ -420,7 +420,7 @@ export function validateAnalyzerResult(response) {
     const item = requirePlainObject(error, `errors[${index}]`);
     return {
       original: requireString(item.original, `errors[${index}].original`),
-      correction: requireString(item.correction, `errors[${index}].correction`),
+      correction: requireString(item.correction, `errors[${index}].correction`, { allowEmpty: true }),
       explanationRu: requireString(item.explanationRu, `errors[${index}].explanationRu`),
       topic: normalizeTopicName(item.topic, `errors[${index}].topic`, { nullable: true }),
       confidence: normalizeConfidence(item.confidence, `errors[${index}].confidence`),
@@ -1295,7 +1295,7 @@ export function createGeminiWritingAnalyzer({
   genAIs,
   apiKeys,
   modelName = String(
-    process.env.GEMINI_WRITING_MODEL || 'gemini-3.5-flash-lite'
+    process.env.GEMINI_WRITING_MODEL || 'gemini-3.1-flash-lite'
   ).trim(),
   promptVersion = 'v1',
   circuitBreaker = null,
@@ -1348,43 +1348,88 @@ export function createGeminiWritingAnalyzer({
         const proxyBase = process.env.GEMINI_API_BASE_URL || 'http://127.0.0.1:58433';
 
         if (currentItem.key) {
-          try {
-            const endpoint = `${proxyBase}/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(currentItem.key)}`;
-            const fetchRes = await fetch(endpoint, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ role: 'user', parts: [{ text: `Analyze this message:\n<message>\n${text}\n</message>` }] }],
-                systemInstruction: { parts: [{ text: systemInstruction }] },
-                generationConfig: {
-                  responseMimeType: 'application/json',
-                  responseSchema: ANALYSIS_SCHEMA,
-                },
-              }),
-            });
+          const candidateModels = Array.from(new Set([
+            modelName,
+            'gemini-3.1-flash-lite',
+            'gemini-2.5-flash-lite',
+            'gemini-2.5-flash',
+            'gemini-3.5-flash-lite',
+          ].filter(Boolean)));
+          let modelErr = null;
+          for (const candidateModel of candidateModels) {
+            try {
+              const endpoint = `${proxyBase}/v1beta/models/${candidateModel}:generateContent?key=${encodeURIComponent(currentItem.key)}`;
+              const fetchRes = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ role: 'user', parts: [{ text: `Analyze this message:\n<message>\n${text}\n</message>` }] }],
+                  systemInstruction: { parts: [{ text: systemInstruction }] },
+                  generationConfig: {
+                    responseMimeType: 'application/json',
+                    responseSchema: ANALYSIS_SCHEMA,
+                    thinkingConfig: { thinkingBudget: 0 },
+                  },
+                }),
+              });
 
-            if (fetchRes.ok) {
-              const data = await fetchRes.json();
-              responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
-            } else {
-              const errJson = await fetchRes.json().catch(() => ({}));
-              const msg = errJson?.error?.message || `HTTP ${fetchRes.status} ${fetchRes.statusText}`;
-              const err = new Error(msg);
-              err.status = fetchRes.status;
-              err.statusCode = fetchRes.status;
-              if (fetchRes.status === 429) {
-                throw err;
+              if (fetchRes.ok) {
+                const data = await fetchRes.json();
+                const finishReason = data.candidates?.[0]?.finishReason;
+                if (
+                  data.promptFeedback?.blockReason ||
+                  finishReason === 'SAFETY' ||
+                  finishReason === 'PROHIBITED_CONTENT' ||
+                  finishReason === 'BLOCKLIST' ||
+                  finishReason === 'SPII' ||
+                  finishReason === 'RECITATION'
+                ) {
+                  if (circuitBreaker) circuitBreaker.recordSuccess();
+                  poolIndex = (poolIndex + attempt + 1) % pool.length;
+                  return {
+                    isEnglish: false,
+                    assessment: 'acceptable',
+                    correctedText: text,
+                    recommendedText: text,
+                    summaryRu: '',
+                    errors: [],
+                    mechanicalCorrections: [],
+                    optionalSuggestions: [],
+                    topicEvidence: [],
+                  };
+                }
+                const parts = data.candidates?.[0]?.content?.parts || [];
+                const textPart = parts.find((p) => !p.thought && typeof p.text === 'string') || parts.find((p) => typeof p.text === 'string');
+                responseText = textPart?.text || null;
+                modelErr = null;
+                break;
+              } else {
+                const errJson = await fetchRes.json().catch(() => ({}));
+                const msg = errJson?.error?.message || `HTTP ${fetchRes.status} ${fetchRes.statusText}`;
+                const err = new Error(msg);
+                err.status = fetchRes.status;
+                err.statusCode = fetchRes.status;
+                modelErr = err;
+                if (fetchRes.status === 429 || fetchRes.status === 404) {
+                  continue;
+                }
+                if (!currentItem.genAI) {
+                  throw err;
+                }
               }
-              if (!currentItem.genAI) {
-                throw err;
+            } catch (fetchErr) {
+              modelErr = fetchErr;
+              if (isRateLimitError(fetchErr)) {
+                continue;
+              }
+              if (!currentItem.genAI && responseText === null) {
+                throw fetchErr;
               }
             }
-          } catch (fetchErr) {
-            if (isRateLimitError(fetchErr)) {
-              throw fetchErr;
-            }
-            if (!currentItem.genAI && responseText === null) {
-              throw fetchErr;
+          }
+          if (responseText === null && modelErr) {
+            if (isRateLimitError(modelErr) || !currentItem.genAI) {
+              throw modelErr;
             }
           }
         }
