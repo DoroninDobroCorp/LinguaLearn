@@ -55,7 +55,7 @@ export default function Exercises() {
   }, [activeTab]);
 
   const tabs = [
-    { id: 'maya_sentences', label: '⭐ Предложения Майи (10 упр.)', emoji: '⭐' },
+    { id: 'maya_sentences', label: '✍️ Предложения Майи (письмо)', emoji: '✍️' },
     { id: 'maya_verbs', label: '🎈 Урок 1: vos (с видео)', emoji: '🎈' },
     { id: 'maya_pronouns', label: '🇦🇷 Урок 2: местоимения (без видео)', emoji: '🇦🇷' },
     { id: 'translation', label: 'Перевод предложений', emoji: '🌐' },

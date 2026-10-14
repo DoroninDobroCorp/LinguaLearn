@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Volume2, Sparkles, CheckCircle2, RotateCcw, ArrowRight, ArrowLeft,
-  Star, Trophy, HelpCircle, Shuffle, ChevronRight, Award, Check, RefreshCw
+  Volume2, Sparkles, RotateCcw, ArrowRight, ArrowLeft,
+  HelpCircle, Shuffle, Check, X, Keyboard
 } from 'lucide-react';
 import { soundEngine, speakSpanish } from '../../utils/soundEffects';
 import { profileFetch, profileApiUrl } from '../../utils/api';
 import {
   EXERCISES_ES_TO_RU,
   EXERCISES_RU_TO_ES,
-  getExercise,
-  isMayaSentenceAnswerCorrect,
-  generateWordTilesForSentence
+  isMayaSentenceAnswerCorrect
 } from '../../utils/mayaSentencesData';
 
 const PROGRESS_STORAGE_KEY = 'lingua_maya_sentence_trainer_progress_v1';
@@ -34,11 +32,8 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
   const [activeExerciseId, setActiveExerciseId] = useState(initialExerciseId); // 1 .. 5
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0); // 0 .. 19
 
-  // Input states
-  const [selectedTiles, setSelectedTiles] = useState([]);
-  const [availableTiles, setAvailableTiles] = useState([]);
+  // Input states (writing only - no word tiles)
   const [typedInput, setTypedInput] = useState('');
-  const [inputMode, setInputMode] = useState('tiles'); // 'tiles' | 'text'
 
   // Result & feedback
   const [isAnswered, setIsAnswered] = useState(false);
@@ -59,19 +54,21 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
   const sentences = currentExercise.sentences;
   const currentSentence = sentences[currentSentenceIndex] || sentences[0];
 
-  // Initialize or reset current sentence state
-  const resetSentenceState = (sentence = currentSentence, dir = direction) => {
-    const tiles = generateWordTilesForSentence(sentence, dir);
-    setAvailableTiles(tiles);
-    setSelectedTiles([]);
+  // Reset sentence state and auto-focus input
+  const resetSentenceState = () => {
     setTypedInput('');
     setIsAnswered(false);
     setIsCorrect(false);
     setShowHint(false);
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 50);
   };
 
   useEffect(() => {
-    resetSentenceState(currentSentence, direction);
+    resetSentenceState();
   }, [currentSentenceIndex, activeExerciseId, direction]);
 
   // Handle switching direction
@@ -90,44 +87,41 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
     setCurrentSentenceIndex(0);
   };
 
-  // Word tile click handlers
-  const handleAddTile = (tile) => {
-    if (isAnswered && isCorrect) return;
-    soundEngine.playTileClick();
-    setAvailableTiles((prev) => prev.filter((t) => t.id !== tile.id));
-    setSelectedTiles((prev) => [...prev, tile]);
-  };
-
-  const handleRemoveTile = (tile) => {
-    if (isAnswered && isCorrect) return;
-    soundEngine.playTileClick();
-    setSelectedTiles((prev) => prev.filter((t) => t.id !== tile.id));
-    setAvailableTiles((prev) => [...prev, tile]);
-  };
-
-  const handleClearTiles = () => {
-    soundEngine.playTileClick();
-    resetSentenceState(currentSentence, direction);
-  };
-
-  // Add accent character to text input
+  // Insert Spanish accent or special character at cursor position
   const handleInsertChar = (char) => {
     soundEngine.playTileClick();
-    setTypedInput((prev) => prev + char);
+    const input = inputRef.current;
+    if (input) {
+      const start = input.selectionStart ?? typedInput.length;
+      const end = input.selectionEnd ?? typedInput.length;
+      const next = typedInput.slice(0, start) + char + typedInput.slice(end);
+      setTypedInput(next);
+      setTimeout(() => {
+        input.focus();
+        const nextPos = start + char.length;
+        input.setSelectionRange(nextPos, nextPos);
+      }, 10);
+    } else {
+      setTypedInput((prev) => prev + char);
+    }
+  };
+
+  // Clear typed text
+  const handleClearInput = () => {
+    soundEngine.playTileClick();
+    setTypedInput('');
     if (inputRef.current) inputRef.current.focus();
   };
 
   // Check Answer
   const handleCheckAnswer = () => {
-    if (isAnswered && isCorrect) return;
-
-    let answerText = '';
-    if (inputMode === 'tiles') {
-      answerText = selectedTiles.map((t) => t.text).join(' ');
-    } else {
-      answerText = typedInput.trim();
+    if (isAnswered && isCorrect) {
+      // If already correct, pressing Enter advances to next
+      handleNext();
+      return;
     }
 
+    const answerText = typedInput.trim();
     if (!answerText) return;
 
     const correct = isMayaSentenceAnswerCorrect(answerText, currentSentence);
@@ -159,7 +153,7 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
             userInput: answerText,
             isCorrect: true,
             grade: 'easy',
-            practiceMode: 'maya_sentence_training',
+            practiceMode: 'maya_sentence_writing',
             groupName: `Майя: ${currentExercise.title}`
           })
         }).catch(() => {});
@@ -180,7 +174,7 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
             userInput: answerText,
             isCorrect: false,
             grade: 'hard',
-            practiceMode: 'maya_sentence_training',
+            practiceMode: 'maya_sentence_writing',
             groupName: `Майя: ${currentExercise.title}`
           })
         }).catch(() => {});
@@ -203,6 +197,17 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
     }
   };
 
+  // Retry this sentence
+  const handleRetry = () => {
+    soundEngine.playTileClick();
+    setIsAnswered(false);
+    setIsCorrect(false);
+    setTypedInput('');
+    setTimeout(() => {
+      if (inputRef.current) inputRef.current.focus();
+    }, 50);
+  };
+
   // Calculate stats for current exercise
   const exerciseCompletedCount = useMemo(() => {
     return sentences.filter((s) => completedMap[s.id]).length;
@@ -218,21 +223,21 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-black tracking-wide uppercase mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Детский тренажер предложений для Майи</span>
+              <Keyboard className="w-3.5 h-3.5 text-amber-300" />
+              <span>Детский письменный тренажер для Майи</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black flex items-center gap-2">
-              <span>⭐</span>
-              <span>100 предложений ES → RU и 100 предложений RU → ES</span>
+              <span>✍️</span>
+              <span>Пишем перевод предложений вручную</span>
             </h2>
             <p className="text-white/90 text-sm mt-1 max-w-2xl">
-              Только правильные глаголы (<strong>dibujar, pintar, comer, correr, escuchar, mirar, comprar, saltar, esperar, ayudar</strong>) и знакомые слова из 100 карточек Майи. Все 200 предложений разные!
+              Тренируем правильные формы глаголов и правописание без готовых слов-подсказок. 5 упражнений ES → RU и 5 упражнений RU → ES по 20 разных предложений (всего 200).
             </p>
           </div>
 
           {/* Overall progress indicator */}
           <div className="bg-white/15 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/20 shrink-0 text-center">
-            <div className="text-xs text-white/80 font-bold uppercase">Пройдено предложений</div>
+            <div className="text-xs text-white/80 font-bold uppercase">Написано предложений</div>
             <div className="text-2xl font-black text-amber-300">
               {Object.keys(completedMap).length} <span className="text-sm font-semibold text-white/80">/ 200</span>
             </div>
@@ -420,7 +425,7 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
                 setShowHint((prev) => !prev);
               }}
               className="px-3 py-2 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800 font-bold text-xs sm:text-sm flex items-center gap-1.5 hover:bg-amber-100 active:scale-95 transition-all cursor-pointer"
-              title="Показать подсказку"
+              title="Показать подсказку к глаголу"
             >
               <HelpCircle className="w-4 h-4 text-amber-600" />
               <span>Подсказка</span>
@@ -436,132 +441,75 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
           </div>
         )}
 
-        {/* Mode switcher: Word Tiles vs Keyboard */}
-        <div className="flex items-center justify-between">
-          <div className="text-xs font-extrabold uppercase tracking-wide text-slate-500">
-            {direction === 'es_to_ru' ? 'Собери или напиши перевод на русском:' : 'Собери или напиши перевод на испанском:'}
-          </div>
-          <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-700/60 rounded-xl">
-            <button
-              type="button"
-              onClick={() => setInputMode('tiles')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                inputMode === 'tiles'
-                  ? 'bg-white dark:bg-slate-800 text-fuchsia-700 dark:text-fuchsia-300 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-300'
-              }`}
-            >
-              Слова-карточки 🧩
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setInputMode('text');
-                setTimeout(() => inputRef.current?.focus(), 50);
-              }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                inputMode === 'text'
-                  ? 'bg-white dark:bg-slate-800 text-fuchsia-700 dark:text-fuchsia-300 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-300'
-              }`}
-            >
-              Печатать ⌨️
-            </button>
-          </div>
-        </div>
+        {/* 5. Pure Writing / Typing Area */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <label htmlFor="maya-sentence-input" className="text-xs font-black uppercase tracking-wide text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <span>✍️</span>
+              <span>{direction === 'es_to_ru' ? 'Напиши перевод предложения на русском:' : 'Напиши перевод предложения на испанском:'}</span>
+            </label>
 
-        {/* 5. Answer Input Area */}
-        {inputMode === 'tiles' ? (
-          <div className="space-y-4">
-            {/* Selected Tiles Slot */}
-            <div className="min-h-[72px] p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border-2 border-dashed border-fuchsia-200 dark:border-fuchsia-900/60 flex flex-wrap items-center gap-2">
-              {selectedTiles.length === 0 ? (
-                <span className="text-sm text-slate-400 italic">
-                  Нажимай на слова внизу, чтобы составить предложение...
-                </span>
-              ) : (
-                selectedTiles.map((tile) => (
-                  <button
-                    key={tile.id}
-                    type="button"
-                    onClick={() => handleRemoveTile(tile)}
-                    disabled={isAnswered && isCorrect}
-                    className="px-3.5 py-2 rounded-xl bg-fuchsia-600 text-white font-extrabold text-sm sm:text-base shadow-md hover:bg-fuchsia-700 active:scale-95 transition-all cursor-pointer flex items-center gap-1 group"
-                  >
-                    <span>{tile.text}</span>
-                    <span className="text-xs text-white/70 group-hover:text-white">✕</span>
-                  </button>
-                ))
-              )}
-            </div>
-
-            {/* Clear button if tiles chosen */}
-            {selectedTiles.length > 0 && !isCorrect && (
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleClearTiles}
-                  className="text-xs font-bold text-slate-500 hover:text-rose-500 flex items-center gap-1 cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Сбросить выбранные слова</span>
-                </button>
-              </div>
+            {typedInput && !isCorrect && (
+              <button
+                type="button"
+                onClick={handleClearInput}
+                className="text-xs font-bold text-slate-400 hover:text-rose-500 flex items-center gap-1 cursor-pointer transition-colors"
+                title="Очистить поле ввода"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Очистить</span>
+              </button>
             )}
-
-            {/* Available Tiles Pool */}
-            <div className="p-4 rounded-2xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40">
-              <div className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2.5">
-                Выбирай слова:
-              </div>
-              <div className="flex flex-wrap gap-2.5">
-                {availableTiles.map((tile) => (
-                  <button
-                    key={tile.id}
-                    type="button"
-                    onClick={() => handleAddTile(tile)}
-                    disabled={isAnswered && isCorrect}
-                    className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-extrabold text-sm sm:text-base border border-slate-200 dark:border-slate-700 shadow-sm hover:border-fuchsia-300 hover:bg-fuchsia-50/60 dark:hover:bg-fuchsia-950/40 active:scale-95 transition-all cursor-pointer"
-                  >
-                    {tile.text}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
-        ) : (
-          /* Text input mode */
-          <div className="space-y-3">
+
+          <div className="relative">
             <input
+              id="maya-sentence-input"
               ref={inputRef}
               type="text"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
               value={typedInput}
+              disabled={isAnswered && isCorrect}
               onChange={(e) => setTypedInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCheckAnswer();
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleCheckAnswer();
+                }
               }}
-              placeholder={direction === 'es_to_ru' ? 'Введи перевод на русском...' : 'Введи перевод на испанском...'}
-              className="w-full px-4 py-3.5 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 focus:border-fuchsia-500 dark:focus:border-fuchsia-400 focus:outline-none text-base sm:text-lg font-bold text-slate-900 dark:text-white"
+              placeholder={direction === 'es_to_ru' ? 'Напечатай перевод на русском и нажми Enter...' : 'Напечатай перевод на испанском и нажми Enter...'}
+              className={`w-full px-4 py-3.5 sm:py-4 rounded-2xl bg-white dark:bg-slate-900 border-2 text-base sm:text-lg font-bold text-slate-900 dark:text-white shadow-sm transition-all focus:outline-none ${
+                isAnswered && isCorrect
+                  ? 'border-emerald-500 bg-emerald-50/20'
+                  : isAnswered && !isCorrect
+                  ? 'border-rose-400 focus:border-rose-500'
+                  : 'border-slate-300 dark:border-slate-600 focus:border-fuchsia-500 dark:focus:border-fuchsia-400'
+              }`}
             />
-
-            {/* Spanish accent helper bar for RU -> ES */}
-            {direction === 'ru_to_es' && (
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-xs text-slate-400 font-bold mr-1">Буквы:</span>
-                {['á', 'é', 'í', 'ó', 'ú', 'ñ', '¡', '¿'].map((char) => (
-                  <button
-                    key={char}
-                    type="button"
-                    onClick={() => handleInsertChar(char)}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900 active:scale-95 cursor-pointer"
-                  >
-                    {char}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
-        )}
+
+          {/* Spanish special characters buttons (for RU -> ES) */}
+          {direction === 'ru_to_es' && !isCorrect && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-xs text-slate-400 dark:text-slate-500 font-bold mr-1">
+                Испанские буквы:
+              </span>
+              {['á', 'é', 'í', 'ó', 'ú', 'ñ', '¡', '¿'].map((char) => (
+                <button
+                  key={char}
+                  type="button"
+                  onClick={() => handleInsertChar(char)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-black text-sm hover:bg-fuchsia-100 dark:hover:bg-fuchsia-900/60 hover:text-fuchsia-700 dark:hover:text-fuchsia-300 border border-slate-200 dark:border-slate-600 shadow-sm active:scale-90 transition-all cursor-pointer"
+                  title={`Вставить символ ${char}`}
+                >
+                  {char}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* 6. Result & Feedback Banner */}
         {isAnswered && (
@@ -584,7 +532,7 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
               )}
               <div>
                 <div className="font-black text-base">
-                  {isCorrect ? '¡Excelente! ⭐ Всё правильно!' : 'Почти получилось! Попробуем ещё раз?'}
+                  {isCorrect ? '¡Excelente! ⭐ Всё правильно!' : 'Почти получилось! Давай исправим:'}
                 </div>
                 {!isCorrect && (
                   <div className="text-xs sm:text-sm mt-0.5 opacity-90">
@@ -599,16 +547,10 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
               {!isCorrect && (
                 <button
                   type="button"
-                  onClick={() => {
-                    soundEngine.playTileClick();
-                    setIsAnswered(false);
-                    setSelectedTiles([]);
-                    setAvailableTiles(generateWordTilesForSentence(currentSentence, direction));
-                    setTypedInput('');
-                  }}
-                  className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 text-rose-700 dark:text-rose-300 font-bold text-xs border border-rose-200 active:scale-95 cursor-pointer"
+                  onClick={handleRetry}
+                  className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 text-rose-700 dark:text-rose-300 font-bold text-xs border border-rose-200 active:scale-95 cursor-pointer shadow-sm"
                 >
-                  Попробовать снова
+                  Написать снова
                 </button>
               )}
 
@@ -618,7 +560,7 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
                   onClick={handleNext}
                   className="px-4 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
                 >
-                  <span>Дальше</span>
+                  <span>Дальше (Enter)</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
@@ -650,7 +592,7 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
             <button
               type="button"
               onClick={handleCheckAnswer}
-              disabled={inputMode === 'tiles' ? selectedTiles.length === 0 : !typedInput.trim()}
+              disabled={!typedInput.trim()}
               className="px-6 py-3 rounded-2xl bg-gradient-to-r from-fuchsia-600 via-rose-500 to-amber-500 hover:from-fuchsia-700 hover:to-amber-600 text-white font-black text-sm sm:text-base shadow-lg shadow-fuchsia-500/25 active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none cursor-pointer flex items-center gap-2"
             >
               <span>Проверить ответ</span>
@@ -689,10 +631,10 @@ export default function MayaSentenceTrainerSection({ initialDirection = 'es_to_r
           <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-400 via-rose-400 to-fuchsia-500 text-white shadow-xl text-center space-y-3 animate-fadeIn">
             <div className="text-4xl">🎈⭐🎉</div>
             <h3 className="text-xl sm:text-2xl font-black">
-              Ура! Упражнение {currentExercise.id} пройдено на 20 из 20!
+              Ура! Упражнение {currentExercise.id} написано на 20 из 20!
             </h3>
             <p className="text-white/95 text-xs sm:text-sm max-w-md mx-auto">
-              Ты отлично потренировала формы правильных глаголов! Все 20 предложений решены правильно!
+              Ты сама написала все 20 предложений без подсказок! Формы правильных глаголов отработаны на отлично!
             </p>
             <div className="pt-2 flex flex-wrap justify-center gap-2.5">
               {activeExerciseId < 5 ? (

@@ -137,7 +137,7 @@ export default function TodayDashboard() {
             onClick={() => soundEngine.playTileClick()}
             className="px-4 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
           >
-            <span>⭐ Тренировка предложений (10 упр.)</span>
+            <span>✍️ Пишем предложения (10 упр.)</span>
           </Link>
           <Link
             to="/exercises?tab=maya_verbs"
@@ -383,12 +383,12 @@ export default function TodayDashboard() {
               className="flex items-center gap-4 overflow-hidden rounded-3xl bg-gradient-to-r from-amber-100 via-rose-50 to-orange-100 p-4 shadow-lg ring-1 ring-amber-200 hover:shadow-xl transition-all active:scale-98"
             >
               <div className="h-20 w-20 shrink-0 rounded-2xl bg-gradient-to-br from-amber-400 to-rose-500 text-white flex items-center justify-center text-3xl shadow-md">
-                ⭐
+                ✍️
               </div>
               <div>
-                <div className="text-xs font-black uppercase tracking-wide text-amber-700">Тренажер для Майи</div>
+                <div className="text-xs font-black uppercase tracking-wide text-amber-700">Письменный тренажер для Майи</div>
                 <div className="text-base sm:text-lg font-black text-slate-900">100 предложений ES→RU и 100 RU→ES</div>
-                <div className="text-xs text-slate-600 mt-0.5">5 упр. ES→RU и 5 упр. RU→ES по 20 предложений. Карточки слов и правильные глаголы.</div>
+                <div className="text-xs text-slate-600 mt-0.5">Майя пишет перевод предложений вручную: отрабатываем формы правильных глаголов.</div>
               </div>
             </Link>
 
