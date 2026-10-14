@@ -15,6 +15,7 @@ import {
   selectBestSpanishVoice,
   shouldAbortRecordingStart,
   shouldStopSpeakingOnCardFlip,
+  replaySpanishSpeech,
   shouldStoreCompletedRecording,
 } from '../src/utils/speechPractice.js';
 
@@ -315,6 +316,28 @@ describe('speech practice helpers', () => {
       getRecordingErrorMessage({ name: 'NotAllowedError' }),
       /Microphone access was denied/i,
     );
+  });
+
+  it('replays Spanish speech after cancel instead of speaking in the same turn', () => {
+    const calls = [];
+    const synth = {
+      pause() { calls.push('pause'); },
+      cancel() { calls.push('cancel'); },
+      resume() { calls.push('resume'); },
+      speak(utterance) { calls.push(['speak', utterance.text]); },
+    };
+    let queued = null;
+    const started = replaySpanishSpeech({
+      synth,
+      createUtterance: () => ({ text: 'jugar' }),
+      schedule: (fn) => { queued = fn; },
+    });
+
+    assert.equal(started, true);
+    assert.deepEqual(calls, ['pause', 'cancel']);
+    assert.equal(typeof queued, 'function');
+    queued();
+    assert.deepEqual(calls, ['pause', 'cancel', 'resume', ['speak', 'jugar']]);
   });
 
   it('stores completed recordings only while still mounted and not discarding', () => {

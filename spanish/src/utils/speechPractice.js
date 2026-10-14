@@ -239,6 +239,58 @@ export function getSpeechPlaybackAvailability({
   };
 }
 
+const CHROME_REPLAY_GAP_MS = 80;
+
+/**
+ * Chrome (and some WebKit builds) drop a speak() that follows cancel()
+ * in the same turn. Pausing, cancelling, then speaking on the next macrotask
+ * makes a second tap on the same word audible again.
+ */
+export function replaySpanishSpeech({ synth, createUtterance, schedule = setTimeout }) {
+  if (!synth || typeof synth.speak !== 'function' || typeof createUtterance !== 'function') {
+    return false;
+  }
+
+  if (typeof synth.pause === 'function') {
+    try {
+      synth.pause();
+    } catch {
+      // A paused-queue error must not block the new utterance.
+    }
+  }
+
+  if (typeof synth.cancel === 'function') {
+    try {
+      synth.cancel();
+    } catch {
+      // Ignore engines that throw when nothing is queued.
+    }
+  }
+
+  const start = () => {
+    if (typeof synth.resume === 'function') {
+      try {
+        synth.resume();
+      } catch {
+        // resume() can throw if the engine was never paused.
+      }
+    }
+    try {
+      synth.speak(createUtterance());
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  if (typeof schedule === 'function') {
+    schedule(start, CHROME_REPLAY_GAP_MS);
+    return true;
+  }
+
+  return start();
+}
+
 export function isExpectedSpeechSynthesisError(error) {
   const errorType = typeof error === 'string'
     ? error

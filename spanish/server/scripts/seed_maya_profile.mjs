@@ -6,7 +6,7 @@ const db = new Database(DB_PATH);
 
 const GROUPS_DATA = [
   {
-    name: '⭐ 1. Самые важные (Старт)',
+    name: '🌟 1. Первые слова (Старт)',
     isActiveNow: true,
     words: [
       { word: 'hola', translation: 'привет / здравствуй', example: '¡Hola! ¿Cómo estás?', pos: 'interjection', gender: null },
@@ -18,7 +18,13 @@ const GROUPS_DATA = [
       { word: 'el agua', translation: 'вода', example: 'Tomá un poco de agua fresca', pos: 'noun', gender: 'f' },
       { word: 'el baño', translation: 'туалет', example: '¿Puedo ir al baño, seño?', pos: 'noun', gender: 'm' },
       { word: 'la mamá', translation: 'мама', example: 'Mi mamá es muy cariñosa', pos: 'noun', gender: 'f' },
-      { word: 'el papá', translation: 'папа', example: 'Mi papá me ayuda con la tarea', pos: 'noun', gender: 'm' },
+      { word: 'el papá', translation: 'папа', example: 'Mi papá me ayuda con la tarea', pos: 'noun', gender: 'm' }
+    ]
+  },
+  {
+    name: '🏠 2. Мой мир и друзья',
+    isActiveNow: false,
+    words: [
       { word: 'la casa', translation: 'дом', example: 'Vamos a casa a merendar', pos: 'noun', gender: 'f' },
       { word: 'la amiga', translation: 'подруга', example: 'Sofía es mi mejor amiga', pos: 'noun', gender: 'f' },
       { word: 'el amigo', translation: 'друг', example: 'Mateo es un buen amigo', pos: 'noun', gender: 'm' },
@@ -32,7 +38,7 @@ const GROUPS_DATA = [
     ]
   },
   {
-    name: '🎒 2. Школа и класс',
+    name: '🎒 3. Школьный рюкзак',
     isActiveNow: false,
     words: [
       { word: 'la mochila', translation: 'рюкзак / портфель', example: 'Mi mochila es de colores', pos: 'noun', gender: 'f' },
@@ -44,7 +50,13 @@ const GROUPS_DATA = [
       { word: 'dibujar', translation: 'рисовать', example: 'Me gusta dibujar flores y casas', pos: 'verb', gender: null },
       { word: 'pintar', translation: 'раскрашивать / рисовать красками', example: 'Vamos a pintar con témperas', pos: 'verb', gender: null },
       { word: 'escuchar', translation: 'слушать', example: 'Hay que escuchar a la seño', pos: 'verb', gender: null },
-      { word: 'mirar', translation: 'смотреть', example: 'Mirar el pizarrón con atención', pos: 'verb', gender: null },
+      { word: 'mirar', translation: 'смотреть', example: 'Mirar el pizarrón con atención', pos: 'verb', gender: null }
+    ]
+  },
+  {
+    name: '🎨 4. Школа и цвета',
+    isActiveNow: false,
+    words: [
       { word: 'entender', translation: 'понимать', example: 'Ya entiendo este ejercicio', pos: 'verb', gender: null },
       { word: 'la seño', translation: 'учительница', example: 'La seño nos enseña canciones', pos: 'noun', gender: 'f' },
       { word: 'el recreo', translation: 'перемена', example: '¡Tocó el timbre para el recreo!', pos: 'noun', gender: 'm' },
@@ -58,7 +70,7 @@ const GROUPS_DATA = [
     ]
   },
   {
-    name: '🍎 3. Еда и киоск',
+    name: '🥐 5. Сладости и завтрак',
     isActiveNow: false,
     words: [
       { word: 'el alfajor', translation: 'альфахор (аргентинское печенье)', example: 'Un alfajor de dulce de leche', pos: 'noun', gender: 'm' },
@@ -70,7 +82,13 @@ const GROUPS_DATA = [
       { word: 'la manzana', translation: 'яблоко', example: 'Una manzana roja y jugosa', pos: 'noun', gender: 'f' },
       { word: 'la banana', translation: 'банан', example: 'Me como una banana en la merienda', pos: 'noun', gender: 'f' },
       { word: 'las galletitas', translation: 'печенье', example: 'Galletitas dulces con chips', pos: 'noun', gender: 'f' },
-      { word: 'el chocolate', translation: 'шоколад', example: 'Una tableta de chocolate con leche', pos: 'noun', gender: 'm' },
+      { word: 'el chocolate', translation: 'шоколад', example: 'Una tableta de chocolate con leche', pos: 'noun', gender: 'm' }
+    ]
+  },
+  {
+    name: '🏪 6. Киоск и перекус',
+    isActiveNow: false,
+    words: [
       { word: 'el queso', translation: 'сыр', example: 'Sándwich de jamón y queso', pos: 'noun', gender: 'm' },
       { word: 'la pizza', translation: 'пицца', example: 'Pizza caliente con mucho queso', pos: 'noun', gender: 'f' },
       { word: 'rico', translation: 'вкусный', example: '¡La comida de mamá está re rica!', pos: 'adjective', gender: 'm' },
@@ -84,7 +102,7 @@ const GROUPS_DATA = [
     ]
   },
   {
-    name: '🛝 4. Площадка и игры',
+    name: '🛝 7. Площадка и игры',
     isActiveNow: false,
     words: [
       { word: 'la pelota', translation: 'мяч', example: 'Patear la pelota hacia el arco', pos: 'noun', gender: 'f' },
@@ -96,7 +114,13 @@ const GROUPS_DATA = [
       { word: '¡gané!', translation: 'я выиграла!', example: '¡Gané la carrera de hoy!', pos: 'phrase', gender: null },
       { word: 'el turno', translation: 'очередь', example: 'Ahora es mi turno de jugar', pos: 'noun', gender: 'm' },
       { word: 'rápido', translation: 'быстрый / быстро', example: 'Corrés muy rápido', pos: 'adverb', gender: null },
-      { word: 'despacio', translation: 'медленный / медленно', example: 'Caminá despacio con cuidado', pos: 'adverb', gender: null },
+      { word: 'despacio', translation: 'медленный / медленно', example: 'Caminá despacio con cuidado', pos: 'adverb', gender: null }
+    ]
+  },
+  {
+    name: '🧘‍♀️ 8. Тело и эмоции',
+    isActiveNow: false,
+    words: [
       { word: 'la mano', translation: 'рука / ладонь', example: 'Dame la mano para cruzar la calle', pos: 'noun', gender: 'f' },
       { word: 'la cabeza', translation: 'голова', example: 'Ponerse la gorra en la cabeza', pos: 'noun', gender: 'f' },
       { word: 'los ojos', translation: 'глаза', example: 'Abro los ojos para ver el dibujo', pos: 'noun', gender: 'm' },
@@ -110,7 +134,7 @@ const GROUPS_DATA = [
     ]
   },
   {
-    name: '🏠 5. Семья и дом',
+    name: '👨‍👩‍👧 9. Семья и дом',
     isActiveNow: false,
     words: [
       { word: 'el hermano', translation: 'брат', example: 'Mi hermano juega conmigo', pos: 'noun', gender: 'm' },
@@ -122,7 +146,13 @@ const GROUPS_DATA = [
       { word: 'la silla', translation: 'стул', example: 'Me siento en la silla para dibujar', pos: 'noun', gender: 'f' },
       { word: 'la puerta', translation: 'дверь', example: 'Abrir la puerta para salir al jardín', pos: 'noun', gender: 'f' },
       { word: 'la ventana', translation: 'окно', example: 'Miro los pajaritos por la ventana', pos: 'noun', gender: 'f' },
-      { word: 'el auto', translation: 'машина / автомобиль', example: 'Vamos en auto al supermercado', pos: 'noun', gender: 'm' },
+      { word: 'el auto', translation: 'машина / автомобиль', example: 'Vamos en auto al supermercado', pos: 'noun', gender: 'm' }
+    ]
+  },
+  {
+    name: '☀️ 10. Природа и погода',
+    isActiveNow: false,
+    words: [
       { word: 'el sol', translation: 'солнце', example: 'El sol calienta la tarde en la plaza', pos: 'noun', gender: 'm' },
       { word: 'la lluvia', translation: 'дождь', example: 'Cuando hay lluvia usamos paraguas', pos: 'noun', gender: 'f' },
       { word: 'el día', translation: 'день', example: '¡Hoy es un día hermoso para pasear!', pos: 'noun', gender: 'm' },
@@ -142,7 +172,7 @@ const FUTURE_REVIEW_DATE = '2099-01-01T00:00:00.000Z';
 
 function seedMaya() {
   const now = new Date().toISOString();
-  console.log(`Starting Maya profile & 100-word curriculum seed...`);
+  console.log(`Starting Maya profile & 100-word (10 groups x 10 words) curriculum seed...`);
 
   // Ensure image_url column exists in vocabulary
   try {
@@ -193,6 +223,17 @@ function seedMaya() {
   let totalGroupMembers = 0;
 
   const transaction = db.transaction(() => {
+    // Clean up obsolete groups not in the 10-group definition
+    const validNames = new Set(GROUPS_DATA.map((g) => g.name));
+    const currentGroups = db.prepare('SELECT id, name FROM vocabulary_groups WHERE profile_id = ?').all(mayaId);
+    for (const g of currentGroups) {
+      if (!validNames.has(g.name)) {
+        console.log(`  - Removing obsolete group: "${g.name}" (ID ${g.id})`);
+        db.prepare('DELETE FROM vocabulary_group_members WHERE group_id = ?').run(g.id);
+        db.prepare('DELETE FROM vocabulary_groups WHERE id = ?').run(g.id);
+      }
+    }
+
     for (const groupDef of GROUPS_DATA) {
       // Find or create group
       let group = db.prepare('SELECT id, name FROM vocabulary_groups WHERE profile_id = ? AND name = ?').get(mayaId, groupDef.name);
@@ -239,7 +280,7 @@ function seedMaya() {
           vocabId = Number(vocabEntry.id);
         }
 
-        // Ensure review cards (source_to_target and target_to_source)
+        // Ensure review cards (source_to_target and target_to_source) - only initialize new cards without overwriting existing cards
         for (const dir of ['source_to_target', 'target_to_source']) {
           const card = db.prepare(
             'SELECT id FROM vocabulary_review_cards WHERE vocabulary_id = ? AND direction = ?'
@@ -253,13 +294,6 @@ function seedMaya() {
                 next_review_at, created_at, updated_at
               ) VALUES (?, ?, ?, 'new', 0, 0, 0, ?, ?, ?, ?)
             `).run(vocabId, mayaId, dir, DEFAULT_EASE_FACTOR, cardNextReview, now, now);
-          } else {
-            // Update next_review_at to match group active state
-            db.prepare(`
-              UPDATE vocabulary_review_cards
-              SET next_review_at = ?
-              WHERE id = ?
-            `).run(cardNextReview, card.id);
           }
         }
 
@@ -283,9 +317,18 @@ function seedMaya() {
   console.log(`\nSeed completed successfully:`);
   console.log(`- Profile: "Майя" (ID ${mayaId})`);
   console.log(`- Total words for Maya: ${db.prepare('SELECT COUNT(*) as c FROM vocabulary WHERE profile_id = ?').get(mayaId).c}`);
-  console.log(`- Words active in Due round now: ${db.prepare("SELECT COUNT(*) as c FROM vocabulary_review_cards WHERE profile_id = ? AND next_review_at <= datetime('now') AND direction = 'source_to_target'").get(mayaId).c}`);
-  console.log(`- Words in future standby: ${db.prepare("SELECT COUNT(*) as c FROM vocabulary_review_cards WHERE profile_id = ? AND next_review_at > datetime('now') AND direction = 'source_to_target'").get(mayaId).c}`);
-  console.log(`- Groups created: ${db.prepare('SELECT COUNT(*) as c FROM vocabulary_groups WHERE profile_id = ?').get(mayaId).c}`);
+  console.log(`- Groups count: ${db.prepare('SELECT COUNT(*) as c FROM vocabulary_groups WHERE profile_id = ?').get(mayaId).c}`);
+  const groupStats = db.prepare(`
+    SELECT g.name, COUNT(gm.vocabulary_id) as count
+    FROM vocabulary_groups g
+    LEFT JOIN vocabulary_group_members gm ON gm.group_id = g.id
+    WHERE g.profile_id = ?
+    GROUP BY g.id
+    ORDER BY g.id ASC
+  `).all(mayaId);
+  for (const gs of groupStats) {
+    console.log(`  • ${gs.name}: ${gs.count} words`);
+  }
 }
 
 seedMaya();

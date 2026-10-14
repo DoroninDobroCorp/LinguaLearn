@@ -2957,9 +2957,9 @@ function Vocabulary() {
                         event.stopPropagation();
                         speakText(practiceSpanish.text);
                       }}
-                      disabled={isSpeaking || isSubmitting || !playbackSupport.supported}
-                      className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-full transition-colors cursor-pointer"
-                      title="Прослушать произношение"
+                      disabled={isSubmitting || isVoicePracticeBusy || !playbackSupport.supported}
+                      className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-full transition-colors cursor-pointer disabled:opacity-50"
+                      title={isSpeaking ? "Повторить произношение" : "Прослушать произношение"}
                     >
                       <Volume2 className="h-5 w-5" />
                     </button>
@@ -3045,9 +3045,9 @@ function Vocabulary() {
                           event.stopPropagation();
                           speakText(practiceSpanish.text);
                         }}
-                        disabled={isSpeaking || isSubmitting || !playbackSupport.supported}
-                        className="p-1.5 text-purple-700 hover:text-purple-900 hover:bg-purple-100 rounded-full transition-colors cursor-pointer"
-                        title="Прослушать произношение"
+                        disabled={isSubmitting || isVoicePracticeBusy || !playbackSupport.supported}
+                        className="p-1.5 text-purple-700 hover:text-purple-900 hover:bg-purple-100 rounded-full transition-colors cursor-pointer disabled:opacity-50"
+                        title={isSpeaking ? "Повторить произношение" : "Прослушать произношение"}
                       >
                         <Volume2 className="h-5 w-5" />
                       </button>

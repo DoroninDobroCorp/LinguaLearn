@@ -24,6 +24,7 @@ function NavBar() {
 
   const navItems = [
     { path: '/', icon: Home, label: t('nav_today', 'Главная') },
+    { path: '/maya-verbs', icon: Sparkles, label: '🎈 Урок Майи' },
     { path: '/stories', icon: BookOpen, label: t('nav_stories', 'Истории') },
     { path: '/chat', icon: MessageCircle, label: t('nav_quests', 'Квесты & Чат') },
     { path: '/exercises', icon: Brain, label: t('nav_exercises', 'Тренажер') },
@@ -109,6 +110,7 @@ function BottomNavBar() {
   const { t } = useLanguage();
   const navItems = [
     { path: '/', icon: Home, label: t('nav_today', 'Главная') },
+    { path: '/maya-verbs', icon: Sparkles, label: 'Урок Майи' },
     { path: '/exercises', icon: Brain, label: t('nav_exercises', 'Тренажер') },
     { path: '/vocabulary', icon: BookMarked, label: t('nav_vocabulary', 'Словарь') },
     { path: '/stories', icon: BookOpen, label: t('nav_stories', 'Истории') },
@@ -190,6 +192,10 @@ function AppContent() {
           <Route path="/stories" element={<Stories />} />
           <Route path="/curriculum" element={<CurriculumMap />} />
           <Route path="/topics" element={<Navigate to="/curriculum?tab=all_topics" replace />} />
+          <Route path="/maya-verbs" element={<Navigate to="/exercises?tab=maya_verbs" replace />} />
+          <Route path="/maya-pronouns" element={<Navigate to="/exercises?tab=maya_pronouns" replace />} />
+          <Route path="/maya-sentences" element={<Navigate to="/exercises?tab=maya_sentences" replace />} />
+          <Route path="/maya-training" element={<Navigate to="/exercises?tab=maya_sentences" replace />} />
           <Route path="/exercises" element={<Exercises />} />
           <Route path="/vocabulary" element={<Vocabulary />} />
           <Route path="/settings" element={<SettingsPanel />} />

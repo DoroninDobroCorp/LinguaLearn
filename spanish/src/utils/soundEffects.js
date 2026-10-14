@@ -1,6 +1,6 @@
 // Web Audio API Synthesizer & Speech Synthesis for LinguaLearn Spanish
 
-import { selectBestSpanishVoice, ARGENTINE_VOICE_LOCALES } from './speechPractice';
+import { selectBestSpanishVoice, ARGENTINE_VOICE_LOCALES, replaySpanishSpeech } from './speechPractice';
 
 class SoundEngine {
   constructor() {
@@ -136,19 +136,25 @@ class SoundEngine {
 export const soundEngine = new SoundEngine();
 
 export function speakSpanish(text, dialect = 'es-AR') {
-  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+  if (typeof window === 'undefined' || !window.speechSynthesis) return false;
+  const spoken = String(text || '').trim();
+  if (!spoken) return false;
 
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = dialect || 'es-AR';
-  utterance.rate = 0.92;
-  utterance.pitch = 1.0;
+  const synth = window.speechSynthesis;
+  return replaySpanishSpeech({
+    synth,
+    createUtterance: () => {
+      const utterance = new SpeechSynthesisUtterance(spoken);
+      utterance.lang = dialect || 'es-AR';
+      utterance.rate = 0.92;
+      utterance.pitch = 1.0;
 
-  const voices = window.speechSynthesis.getVoices();
-  const preferredVoice = selectBestSpanishVoice(voices, ARGENTINE_VOICE_LOCALES);
-  if (preferredVoice) {
-    utterance.voice = preferredVoice;
-  }
-
-  window.speechSynthesis.speak(utterance);
+      const voices = typeof synth.getVoices === 'function' ? synth.getVoices() : [];
+      const preferredVoice = selectBestSpanishVoice(voices, ARGENTINE_VOICE_LOCALES);
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+      return utterance;
+    },
+  });
 }

@@ -7,6 +7,7 @@ import {
   getSpeechPlaybackAvailability,
   getVoicePracticeCapabilities,
   isExpectedSpeechSynthesisError,
+  replaySpanishSpeech,
   shouldAbortRecordingStart,
   shouldStoreCompletedRecording,
   selectBestSpanishVoice,
@@ -143,50 +144,58 @@ export function useSpeechPractice() {
     setTtsError('');
     const synth = window.speechSynthesis;
     const speechRequestId = speechRequestIdRef.current + 1;
-    synth.cancel();
-    if (typeof synth.resume === 'function') {
-      synth.resume();
-    }
+    speechRequestIdRef.current = speechRequestId;
 
-    const utterance = new window.SpeechSynthesisUtterance(availability.text);
-    utterance.lang = selectedVoice?.lang || 'es-AR';
-    utterance.rate = 0.95;
-    utterance.pitch = 1;
+    const started = replaySpanishSpeech({
+      synth,
+      createUtterance: () => {
+        const utterance = new window.SpeechSynthesisUtterance(availability.text);
+        utterance.lang = selectedVoice?.lang || 'es-AR';
+        utterance.rate = 0.95;
+        utterance.pitch = 1;
 
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-    }
-
-    utterance.onend = () => {
-      if (speechRequestIdRef.current !== speechRequestId || activeUtteranceRef.current !== utterance) {
-        return;
-      }
-
-      activeUtteranceRef.current = null;
-      if (isMountedRef.current) {
-        setIsSpeaking(false);
-      }
-    };
-
-    utterance.onerror = (event) => {
-      if (speechRequestIdRef.current !== speechRequestId || activeUtteranceRef.current !== utterance) {
-        return;
-      }
-
-      activeUtteranceRef.current = null;
-      if (isMountedRef.current) {
-        setIsSpeaking(false);
-        if (!isExpectedSpeechSynthesisError(event)) {
-          setTtsError('Spanish playback could not start in this browser.');
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
         }
-      }
-    };
 
-    activeUtteranceRef.current = utterance;
+        utterance.onend = () => {
+          if (speechRequestIdRef.current !== speechRequestId || activeUtteranceRef.current !== utterance) {
+            return;
+          }
+
+          activeUtteranceRef.current = null;
+          if (isMountedRef.current) {
+            setIsSpeaking(false);
+          }
+        };
+
+        utterance.onerror = (event) => {
+          if (speechRequestIdRef.current !== speechRequestId || activeUtteranceRef.current !== utterance) {
+            return;
+          }
+
+          activeUtteranceRef.current = null;
+          if (isMountedRef.current) {
+            setIsSpeaking(false);
+            if (!isExpectedSpeechSynthesisError(event)) {
+              setTtsError('Spanish playback could not start in this browser.');
+            }
+          }
+        };
+
+        activeUtteranceRef.current = utterance;
+        return utterance;
+      },
+    });
+
+    if (!started) {
+      setTtsError('Spanish playback could not start in this browser.');
+      return false;
+    }
+
     if (isMountedRef.current) {
       setIsSpeaking(true);
     }
-    synth.speak(utterance);
     return true;
   }, [capabilities.ttsSupported, selectedVoice]);
 

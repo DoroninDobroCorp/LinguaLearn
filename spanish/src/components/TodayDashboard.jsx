@@ -5,14 +5,17 @@ import {
   ArrowRight, CheckCircle2, Zap, Play, Trophy, Compass,
   MessageCircle, Map, ChevronRight, HelpCircle, Star
 } from 'lucide-react';
-import { profileApiUrl, profileFetch } from '../utils/api';
+import { getActiveProfileId, profileApiUrl, profileFetch } from '../utils/api';
 import { soundEngine } from '../utils/soundEffects';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useProfile } from '../contexts/ProfileContext';
 import MateoCharacter from './MateoCharacter';
 
 export default function TodayDashboard() {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
+  const { profileId, activeProfile } = useProfile();
+  const isMaya = profileId === 9 || getActiveProfileId() === 9 || activeProfile?.name === 'Майя' || String(activeProfile?.name || '').toLowerCase() === 'maya';
   const [recommendations, setRecommendations] = useState(null);
   const [a1Stats, setA1Stats] = useState({ mastered: 0, total: 30, percent: 0, readiness: 0 });
   const [loading, setLoading] = useState(true);
@@ -105,6 +108,51 @@ export default function TodayDashboard() {
               <div className="text-[10px] text-gray-500 uppercase font-bold">{t('today_level', 'Уровень')}</div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Maya Regular Verbs Lesson Banner (Always visible right at the top!) */}
+      <div className="rounded-3xl p-5 sm:p-6 border-2 border-rose-200 dark:border-rose-800 bg-gradient-to-r from-rose-100 via-amber-50 to-fuchsia-100 dark:from-rose-950/60 dark:via-amber-950/40 dark:to-fuchsia-950/60 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-5">
+        <div className="flex items-center gap-4">
+          <img
+            src="/spanish/images/maya-verbs/hero.png"
+            alt="Майя и три цветных шарика окончаний"
+            className="h-20 w-20 sm:h-24 sm:w-28 shrink-0 rounded-2xl object-cover shadow-md ring-2 ring-white"
+          />
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500 text-white text-xs font-black uppercase tracking-wide mb-1">
+              <span>🎈 Детские уроки глаголов {isMaya ? 'для тебя, Майя!' : 'для профиля Майя'}</span>
+            </div>
+            <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white">
+              Хвостики правильных глаголов по-аргентински
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 mt-1">
+              Уроки хвостиков и <strong>тренировка предложений (5 упр. ES→RU + 5 упр. RU→ES по 20 предложений)</strong> на 100 словах Майи.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2.5 w-full lg:w-auto shrink-0 flex-wrap">
+          <Link
+            to="/exercises?tab=maya_sentences"
+            onClick={() => soundEngine.playTileClick()}
+            className="px-4 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
+          >
+            <span>⭐ Тренировка предложений (10 упр.)</span>
+          </Link>
+          <Link
+            to="/exercises?tab=maya_verbs"
+            onClick={() => soundEngine.playTileClick()}
+            className="px-4 py-3 rounded-2xl bg-gradient-to-r from-fuchsia-600 to-rose-500 hover:from-fuchsia-700 hover:to-rose-600 text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
+          >
+            <span>🎈 Урок 1: vos</span>
+          </Link>
+          <Link
+            to="/exercises?tab=maya_pronouns"
+            onClick={() => soundEngine.playTileClick()}
+            className="px-4 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
+          >
+            <span>🇦🇷 Урок 2: местоимения</span>
+          </Link>
         </div>
       </div>
 
@@ -326,6 +374,42 @@ export default function TodayDashboard() {
             {t('today_explore_all', 'Все разделы для свободной практики')}
           </h3>
         </div>
+
+        {isMaya && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <Link
+              to="/exercises?tab=maya_sentences"
+              onClick={() => soundEngine.playTileClick()}
+              className="flex items-center gap-4 overflow-hidden rounded-3xl bg-gradient-to-r from-amber-100 via-rose-50 to-orange-100 p-4 shadow-lg ring-1 ring-amber-200 hover:shadow-xl transition-all active:scale-98"
+            >
+              <div className="h-20 w-20 shrink-0 rounded-2xl bg-gradient-to-br from-amber-400 to-rose-500 text-white flex items-center justify-center text-3xl shadow-md">
+                ⭐
+              </div>
+              <div>
+                <div className="text-xs font-black uppercase tracking-wide text-amber-700">Тренажер для Майи</div>
+                <div className="text-base sm:text-lg font-black text-slate-900">100 предложений ES→RU и 100 RU→ES</div>
+                <div className="text-xs text-slate-600 mt-0.5">5 упр. ES→RU и 5 упр. RU→ES по 20 предложений. Карточки слов и правильные глаголы.</div>
+              </div>
+            </Link>
+
+            <Link
+              to="/exercises?tab=maya_verbs"
+              onClick={() => soundEngine.playTileClick()}
+              className="flex items-center gap-4 overflow-hidden rounded-3xl bg-gradient-to-r from-rose-100 via-amber-50 to-fuchsia-100 p-4 shadow-lg ring-1 ring-rose-200 hover:shadow-xl transition-all active:scale-98"
+            >
+              <img
+                src="/spanish/images/maya-verbs/hero.png"
+                alt="Майя и три цветных шарика окончаний"
+                className="h-20 w-20 shrink-0 rounded-2xl object-cover shadow-md"
+              />
+              <div>
+                <div className="text-xs font-black uppercase tracking-wide text-rose-600">Уроки глаголов Майи</div>
+                <div className="text-base sm:text-lg font-black text-slate-900">Хвостики глаголов: vos jugás, él come</div>
+                <div className="text-xs text-slate-600 mt-0.5">Картинки, видео и разбор аргентинских окончаний глаголов.</div>
+              </div>
+            </Link>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[

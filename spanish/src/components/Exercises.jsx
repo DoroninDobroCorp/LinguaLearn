@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Brain } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useProfile } from '../contexts/ProfileContext';
+import { getActiveProfileId } from '../utils/api';
 import { soundEngine } from '../utils/soundEffects';
 
 import SentenceTranslationSection from './exercises/SentenceTranslationSection';
@@ -13,20 +15,25 @@ import SpeedMatchSection from './exercises/SpeedMatchSection';
 import ErrorDetectiveSection from './exercises/ErrorDetectiveSection';
 import CognateBridgesSection from './exercises/CognateBridgesSection';
 import NumbersPracticeSection from './exercises/NumbersPracticeSection';
+import MayaVerbLessonSection from './exercises/MayaVerbLessonSection';
+import MayaSentenceTrainerSection from './exercises/MayaSentenceTrainerSection';
 
-const VALID_EXERCISE_TABS = ['translation', 'numbers', 'demonstratives', 'classic_quiz', 'verb_drills', 'cognates', 'word_tiles', 'speed_match', 'error_detective'];
+const VALID_EXERCISE_TABS = ['translation', 'numbers', 'maya_sentences', 'maya_verbs', 'maya_pronouns', 'demonstratives', 'classic_quiz', 'verb_drills', 'cognates', 'word_tiles', 'speed_match', 'error_detective'];
 
 export default function Exercises() {
   const { t } = useLanguage();
+  const { profileId, activeProfile } = useProfile();
+  const isMaya = profileId === 9 || getActiveProfileId() === 9 || activeProfile?.name === 'Майя' || String(activeProfile?.name || '').toLowerCase() === 'maya';
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(() => {
     if (VALID_EXERCISE_TABS.includes(tabParam)) return tabParam;
+    if (getActiveProfileId() === 9) return 'maya_verbs';
     try {
       const saved = localStorage.getItem('lingua_spanish_exercise_tab');
       if (VALID_EXERCISE_TABS.includes(saved)) return saved;
     } catch {}
-    return 'translation';
+    return 'maya_verbs';
   });
   const recommendedMode = searchParams.get('mode') === 'recommended';
   const topicIds = (searchParams.get('topicIds') || '')
@@ -48,6 +55,9 @@ export default function Exercises() {
   }, [activeTab]);
 
   const tabs = [
+    { id: 'maya_sentences', label: '⭐ Предложения Майи (10 упр.)', emoji: '⭐' },
+    { id: 'maya_verbs', label: '🎈 Урок 1: vos (с видео)', emoji: '🎈' },
+    { id: 'maya_pronouns', label: '🇦🇷 Урок 2: местоимения (без видео)', emoji: '🇦🇷' },
     { id: 'translation', label: 'Перевод предложений', emoji: '🌐' },
     { id: 'numbers', label: 'Числа (1–1000)', emoji: '🔢' },
     { id: 'demonstratives', label: 'Указатели & Дистанция', emoji: '📍' },
@@ -103,12 +113,15 @@ export default function Exercises() {
 
       {activeTab === 'translation' && <SentenceTranslationSection />}
       {activeTab === 'numbers' && <NumbersPracticeSection />}
+      {activeTab === 'maya_sentences' && <MayaSentenceTrainerSection />}
+      {activeTab === 'maya_verbs' && <MayaVerbLessonSection initialVersion="vos" />}
+      {activeTab === 'maya_pronouns' && <MayaVerbLessonSection initialVersion="pronouns" />}
       {activeTab === 'demonstratives' && <DemonstrativesPracticeSection />}
       {activeTab === 'cognates' && <CognateBridgesSection />}
       {activeTab === 'word_tiles' && <WordTilesSection />}
       {activeTab === 'speed_match' && <SpeedMatchSection />}
       {activeTab === 'error_detective' && <ErrorDetectiveSection />}
-      {activeTab === 'verb_drills' && <VerbDrillsSection />}
+      {activeTab === 'verb_drills' && <VerbDrillsSection onSelectTab={setActiveTab} />}
       {activeTab === 'classic_quiz' && <ClassicQuizSection topicIds={topicIds} onSelectTab={setActiveTab} />}
     </div>
   );

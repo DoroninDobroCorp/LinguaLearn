@@ -30,7 +30,7 @@ const PRIMARY_DRILL_KEYS = [
   'regular',
 ];
 
-export default function VerbDrillsSection({ onTopicUpdated }) {
+export default function VerbDrillsSection({ onTopicUpdated, onSelectTab }) {
   const { t } = useLanguage();
   const [drillType, setDrillType] = useState(() => {
     try {
@@ -332,6 +332,39 @@ export default function VerbDrillsSection({ onTopicUpdated }) {
 
   return (
     <div className="max-w-3xl mx-auto glass-card rounded-3xl p-6 sm:p-10 shadow-2xl border border-purple-100 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 animate-fadeIn">
+      {onSelectTab && (
+        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-rose-100 via-amber-50 to-fuchsia-100 border border-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🎈</span>
+            <div>
+              <div className="font-black text-sm text-slate-900">Детские уроки для Майи: Хвостики правильных глаголов</div>
+              <div className="text-xs text-slate-700">Часть 1 (vos + видео) и Часть 2 (все местоимения Аргентины без видео).</div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playTileClick();
+                onSelectTab('maya_verbs');
+              }}
+              className="px-3.5 py-2 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-black text-xs whitespace-nowrap shadow cursor-pointer"
+            >
+              🎈 Часть 1: vos
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playTileClick();
+                onSelectTab('maya_pronouns');
+              }}
+              className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs whitespace-nowrap shadow cursor-pointer"
+            >
+              🇦🇷 Часть 2: Местоимения
+            </button>
+          </div>
+        </div>
+      )}
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-purple-100 dark:border-gray-700 pb-4 mb-6 gap-3">
         <div>
