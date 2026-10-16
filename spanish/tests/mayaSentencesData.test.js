@@ -94,17 +94,17 @@ describe('Maya Regular Verbs Practice Dataset', () => {
   });
 
   it('verifies student answers flexibly (accents, punctuation, case, vos/tú)', () => {
-    const s1 = EXERCISES_ES_TO_RU[0].sentences[0]; // "Yo dibujo una casa linda con jardín." -> "Я рисую красивый дом с садом."
-    assert.equal(isMayaSentenceAnswerCorrect('Я рисую красивый дом с садом.', s1), true);
-    assert.equal(isMayaSentenceAnswerCorrect('я рисую красивый дом с садом', s1), true);
-    assert.equal(isMayaSentenceAnswerCorrect('Я рисую красивый домик с садом', s1), true);
+    const s1 = EXERCISES_ES_TO_RU[0].sentences[0]; // "Yo dibujo una casa linda con el lápiz negro." -> "Я рисую красивый дом чёрным карандашом."
+    assert.equal(isMayaSentenceAnswerCorrect('Я рисую красивый дом чёрным карандашом.', s1), true);
+    assert.equal(isMayaSentenceAnswerCorrect('я рисую красивый дом черным карандашом', s1), true);
+    assert.equal(isMayaSentenceAnswerCorrect('Я рисую красивый домик чёрным карандашом', s1), true);
     assert.equal(isMayaSentenceAnswerCorrect('я ем суп', s1), false);
 
-    const s2 = EXERCISES_RU_TO_ES[0].sentences[1]; // "Ты рисуешь красивый замок с башенками." -> "Vos dibujás un castillo lindo con torres."
-    assert.equal(isMayaSentenceAnswerCorrect('Vos dibujás un castillo lindo con torres', s2), true);
-    assert.equal(isMayaSentenceAnswerCorrect('vos dibujas un castillo lindo con torres', s2), true);
-    assert.equal(isMayaSentenceAnswerCorrect('Tú dibujas un castillo lindo con torres', s2), true);
-    assert.equal(isMayaSentenceAnswerCorrect('dibujás un castillo lindo con torres', s2), true);
+    const s2 = EXERCISES_RU_TO_ES[0].sentences[1]; // "Ты рисуешь белого кота в книге." -> "Vos dibujás un gato blanco en el libro."
+    assert.equal(isMayaSentenceAnswerCorrect('Vos dibujás un gato blanco en el libro', s2), true);
+    assert.equal(isMayaSentenceAnswerCorrect('vos dibujas un gato blanco en el libro', s2), true);
+    assert.equal(isMayaSentenceAnswerCorrect('Tú dibujas un gato blanco en el libro', s2), true);
+    assert.equal(isMayaSentenceAnswerCorrect('dibujás un gato blanco en el libro', s2), true);
   });
 
   it('generates clickable word tiles with distractors', () => {

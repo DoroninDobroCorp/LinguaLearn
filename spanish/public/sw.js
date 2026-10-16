@@ -1,4 +1,4 @@
-const CACHE_VERSION = "spanish-pwa-v13-offline-bulletproof-1792017816911";
+const CACHE_VERSION = "spanish-pwa-v13-offline-bulletproof-1792116794885";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 
@@ -16,7 +16,7 @@ const PRECACHE_ASSETS = [
   "/spanish/pwa-192.png",
   "/spanish/pwa-512.png",
   "/spanish/a1_first_18_offline_pack_100.json",
-  "/spanish/assets/index-BeW1tWxr.js",
+  "/spanish/assets/index-C3MNWrkW.js",
   "/spanish/assets/index-b4oDDwtP.css"
 ];
 

@@ -1,11 +1,18 @@
 // Practice sentences dataset for Maya
-// 5 exercises x 20 sentences for ES -> RU (100 sentences)
-// 5 exercises x 20 sentences for RU -> ES (100 sentences)
+// Tailored strictly to Maya's 100-word curriculum and regular verb endings
 // Total 200 unique sentences focusing on regular verbs and Maya's vocabulary
 
 export const MAYA_REGULAR_VERBS_LIST = [
-  'dibujar', 'pintar', 'comer', 'correr', 'escuchar',
-  'mirar', 'comprar', 'saltar', 'esperar', 'ayudar'
+  "dibujar",
+  "pintar",
+  "comer",
+  "correr",
+  "escuchar",
+  "mirar",
+  "comprar",
+  "saltar",
+  "esperar",
+  "ayudar"
 ];
 
 export const EXERCISES_ES_TO_RU = [
@@ -21,17 +28,20 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "dibujar",
         "verbForm": "dibujo",
         "verbPerson": "yo",
-        "spanish": "Yo dibujo una casa linda con jardín.",
-        "russian": "Я рисую красивый дом с садом.",
+        "spanish": "Yo dibujo una casa linda con el lápiz negro.",
+        "russian": "Я рисую красивый дом чёрным карандашом.",
         "acceptedAnswers": [
-          "Я рисую красивый дом с садом",
-          "Я рисую милый дом с садом",
-          "Я рисую красивый домик с садом"
+          "Я рисую красивый дом чёрным карандашом",
+          "Я рисую красивый дом черным карандашом",
+          "Я рисую милый дом чёрным карандашом",
+          "Я рисую милый дом черным карандашом",
+          "Я рисую красивый домик чёрным карандашом"
         ],
-        "hint": "dibujar = рисовать • yo dibujo = я рисую",
+        "hint": "dibujar = рисовать • yo dibujo = я рисую • la casa = дом • el lápiz = карандаш • negro = чёрный",
         "distractors": [
-          "ты",
-          "кошку"
+          "vos",
+          "perro",
+          "azul"
         ]
       },
       {
@@ -46,49 +56,15 @@ export const EXERCISES_ES_TO_RU = [
           "Ты рисуешь маленькую кошку в тетради",
           "Ты рисуешь котика в тетради"
         ],
-        "hint": "dibujar = рисовать • vos dibujás = ты рисуешь",
+        "hint": "dibujar = рисовать • vos dibujás = ты рисуешь • el gato = кот • chiquito = маленький • el cuaderno = тетрадь",
         "distractors": [
-          "я",
-          "собаку"
+          "yo",
+          "mesa",
+          "grande"
         ]
       },
       {
         "id": "es_ru_1_03",
-        "verb": "comer",
-        "verbForm": "como",
-        "verbPerson": "yo",
-        "spanish": "Yo como pan fresco con queso.",
-        "russian": "Я ем свежий хлеб с сыром.",
-        "acceptedAnswers": [
-          "Я ем свежий хлеб с сыром",
-          "Я кушаю свежий хлеб с сыром"
-        ],
-        "hint": "comer = кушать/есть • yo como = я ем",
-        "distractors": [
-          "ты",
-          "молоко"
-        ]
-      },
-      {
-        "id": "es_ru_1_04",
-        "verb": "comer",
-        "verbForm": "comés",
-        "verbPerson": "vos",
-        "spanish": "Vos comés una manzana dulce y roja.",
-        "russian": "Ты ешь сладкое красное яблоко.",
-        "acceptedAnswers": [
-          "Ты ешь сладкое красное яблоко",
-          "Ты кушаешь сладкое красное яблоко",
-          "Ты ешь красное сладкое яблоко"
-        ],
-        "hint": "comer = кушать • vos comés = ты ешь",
-        "distractors": [
-          "я",
-          "банан"
-        ]
-      },
-      {
-        "id": "es_ru_1_05",
         "verb": "pintar",
         "verbForm": "pinto",
         "verbPerson": "yo",
@@ -101,28 +77,68 @@ export const EXERCISES_ES_TO_RU = [
           "Я рисую солнце желтым цветом",
           "Я крашу солнце в жёлтый цвет"
         ],
-        "hint": "pintar = раскрашивать • yo pinto = я раскрашиваю",
+        "hint": "pintar = раскрашивать • yo pinto = я раскрашиваю • el sol = солнце • amarillo = жёлтый",
         "distractors": [
-          "ты",
-          "синий"
+          "vos",
+          "rojo",
+          "noche"
+        ]
+      },
+      {
+        "id": "es_ru_1_04",
+        "verb": "pintar",
+        "verbForm": "pintás",
+        "verbPerson": "vos",
+        "spanish": "Vos pintás una manzana roja en el libro.",
+        "russian": "Ты раскрашиваешь красное яблоко в книге.",
+        "acceptedAnswers": [
+          "Ты раскрашиваешь красное яблоко в книге",
+          "Ты красишь красное яблоко в книге",
+          "Ты рисуешь красное яблоко в книге"
+        ],
+        "hint": "pintar = раскрашивать • vos pintás = ты раскрашиваешь • la manzana = яблоко • el libro = книга • rojo = красный",
+        "distractors": [
+          "yo",
+          "pan",
+          "verde"
+        ]
+      },
+      {
+        "id": "es_ru_1_05",
+        "verb": "comer",
+        "verbForm": "como",
+        "verbPerson": "yo",
+        "spanish": "Yo como pan con queso en la mesa.",
+        "russian": "Я ем хлеб с сыром за столом.",
+        "acceptedAnswers": [
+          "Я ем хлеб с сыром за столом",
+          "Я кушаю хлеб с сыром за столом",
+          "Я ем хлеб с сыром на столе"
+        ],
+        "hint": "comer = есть/кушать • yo como = я ем • el pan = хлеб • el queso = сыр • la mesa = стол",
+        "distractors": [
+          "vos",
+          "leche",
+          "silla"
         ]
       },
       {
         "id": "es_ru_1_06",
-        "verb": "pintar",
-        "verbForm": "pintás",
+        "verb": "comer",
+        "verbForm": "comés",
         "verbPerson": "vos",
-        "spanish": "Vos pintás una flor roja con témperas.",
-        "russian": "Ты раскрашиваешь красный цветок красками.",
+        "spanish": "Vos comés galletitas ricas con leche.",
+        "russian": "Ты ешь вкусное печенье с молоком.",
         "acceptedAnswers": [
-          "Ты раскрашиваешь красный цветок красками",
-          "Ты красишь красный цветок красками",
-          "Ты рисуешь красный цветок красками"
+          "Ты ешь вкусное печенье с молоком",
+          "Ты кушаешь вкусное печенье с молоком",
+          "Ты ешь вкусные печеньки с молоком"
         ],
-        "hint": "pintar = раскрашивать • vos pintás = ты раскрашиваешь",
+        "hint": "comer = есть • vos comés = ты ешь • las galletitas = печенье • la leche = молоко • rico = вкусный",
         "distractors": [
-          "он",
-          "карандашом"
+          "yo",
+          "agua",
+          "manzana"
         ]
       },
       {
@@ -138,10 +154,11 @@ export const EXERCISES_ES_TO_RU = [
           "Я быстро бегаю в большом парке",
           "Я быстро бегу в большом парке"
         ],
-        "hint": "correr = бегать • yo corro = я бегаю",
+        "hint": "correr = бегать • yo corro = я бегаю • rápido = быстро • la plaza = площадка/парк • grande = большой",
         "distractors": [
-          "медленно",
-          "прыгаю"
+          "vos",
+          "despacio",
+          "auto"
         ]
       },
       {
@@ -149,18 +166,19 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "correr",
         "verbForm": "corrés",
         "verbPerson": "vos",
-        "spanish": "Vos corrés con el perro negro.",
-        "russian": "Ты бегаешь с чёрной собакой.",
+        "spanish": "Vos corrés despacio con el perro negro.",
+        "russian": "Ты медленно бегаешь с чёрной собакой.",
         "acceptedAnswers": [
-          "Ты бегаешь с чёрной собакой",
-          "Ты бегаешь с черной собакой",
-          "Ты бежишь с чёрной собакой",
-          "Ты бежишь с черной собакой"
+          "Ты медленно бегаешь с чёрной собакой",
+          "Ты медленно бегаешь с черной собакой",
+          "Ты медленно бежишь с чёрной собакой",
+          "Ты медленно бежишь с черной собакой"
         ],
-        "hint": "correr = бегать • vos corrés = ты бегаешь",
+        "hint": "correr = бегать • vos corrés = ты бегаешь • despacio = медленно • el perro = собака • negro = чёрный",
         "distractors": [
-          "белым",
-          "котом"
+          "yo",
+          "gato",
+          "blanco"
         ]
       },
       {
@@ -168,16 +186,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "escuchar",
         "verbForm": "escucho",
         "verbPerson": "yo",
-        "spanish": "Yo escucho a la seño en la escuela.",
-        "russian": "Я слушаю учительницу в школе.",
+        "spanish": "Yo escucho a la seño en el recreo.",
+        "russian": "Я слушаю учительницу на перемене.",
         "acceptedAnswers": [
-          "Я слушаю учительницу в школе",
-          "Я слушаю учительницу на уроке"
+          "Я слушаю учительницу на перемене",
+          "Я слушаю учительницу во время перемены"
         ],
-        "hint": "escuchar = слушать • yo escucho = я слушаю",
+        "hint": "escuchar = слушать • yo escucho = я слушаю • la seño = учительница • el recreo = перемена",
         "distractors": [
-          "смотрю",
-          "маму"
+          "vos",
+          "mamá",
+          "amigo"
         ]
       },
       {
@@ -189,12 +208,13 @@ export const EXERCISES_ES_TO_RU = [
         "russian": "Ты слушаешь дождь за окном.",
         "acceptedAnswers": [
           "Ты слушаешь дождь за окном",
-          "Ты слушаешь дождь в окне"
+          "Ты слушаешь дождь в окно"
         ],
-        "hint": "escuchar = слушать • vos escuchás = ты слушаешь",
+        "hint": "escuchar = слушать • vos escuchás = ты слушаешь • la lluvia = дождь • la ventana = окно",
         "distractors": [
-          "ветер",
-          "смотришь"
+          "yo",
+          "sol",
+          "puerta"
         ]
       },
       {
@@ -202,16 +222,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "mirar",
         "verbForm": "miro",
         "verbPerson": "yo",
-        "spanish": "Yo miro el cielo azul por la mañana.",
-        "russian": "Я смотрю на синее небо утром.",
+        "spanish": "Yo miro los colores lindos en el cuaderno.",
+        "russian": "Я смотрю на красивые цвета в тетради.",
         "acceptedAnswers": [
-          "Я смотрю на синее небо утром",
-          "Я смотрю в синее небо утром"
+          "Я смотрю на красивые цвета в тетради",
+          "Я смотрю на милые цвета в тетради"
         ],
-        "hint": "mirar = смотреть • yo miro = я смотрю",
+        "hint": "mirar = смотреть • yo miro = я смотрю • los colores = цвета • lindo = красивый • el cuaderno = тетрадь",
         "distractors": [
-          "вечером",
-          "ночь"
+          "vos",
+          "libro",
+          "lápiz"
         ]
       },
       {
@@ -219,16 +240,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "mirar",
         "verbForm": "mirás",
         "verbPerson": "vos",
-        "spanish": "Vos mirás los colores lindos del libro.",
-        "russian": "Ты смотришь на красивые цвета книги.",
+        "spanish": "Vos mirás el auto azul de papá.",
+        "russian": "Ты смотришь на синюю машину папы.",
         "acceptedAnswers": [
-          "Ты смотришь на красивые цвета книги",
-          "Ты разглядываешь красивые цвета книги"
+          "Ты смотришь на синюю машину папы",
+          "Ты смотришь на синий автомобиль папы"
         ],
-        "hint": "mirar = смотреть • vos mirás = ты смотришь",
+        "hint": "mirar = смотреть • vos mirás = ты смотришь • el auto = машина • azul = синий • el papá = папа",
         "distractors": [
-          "слушаешь",
-          "тетради"
+          "yo",
+          "rojo",
+          "mamá"
         ]
       },
       {
@@ -240,12 +262,13 @@ export const EXERCISES_ES_TO_RU = [
         "russian": "Я покупаю вкусное шоколадное мороженое.",
         "acceptedAnswers": [
           "Я покупаю вкусное шоколадное мороженое",
-          "Я беру вкусное шоколадное мороженое"
+          "Я покупаю вкусное мороженое с шоколадом"
         ],
-        "hint": "comprar = покупать • yo compro = я покупаю",
+        "hint": "comprar = покупать • yo compro = я покупаю • el helado = мороженое • el chocolate = шоколад • rico = вкусный",
         "distractors": [
-          "продаю",
-          "сок"
+          "vos",
+          "alfajor",
+          "leche"
         ]
       },
       {
@@ -257,12 +280,13 @@ export const EXERCISES_ES_TO_RU = [
         "russian": "Ты покупаешь альфахор в киоске.",
         "acceptedAnswers": [
           "Ты покупаешь альфахор в киоске",
-          "Ты берешь альфахор в киоске"
+          "Ты покупаешь печенье в киоске"
         ],
-        "hint": "comprar = покупать • vos comprás = ты покупаешь",
+        "hint": "comprar = покупать • vos comprás = ты покупаешь • el alfajor = альфахор • el quiosco = киоск",
         "distractors": [
-          "печенье",
-          "магазине"
+          "yo",
+          "pizza",
+          "pan"
         ]
       },
       {
@@ -270,17 +294,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "saltar",
         "verbForm": "salto",
         "verbPerson": "yo",
-        "spanish": "Yo salto alto en el tobogán verde.",
-        "russian": "Я высоко прыгаю на зелёной горке.",
+        "spanish": "Yo salto muy feliz en la plaza.",
+        "russian": "Я очень радостно прыгаю на площадке.",
         "acceptedAnswers": [
-          "Я высоко прыгаю на зелёной горке",
-          "Я высоко прыгаю на зеленой горке",
-          "Я прыгаю высоко на зелёной горке"
+          "Я очень радостно прыгаю на площадке",
+          "Я очень счастливо прыгаю на площадке",
+          "Я очень радостно прыгаю в парке"
         ],
-        "hint": "saltar = прыгать • yo salto = я прыгаю",
+        "hint": "saltar = прыгать • yo salto = я прыгаю • muy = очень • feliz = счастливый/радостный • la plaza = площадка",
         "distractors": [
-          "падаю",
-          "синей"
+          "vos",
+          "cansada",
+          "casa"
         ]
       },
       {
@@ -288,16 +313,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "saltar",
         "verbForm": "saltás",
         "verbPerson": "vos",
-        "spanish": "Vos saltás a la soga en el recreo.",
-        "russian": "Ты прыгаешь через скакалку на перемене.",
+        "spanish": "Vos saltás en el tobogán verde.",
+        "russian": "Ты прыгаешь на зелёной горке.",
         "acceptedAnswers": [
-          "Ты прыгаешь через скакалку на перемене",
-          "Ты скачешь через скакалку на перемене"
+          "Ты прыгаешь на зелёной горке",
+          "Ты прыгаешь на зеленой горке"
         ],
-        "hint": "saltar = прыгать • vos saltás = ты прыгаешь",
+        "hint": "saltar = прыгать • vos saltás = ты прыгаешь • el tobogán = горка • verde = зелёный",
         "distractors": [
-          "бегаешь",
-          "уроке"
+          "yo",
+          "hamaca",
+          "azul"
         ]
       },
       {
@@ -309,12 +335,13 @@ export const EXERCISES_ES_TO_RU = [
         "russian": "Я жду свою очередь на качелях.",
         "acceptedAnswers": [
           "Я жду свою очередь на качелях",
-          "Я жду своей очереди на качелях"
+          "Я жду очередь на качелях"
         ],
-        "hint": "esperar = ждать • yo espero = я жду",
+        "hint": "esperar = ждать • yo espero = я жду • el turno = очередь • la hamaca = качели",
         "distractors": [
-          "пропускаю",
-          "горке"
+          "vos",
+          "tobogán",
+          "pelota"
         ]
       },
       {
@@ -322,17 +349,19 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "esperar",
         "verbForm": "esperás",
         "verbPerson": "vos",
-        "spanish": "Vos esperás el auto blanco de papá.",
-        "russian": "Ты ждёшь белую машину папы.",
+        "spanish": "Vos esperás en la puerta de la casa.",
+        "russian": "Ты ждёшь у двери дома.",
         "acceptedAnswers": [
-          "Ты ждёшь белую машину папы",
-          "Ты ждешь белую машину папы",
-          "Ты ждёшь белый автомобиль папы"
+          "Ты ждёшь у двери дома",
+          "Ты ждешь у двери дома",
+          "Ты ждёшь возле двери дома",
+          "Ты ждешь возле двери дома"
         ],
-        "hint": "esperar = ждать • vos esperás = ты ждёшь",
+        "hint": "esperar = ждать • vos esperás = ты ждёшь • la puerta = дверь • la casa = дом",
         "distractors": [
-          "мамы",
-          "чёрную"
+          "yo",
+          "ventana",
+          "mesa"
         ]
       },
       {
@@ -340,16 +369,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "ayudar",
         "verbForm": "ayudo",
         "verbPerson": "yo",
-        "spanish": "Yo ayudo a mamá a poner la mesa.",
-        "russian": "Я помогаю маме накрывать на стол.",
+        "spanish": "Yo ayudo a mamá con la merienda.",
+        "russian": "Я помогаю маме с полдником.",
         "acceptedAnswers": [
-          "Я помогаю маме накрывать на стол",
-          "Я помогаю маме накрыть на стол"
+          "Я помогаю маме с полдником",
+          "Я помогаю маме готовить полдник"
         ],
-        "hint": "ayudar = помогать • yo ayudo = я помогаю",
+        "hint": "ayudar = помогать • yo ayudo = я помогаю • la mamá = мама • la merienda = полдник",
         "distractors": [
-          "мешаю",
-          "папе"
+          "vos",
+          "papá",
+          "abuelo"
         ]
       },
       {
@@ -357,17 +387,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "ayudar",
         "verbForm": "ayudás",
         "verbPerson": "vos",
-        "spanish": "Vos ayudás al hermano chiquito con la tarea.",
-        "russian": "Ты помогаешь маленькому брату с уроками.",
+        "spanish": "Vos ayudás al hermano chiquito con la mochila.",
+        "russian": "Ты помогаешь маленькому брату с рюкзаком.",
         "acceptedAnswers": [
-          "Ты помогаешь маленькому брату с уроками",
-          "Ты помогаешь младшему брату с заданием",
-          "Ты помогаешь маленькому брату с домашкой"
+          "Ты помогаешь маленькому брату с рюкзаком",
+          "Ты помогаешь младшему брату с рюкзаком"
         ],
-        "hint": "ayudar = помогать • vos ayudás = ты помогаешь",
+        "hint": "ayudar = помогать • vos ayudás = ты помогаешь • el hermano = брат • chiquito = маленький • la mochila = рюкзак",
         "distractors": [
-          "сестре",
-          "большому"
+          "yo",
+          "hermana",
+          "cuaderno"
         ]
       }
     ]
@@ -375,8 +405,8 @@ export const EXERCISES_ES_TO_RU = [
   {
     "id": 2,
     "title": "Упр. 2: Он, она и семья (él, ella)",
-    "shortTitle": "2. Семья и друзья",
-    "description": "Формы 3-го лица: él, ella, la mamá, el papá (хвостики -a, -e)",
+    "shortTitle": "2. Он и она",
+    "description": "Переводим формы третьего лица (dibuja, come, corre)",
     "icon": "👨‍👩‍👧",
     "sentences": [
       {
@@ -384,16 +414,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "dibujar",
         "verbForm": "dibuja",
         "verbPerson": "él",
-        "spanish": "El hermano dibuja un barco grande en el papel.",
-        "russian": "Брат рисует большой корабль на бумаге.",
+        "spanish": "El hermano dibuja un perro blanco en la mesa.",
+        "russian": "Брат рисует белую собаку за столом.",
         "acceptedAnswers": [
-          "Брат рисует большой корабль на бумаге",
-          "Мой брат рисует большой корабль на бумаге"
+          "Брат рисует белую собаку за столом",
+          "Брат рисует белого пса за столом",
+          "Брат рисует белую собачку за столом"
         ],
-        "hint": "dibujar • él dibuja = он рисует",
+        "hint": "dibujar = рисовать • él dibuja = он рисует • el hermano = брат • el perro = собака • blanco = белый",
         "distractors": [
-          "сестра",
-          "маленький"
+          "hermana",
+          "gato",
+          "negro"
         ]
       },
       {
@@ -401,16 +433,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "dibujar",
         "verbForm": "dibuja",
         "verbPerson": "ella",
-        "spanish": "Maya dibuja una muñeca linda con vestido rosa.",
-        "russian": "Майя рисует красивую куклу в розовом платье.",
+        "spanish": "Maya dibuja una pelota linda en el cuaderno.",
+        "russian": "Майя рисует красивый мяч в тетради.",
         "acceptedAnswers": [
-          "Майя рисует красивую куклу в розовом платье",
-          "Майя рисует милую куклу в розовом платье"
+          "Майя рисует красивый мяч в тетради",
+          "Майя рисует милый мячик в тетради",
+          "Майя рисует красивый мячик в тетради"
         ],
-        "hint": "dibujar • Maya dibuja = Майя рисует",
+        "hint": "dibujar = рисовать • Maya dibuja = Майя рисует • la pelota = мяч • lindo = красивый • el cuaderno = тетрадь",
         "distractors": [
-          "красит",
-          "синем"
+          "mamá",
+          "casa",
+          "rojo"
         ]
       },
       {
@@ -418,16 +452,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "pintar",
         "verbForm": "pinta",
         "verbPerson": "él",
-        "spanish": "El papá pinta la silla de madera.",
-        "russian": "Папа красит деревянный стул.",
+        "spanish": "El papá pinta la silla de color verde.",
+        "russian": "Папа красит стул в зелёный цвет.",
         "acceptedAnswers": [
-          "Папа красит деревянный стул",
-          "Папа раскрашивает деревянный стул"
+          "Папа красит стул в зелёный цвет",
+          "Папа красит стул в зеленый цвет",
+          "Папа раскрашивает стул в зелёный цвет"
         ],
-        "hint": "pintar • él pinta = он красит",
+        "hint": "pintar = красить • el papá pinta = папа красит • la silla = стул • verde = зелёный",
         "distractors": [
-          "стол",
-          "ломает"
+          "abuelo",
+          "mesa",
+          "azul"
         ]
       },
       {
@@ -435,17 +471,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "pintar",
         "verbForm": "pinta",
         "verbPerson": "ella",
-        "spanish": "La hermana pinta mariposas amarillas en la pared.",
-        "russian": "Сестра рисует жёлтых бабочек на стене.",
+        "spanish": "La hermana pinta una casa grande en el libro.",
+        "russian": "Сестра раскрашивает большой дом в книге.",
         "acceptedAnswers": [
-          "Сестра рисует жёлтых бабочек на стене",
-          "Сестра рисует желтых бабочек на стене",
-          "Сестра раскрашивает жёлтых бабочек на стене"
+          "Сестра раскрашивает большой дом в книге",
+          "Сестра рисует большой дом в книге",
+          "Сестра красит большой дом в книге"
         ],
-        "hint": "pintar • ella pinta = она рисует/раскрашивает",
+        "hint": "pintar = раскрашивать • la hermana pinta = сестра раскрашивает • la casa = дом • grande = большой",
         "distractors": [
-          "брат",
-          "синих"
+          "amiga",
+          "cuaderno",
+          "chiquito"
         ]
       },
       {
@@ -453,17 +490,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comer",
         "verbForm": "come",
         "verbPerson": "él",
-        "spanish": "El abuelo come medialunas dulces con té caliente.",
-        "russian": "Дедушка ест сладкие круассаны с горячим чаем.",
+        "spanish": "El abuelo come medialunas ricas con leche.",
+        "russian": "Дедушка ест вкусные медиалуны с молоком.",
         "acceptedAnswers": [
-          "Дедушка ест сладкие круассаны с горячим чаем",
-          "Дедушка кушает сладкие медиалуны с чаем",
-          "Дедушка ест сладкие медиалуны с чаем"
+          "Дедушка ест вкусные медиалуны с молоком",
+          "Дедушка кушает вкусные медиалуны с молоком",
+          "Дедушка ест вкусные круассаны с молоком"
         ],
-        "hint": "comer • él come = он ест",
+        "hint": "comer = есть • el abuelo come = дедушка ест • la medialuna = круассан • rico = вкусный • la leche = молоко",
         "distractors": [
-          "бабушка",
-          "кофе"
+          "papá",
+          "pan",
+          "agua"
         ]
       },
       {
@@ -471,17 +509,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comer",
         "verbForm": "come",
         "verbPerson": "ella",
-        "spanish": "La mamá come una ensalada rica al mediodía.",
-        "russian": "Мама ест вкусный салат в полдень.",
+        "spanish": "La mamá come una manzana roja en la mesa.",
+        "russian": "Мама ест красное яблоко за столом.",
         "acceptedAnswers": [
-          "Мама ест вкусный салат в полдень",
-          "Мама кушает вкусный салат днём",
-          "Мама ест вкусный салат днем"
+          "Мама ест красное яблоко за столом",
+          "Мама кушает красное яблоко за столом"
         ],
-        "hint": "comer • ella come = она ест",
+        "hint": "comer = есть • la mamá come = мама ест • la manzana = яблоко • rojo = красный • la mesa = стол",
         "distractors": [
-          "папа",
-          "суп"
+          "abuela",
+          "banana",
+          "silla"
         ]
       },
       {
@@ -489,16 +527,19 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "correr",
         "verbForm": "corre",
         "verbPerson": "él",
-        "spanish": "El amigo corre con la pelota en el patio.",
-        "russian": "Друг бегает с мячом во дворе.",
+        "spanish": "El perro corre rápido con la pelota.",
+        "russian": "Собака быстро бегает с мячом.",
         "acceptedAnswers": [
-          "Друг бегает с мячом во дворе",
-          "Друг бежит с мячом во дворе"
+          "Собака быстро бегает с мячом",
+          "Собака быстро бежит с мячом",
+          "Пёс быстро бегает с мячом",
+          "Пес быстро бежит с мячом"
         ],
-        "hint": "correr • él corre = он бегает",
+        "hint": "correr = бегать • el perro corre = собака бегает • rápido = быстро • la pelota = мяч",
         "distractors": [
-          "подруга",
-          "собакой"
+          "gato",
+          "despacio",
+          "auto"
         ]
       },
       {
@@ -506,16 +547,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "correr",
         "verbForm": "corre",
         "verbPerson": "ella",
-        "spanish": "La amiga corre feliz hacia la puerta.",
+        "spanish": "La amiga corre feliz a la puerta.",
         "russian": "Подруга радостно бежит к двери.",
         "acceptedAnswers": [
           "Подруга радостно бежит к двери",
-          "Подруга счастливо бежит к двери"
+          "Подруга счастливо бежит к двери",
+          "Подружка радостно бежит к двери"
         ],
-        "hint": "correr • ella corre = она бежит",
+        "hint": "correr = бежать • la amiga corre = подруга бежит • feliz = радостный • la puerta = дверь",
         "distractors": [
-          "грустно",
-          "окну"
+          "amigo",
+          "ventana",
+          "cansada"
         ]
       },
       {
@@ -523,15 +566,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "escuchar",
         "verbForm": "escucha",
         "verbPerson": "él",
-        "spanish": "Él escucha la radio en la cocina.",
-        "russian": "Он слушает радио на кухне.",
+        "spanish": "Él escucha a la seño con el hermano.",
+        "russian": "Он слушает учительницу вместе с братом.",
         "acceptedAnswers": [
-          "Он слушает радио на кухне"
+          "Он слушает учительницу вместе с братом",
+          "Он слушает учительницу с братом"
         ],
-        "hint": "escuchar • él escucha = он слушает",
+        "hint": "escuchar = слушать • él escucha = он слушает • la seño = учительница • el hermano = брат",
         "distractors": [
-          "она",
-          "телевизор"
+          "ella",
+          "papá",
+          "amigo"
         ]
       },
       {
@@ -539,16 +584,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "escuchar",
         "verbForm": "escucha",
         "verbPerson": "ella",
-        "spanish": "La abuela escucha canciones suaves en la sala.",
-        "russian": "Бабушка слушает спокойные песни в гостиной.",
+        "spanish": "La abuela escucha la lluvia en la noche.",
+        "russian": "Бабушка слушает дождь ночью.",
         "acceptedAnswers": [
-          "Бабушка слушает спокойные песни в гостиной",
-          "Бабушка слушает нежные песни в зале"
+          "Бабушка слушает дождь ночью",
+          "Бабушка слушает дождь в ночи"
         ],
-        "hint": "escuchar • ella escucha = она слушает",
+        "hint": "escuchar = слушать • la abuela escucha = бабушка слушает • la lluvia = дождь • la noche = ночь",
         "distractors": [
-          "дедушка",
-          "громкие"
+          "mamá",
+          "sol",
+          "día"
         ]
       },
       {
@@ -556,16 +602,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "mirar",
         "verbForm": "mira",
         "verbPerson": "él",
-        "spanish": "El gato mira un pajarito desde la ventana.",
-        "russian": "Кот смотрит на птичку из окна.",
+        "spanish": "El gato mira por la ventana grande.",
+        "russian": "Кот смотрит в большое окно.",
         "acceptedAnswers": [
-          "Кот смотрит на птичку из окна",
-          "Кошка смотрит на птичку из окна"
+          "Кот смотрит в большое окно",
+          "Кошка смотрит в большое окно",
+          "Кот смотрит из большого окна"
         ],
-        "hint": "mirar • él mira = он смотрит",
+        "hint": "mirar = смотреть • el gato mira = кот смотрит • la ventana = окно • grande = большой",
         "distractors": [
-          "собака",
-          "двери"
+          "perro",
+          "puerta",
+          "chiquito"
         ]
       },
       {
@@ -573,16 +621,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "mirar",
         "verbForm": "mira",
         "verbPerson": "ella",
-        "spanish": "Ella mira las fotos viejas con una sonrisa.",
-        "russian": "Она смотрит старые фотографии с улыбкой.",
+        "spanish": "Ella mira los libros lindos en la mesa.",
+        "russian": "Она смотрит на красивые книги на столе.",
         "acceptedAnswers": [
-          "Она смотрит старые фотографии с улыбкой",
-          "Она разглядывает старые фото с улыбкой"
+          "Она смотрит на красивые книги на столе",
+          "Она смотрит на милые книги на столе"
         ],
-        "hint": "mirar • ella mira = она смотрит",
+        "hint": "mirar = смотреть • ella mira = она смотрит • los libros = книги • lindo = красивый • la mesa = стол",
         "distractors": [
-          "он",
-          "книги"
+          "él",
+          "cuadernos",
+          "silla"
         ]
       },
       {
@@ -590,16 +639,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comprar",
         "verbForm": "compra",
         "verbPerson": "él",
-        "spanish": "El papá compra jugo de naranja natural.",
-        "russian": "Папа покупает натуральный апельсиновый сок.",
+        "spanish": "El papá compra jugo y pan en el quiosco.",
+        "russian": "Папа покупает сок и хлеб в киоске.",
         "acceptedAnswers": [
-          "Папа покупает натуральный апельсиновый сок",
-          "Папа покупает свежий апельсиновый сок"
+          "Папа покупает сок и хлеб в киоске",
+          "Папа покупает хлеб и сок в киоске"
         ],
-        "hint": "comprar • él compra = он покупает",
+        "hint": "comprar = покупать • el papá compra = папа покупает • el jugo = сок • el pan = хлеб • el quiosco = киоск",
         "distractors": [
-          "яблочный",
-          "мама"
+          "abuelo",
+          "leche",
+          "queso"
         ]
       },
       {
@@ -607,16 +657,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comprar",
         "verbForm": "compra",
         "verbPerson": "ella",
-        "spanish": "La mamá compra galletitas dulces para la merienda.",
-        "russian": "Мама покупает сладкое печенье на полдник.",
+        "spanish": "La mamá compra galletitas ricas para la merienda.",
+        "russian": "Мама покупает вкусное печенье на полдник.",
         "acceptedAnswers": [
-          "Мама покупает сладкое печенье на полдник",
-          "Мама берет сладкое печенье на полдник"
+          "Мама покупает вкусное печенье на полдник",
+          "Мама покупает вкусное печенье для полдника",
+          "Мама покупает вкусные печеньки на полдник"
         ],
-        "hint": "comprar • ella compra = она покупает",
+        "hint": "comprar = покупать • la mamá compra = мама покупает • las galletitas = печенье • la merienda = полдник",
         "distractors": [
-          "хлеб",
-          "завтрак"
+          "hermana",
+          "helado",
+          "recreo"
         ]
       },
       {
@@ -624,17 +676,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "saltar",
         "verbForm": "salta",
         "verbPerson": "él",
-        "spanish": "El nene salta en el pasto verde.",
-        "russian": "Мальчик прыгает на зелёной траве.",
+        "spanish": "El amigo salta en el tobogán con la pelota.",
+        "russian": "Друг прыгает на горке с мячом.",
         "acceptedAnswers": [
-          "Мальчик прыгает на зелёной траве",
-          "Мальчик прыгает на зеленой траве",
-          "Ребёнок прыгает на зелёной траве"
+          "Друг прыгает на горке с мячом",
+          "Друг прыгает на горке вместе с мячом"
         ],
-        "hint": "saltar • él salta = он прыгает",
+        "hint": "saltar = прыгать • el amigo salta = друг прыгает • el tobogán = горка • la pelota = мяч",
         "distractors": [
-          "девочка",
-          "бегает"
+          "hermano",
+          "hamaca",
+          "auto"
         ]
       },
       {
@@ -642,16 +694,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "saltar",
         "verbForm": "salta",
         "verbPerson": "ella",
-        "spanish": "La nena salta con alegría en la plaza.",
-        "russian": "Девочка с радостью прыгает на площадке.",
+        "spanish": "La hermana salta feliz en la plaza.",
+        "russian": "Сестра радостно прыгает на площадке.",
         "acceptedAnswers": [
-          "Девочка с радостью прыгает на площадке",
-          "Девочка радостно скачет на площадке"
+          "Сестра радостно прыгает на площадке",
+          "Сестра счастливо прыгает на площадке",
+          "Сестра радостно прыгает в парке"
         ],
-        "hint": "saltar • ella salta = она прыгает",
+        "hint": "saltar = прыгать • la hermana salta = сестра прыгает • feliz = счастливый/радостный • la plaza = площадка",
         "distractors": [
-          "плачет",
-          "дома"
+          "mamá",
+          "cansada",
+          "casa"
         ]
       },
       {
@@ -659,17 +713,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "esperar",
         "verbForm": "espera",
         "verbPerson": "él",
-        "spanish": "El abuelo espera sentado en el banco del parque.",
-        "russian": "Дедушка ждёт сидя на лавочке в парке.",
+        "spanish": "El abuelo espera el auto blanco de papá.",
+        "russian": "Дедушка ждёт белую машину папы.",
         "acceptedAnswers": [
-          "Дедушка ждёт сидя на лавочке в парке",
-          "Дедушка ждет сидя на лавочке в парке",
-          "Дедушка сидит и ждет на скамейке в парке"
+          "Дедушка ждёт белую машину папы",
+          "Дедушка ждет белую машину папы",
+          "Дедушка ждёт белый автомобиль папы"
         ],
-        "hint": "esperar • él espera = он ждёт",
+        "hint": "esperar = ждать • el abuelo espera = дедушка ждёт • el auto = машина • blanco = белый • el papá = папа",
         "distractors": [
-          "бабушка",
-          "стоит"
+          "hermano",
+          "azul",
+          "mamá"
         ]
       },
       {
@@ -677,17 +732,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "esperar",
         "verbForm": "espera",
         "verbPerson": "ella",
-        "spanish": "La seño espera a los chicos en la puerta del aula.",
-        "russian": "Учительница ждёт ребят у двери класса.",
+        "spanish": "La seño espera en la puerta en el recreo.",
+        "russian": "Учительница ждёт у двери на перемене.",
         "acceptedAnswers": [
-          "Учительница ждёт ребят у двери класса",
-          "Учительница ждет ребят у двери класса",
-          "Учительница ждет детей у двери класса"
+          "Учительница ждёт у двери на перемене",
+          "Учительница ждет у двери на перемене"
         ],
-        "hint": "esperar • ella espera = она ждёт",
+        "hint": "esperar = ждать • la seño espera = учительница ждёт • la puerta = дверь • el recreo = перемена",
         "distractors": [
-          "мама",
-          "окна"
+          "abuela",
+          "ventana",
+          "merienda"
         ]
       },
       {
@@ -695,16 +750,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "ayudar",
         "verbForm": "ayuda",
         "verbPerson": "él",
-        "spanish": "El hermano ayuda a papá a lavar el auto.",
-        "russian": "Брат помогает папе мыть машину.",
+        "spanish": "El hermano ayuda a papá con el auto.",
+        "russian": "Брат помогает папе с машиной.",
         "acceptedAnswers": [
-          "Брат помогает папе мыть машину",
-          "Брат помогает папе помыть автомобиль"
+          "Брат помогает папе с машиной",
+          "Брат помогает папе с автомобилем"
         ],
-        "hint": "ayudar • él ayuda = он помогает",
+        "hint": "ayudar = помогать • el hermano ayuda = брат помогает • el papá = папа • el auto = машина",
         "distractors": [
-          "сестра",
-          "чинить"
+          "amigo",
+          "abuelo",
+          "mesa"
         ]
       },
       {
@@ -712,16 +768,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "ayudar",
         "verbForm": "ayuda",
         "verbPerson": "ella",
-        "spanish": "Maya ayuda a la abuela a regar las plantas.",
-        "russian": "Майя помогает бабушке поливать растения.",
+        "spanish": "Maya ayuda a la abuela en la mesa.",
+        "russian": "Майя помогает бабушке за столом.",
         "acceptedAnswers": [
-          "Майя помогает бабушке поливать растения",
-          "Майя помогает бабушке полить цветы"
+          "Майя помогает бабушке за столом",
+          "Майя помогает бабушке на столе"
         ],
-        "hint": "ayudar • ella ayuda = она помогает",
+        "hint": "ayudar = помогать • Maya ayuda = Майя помогает • la abuela = бабушка • la mesa = стол",
         "distractors": [
-          "дедушке",
-          "сажать"
+          "hermana",
+          "mamá",
+          "cama"
         ]
       }
     ]
@@ -730,7 +787,7 @@ export const EXERCISES_ES_TO_RU = [
     "id": 3,
     "title": "Упр. 3: Мы вместе (nosotros / nosotras)",
     "shortTitle": "3. Мы вместе",
-    "description": "Формы множественного числа первого лица (хвостики -amos, -emos)",
+    "description": "Отрабатываем формы первого лица множественного числа (-amos, -emos)",
     "icon": "🤝",
     "sentences": [
       {
@@ -738,15 +795,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "dibujar",
         "verbForm": "dibujamos",
         "verbPerson": "nosotros",
-        "spanish": "Nosotros dibujamos un mapa grande de la ciudad.",
-        "russian": "Мы рисуем большую карту города.",
+        "spanish": "Nosotros dibujamos una casa grande con lápices de colores.",
+        "russian": "Мы рисуем большой дом цветными карандашами.",
         "acceptedAnswers": [
-          "Мы рисуем большую карту города"
+          "Мы рисуем большой дом цветными карандашами",
+          "Мы рисуем большой дом карандашами разных цветов"
         ],
-        "hint": "dibujar • nosotros dibujamos = мы рисуем",
+        "hint": "dibujar = рисовать • dibujamos = мы рисуем • la casa = дом • grande = большой • los lápices = карандаши",
         "distractors": [
-          "они",
-          "маленькую"
+          "ellas",
+          "chiquito",
+          "goma"
         ]
       },
       {
@@ -754,17 +813,19 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "dibujar",
         "verbForm": "dibujamos",
         "verbPerson": "nosotras",
-        "spanish": "Nosotras dibujamos estrellas brillantes en el cuaderno.",
-        "russian": "Мы рисуем яркие звёзды в тетради.",
+        "spanish": "Nosotras dibujamos un gato lindo en el cuaderno.",
+        "russian": "Мы (девочки) рисуем красивого кота в тетради.",
         "acceptedAnswers": [
-          "Мы рисуем яркие звёзды в тетради",
-          "Мы рисуем яркие звезды в тетради",
-          "Мы (девочки) рисуем яркие звёзды в тетради"
+          "Мы (девочки) рисуем красивого кота в тетради",
+          "Мы рисуем красивого кота в тетради",
+          "Мы рисуем милого кота в тетради",
+          "Мы (девочки) рисуем милого котика в тетради"
         ],
-        "hint": "dibujar • nosotras dibujamos = мы рисуем",
+        "hint": "dibujar = рисовать • nosotras dibujamos = мы (девочки) рисуем • el gato = кот • el cuaderno = тетрадь",
         "distractors": [
-          "вы",
-          "цветы"
+          "ellos",
+          "perro",
+          "libro"
         ]
       },
       {
@@ -772,17 +833,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "pintar",
         "verbForm": "pintamos",
         "verbPerson": "nosotros",
-        "spanish": "Nosotros pintamos la casita del perro de color verde.",
-        "russian": "Мы красим будку собаки в зелёный цвет.",
+        "spanish": "Nosotros pintamos la mesa de color azul.",
+        "russian": "Мы красим стол в синий цвет.",
         "acceptedAnswers": [
-          "Мы красим будку собаки в зелёный цвет",
-          "Мы красим будку собаки в зеленый цвет",
-          "Мы красим домик собаки в зелёный цвет"
+          "Мы красим стол в синий цвет",
+          "Мы раскрашиваем стол в синий цвет"
         ],
-        "hint": "pintar • nosotros pintamos = мы красим",
+        "hint": "pintar = красить • pintamos = мы красим • la mesa = стол • azul = синий",
         "distractors": [
-          "синий",
-          "кошки"
+          "ustedes",
+          "silla",
+          "verde"
         ]
       },
       {
@@ -790,16 +851,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "pintar",
         "verbForm": "pintamos",
         "verbPerson": "nosotras",
-        "spanish": "Nosotras pintamos un arcoíris hermoso con témperas.",
-        "russian": "Мы раскрашиваем красивую радугу красками.",
+        "spanish": "Nosotras pintamos las puertas de color blanco.",
+        "russian": "Мы (девочки) красим двери в белый цвет.",
         "acceptedAnswers": [
-          "Мы раскрашиваем красивую радугу красками",
-          "Мы рисуем красивую радугу красками"
+          "Мы (девочки) красим двери в белый цвет",
+          "Мы красим двери в белый цвет",
+          "Мы раскрашиваем двери в белый цвет"
         ],
-        "hint": "pintar • nosotras pintamos = мы раскрашиваем",
+        "hint": "pintar = красить • nosotras pintamos = мы (девочки) красим • las puertas = двери • blanco = белый",
         "distractors": [
-          "солнце",
-          "карандашами"
+          "ellos",
+          "ventanas",
+          "negro"
         ]
       },
       {
@@ -807,17 +870,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comer",
         "verbForm": "comemos",
         "verbPerson": "nosotros",
-        "spanish": "Nosotros comemos pizza caliente en familia.",
-        "russian": "Мы едим горячую пиццу всей семьёй.",
+        "spanish": "Nosotros comemos pizza rica con queso.",
+        "russian": "Мы едим вкусную пиццу с сыром.",
         "acceptedAnswers": [
-          "Мы едим горячую пиццу всей семьёй",
-          "Мы едим горячую пиццу всей семьей",
-          "Мы кушаем горячую пиццу всей семьей"
+          "Мы едим вкусную пиццу с сыром",
+          "Мы кушаем вкусную пиццу с сыром"
         ],
-        "hint": "comer • nosotros comemos = мы едим",
+        "hint": "comer = есть • comemos = мы едим • la pizza = пицца • el queso = сыр • rico = вкусный",
         "distractors": [
-          "холодную",
-          "бутерброды"
+          "ustedes",
+          "pan",
+          "leche"
         ]
       },
       {
@@ -825,17 +888,19 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comer",
         "verbForm": "comemos",
         "verbPerson": "nosotras",
-        "spanish": "Nosotras comemos helado de frutilla en la plaza.",
-        "russian": "Мы едим клубничное мороженое в парке.",
+        "spanish": "Nosotras comemos helado de chocolate en la plaza.",
+        "russian": "Мы (девочки) едим шоколадное мороженое на площадке.",
         "acceptedAnswers": [
-          "Мы едим клубничное мороженое в парке",
-          "Мы кушаем клубничное мороженое на площадке",
-          "Мы едим клубничное мороженое на площади"
+          "Мы (девочки) едим шоколадное мороженое на площадке",
+          "Мы едим шоколадное мороженое на площадке",
+          "Мы (девочки) кушаем шоколадное мороженое на площадке",
+          "Мы кушаем шоколадное мороженое на площадке"
         ],
-        "hint": "comer • nosotras comemos = мы едим",
+        "hint": "comer = кушать • nosotras comemos = мы (девочки) едим • el helado = мороженое • el chocolate = шоколад",
         "distractors": [
-          "шоколадное",
-          "дома"
+          "ellos",
+          "alfajor",
+          "casa"
         ]
       },
       {
@@ -843,17 +908,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "correr",
         "verbForm": "corremos",
         "verbPerson": "nosotros",
-        "spanish": "Nosotros corremos juntos hasta el árbol grande.",
-        "russian": "Мы бежим вместе до большого дерева.",
+        "spanish": "Nosotros corremos rápido en el recreo.",
+        "russian": "Мы быстро бегаем на перемене.",
         "acceptedAnswers": [
-          "Мы бежим вместе до большого дерева",
-          "Мы вместе бежим к большому дереву",
-          "Мы бегаем вместе до большого дерева"
+          "Мы быстро бегаем на перемене",
+          "Мы быстро бежим на перемене"
         ],
-        "hint": "correr • nosotros corremos = мы бегаем/бежим",
+        "hint": "correr = бегать • corremos = мы бегаем • rápido = быстро • el recreo = перемена",
         "distractors": [
-          "прыгаем",
-          "маленького"
+          "ellas",
+          "despacio",
+          "recreo"
         ]
       },
       {
@@ -861,16 +926,19 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "correr",
         "verbForm": "corremos",
         "verbPerson": "nosotras",
-        "spanish": "Nosotras corremos carreras divertidas en el recreo.",
-        "russian": "Мы весело бегаем наперегонки на перемене.",
+        "spanish": "Nosotras corremos con la pelota verde.",
+        "russian": "Мы (девочки) бегаем с зелёным мячом.",
         "acceptedAnswers": [
-          "Мы весело бегаем наперегонки на перемене",
-          "Мы бегаем наперегонки на перемене"
+          "Мы (девочки) бегаем с зелёным мячом",
+          "Мы (девочки) бегаем с зеленым мячом",
+          "Мы бегаем с зелёным мячом",
+          "Мы бегаем с зеленым мячом"
         ],
-        "hint": "correr • nosotras corremos = мы бегаем",
+        "hint": "correr = бегать • nosotras corremos = мы (девочки) бегаем • la pelota = мяч • verde = зелёный",
         "distractors": [
-          "уроке",
-          "медленно"
+          "ellos",
+          "rojo",
+          "mochila"
         ]
       },
       {
@@ -878,15 +946,16 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "escuchar",
         "verbForm": "escuchamos",
         "verbPerson": "nosotros",
-        "spanish": "Nosotros escuchamos los sonidos de la naturaleza.",
-        "russian": "Мы слушаем звуки природы.",
+        "spanish": "Nosotros escuchamos a la seño en el recreo.",
+        "russian": "Мы слушаем учительницу на перемене.",
         "acceptedAnswers": [
-          "Мы слушаем звуки природы"
+          "Мы слушаем учительницу на перемене"
         ],
-        "hint": "escuchar • nosotros escuchamos = мы слушаем",
+        "hint": "escuchar = слушать • escuchamos = мы слушаем • la seño = учительница • el recreo = перемена",
         "distractors": [
-          "города",
-          "смотрим"
+          "ustedes",
+          "mamá",
+          "auto"
         ]
       },
       {
@@ -894,17 +963,19 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "escuchar",
         "verbForm": "escuchamos",
         "verbPerson": "nosotras",
-        "spanish": "Nosotras escuchamos el cuento que lee la seño.",
-        "russian": "Мы слушаем сказку, которую читает учительница.",
+        "spanish": "Nosotras escuchamos la lluvia en la casa.",
+        "russian": "Мы (девочки) слушаем дождь в доме.",
         "acceptedAnswers": [
-          "Мы слушаем сказку, которую читает учительница",
-          "Мы слушаем сказку которую читает учительница",
-          "Мы слушаем рассказ учительницы"
+          "Мы (девочки) слушаем дождь в доме",
+          "Мы слушаем дождь в доме",
+          "Мы (девочки) слушаем дождь дома",
+          "Мы слушаем дождь дома"
         ],
-        "hint": "escuchar • nosotras escuchamos = мы слушаем",
+        "hint": "escuchar = слушать • nosotras escuchamos = мы (девочки) слушаем • la lluvia = дождь • la casa = дом",
         "distractors": [
-          "пишем",
-          "мама"
+          "ellos",
+          "sol",
+          "plaza"
         ]
       },
       {
@@ -912,17 +983,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "mirar",
         "verbForm": "miramos",
         "verbPerson": "nosotros",
-        "spanish": "Nosotros miramos las estrellas por la noche.",
-        "russian": "Мы смотрим на звёзды ночью.",
+        "spanish": "Nosotros miramos el sol grande por la ventana.",
+        "russian": "Мы смотрим на большое солнце из окна.",
         "acceptedAnswers": [
-          "Мы смотрим на звёзды ночью",
-          "Мы смотрим на звезды ночью",
-          "Мы разглядываем звёзды ночью"
+          "Мы смотрим на большое солнце из окна",
+          "Мы смотрим на большое солнце в окно"
         ],
-        "hint": "mirar • nosotros miramos = мы смотрим",
+        "hint": "mirar = смотреть • miramos = мы смотрим • el sol = солнце • grande = большой • la ventana = окно",
         "distractors": [
-          "днём",
-          "луну"
+          "ellas",
+          "chiquito",
+          "puerta"
         ]
       },
       {
@@ -930,16 +1001,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "mirar",
         "verbForm": "miramos",
         "verbPerson": "nosotras",
-        "spanish": "Nosotras miramos los pajaritos de colores en el jardín.",
-        "russian": "Мы смотрим на разноцветных птичек в саду.",
+        "spanish": "Nosotras miramos los colores lindos del libro.",
+        "russian": "Мы (девочки) смотрим на красивые цвета книги.",
         "acceptedAnswers": [
-          "Мы смотрим на разноцветных птичек в саду",
-          "Мы наблюдаем за разноцветными птичками в саду"
+          "Мы (девочки) смотрим на красивые цвета книги",
+          "Мы смотрим на красивые цвета книги",
+          "Мы смотрим на красивые цвета в книге"
         ],
-        "hint": "mirar • nosotras miramos = мы смотрим",
+        "hint": "mirar = смотреть • nosotras miramos = мы (девочки) смотрим • los colores = цвета • el libro = книга",
         "distractors": [
-          "бабочек",
-          "лесу"
+          "ellos",
+          "cuaderno",
+          "lápiz"
         ]
       },
       {
@@ -947,16 +1020,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comprar",
         "verbForm": "compramos",
         "verbPerson": "nosotros",
-        "spanish": "Nosotros compramos pan caliente en la panadería.",
-        "russian": "Мы покупаем горячий хлеб в булочной.",
+        "spanish": "Nosotros compramos pan y queso con la plata.",
+        "russian": "Мы покупаем хлеб и сыр на деньги.",
         "acceptedAnswers": [
-          "Мы покупаем горячий хлеб в булочной",
-          "Мы берем горячий хлеб в пекарне"
+          "Мы покупаем хлеб и сыр на деньги",
+          "Мы покупаем хлеб и сыр на наши деньги"
         ],
-        "hint": "comprar • nosotros compramos = мы покупаем",
+        "hint": "comprar = покупать • compramos = мы покупаем • el pan = хлеб • el queso = сыр • la plata = деньги",
         "distractors": [
-          "холодный",
-          "сыр"
+          "ustedes",
+          "leche",
+          "galletitas"
         ]
       },
       {
@@ -964,16 +1038,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comprar",
         "verbForm": "compramos",
         "verbPerson": "nosotras",
-        "spanish": "Nosotras compramos figuritas nuevas para el álbum.",
-        "russian": "Мы покупаем новые наклейки для альбома.",
+        "spanish": "Nosotras compramos alfajores ricos en el quiosco.",
+        "russian": "Мы (девочки) покупаем вкусные альфахоры в киоске.",
         "acceptedAnswers": [
-          "Мы покупаем новые наклейки для альбома",
-          "Мы берем новые карточки для альбома"
+          "Мы (девочки) покупаем вкусные альфахоры в киоске",
+          "Мы покупаем вкусные альфахоры в киоске",
+          "Мы (девочки) покупаем вкусное печенье в киоске"
         ],
-        "hint": "comprar • nosotras compramos = мы покупаем",
+        "hint": "comprar = покупать • nosotras compramos = мы (девочки) покупаем • los alfajores = альфахоры • el quiosco = киоск",
         "distractors": [
-          "старые",
-          "книги"
+          "ellos",
+          "helado",
+          "pizza"
         ]
       },
       {
@@ -981,16 +1057,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "saltar",
         "verbForm": "saltamos",
         "verbPerson": "nosotros",
-        "spanish": "Nosotros saltamos charcos de agua en la calle.",
-        "russian": "Мы прыгаем через лужи на улице.",
+        "spanish": "Nosotros saltamos felices en el tobogán.",
+        "russian": "Мы счастливо прыгаем на горке.",
         "acceptedAnswers": [
-          "Мы прыгаем через лужи на улице",
-          "Мы скачем по лужам на улице"
+          "Мы счастливо прыгаем на горке",
+          "Мы радостно прыгаем на горке"
         ],
-        "hint": "saltar • nosotros saltamos = мы прыгаем",
+        "hint": "saltar = прыгать • saltamos = мы прыгаем • feliz = счастливый • el tobogán = горка",
         "distractors": [
-          "камни",
-          "падаем"
+          "ellas",
+          "cansados",
+          "hamaca"
         ]
       },
       {
@@ -998,16 +1075,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "saltar",
         "verbForm": "saltamos",
         "verbPerson": "nosotras",
-        "spanish": "Nosotras saltamos muy felices en la cama elástica.",
-        "russian": "Мы очень радостно прыгаем на батуте.",
+        "spanish": "Nosotras saltamos con la amiga en la plaza.",
+        "russian": "Мы (девочки) прыгаем с подругой на площадке.",
         "acceptedAnswers": [
-          "Мы очень радостно прыгаем на батуте",
-          "Мы счастливо прыгаем на батуте"
+          "Мы (девочки) прыгаем с подругой на площадке",
+          "Мы прыгаем с подругой на площадке",
+          "Мы (девочки) прыгаем с подругой в парке"
         ],
-        "hint": "saltar • nosotras saltamos = мы прыгаем",
+        "hint": "saltar = прыгать • nosotras saltamos = мы (девочки) прыгаем • la amiga = подруга • la plaza = площадка",
         "distractors": [
-          "грустно",
-          "диване"
+          "ellos",
+          "amigo",
+          "casa"
         ]
       },
       {
@@ -1015,17 +1094,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "esperar",
         "verbForm": "esperamos",
         "verbPerson": "nosotros",
-        "spanish": "Nosotros esperamos el colectivo en la parada.",
-        "russian": "Мы ждём автобус на остановке.",
+        "spanish": "Nosotros esperamos el turno en la hamaca.",
+        "russian": "Мы ждём очередь на качелях.",
         "acceptedAnswers": [
-          "Мы ждём автобус на остановке",
-          "Мы ждем автобус на остановке",
-          "Мы ждем маршрутку на остановке"
+          "Мы ждём очередь на качелях",
+          "Мы ждем очередь на качелях",
+          "Мы ждём свою очередь на качелях"
         ],
-        "hint": "esperar • nosotros esperamos = мы ждём",
+        "hint": "esperar = ждать • esperamos = мы ждём • el turno = очередь • la hamaca = качели",
         "distractors": [
-          "поезд",
-          "улице"
+          "ustedes",
+          "tobogán",
+          "pelota"
         ]
       },
       {
@@ -1033,17 +1113,19 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "esperar",
         "verbForm": "esperamos",
         "verbPerson": "nosotras",
-        "spanish": "Nosotras esperamos a las amigas en la entrada del club.",
-        "russian": "Мы ждём подруг у входа в клуб.",
+        "spanish": "Nosotras esperamos a mamá en la puerta.",
+        "russian": "Мы (девочки) ждём маму у двери.",
         "acceptedAnswers": [
-          "Мы ждём подруг у входа в клуб",
-          "Мы ждем подруг у входа в клуб",
-          "Мы ждем подружек на входе в клуб"
+          "Мы (девочки) ждём маму у двери",
+          "Мы (девочки) ждем маму у двери",
+          "Мы ждём маму у двери",
+          "Мы ждем маму у двери"
         ],
-        "hint": "esperar • nosotras esperamos = мы ждём",
+        "hint": "esperar = ждать • nosotras esperamos = мы (девочки) ждём • la mamá = мама • la puerta = дверь",
         "distractors": [
-          "друзей",
-          "выходе"
+          "ellos",
+          "papá",
+          "ventana"
         ]
       },
       {
@@ -1051,16 +1133,16 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "ayudar",
         "verbForm": "ayudamos",
         "verbPerson": "nosotros",
-        "spanish": "Nosotros ayudamos a ordenar la sala de juegos.",
-        "russian": "Мы помогаем наводить порядок в игровой комнате.",
+        "spanish": "Nosotros ayudamos al abuelo con las sillas.",
+        "russian": "Мы помогаем дедушке со стульями.",
         "acceptedAnswers": [
-          "Мы помогаем наводить порядок в игровой комнате",
-          "Мы помогаем убирать игровую комнату"
+          "Мы помогаем дедушке со стульями"
         ],
-        "hint": "ayudar • nosotros ayudamos = мы помогаем",
+        "hint": "ayudar = помогать • ayudamos = мы помогаем • el abuelo = дедушка • las sillas = стулья",
         "distractors": [
-          "пачкать",
-          "спальне"
+          "ellas",
+          "abuela",
+          "mesas"
         ]
       },
       {
@@ -1068,16 +1150,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "ayudar",
         "verbForm": "ayudamos",
         "verbPerson": "nosotras",
-        "spanish": "Nosotras ayudamos a mamá a preparar la merienda.",
-        "russian": "Мы помогаем маме готовить полдник.",
+        "spanish": "Nosotras ayudamos a la hermana con la merienda.",
+        "russian": "Мы (девочки) помогаем сестре с полдником.",
         "acceptedAnswers": [
-          "Мы помогаем маме готовить полдник",
-          "Мы помогаем маме сделать полдник"
+          "Мы (девочки) помогаем сестре с полдником",
+          "Мы помогаем сестре с полдником"
         ],
-        "hint": "ayudar • nosotras ayudamos = мы помогаем",
+        "hint": "ayudar = помогать • nosotras ayudamos = мы (девочки) помогаем • la hermana = сестра • la merienda = полдник",
         "distractors": [
-          "ужин",
-          "папе"
+          "ellos",
+          "hermano",
+          "recreo"
         ]
       }
     ]
@@ -1086,7 +1169,7 @@ export const EXERCISES_ES_TO_RU = [
     "id": 4,
     "title": "Упр. 4: Они и вы все (ellos, ellas, ustedes)",
     "shortTitle": "4. Они и вы",
-    "description": "Формы множественного числа с хвостиками -an, -en (ellos corren, ustedes saltan)",
+    "description": "Отрабатываем формы множественного числа (-an, -en)",
     "icon": "👥",
     "sentences": [
       {
@@ -1094,15 +1177,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "dibujar",
         "verbForm": "dibujan",
         "verbPerson": "ellos",
-        "spanish": "Ellos dibujan animales salvajes en la pizarra.",
-        "russian": "Они рисуют диких животных на доске.",
+        "spanish": "Ellos dibujan autos grandes en el cuaderno.",
+        "russian": "Они рисуют большие машины в тетради.",
         "acceptedAnswers": [
-          "Они рисуют диких животных на доске"
+          "Они рисуют большие машины в тетради",
+          "Они рисуют большие автомобили в тетради"
         ],
-        "hint": "dibujar • ellos dibujan = они рисуют",
+        "hint": "dibujar = рисовать • ellos dibujan = они рисуют • los autos = машины • grande = большой • el cuaderno = тетрадь",
         "distractors": [
-          "мы",
-          "домашних"
+          "nosotros",
+          "chiquito",
+          "libro"
         ]
       },
       {
@@ -1110,16 +1195,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "dibujar",
         "verbForm": "dibujan",
         "verbPerson": "ustedes",
-        "spanish": "Ustedes dibujan figuras geométricas con regla.",
-        "russian": "Вы рисуете геометрические фигуры по линейке.",
+        "spanish": "Ustedes dibujan una casa linda con lápiz negro.",
+        "russian": "Вы рисуете красивый дом чёрным карандашом.",
         "acceptedAnswers": [
-          "Вы рисуете геометрические фигуры по линейке",
-          "Вы чертите геометрические фигуры линейкой"
+          "Вы рисуете красивый дом чёрным карандашом",
+          "Вы рисуете красивый дом черным карандашом",
+          "Вы рисуете милый дом чёрным карандашом"
         ],
-        "hint": "dibujar • ustedes dibujan = вы рисуете",
+        "hint": "dibujar = рисовать • ustedes dibujan = вы рисуете • la casa = дом • el lápiz = карандаш • negro = чёрный",
         "distractors": [
-          "они",
-          "красками"
+          "ellas",
+          "azul",
+          "mesa"
         ]
       },
       {
@@ -1127,16 +1214,19 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "pintar",
         "verbForm": "pintan",
         "verbPerson": "ellas",
-        "spanish": "Ellas pintan flores de colores en el patio.",
-        "russian": "Они рисуют разноцветные цветы во дворе.",
+        "spanish": "Ellas pintan las mesas de color amarillo.",
+        "russian": "Они (девочки) красят столы в жёлтый цвет.",
         "acceptedAnswers": [
-          "Они рисуют разноцветные цветы во дворе",
-          "Они раскрашивают цветные цветы во дворе"
+          "Они (девочки) красят столы в жёлтый цвет",
+          "Они (девочки) красят столы в желтый цвет",
+          "Они красят столы в жёлтый цвет",
+          "Они красят столы в желтый цвет"
         ],
-        "hint": "pintar • ellas pintan = они раскрашивают",
+        "hint": "pintar = красить • ellas pintan = они (девочки) красят • las mesas = столы • amarillo = жёлтый",
         "distractors": [
-          "мы",
-          "комнате"
+          "ellos",
+          "sillas",
+          "rojo"
         ]
       },
       {
@@ -1144,16 +1234,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "pintar",
         "verbForm": "pintan",
         "verbPerson": "ustedes",
-        "spanish": "Ustedes pintan el mural de la escuela de color celeste.",
-        "russian": "Вы красите школьную стену в светло-голубой цвет.",
+        "spanish": "Ustedes pintan libros con lápices de colores.",
+        "russian": "Вы раскрашиваете книги цветными карандашами.",
         "acceptedAnswers": [
-          "Вы красите школьную стену в светло-голубой цвет",
-          "Вы раскрашиваете школьное панно в голубой цвет"
+          "Вы раскрашиваете книги цветными карандашами",
+          "Вы красите книги цветными карандашами"
         ],
-        "hint": "pintar • ustedes pintan = вы красите",
+        "hint": "pintar = раскрашивать • ustedes pintan = вы раскрашиваете • los libros = книги • los lápices = карандаши",
         "distractors": [
-          "зелёный",
-          "забор"
+          "nosotros",
+          "cuadernos",
+          "gomas"
         ]
       },
       {
@@ -1161,16 +1252,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comer",
         "verbForm": "comen",
         "verbPerson": "ellos",
-        "spanish": "Ellos comen sándwiches de jamón en el parque.",
-        "russian": "Они едят бутерброды с ветчиной в парке.",
+        "spanish": "Ellos comen pan rico con queso.",
+        "russian": "Они едят вкусный хлеб с сыром.",
         "acceptedAnswers": [
-          "Они едят бутерброды с ветчиной в парке",
-          "Они кушают сэндвичи с ветчиной в парке"
+          "Они едят вкусный хлеб с сыром",
+          "Они кушают вкусный хлеб с сыром"
         ],
-        "hint": "comer • ellos comen = они едят",
+        "hint": "comer = есть • ellos comen = они едят • el pan = хлеб • el queso = сыр • rico = вкусный",
         "distractors": [
-          "сыром",
-          "школе"
+          "ellas",
+          "leche",
+          "manzana"
         ]
       },
       {
@@ -1178,16 +1270,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comer",
         "verbForm": "comen",
         "verbPerson": "ustedes",
-        "spanish": "Ustedes comen galletitas dulces con chocolate.",
-        "russian": "Вы едите сладкое печенье с шоколадом.",
+        "spanish": "Ustedes comen galletitas ricas con chocolate.",
+        "russian": "Вы едите вкусное печенье с шоколадом.",
         "acceptedAnswers": [
-          "Вы едите сладкое печенье с шоколадом",
-          "Вы кушаете сладкое печенье с шоколадом"
+          "Вы едите вкусное печенье с шоколадом",
+          "Вы кушаете вкусное печенье с шоколадом",
+          "Вы едите вкусные печеньки с шоколадом"
         ],
-        "hint": "comer • ustedes comen = вы едите",
+        "hint": "comer = есть • ustedes comen = вы едите • las galletitas = печенье • el chocolate = шоколад",
         "distractors": [
-          "солью",
-          "они"
+          "nosotros",
+          "alfajor",
+          "leche"
         ]
       },
       {
@@ -1195,16 +1289,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "correr",
         "verbForm": "corren",
         "verbPerson": "ellas",
-        "spanish": "Ellas corren veloces hacia la meta.",
-        "russian": "Они быстро бегут к финишу.",
+        "spanish": "Ellas corren rápido en la plaza grande.",
+        "russian": "Они (девочки) быстро бегают на большой площадке.",
         "acceptedAnswers": [
-          "Они быстро бегут к финишу",
-          "Они мчатся к финишу"
+          "Они (девочки) быстро бегают на большой площадке",
+          "Они быстро бегают на большой площадке",
+          "Они (девочки) быстро бегут на большой площадке"
         ],
-        "hint": "correr • ellas corren = они бегут",
+        "hint": "correr = бегать • ellas corren = они (девочки) бегают • rápido = быстро • la plaza = площадка",
         "distractors": [
-          "медленно",
-          "старту"
+          "ellos",
+          "despacio",
+          "auto"
         ]
       },
       {
@@ -1212,16 +1308,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "correr",
         "verbForm": "corren",
         "verbPerson": "ustedes",
-        "spanish": "Ustedes corren todas las tardes alrededor de la pista.",
-        "russian": "Вы бегаете каждый вечер вокруг дорожки.",
+        "spanish": "Ustedes corren con el perro en el recreo.",
+        "russian": "Вы бегаете с собакой на перемене.",
         "acceptedAnswers": [
-          "Вы бегаете каждый вечер вокруг дорожки",
-          "Вы бегаете по вечерам вокруг дорожки"
+          "Вы бегаете с собакой на перемене",
+          "Вы бежите с собакой на перемене"
         ],
-        "hint": "correr • ustedes corren = вы бегаете",
+        "hint": "correr = бегать • ustedes corren = вы бегаете • el perro = собака • el recreo = перемена",
         "distractors": [
-          "утром",
-          "парка"
+          "nosotros",
+          "gato",
+          "casa"
         ]
       },
       {
@@ -1229,16 +1326,16 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "escuchar",
         "verbForm": "escuchan",
         "verbPerson": "ellos",
-        "spanish": "Ellos escuchan con atención las instrucciones del juego.",
-        "russian": "Они внимательно слушают правила игры.",
+        "spanish": "Ellos escuchan a la seño en la mesa.",
+        "russian": "Они слушают учительницу за столом.",
         "acceptedAnswers": [
-          "Они внимательно слушают правила игры",
-          "Они с вниманием слушают инструкции к игре"
+          "Они слушают учительницу за столом"
         ],
-        "hint": "escuchar • ellos escuchan = они слушают",
+        "hint": "escuchar = слушать • ellos escuchan = они слушают • la seño = учительница • la mesa = стол",
         "distractors": [
-          "нарушают",
-          "урока"
+          "ellas",
+          "mamá",
+          "silla"
         ]
       },
       {
@@ -1246,17 +1343,16 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "escuchar",
         "verbForm": "escuchan",
         "verbPerson": "ustedes",
-        "spanish": "Ustedes escuchan música divertida con auriculares.",
-        "russian": "Вы слушаете весёлую музыку в наушниках.",
+        "spanish": "Ustedes escuchan la lluvia en la noche.",
+        "russian": "Вы слушаете дождь ночью.",
         "acceptedAnswers": [
-          "Вы слушаете весёлую музыку в наушниках",
-          "Вы слушаете веселую музыку в наушниках",
-          "Вы слушаете задорную музыку в наушниках"
+          "Вы слушаете дождь ночью"
         ],
-        "hint": "escuchar • ustedes escuchan = вы слушаете",
+        "hint": "escuchar = слушать • ustedes escuchan = вы слушаете • la lluvia = дождь • la noche = ночь",
         "distractors": [
-          "грустную",
-          "колонках"
+          "nosotros",
+          "sol",
+          "día"
         ]
       },
       {
@@ -1264,17 +1360,19 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "mirar",
         "verbForm": "miran",
         "verbPerson": "ellas",
-        "spanish": "Ellas miran las mariposas que vuelan sobre las rosas.",
-        "russian": "Они смотрят на бабочек, летающих над розами.",
+        "spanish": "Ellas miran el sol amarillo en el día.",
+        "russian": "Они (девочки) смотрят на жёлтое солнце днём.",
         "acceptedAnswers": [
-          "Они смотрят на бабочек, летающих над розами",
-          "Они смотрят на бабочек летающих над розами",
-          "Они смотрят на бабочек над розами"
+          "Они (девочки) смотрят на жёлтое солнце днём",
+          "Они (девочки) смотрят на желтое солнце днем",
+          "Они смотрят на жёлтое солнце днём",
+          "Они смотрят на желтое солнце днем"
         ],
-        "hint": "mirar • ellas miran = они смотрят",
+        "hint": "mirar = смотреть • ellas miran = они (девочки) смотрят • el sol = солнце • amarillo = жёлтый • el día = день",
         "distractors": [
-          "пчёл",
-          "деревьями"
+          "ellos",
+          "lluvia",
+          "noche"
         ]
       },
       {
@@ -1282,17 +1380,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "mirar",
         "verbForm": "miran",
         "verbPerson": "ustedes",
-        "spanish": "Ustedes miran el arcoíris que sale después de la lluvia.",
-        "russian": "Вы смотрите на радугу, появившуюся после дождя.",
+        "spanish": "Ustedes miran los gatos chiquitos por la ventana.",
+        "russian": "Вы смотрите на маленьких котят в окно.",
         "acceptedAnswers": [
-          "Вы смотрите на радугу, появившуюся после дождя",
-          "Вы смотрите на радугу появившуюся после дождя",
-          "Вы смотрите на радугу после дождя"
+          "Вы смотрите на маленьких котят в окно",
+          "Вы смотрите на маленьких кошек в окно",
+          "Вы смотрите на маленьких котиков из окна"
         ],
-        "hint": "mirar • ustedes miran = вы смотрите",
+        "hint": "mirar = смотреть • ustedes miran = вы смотрите • los gatos = коты • chiquito = маленький • la ventana = окно",
         "distractors": [
-          "солнце",
-          "бури"
+          "nosotros",
+          "perros",
+          "puerta"
         ]
       },
       {
@@ -1300,16 +1399,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comprar",
         "verbForm": "compran",
         "verbPerson": "ellos",
-        "spanish": "Ellos compran pelotas de tenis para entrenar.",
-        "russian": "Они покупают теннисные мячи для тренировок.",
+        "spanish": "Ellos compran helados de chocolate con su plata.",
+        "russian": "Они покупают шоколадное мороженое на свои деньги.",
         "acceptedAnswers": [
-          "Они покупают теннисные мячи для тренировок",
-          "Они берут теннисные мячи для тренировки"
+          "Они покупают шоколадное мороженое на свои деньги",
+          "Они покупают мороженое с шоколадом на свои деньги"
         ],
-        "hint": "comprar • ellos compran = они покупают",
+        "hint": "comprar = покупать • ellos compran = они покупают • el helado = мороженое • el chocolate = шоколад • la plata = деньги",
         "distractors": [
-          "футбольные",
-          "игры"
+          "ellas",
+          "alfajor",
+          "jugo"
         ]
       },
       {
@@ -1317,16 +1417,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comprar",
         "verbForm": "compran",
         "verbPerson": "ustedes",
-        "spanish": "Ustedes compran cuadernos de hojas rayadas para la clase.",
-        "russian": "Вы покупаете тетради в линейку для уроков.",
+        "spanish": "Ustedes compran ricas medialunas en el quiosco.",
+        "russian": "Вы покупаете вкусные медиалуны в киоске.",
         "acceptedAnswers": [
-          "Вы покупаете тетради в линейку для уроков",
-          "Вы берете тетради в линейку для занятий"
+          "Вы покупаете вкусные медиалуны в киоске",
+          "Вы покупаете вкусные круассаны в киоске"
         ],
-        "hint": "comprar • ustedes compran = вы покупаете",
+        "hint": "comprar = покупать • ustedes compran = вы покупаете • las medialunas = медиалуны • el quiosco = киоск",
         "distractors": [
-          "клетку",
-          "книги"
+          "nosotros",
+          "pizza",
+          "pan"
         ]
       },
       {
@@ -1334,16 +1435,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "saltar",
         "verbForm": "saltan",
         "verbPerson": "ellas",
-        "spanish": "Ellas saltan con ritmo en la clase de baile.",
-        "russian": "Они ритмично прыгают на уроке танцев.",
+        "spanish": "Ellas saltan felices en las hamacas.",
+        "russian": "Они (девочки) радостно прыгают на качелях.",
         "acceptedAnswers": [
-          "Они ритмично прыгают на уроке танцев",
-          "Они в ритм прыгают на танцах"
+          "Они (девочки) радостно прыгают на качелях",
+          "Они радостно прыгают на качелях",
+          "Они (девочки) счастливо прыгают на качелях"
         ],
-        "hint": "saltar • ellas saltan = они прыгают",
+        "hint": "saltar = прыгать • ellas saltan = они (девочки) прыгают • feliz = счастливый • las hamacas = качели",
         "distractors": [
-          "музыки",
-          "падают"
+          "ellos",
+          "tobogán",
+          "cansadas"
         ]
       },
       {
@@ -1351,16 +1454,16 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "saltar",
         "verbForm": "saltan",
         "verbPerson": "ustedes",
-        "spanish": "Ustedes saltan sobre los almohadones en el suelo.",
-        "russian": "Вы прыгаете по подушкам на полу.",
+        "spanish": "Ustedes saltan en el tobogán grande.",
+        "russian": "Вы прыгаете на большой горке.",
         "acceptedAnswers": [
-          "Вы прыгаете по подушкам на полу",
-          "Вы скачете по подушкам на полу"
+          "Вы прыгаете на большой горке"
         ],
-        "hint": "saltar • ustedes saltan = вы прыгаете",
+        "hint": "saltar = прыгать • ustedes saltan = вы прыгаете • el tobogán = горка • grande = большой",
         "distractors": [
-          "диване",
-          "кровати"
+          "nosotros",
+          "chiquito",
+          "hamaca"
         ]
       },
       {
@@ -1368,16 +1471,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "esperar",
         "verbForm": "esperan",
         "verbPerson": "ellos",
-        "spanish": "Ellos esperan el comienzo del partido con entusiasmo.",
-        "russian": "Они с восторгом ждут начала матча.",
+        "spanish": "Ellos esperan su turno para jugar.",
+        "russian": "Они ждут своей очереди играть.",
         "acceptedAnswers": [
-          "Они с восторгом ждут начала матча",
-          "Они с нетерпением ждут начала игры"
+          "Они ждут своей очереди играть",
+          "Они ждут свою очередь играть"
         ],
-        "hint": "esperar • ellos esperan = они ждут",
+        "hint": "esperar = ждать • ellos esperan = они ждут • el turno = очередь • jugar = играть",
         "distractors": [
-          "конца",
-          "урока"
+          "ellas",
+          "comer",
+          "correr"
         ]
       },
       {
@@ -1385,17 +1489,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "esperar",
         "verbForm": "esperan",
         "verbPerson": "ustedes",
-        "spanish": "Ustedes esperan a los abuelos en la puerta de casa.",
-        "russian": "Вы ждёте бабушку и дедушку у двери дома.",
+        "spanish": "Ustedes esperan a los abuelos en la puerta.",
+        "russian": "Вы ждёте дедушку и бабушку у двери.",
         "acceptedAnswers": [
-          "Вы ждёте бабушку и дедушку у двери дома",
-          "Вы ждете бабушку и дедушку у двери дома",
-          "Вы ждете дедушку и бабушку у входа в дом"
+          "Вы ждёте дедушку и бабушку у двери",
+          "Вы ждете дедушку и бабушку у двери",
+          "Вы ждёте бабушку и дедушку у двери"
         ],
-        "hint": "esperar • ustedes esperan = вы ждёте",
+        "hint": "esperar = ждать • ustedes esperan = вы ждёте • los abuelos = бабушка и дедушка • la puerta = дверь",
         "distractors": [
-          "родителей",
-          "окна"
+          "nosotros",
+          "amigos",
+          "ventana"
         ]
       },
       {
@@ -1403,16 +1508,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "ayudar",
         "verbForm": "ayudan",
         "verbPerson": "ellas",
-        "spanish": "Ellas ayudan a la maestra a repartir los lápices de colores.",
-        "russian": "Они помогают учительнице раздавать цветные карандаши.",
+        "spanish": "Ellas ayudan a la mamá en la mesa.",
+        "russian": "Они (девочки) помогают маме за столом.",
         "acceptedAnswers": [
-          "Они помогают учительнице раздавать цветные карандаши",
-          "Они помогают учительнице раздать цветные карандаши"
+          "Они (девочки) помогают маме за столом",
+          "Они помогают маме за столом"
         ],
-        "hint": "ayudar • ellas ayudan = они помогают",
+        "hint": "ayudar = помогать • ellas ayudan = они (девочки) помогают • la mamá = мама • la mesa = стол",
         "distractors": [
-          "собирать",
-          "тетради"
+          "ellos",
+          "papá",
+          "silla"
         ]
       },
       {
@@ -1420,16 +1526,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "ayudar",
         "verbForm": "ayudan",
         "verbPerson": "ustedes",
-        "spanish": "Ustedes ayudan a los compañeros nuevos en el colegio.",
-        "russian": "Вы помогаете новым одноклассникам в школе.",
+        "spanish": "Ustedes ayudan a los amigos con las mochilas.",
+        "russian": "Вы помогаете друзьям с рюкзаками.",
         "acceptedAnswers": [
-          "Вы помогаете новым одноклассникам в школе",
-          "Вы помогаете новым ребятам в школе"
+          "Вы помогаете друзьям с рюкзаками",
+          "Вы помогаете друзьям нести рюкзаки"
         ],
-        "hint": "ayudar • ustedes ayudan = вы помогаете",
+        "hint": "ayudar = помогать • ustedes ayudan = вы помогаете • los amigos = друзья • las mochilas = рюкзаки",
         "distractors": [
-          "мешаете",
-          "учителям"
+          "nosotros",
+          "libros",
+          "cuadernos"
         ]
       }
     ]
@@ -1437,26 +1544,26 @@ export const EXERCISES_ES_TO_RU = [
   {
     "id": 5,
     "title": "Упр. 5: Большой микс всех форм",
-    "shortTitle": "5. Большой микс",
-    "description": "Все лица и формы правильных глаголов в живых детских ситуациях",
-    "icon": "🌈",
+    "shortTitle": "5. Супер-микс",
+    "description": "Закрепляем все лица правильных глаголов в одном наборе",
+    "icon": "🚀",
     "sentences": [
       {
         "id": "es_ru_5_01",
         "verb": "dibujar",
         "verbForm": "dibujo / dibujás",
         "verbPerson": "yo / vos",
-        "spanish": "Yo dibujo un sol sonriente y vos dibujás una nube blanca.",
-        "russian": "Я рисую улыбающееся солнце, а ты рисуешь белое облако.",
+        "spanish": "Yo dibujo una casa y vos dibujás un sol.",
+        "russian": "Я рисую дом, а ты рисуешь солнце.",
         "acceptedAnswers": [
-          "Я рисую улыбающееся солнце, а ты рисуешь белое облако",
-          "Я рисую улыбающееся солнце а ты рисуешь белое облако",
-          "Я рисую солнце с улыбкой, а ты рисуешь белое облако"
+          "Я рисую дом, а ты рисуешь солнце",
+          "Я рисую дом и ты рисуешь солнце"
         ],
-        "hint": "dibujar • yo dibujo / vos dibujás",
+        "hint": "dibujar = рисовать • yo dibujo = я рисую • vos dibujás = ты рисуешь • la casa = дом • el sol = солнце",
         "distractors": [
-          "он",
-          "дождь"
+          "él",
+          "noche",
+          "perro"
         ]
       },
       {
@@ -1464,16 +1571,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "dibujar",
         "verbForm": "dibuja",
         "verbPerson": "ella",
-        "spanish": "La abuela dibuja flores lindas en una servilleta de papel.",
-        "russian": "Бабушка рисует красивые цветы на бумажной салфетке.",
+        "spanish": "La abuela dibuja una pelota chiquita en el cuaderno.",
+        "russian": "Бабушка рисует маленький мяч в тетради.",
         "acceptedAnswers": [
-          "Бабушка рисует красивые цветы на бумажной салфетке",
-          "Бабушка рисует милые цветы на салфетке"
+          "Бабушка рисует маленький мяч в тетради",
+          "Бабушка рисует маленький мячик в тетради"
         ],
-        "hint": "dibujar • ella dibuja = она рисует",
+        "hint": "dibujar = рисовать • la abuela dibuja = бабушка рисует • la pelota = мяч • chiquito = маленький • el cuaderno = тетрадь",
         "distractors": [
-          "дедушка",
-          "столе"
+          "abuelo",
+          "grande",
+          "libro"
         ]
       },
       {
@@ -1481,17 +1589,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "pintar",
         "verbForm": "pintamos / pintan",
         "verbPerson": "nosotros / ustedes",
-        "spanish": "Nosotros pintamos las cajas de cartón y ustedes pintan las tapas.",
-        "russian": "Мы красим картонные коробки, а вы красите крышки.",
+        "spanish": "Nosotros pintamos las sillas y ustedes pintan las mesas.",
+        "russian": "Мы красим стулья, а вы красите столы.",
         "acceptedAnswers": [
-          "Мы красим картонные коробки, а вы красите крышки",
-          "Мы красим картонные коробки а вы красите крышки",
-          "Мы раскрашиваем коробки из картона, а вы раскрашиваете крышки"
+          "Мы красим стулья, а вы красите столы",
+          "Мы красим стулья и вы красите столы"
         ],
-        "hint": "pintar • pintamos / pintan",
+        "hint": "pintar = красить • nosotros pintamos = мы красим • ustedes pintan = вы красите • las sillas = стулья • las mesas = столы",
         "distractors": [
-          "они",
-          "банки"
+          "ellos",
+          "puertas",
+          "ventanas"
         ]
       },
       {
@@ -1499,17 +1607,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "pintar",
         "verbForm": "pinta",
         "verbPerson": "ella",
-        "spanish": "Maya pinta un paisaje de montañas verdes con acuarelas.",
-        "russian": "Майя рисует зелёные горы акварелью.",
+        "spanish": "Maya pinta una manzana verde y una manzana roja.",
+        "russian": "Майя раскрашивает зелёное яблоко и красное яблоко.",
         "acceptedAnswers": [
-          "Майя рисует зелёные горы акварелью",
-          "Майя рисует зеленые горы акварелью",
-          "Майя раскрашивает пейзаж с зелёными горами акварелью"
+          "Майя раскрашивает зелёное яблоко и красное яблоко",
+          "Майя раскрашивает зеленое яблоко и красное яблоко",
+          "Майя рисует зелёное яблоко и красное яблоко"
         ],
-        "hint": "pintar • ella pinta = она рисует/красит",
+        "hint": "pintar = раскрашивать • Maya pinta = Майя раскрашивает • la manzana = яблоко • verde = зелёный • rojo = красный",
         "distractors": [
-          "красками",
-          "синие"
+          "banana",
+          "azul",
+          "amarillo"
         ]
       },
       {
@@ -1517,17 +1626,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comer",
         "verbForm": "comés / como",
         "verbPerson": "vos / yo",
-        "spanish": "Vos comés tostadas con manteca y yo como frutas frescas.",
-        "russian": "Ты ешь тосты с маслом, а я ем свежие фрукты.",
+        "spanish": "Vos comés pizza rica y yo como pan con queso.",
+        "russian": "Ты ешь вкусную пиццу, а я ем хлеб с сыром.",
         "acceptedAnswers": [
-          "Ты ешь тосты с маслом, а я ем свежие фрукты",
-          "Ты ешь тосты с маслом а я ем свежие фрукты",
-          "Ты кушаешь тосты с маслом, а я кушаю свежие фрукты"
+          "Ты ешь вкусную пиццу, а я ем хлеб с сыром",
+          "Ты кушаешь вкусную пиццу, а я ем хлеб с сыром"
         ],
-        "hint": "comer • vos comés / yo como",
+        "hint": "comer = есть • vos comés = ты ешь • yo como = я ем • la pizza = пицца • el pan = хлеб • el queso = сыр",
         "distractors": [
-          "джемом",
-          "он"
+          "él",
+          "leche",
+          "manzana"
         ]
       },
       {
@@ -1535,17 +1644,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comer",
         "verbForm": "comen",
         "verbPerson": "ellos",
-        "spanish": "Los chicos comen empanadas de carne en el almuerzo escolar.",
-        "russian": "Ребята едят пирожки с мясом на школьном обеде.",
+        "spanish": "Los amigos comen alfajores ricos en el recreo.",
+        "russian": "Друзья едят вкусные альфахоры на перемене.",
         "acceptedAnswers": [
-          "Ребята едят пирожки с мясом на школьном обеде",
-          "Дети едят эмпанадас с мясом на школьном обеде",
-          "Дети едят пирожки с мясом на школьном обеде"
+          "Друзья едят вкусные альфахоры на перемене",
+          "Друзья кушают вкусные альфахоры на перемене"
         ],
-        "hint": "comer • ellos comen = они едят",
+        "hint": "comer = есть • comen = едят • los amigos = друзья • el alfajor = альфахор • el recreo = перемена",
         "distractors": [
-          "сыром",
-          "завтраке"
+          "helado",
+          "quiosco",
+          "merienda"
         ]
       },
       {
@@ -1553,17 +1662,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "correr",
         "verbForm": "corre",
         "verbPerson": "él",
-        "spanish": "El perrito corre feliz por el jardín cuando llega papá.",
-        "russian": "Щенок радостно бегает по саду, когда приходит папа.",
+        "spanish": "El perro corre rápido a la puerta azul.",
+        "russian": "Собака быстро бежит к синей двери.",
         "acceptedAnswers": [
-          "Щенок радостно бегает по саду, когда приходит папа",
-          "Щенок радостно бегает по саду когда приходит папа",
-          "Собачка весело бежит по саду, когда приходит папа"
+          "Собака быстро бежит к синей двери",
+          "Собака быстро бегает к синей двери",
+          "Пёс быстро бежит к синей двери"
         ],
-        "hint": "correr • corre = бегает",
+        "hint": "correr = бежать • el perro corre = собака бежит • rápido = быстро • la puerta = дверь • azul = синий",
         "distractors": [
-          "кот",
-          "мама"
+          "gato",
+          "despacio",
+          "ventana"
         ]
       },
       {
@@ -1571,17 +1681,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "correr",
         "verbForm": "corremos",
         "verbPerson": "nosotras",
-        "spanish": "Nosotras corremos bajo la lluvia tibia de verano.",
-        "russian": "Мы бегаем под тёплым летним дождём.",
+        "spanish": "Nosotras corremos felices en el recreo grande.",
+        "russian": "Мы (девочки) радостно бегаем на большой перемене.",
         "acceptedAnswers": [
-          "Мы бегаем под тёплым летним дождём",
-          "Мы бегаем под теплым летним дождем",
-          "Мы бежим под тёплым летним дождём"
+          "Мы (девочки) радостно бегаем на большой перемене",
+          "Мы радостно бегаем на большой перемене",
+          "Мы (девочки) счастливо бегаем на большой перемене"
         ],
-        "hint": "correr • corremos = мы бегаем",
+        "hint": "correr = бегать • nosotras corremos = мы (девочки) бегаем • feliz = радостный • el recreo = перемена • grande = большой",
         "distractors": [
-          "холодным",
-          "снежным"
+          "ellos",
+          "cansadas",
+          "chiquito"
         ]
       },
       {
@@ -1589,17 +1700,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "escuchar",
         "verbForm": "escucho",
         "verbPerson": "yo",
-        "spanish": "Yo escucho el canto del gallo muy temprano en el campo.",
-        "russian": "Я слышу пение петуха очень рано в деревне.",
+        "spanish": "Yo escucho a mamá y a papá en la casa.",
+        "russian": "Я слушаю маму и папу в доме.",
         "acceptedAnswers": [
-          "Я слышу пение петуха очень рано в деревне",
-          "Я слушаю пение петуха очень рано в деревне",
-          "Я слушаю пение петуха рано утром за городом"
+          "Я слушаю маму и папу в доме",
+          "Я слушаю маму и папу дома"
         ],
-        "hint": "escuchar • escucho = я слышу/слушаю",
+        "hint": "escuchar = слушать • yo escucho = я слушаю • mamá = мама • papá = папа • la casa = дом",
         "distractors": [
-          "птиц",
-          "поздно"
+          "abuelo",
+          "seño",
+          "auto"
         ]
       },
       {
@@ -1607,16 +1718,16 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "escuchar",
         "verbForm": "escuchan",
         "verbPerson": "ellos",
-        "spanish": "Ellos escuchan atentos el relato del abuelo sobre su juventud.",
-        "russian": "Они внимательно слушают рассказ дедушки о его молодости.",
+        "spanish": "Ellos escuchan a la seño en la mesa blanca.",
+        "russian": "Они слушают учительницу за белым столом.",
         "acceptedAnswers": [
-          "Они внимательно слушают рассказ дедушки о его молодости",
-          "Они слушают дедушкин рассказ о молодости"
+          "Они слушают учительницу за белым столом"
         ],
-        "hint": "escuchar • escuchan = они слушают",
+        "hint": "escuchar = слушать • ellos escuchan = они слушают • la seño = учительница • la mesa = стол • blanco = белый",
         "distractors": [
-          "бабушки",
-          "детстве"
+          "ellas",
+          "silla",
+          "negro"
         ]
       },
       {
@@ -1624,17 +1735,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "mirar",
         "verbForm": "mirás",
         "verbPerson": "vos",
-        "spanish": "Vos mirás por la ventanilla del auto los árboles verdes.",
-        "russian": "Ты смотришь из окна машины на зелёные деревья.",
+        "spanish": "Vos mirás por la ventana del auto grande.",
+        "russian": "Ты смотришь из окна большой машины.",
         "acceptedAnswers": [
-          "Ты смотришь из окна машины на зелёные деревья",
-          "Ты смотришь из окна машины на зеленые деревья",
-          "Ты глядишь в окно автомобиля на зелёные деревья"
+          "Ты смотришь из окна большой машины",
+          "Ты смотришь в окно большой машины"
         ],
-        "hint": "mirar • mirás = ты смотришь",
+        "hint": "mirar = смотреть • vos mirás = ты смотришь • la ventana = окно • el auto = машина • grande = большой",
         "distractors": [
-          "дома",
-          "двери"
+          "puerta",
+          "chiquito",
+          "azul"
         ]
       },
       {
@@ -1642,17 +1753,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "mirar",
         "verbForm": "mira",
         "verbPerson": "ella",
-        "spanish": "La mamá mira cómo juegan sus hijos en el patio.",
-        "russian": "Мама смотрит, как её дети играют во дворе.",
+        "spanish": "La mamá mira al gato chiquito en la cama.",
+        "russian": "Мама смотрит на маленького кота на кровати.",
         "acceptedAnswers": [
-          "Мама смотрит, как её дети играют во дворе",
-          "Мама смотрит как её дети играют во дворе",
-          "Мама наблюдает, как играют её дети во дворе"
+          "Мама смотрит на маленького кота на кровати",
+          "Мама смотрит на маленькую кошку на кровати"
         ],
-        "hint": "mirar • mira = смотрит",
+        "hint": "mirar = смотреть • la mamá mira = мама смотрит • el gato = кот • chiquito = маленький • la cama = кровать",
         "distractors": [
-          "папа",
-          "парке"
+          "papá",
+          "perro",
+          "mesa"
         ]
       },
       {
@@ -1660,16 +1771,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comprar",
         "verbForm": "compramos",
         "verbPerson": "nosotros",
-        "spanish": "Nosotros compramos pochoclos dulces antes de entrar al cine.",
-        "russian": "Мы покупаем сладкий попкорн перед входом в кинотеатр.",
+        "spanish": "Nosotros compramos helado rico en un día de calor.",
+        "russian": "Мы покупаем вкусное мороженое в жаркий день.",
         "acceptedAnswers": [
-          "Мы покупаем сладкий попкорн перед входом в кинотеатр",
-          "Мы берем сладкий попкорн перед сеансом кино"
+          "Мы покупаем вкусное мороженое в жаркий день",
+          "Мы покупаем вкусное мороженое в день жары"
         ],
-        "hint": "comprar • compramos = мы покупаем",
+        "hint": "comprar = покупать • compramos = мы покупаем • el helado = мороженое • el día = день • el calor = жара",
         "distractors": [
-          "солёный",
-          "театр"
+          "frío",
+          "alfajor",
+          "noche"
         ]
       },
       {
@@ -1677,16 +1789,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "comprar",
         "verbForm": "compran",
         "verbPerson": "ustedes",
-        "spanish": "Ustedes compran lápices nuevos para dibujar en plástica.",
-        "russian": "Вы покупаете новые карандаши для рисования на уроке творчества.",
+        "spanish": "Ustedes compran cuadernos y lápices de colores.",
+        "russian": "Вы покупаете тетради и цветные карандаши.",
         "acceptedAnswers": [
-          "Вы покупаете новые карандаши для рисования на уроке творчества",
-          "Вы берете новые карандаши для рисования"
+          "Вы покупаете тетради и цветные карандаши",
+          "Вы покупаете тетради и карандаши разных цветов"
         ],
-        "hint": "comprar • compran = вы покупаете",
+        "hint": "comprar = покупать • ustedes compran = вы покупаете • los cuadernos = тетради • los lápices = карандаши",
         "distractors": [
-          "ручки",
-          "математики"
+          "libros",
+          "gomas",
+          "tijeras"
         ]
       },
       {
@@ -1694,17 +1807,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "saltar",
         "verbForm": "salta",
         "verbPerson": "él",
-        "spanish": "El canguro salta rápido en la pradera verde.",
-        "russian": "Кенгуру быстро прыгает по зелёному лугу.",
+        "spanish": "El hermano salta rápido en la plaza verde.",
+        "russian": "Брат быстро прыгает на зелёной площадке.",
         "acceptedAnswers": [
-          "Кенгуру быстро прыгает по зелёному лугу",
-          "Кенгуру быстро прыгает по зеленому лугу",
-          "Кенгуру скачет быстро по зеленой поляне"
+          "Брат быстро прыгает на зелёной площадке",
+          "Брат быстро прыгает на зеленой площадке",
+          "Брат быстро прыгает в зелёном парке"
         ],
-        "hint": "saltar • salta = прыгает",
+        "hint": "saltar = прыгать • el hermano salta = брат прыгает • rápido = быстро • la plaza = площадка • verde = зелёный",
         "distractors": [
-          "зайчик",
-          "медленно"
+          "hermana",
+          "despacio",
+          "azul"
         ]
       },
       {
@@ -1712,16 +1826,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "saltar",
         "verbForm": "salto",
         "verbPerson": "yo",
-        "spanish": "Yo salto a la cuerda y cuento hasta diez en español.",
-        "russian": "Я прыгаю через скакалку и считаю до десяти по-испански.",
+        "spanish": "Yo salto feliz con mi amiga en la hamaca.",
+        "russian": "Я радостно прыгаю со своей подругой на качелях.",
         "acceptedAnswers": [
-          "Я прыгаю через скакалку и считаю до десяти по-испански",
-          "Я скачу на скакалке и считаю до десяти по-испански"
+          "Я радостно прыгаю со своей подругой на качелях",
+          "Я радостно прыгаю с подругой на качелях",
+          "Я счастливо прыгаю со своей подругой на качелях"
         ],
-        "hint": "saltar • salto = я прыгаю",
+        "hint": "saltar = прыгать • yo salto = я прыгаю • feliz = радостный • la amiga = подруга • la hamaca = качели",
         "distractors": [
-          "двадцати",
-          "по-русски"
+          "amigo",
+          "tobogán",
+          "cansada"
         ]
       },
       {
@@ -1729,17 +1845,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "esperar",
         "verbForm": "esperás",
         "verbPerson": "vos",
-        "spanish": "Vos esperás que la sopa tibia se enfríe un poco.",
-        "russian": "Ты ждёшь, пока тёплый суп немного остынет.",
+        "spanish": "Vos esperás a la seño en la puerta blanca.",
+        "russian": "Ты ждёшь учительницу у белой двери.",
         "acceptedAnswers": [
-          "Ты ждёшь, пока тёплый суп немного остынет",
-          "Ты ждешь, пока теплый суп немного остынет",
-          "Ты ждешь, когда остынет суп"
+          "Ты ждёшь учительницу у белой двери",
+          "Ты ждешь учительницу у белой двери"
         ],
-        "hint": "esperar • esperás = ты ждёшь",
+        "hint": "esperar = ждать • vos esperás = ты ждёшь • la seño = учительница • la puerta = дверь • blanco = белый",
         "distractors": [
-          "чай",
-          "нагреется"
+          "mamá",
+          "ventana",
+          "negro"
         ]
       },
       {
@@ -1747,17 +1863,18 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "esperar",
         "verbForm": "esperamos",
         "verbPerson": "nosotros",
-        "spanish": "Nosotros esperamos ansiosos las vacaciones de verano.",
-        "russian": "Мы с нетерпением ждём летних каникул.",
+        "spanish": "Nosotros esperamos el turno en el tobogán grande.",
+        "russian": "Мы ждём очередь на большой горке.",
         "acceptedAnswers": [
-          "Мы с нетерпением ждём летних каникул",
-          "Мы с нетерпением ждем летних каникул",
-          "Мы с волнением ждем летние каникулы"
+          "Мы ждём очередь на большой горке",
+          "Мы ждем очередь на большой горке",
+          "Мы ждём свою очередь на большой горке"
         ],
-        "hint": "esperar • esperamos = мы ждём",
+        "hint": "esperar = ждать • esperamos = мы ждём • el turno = очередь • el tobogán = горка • grande = большой",
         "distractors": [
-          "зимних",
-          "выходных"
+          "hamaca",
+          "chiquito",
+          "plaza"
         ]
       },
       {
@@ -1765,16 +1882,16 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "ayudar",
         "verbForm": "ayuda",
         "verbPerson": "él",
-        "spanish": "El hermano mayor ayuda al pequeño a atarse los cordones.",
-        "russian": "Старший брат помогает младшему завязать шнурки.",
+        "spanish": "El hermano ayuda a la hermana con los libros.",
+        "russian": "Брат помогает сестре с книгами.",
         "acceptedAnswers": [
-          "Старший брат помогает младшему завязать шнурки",
-          "Старший брат помогает маленькому завязать шнурки"
+          "Брат помогает сестре с книгами"
         ],
-        "hint": "ayudar • ayuda = помогает",
+        "hint": "ayudar = помогать • ayuda = помогает • el hermano = брат • la hermana = сестра • los libros = книги",
         "distractors": [
-          "сестра",
-          "ботинки"
+          "papá",
+          "cuadernos",
+          "mochila"
         ]
       },
       {
@@ -1782,16 +1899,17 @@ export const EXERCISES_ES_TO_RU = [
         "verb": "ayudar",
         "verbForm": "ayudan",
         "verbPerson": "ustedes",
-        "spanish": "Ustedes ayudan a cuidar a las mascotas de la casa con cariño.",
-        "russian": "Вы с заботой помогаете ухаживать за домашними питомцами.",
+        "spanish": "Ustedes ayudan a papá en el auto azul.",
+        "russian": "Вы помогаете папе в синей машине.",
         "acceptedAnswers": [
-          "Вы с заботой помогаете ухаживать за домашними питомцами",
-          "Вы заботливо помогаете ухаживать за питомцами в доме"
+          "Вы помогаете папе в синей машине",
+          "Вы помогаете папе с синей машиной"
         ],
-        "hint": "ayudar • ayudan = вы помогаете",
+        "hint": "ayudar = помогать • ustedes ayudan = вы помогаете • el papá = папа • el auto = машина • azul = синий",
         "distractors": [
-          "растениями",
-          "собакой"
+          "mamá",
+          "blanco",
+          "casa"
         ]
       }
     ]
@@ -1803,27 +1921,25 @@ export const EXERCISES_RU_TO_ES = [
     "id": 1,
     "title": "Упр. 1: Мои и твои действия (yo и vos)",
     "shortTitle": "1. Я и ты",
-    "description": "Переводим русские фразы с формами yo (-o) и vos (-ás, -és) на испанский",
-    "icon": "⭐",
+    "description": "Пишем перевод на испанский для форм yo и vos (хвостики -o, -ás, -és)",
+    "icon": "✍️",
     "sentences": [
       {
         "id": "ru_es_1_01",
         "verb": "dibujar",
         "verbForm": "dibujo",
         "verbPerson": "yo",
-        "russian": "Я рисую синюю птицу на ветке дерева.",
-        "spanish": "Yo dibujo un pájaro azul en la rama.",
+        "russian": "Я рисую синий мяч в тетради.",
+        "spanish": "Yo dibujo una pelota azul en el cuaderno.",
         "acceptedAnswers": [
-          "Yo dibujo un pájaro azul en la rama",
-          "Dibujo un pájaro azul en la rama",
-          "Yo dibujo un pajaro azul en la rama",
-          "Dibujo un pajaro azul en la rama"
+          "Yo dibujo una pelota azul en el cuaderno",
+          "Dibujo una pelota azul en el cuaderno"
         ],
-        "hint": "рисовать = dibujar • я рисую = yo dibujo",
+        "hint": "рисовать = dibujar • я рисую = yo dibujo • мяч = la pelota • тетрадь = el cuaderno • синий = azul",
         "distractors": [
-          "pintas",
-          "rojo",
-          "vos"
+          "vos",
+          "dibujás",
+          "verde"
         ]
       },
       {
@@ -1831,20 +1947,22 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "dibujar",
         "verbForm": "dibujás",
         "verbPerson": "vos",
-        "russian": "Ты рисуешь красивый замок с башенками.",
-        "spanish": "Vos dibujás un castillo lindo con torres.",
+        "russian": "Ты рисуешь белого кота в книге.",
+        "spanish": "Vos dibujás un gato blanco en el libro.",
         "acceptedAnswers": [
-          "Vos dibujás un castillo lindo con torres",
-          "Dibujás un castillo lindo con torres",
-          "Vos dibujas un castillo lindo con torres",
-          "Dibujas un castillo lindo con torres",
-          "Tú dibujas un castillo lindo con torres"
+          "Vos dibujás un gato blanco en el libro",
+          "Dibujás un gato blanco en el libro",
+          "Vos dibujas un gato blanco en el libro",
+          "Dibujas un gato blanco en el libro",
+          "Tú dibujas un gato blanco en el libro",
+          "Vos dibujás una gata blanca en el libro",
+          "Dibujás una gata blanca en el libro"
         ],
-        "hint": "рисовать = dibujar • ты рисуешь = vos dibujás",
+        "hint": "рисовать = dibujar • ты рисуешь = vos dibujás • кот = el gato • книга = el libro • белый = blanco",
         "distractors": [
+          "yo",
           "dibujo",
-          "casa",
-          "yo"
+          "negro"
         ]
       },
       {
@@ -1852,19 +1970,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "pintar",
         "verbForm": "pinto",
         "verbPerson": "yo",
-        "russian": "Я раскрашиваю страницу в альбоме для рисования.",
-        "spanish": "Yo pinto una página en el bloc de dibujo.",
+        "russian": "Я раскрашиваю большую дверь в жёлтый цвет.",
+        "spanish": "Yo pinto la puerta grande de color amarillo.",
         "acceptedAnswers": [
-          "Yo pinto una página en el bloc de dibujo",
-          "Pinto una página en el bloc de dibujo",
-          "Yo pinto una pagina en el bloc de dibujo",
-          "Yo pinto una página en el cuaderno de dibujo"
+          "Yo pinto la puerta grande de color amarillo",
+          "Pinto la puerta grande de color amarillo"
         ],
-        "hint": "раскрашивать = pintar • я раскрашиваю = yo pinto",
+        "hint": "раскрашивать = pintar • я раскрашиваю = yo pinto • дверь = la puerta • большой = grande • жёлтый = amarillo",
         "distractors": [
-          "cuaderno",
-          "lees",
-          "vos"
+          "vos",
+          "pintás",
+          "azul"
         ]
       },
       {
@@ -1872,19 +1988,22 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "pintar",
         "verbForm": "pintás",
         "verbPerson": "vos",
-        "russian": "Ты красишь деревянную рамку в жёлтый цвет.",
-        "spanish": "Vos pintás el marco de madera de color amarillo.",
+        "russian": "Ты раскрашиваешь стол красным карандашом.",
+        "spanish": "Vos pintás la mesa con el lápiz rojo.",
         "acceptedAnswers": [
-          "Vos pintás el marco de madera de color amarillo",
-          "Pintás el marco de madera de color amarillo",
-          "Vos pintas el marco de madera de color amarillo",
-          "Tú pintas el marco de madera de color amarillo"
+          "Vos pintás la mesa con el lápiz rojo",
+          "Pintás la mesa con el lápiz rojo",
+          "Vos pintas la mesa con el lápiz rojo",
+          "Pintas la mesa con el lápiz rojo",
+          "Tú pintas la mesa con el lápiz rojo",
+          "Vos pintás la mesa con el lapiz rojo",
+          "Vos pintas la mesa con el lapiz rojo"
         ],
-        "hint": "красить = pintar • ты красишь = vos pintás",
+        "hint": "раскрашивать = pintar • ты красишь = vos pintás • стол = la mesa • карандаш = el lápiz • красный = rojo",
         "distractors": [
+          "yo",
           "pinto",
-          "azul",
-          "yo"
+          "verde"
         ]
       },
       {
@@ -1892,17 +2011,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comer",
         "verbForm": "como",
         "verbPerson": "yo",
-        "russian": "Я ем тёплый суп за кухонным столом.",
-        "spanish": "Yo como sopa tibia en la mesa de la cocina.",
+        "russian": "Я ем вкусное яблоко за столом.",
+        "spanish": "Yo como una manzana rica en la mesa.",
         "acceptedAnswers": [
-          "Yo como sopa tibia en la mesa de la cocina",
-          "Como sopa tibia en la mesa de la cocina"
+          "Yo como una manzana rica en la mesa",
+          "Como una manzana rica en la mesa"
         ],
-        "hint": "есть/кушать = comer • я ем = yo como",
+        "hint": "есть = comer • я ем = yo como • яблоко = la manzana • вкусный = rico • стол = la mesa",
         "distractors": [
-          "comes",
-          "fría",
-          "vos"
+          "vos",
+          "comés",
+          "pan"
         ]
       },
       {
@@ -1910,19 +2029,20 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comer",
         "verbForm": "comés",
         "verbPerson": "vos",
-        "russian": "Ты кушаешь сладкое мороженое с клубникой.",
-        "spanish": "Vos comés helado dulce con frutilla.",
+        "russian": "Ты кушаешь вкусную медиалуну с молоком.",
+        "spanish": "Vos comés una medialuna rica con leche.",
         "acceptedAnswers": [
-          "Vos comés helado dulce con frutilla",
-          "Comés helado dulce con frutilla",
-          "Vos comes helado dulce con frutilla",
-          "Tú comes helado dulce con frutilla"
+          "Vos comés una medialuna rica con leche",
+          "Comés una medialuna rica con leche",
+          "Vos comes una medialuna rica con leche",
+          "Comes una medialuna rica con leche",
+          "Tú comes una medialuna rica con leche"
         ],
-        "hint": "кушать = comer • ты кушаешь = vos comés",
+        "hint": "кушать = comer • ты ешь = vos comés • медиалуна = la medialuna • вкусный = rico • молоко = la leche",
         "distractors": [
+          "yo",
           "como",
-          "chocolate",
-          "yo"
+          "agua"
         ]
       },
       {
@@ -1930,17 +2050,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "correr",
         "verbForm": "corro",
         "verbPerson": "yo",
-        "russian": "Я бегаю каждое утро по дорожке парка.",
-        "spanish": "Yo corro cada mañana por el camino del parque.",
+        "russian": "Я быстро бегу к большой двери.",
+        "spanish": "Yo corro rápido a la puerta grande.",
         "acceptedAnswers": [
-          "Yo corro cada mañana por el camino del parque",
-          "Corro cada mañana por el camino del parque"
+          "Yo corro rápido a la puerta grande",
+          "Corro rápido a la puerta grande",
+          "Yo corro rapido a la puerta grande",
+          "Corro rapido a la puerta grande"
         ],
-        "hint": "бегать = correr • я бегаю = yo corro",
+        "hint": "бегать = correr • я бегу = yo corro • быстро = rápido • дверь = la puerta • большой = grande",
         "distractors": [
-          "corres",
-          "tarde",
-          "vos"
+          "vos",
+          "corrés",
+          "despacio"
         ]
       },
       {
@@ -1948,20 +2070,20 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "correr",
         "verbForm": "corrés",
         "verbPerson": "vos",
-        "russian": "Ты быстро бежишь за летящим мячом.",
-        "spanish": "Vos corrés rápido tras la pelota.",
+        "russian": "Ты медленно бегаешь на перемене.",
+        "spanish": "Vos corrés despacio en el recreo.",
         "acceptedAnswers": [
-          "Vos corrés rápido tras la pelota",
-          "Corrés rápido tras la pelota",
-          "Vos corres rápido tras la pelota",
-          "Vos corrés rápido detrás de la pelota",
-          "Tú corres rápido tras la pelota"
+          "Vos corrés despacio en el recreo",
+          "Corrés despacio en el recreo",
+          "Vos corres despacio en el recreo",
+          "Corres despacio en el recreo",
+          "Tú corres despacio en el recreo"
         ],
-        "hint": "бежать = correr • ты бежишь = vos corrés",
+        "hint": "бегать = correr • ты бегаешь = vos corrés • медленно = despacio • перемена = el recreo",
         "distractors": [
+          "yo",
           "corro",
-          "despacio",
-          "yo"
+          "rápido"
         ]
       },
       {
@@ -1969,18 +2091,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "escuchar",
         "verbForm": "escucho",
         "verbPerson": "yo",
-        "russian": "Я слушаю спокойную музыку перед сном.",
-        "spanish": "Yo escucho música tranquila antes de dormir.",
+        "russian": "Я слушаю добрую бабушку в доме.",
+        "spanish": "Yo escucho a la abuela linda en la casa.",
         "acceptedAnswers": [
-          "Yo escucho música tranquila antes de dormir",
-          "Escucho música tranquila antes de dormir",
-          "Yo escucho musica tranquila antes de dormir"
+          "Yo escucho a la abuela linda en la casa",
+          "Escucho a la abuela linda en la casa"
         ],
-        "hint": "слушать = escuchar • я слушаю = yo escucho",
+        "hint": "слушать = escuchar • я слушаю = yo escucho • бабушка = la abuela • добрый/милый = lindo • дом = la casa",
         "distractors": [
-          "escuchas",
-          "fuerte",
-          "vos"
+          "vos",
+          "escuchás",
+          "mamá"
         ]
       },
       {
@@ -1988,19 +2109,22 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "escuchar",
         "verbForm": "escuchás",
         "verbPerson": "vos",
-        "russian": "Ты слушаешь шум морских волн на берегу.",
-        "spanish": "Vos escuchás las olas del mar en la orilla.",
+        "spanish": "Vos escuchás a papá en el auto.",
+        "russian": "Ты слушаешь папу в машине.",
         "acceptedAnswers": [
-          "Vos escuchás las olas del mar en la orilla",
-          "Escuchás las olas del mar en la orilla",
-          "Vos escuchas las olas del mar en la orilla",
-          "Tú escuchas las olas del mar en la orilla"
+          "Vos escuchás a papá en el auto",
+          "Escuchás a papá en el auto",
+          "Vos escuchas a papá en el auto",
+          "Escuchas a papá en el auto",
+          "Tú escuchas a papá en el auto",
+          "Vos escuchás a papa en el auto",
+          "Tú escuchas a papa en el auto"
         ],
-        "hint": "слушать = escuchar • ты слушаешь = vos escuchás",
+        "hint": "слушать = escuchar • ты слушаешь = vos escuchás • папа = el papá • машина = el auto",
         "distractors": [
+          "yo",
           "escucho",
-          "viento",
-          "yo"
+          "casa"
         ]
       },
       {
@@ -2008,17 +2132,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "mirar",
         "verbForm": "miro",
         "verbPerson": "yo",
-        "russian": "Я смотрю на яркую луну на тёмном небе.",
-        "spanish": "Yo miro la luna brillante en el cielo oscuro.",
+        "russian": "Я смотрю на жёлтое солнце в окно.",
+        "spanish": "Yo miro el sol amarillo por la ventana.",
         "acceptedAnswers": [
-          "Yo miro la luna brillante en el cielo oscuro",
-          "Miro la luna brillante en el cielo oscuro"
+          "Yo miro el sol amarillo por la ventana",
+          "Miro el sol amarillo por la ventana",
+          "Yo miro el sol amarillo en la ventana",
+          "Miro el sol amarillo en la ventana"
         ],
-        "hint": "смотреть = mirar • я смотрю = yo miro",
+        "hint": "смотреть = mirar • я смотрю = yo miro • солнце = el sol • жёлтый = amarillo • окно = la ventana",
         "distractors": [
-          "miras",
-          "sol",
-          "vos"
+          "vos",
+          "mirás",
+          "puerta"
         ]
       },
       {
@@ -2026,19 +2152,22 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "mirar",
         "verbForm": "mirás",
         "verbPerson": "vos",
-        "russian": "Ты внимательно смотришь на новую игрушку.",
-        "spanish": "Vos mirás con atención el juguete nuevo.",
+        "spanish": "Vos mirás al perro lindo en la plaza.",
+        "russian": "Ты смотришь на красивую собаку на площадке.",
         "acceptedAnswers": [
-          "Vos mirás con atención el juguete nuevo",
-          "Mirás con atención el juguete nuevo",
-          "Vos miras con atención el juguete nuevo",
-          "Tú miras con atención el juguete nuevo"
+          "Vos mirás al perro lindo en la plaza",
+          "Mirás al perro lindo en la plaza",
+          "Vos miras al perro lindo en la plaza",
+          "Miras al perro lindo en la plaza",
+          "Tú miras al perro lindo en la plaza",
+          "Vos mirás a la perra linda en la plaza",
+          "Tú miras a la perra linda en la plaza"
         ],
-        "hint": "смотреть = mirar • ты смотришь = vos mirás",
+        "hint": "смотреть = mirar • ты смотришь = vos mirás • собака = el perro • красивый = lindo • площадка = la plaza",
         "distractors": [
+          "yo",
           "miro",
-          "libro",
-          "yo"
+          "gato"
         ]
       },
       {
@@ -2046,18 +2175,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comprar",
         "verbForm": "compro",
         "verbPerson": "yo",
-        "russian": "Я покупаю вкусный бутерброд в школьном буфете.",
-        "spanish": "Yo compro un sándwich rico en el comedor escolar.",
+        "russian": "Я покупаю вкусный банан в киоске.",
+        "spanish": "Yo compro una banana rica en el quiosco.",
         "acceptedAnswers": [
-          "Yo compro un sándwich rico en el comedor escolar",
-          "Compro un sándwich rico en el comedor escolar",
-          "Yo compro un sandwich rico en el comedor escolar"
+          "Yo compro una banana rica en el quiosco",
+          "Compro una banana rica en el quiosco"
         ],
-        "hint": "покупать = comprar • я покупаю = yo compro",
+        "hint": "покупать = comprar • я покупаю = yo compro • банан = la banana • вкусный = rico • киоск = el quiosco",
         "distractors": [
-          "compras",
-          "jugo",
-          "vos"
+          "vos",
+          "comprás",
+          "pan"
         ]
       },
       {
@@ -2065,19 +2193,20 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comprar",
         "verbForm": "comprás",
         "verbPerson": "vos",
-        "russian": "Ты покупаешь яркие наклейки для своего дневника.",
-        "spanish": "Vos comprás figuritas de colores para tu diario.",
+        "spanish": "Vos comprás chocolate y galletitas ricas.",
+        "russian": "Ты покупаешь шоколад и вкусное печенье.",
         "acceptedAnswers": [
-          "Vos comprás figuritas de colores para tu diario",
-          "Comprás figuritas de colores para tu diario",
-          "Vos compras figuritas de colores para tu diario",
-          "Tú compras figuritas de colores para tu diario"
+          "Vos comprás chocolate y galletitas ricas",
+          "Comprás chocolate y galletitas ricas",
+          "Vos compras chocolate y galletitas ricas",
+          "Compras chocolate y galletitas ricas",
+          "Tú compras chocolate y galletitas ricas"
         ],
-        "hint": "покупать = comprar • ты покупаешь = vos comprás",
+        "hint": "покупать = comprar • ты покупаешь = vos comprás • шоколад = el chocolate • печенье = las galletitas",
         "distractors": [
+          "yo",
           "compro",
-          "lápices",
-          "yo"
+          "helado"
         ]
       },
       {
@@ -2085,17 +2214,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "saltar",
         "verbForm": "salto",
         "verbPerson": "yo",
-        "russian": "Я высоко прыгаю через натянутую верёвочку.",
-        "spanish": "Yo salto bien alto sobre la cuerda.",
+        "russian": "Я радостно прыгаю на зелёной горке.",
+        "spanish": "Yo salto feliz en el tobogán verde.",
         "acceptedAnswers": [
-          "Yo salto bien alto sobre la cuerda",
-          "Salto bien alto sobre la cuerda"
+          "Yo salto feliz en el tobogán verde",
+          "Salto feliz en el tobogán verde",
+          "Yo salto feliz en el tobogan verde",
+          "Salto feliz en el tobogan verde"
         ],
-        "hint": "прыгать = saltar • я прыгаю = yo salto",
+        "hint": "прыгать = saltar • я прыгаю = yo salto • радостный = feliz • горка = el tobogán • зелёный = verde",
         "distractors": [
-          "saltas",
-          "banco",
-          "vos"
+          "vos",
+          "saltás",
+          "azul"
         ]
       },
       {
@@ -2103,19 +2234,20 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "saltar",
         "verbForm": "saltás",
         "verbPerson": "vos",
-        "russian": "Ты скачешь на одной ножке по классикам.",
-        "spanish": "Vos saltás en una pata en la rayuela.",
+        "spanish": "Vos saltás rápido en la hamaca.",
+        "russian": "Ты быстро прыгаешь на качелях.",
         "acceptedAnswers": [
-          "Vos saltás en una pata en la rayuela",
-          "Saltás en una pata en la rayuela",
-          "Vos saltas en una pata en la rayuela",
-          "Tú saltas en una pata en la rayuela"
+          "Vos saltás rápido en la hamaca",
+          "Saltás rápido en la hamaca",
+          "Vos saltas rapido en la hamaca",
+          "Saltas rapido en la hamaca",
+          "Tú saltas rápido en la hamaca"
         ],
-        "hint": "скакать/прыгать = saltar • ты скачешь = vos saltás",
+        "hint": "прыгать = saltar • ты прыгаешь = vos saltás • быстро = rápido • качели = la hamaca",
         "distractors": [
+          "yo",
           "salto",
-          "corres",
-          "yo"
+          "despacio"
         ]
       },
       {
@@ -2123,19 +2255,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "esperar",
         "verbForm": "espero",
         "verbPerson": "yo",
-        "russian": "Я жду прихода школьного автобуса на остановке.",
-        "spanish": "Yo espero el autobús escolar en la parada.",
+        "russian": "Я жду маму возле двери дома.",
+        "spanish": "Yo espero a mamá en la puerta de la casa.",
         "acceptedAnswers": [
-          "Yo espero el autobús escolar en la parada",
-          "Espero el autobús escolar en la parada",
-          "Yo espero el colectivo escolar en la parada",
-          "Espero el colectivo escolar en la parada"
+          "Yo espero a mamá en la puerta de la casa",
+          "Espero a mamá en la puerta de la casa",
+          "Yo espero a mama en la puerta de la casa",
+          "Espero a mama en la puerta de la casa"
         ],
-        "hint": "ждать = esperar • я жду = yo espero",
+        "hint": "ждать = esperar • я жду = yo espero • мама = la mamá • дверь = la puerta • дом = la casa",
         "distractors": [
-          "esperas",
-          "tren",
-          "vos"
+          "vos",
+          "esperás",
+          "papá"
         ]
       },
       {
@@ -2143,19 +2275,20 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "esperar",
         "verbForm": "esperás",
         "verbPerson": "vos",
-        "russian": "Ты терпеливо ждёшь свой любимый десерт.",
-        "spanish": "Vos esperás tu postre favorito con paciencia.",
+        "spanish": "Vos esperás tu turno en la hamaca.",
+        "russian": "Ты ждёшь свою очередь на качелях.",
         "acceptedAnswers": [
-          "Vos esperás tu postre favorito con paciencia",
-          "Esperás tu postre favorito con paciencia",
-          "Vos esperas tu postre favorito con paciencia",
-          "Tú esperas tu postre favorito con paciencia"
+          "Vos esperás tu turno en la hamaca",
+          "Esperás tu turno en la hamaca",
+          "Vos esperas tu turno en la hamaca",
+          "Esperas tu turno en la hamaca",
+          "Tú esperas tu turno en la hamaca"
         ],
-        "hint": "ждать = esperar • ты ждёшь = vos esperás",
+        "hint": "ждать = esperar • ты ждёшь = vos esperás • очередь = el turno • качели = la hamaca",
         "distractors": [
+          "yo",
           "espero",
-          "comida",
-          "yo"
+          "tobogán"
         ]
       },
       {
@@ -2163,17 +2296,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "ayudar",
         "verbForm": "ayudo",
         "verbPerson": "yo",
-        "russian": "Я помогаю дедушке поливать помидоры на грядке.",
-        "spanish": "Yo ayudo al abuelo a regar los tomates en la huerta.",
+        "russian": "Я помогаю дедушке за столом.",
+        "spanish": "Yo ayudo al abuelo en la mesa.",
         "acceptedAnswers": [
-          "Yo ayudo al abuelo a regar los tomates en la huerta",
-          "Ayudo al abuelo a regar los tomates en la huerta"
+          "Yo ayudo al abuelo en la mesa",
+          "Ayudo al abuelo en la mesa"
         ],
-        "hint": "помогать = ayudar • я помогаю = yo ayudo",
+        "hint": "помогать = ayudar • я помогаю = yo ayudo • дедушка = el abuelo • стол = la mesa",
         "distractors": [
-          "ayudas",
-          "flores",
-          "vos"
+          "vos",
+          "ayudás",
+          "abuela"
         ]
       },
       {
@@ -2181,19 +2314,20 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "ayudar",
         "verbForm": "ayudás",
         "verbPerson": "vos",
-        "russian": "Ты помогаешь сестрёнке собрать рассыпанные карандаши.",
-        "spanish": "Vos ayudás a tu hermana a juntar los lápices.",
+        "spanish": "Vos ayudás a la hermana con los libros.",
+        "russian": "Ты помогаешь сестре с книгами.",
         "acceptedAnswers": [
-          "Vos ayudás a tu hermana a juntar los lápices",
-          "Ayudás a tu hermana a juntar los lápices",
-          "Vos ayudas a tu hermana a juntar los lápices",
-          "Tú ayudas a tu hermana a juntar los lápices"
+          "Vos ayudás a la hermana con los libros",
+          "Ayudás a la hermana con los libros",
+          "Vos ayudas a la hermana con los libros",
+          "Ayudas a la hermana con los libros",
+          "Tú ayudas a la hermana con los libros"
         ],
-        "hint": "помогать = ayudar • ты помогаешь = vos ayudás",
+        "hint": "помогать = ayudar • ты помогаешь = vos ayudás • сестра = la hermana • книги = los libros",
         "distractors": [
+          "yo",
           "ayudo",
-          "juguetes",
-          "yo"
+          "hermano"
         ]
       }
     ]
@@ -2201,8 +2335,8 @@ export const EXERCISES_RU_TO_ES = [
   {
     "id": 2,
     "title": "Упр. 2: Семья, друзья и питомцы (él, ella)",
-    "shortTitle": "2. Семья и друзья",
-    "description": "Переводим фразы про маму, папу, брата, сестру, питомцев (хвостики -a, -e)",
+    "shortTitle": "2. Он и она",
+    "description": "Пишем формы третьего лица для él, ella, Maya, семьи и питомцев (хвостики -a, -e)",
     "icon": "👨‍👩‍👧",
     "sentences": [
       {
@@ -2210,17 +2344,18 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "dibujar",
         "verbForm": "dibuja",
         "verbPerson": "él",
-        "russian": "Папа рисует план нового деревянного стола.",
-        "spanish": "El papá dibuja el plano de una mesa de madera.",
+        "russian": "Папа рисует большой дом в тетради.",
+        "spanish": "El papá dibuja una casa grande en el cuaderno.",
         "acceptedAnswers": [
-          "El papá dibuja el plano de una mesa de madera",
-          "Papá dibuja el plano de una mesa de madera"
+          "El papá dibuja una casa grande en el cuaderno",
+          "El papa dibuja una casa grande en el cuaderno",
+          "Papá dibuja una casa grande en el cuaderno"
         ],
-        "hint": "рисовать = dibujar • папа рисует = el papá dibuja",
+        "hint": "рисовать = dibujar • папа рисует = el papá dibuja • дом = la casa • большой = grande • тетрадь = el cuaderno",
         "distractors": [
-          "pinta",
-          "silla",
-          "mamá"
+          "dibuja",
+          "gato",
+          "mesa"
         ]
       },
       {
@@ -2228,17 +2363,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "dibujar",
         "verbForm": "dibuja",
         "verbPerson": "ella",
-        "russian": "Сестра рисует сказочную фею с крыльями.",
-        "spanish": "La hermana dibuja un hada mágica con alas.",
+        "russian": "Сестра рисует маленькую кошку зелёным карандашом.",
+        "spanish": "La hermana dibuja una gata chiquita con lápiz verde.",
         "acceptedAnswers": [
-          "La hermana dibuja un hada mágica con alas",
-          "Mi hermana dibuja un hada mágica con alas"
+          "La hermana dibuja una gata chiquita con lápiz verde",
+          "La hermana dibuja una gata chiquita con lapiz verde",
+          "La hermana dibuja un gato chiquito con lápiz verde",
+          "La hermana dibuja un gato chiquito con lapiz verde"
         ],
-        "hint": "рисовать = dibujar • сестра рисует = la hermana dibuja",
+        "hint": "рисовать = dibujar • сестра рисует = la hermana dibuja • кошка = la gata / el gato • маленький = chiquito • зелёный = verde • карандаш = el lápiz",
         "distractors": [
-          "princesa",
-          "hermano",
-          "pinta"
+          "dibuja",
+          "perro",
+          "azul"
         ]
       },
       {
@@ -2246,17 +2383,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "pintar",
         "verbForm": "pinta",
         "verbPerson": "él",
-        "russian": "Дедушка красит старую скамейку в саду.",
-        "spanish": "El abuelo pinta el banco viejo del jardín.",
+        "russian": "Дедушка красит синий стул в доме.",
+        "spanish": "El abuelo pinta la silla azul en la casa.",
         "acceptedAnswers": [
-          "El abuelo pinta el banco viejo del jardín",
-          "Mi abuelo pinta el banco viejo del jardín"
+          "El abuelo pinta la silla azul en la casa",
+          "Abuelo pinta la silla azul en la casa"
         ],
-        "hint": "красить = pintar • дедушка красит = el abuelo pinta",
+        "hint": "красить = pintar • дедушка красит = el abuelo pinta • стул = la silla • синий = azul • дом = la casa",
         "distractors": [
+          "pinta",
           "mesa",
-          "abuela",
-          "dibuja"
+          "verde"
         ]
       },
       {
@@ -2264,17 +2401,18 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "pintar",
         "verbForm": "pinta",
         "verbPerson": "ella",
-        "russian": "Мама раскрашивает глиняную вазочку для цветов.",
-        "spanish": "La mamá pinta un florero de arcilla.",
+        "russian": "Мама раскрашивает жёлтое яблоко в книге.",
+        "spanish": "La mamá pinta una manzana amarilla en el libro.",
         "acceptedAnswers": [
-          "La mamá pinta un florero de arcilla",
-          "Mamá pinta un florero de arcilla"
+          "La mamá pinta una manzana amarilla en el libro",
+          "La mama pinta una manzana amarilla en el libro",
+          "Mamá pinta una manzana amarilla en el libro"
         ],
-        "hint": "раскрашивать = pintar • мама раскрашивает = la mamá pinta",
+        "hint": "раскрашивать = pintar • мама раскрашивает = la mamá pinta • яблоко = la manzana • жёлтый = amarillo • книга = el libro",
         "distractors": [
-          "plato",
-          "papá",
-          "compra"
+          "pinta",
+          "rojo",
+          "cuaderno"
         ]
       },
       {
@@ -2282,17 +2420,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comer",
         "verbForm": "come",
         "verbPerson": "él",
-        "russian": "Брат ест горячие тосты с клубничным вареньем.",
-        "spanish": "El hermano come tostadas calientes con dulce de frutilla.",
+        "russian": "Брат ест вкусную пиццу с сыром.",
+        "spanish": "El hermano come pizza rica con queso.",
         "acceptedAnswers": [
-          "El hermano come tostadas calientes con dulce de frutilla",
-          "Mi hermano come tostadas calientes con dulce de frutilla"
+          "El hermano come pizza rica con queso",
+          "Hermano come pizza rica con queso"
         ],
-        "hint": "есть = comer • брат ест = el hermano come",
+        "hint": "есть = comer • брат ест = el hermano come • пицца = la pizza • вкусный = rico • сыр = el queso",
         "distractors": [
-          "queso",
-          "hermana",
-          "como"
+          "come",
+          "pan",
+          "leche"
         ]
       },
       {
@@ -2300,17 +2438,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comer",
         "verbForm": "come",
         "verbPerson": "ella",
-        "russian": "Бабушка кушает свежий пирог с яблоками.",
-        "spanish": "La abuela come una tarta fresca de manzana.",
+        "russian": "Бабушка кушает вкусную медиалуну с молоком.",
+        "spanish": "La abuela come una medialuna rica con leche.",
         "acceptedAnswers": [
-          "La abuela come una tarta fresca de manzana",
-          "Mi abuela come una tarta fresca de manzana"
+          "La abuela come una medialuna rica con leche",
+          "Abuela come una medialuna rica con leche"
         ],
-        "hint": "кушать = comer • бабушка кушает = la abuela come",
+        "hint": "кушать = comer • бабушка ест = la abuela come • круассан = la medialuna • молоко = la leche",
         "distractors": [
-          "naranja",
-          "abuelo",
-          "bebe"
+          "come",
+          "galletitas",
+          "agua"
         ]
       },
       {
@@ -2318,17 +2456,18 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "correr",
         "verbForm": "corre",
         "verbPerson": "él",
-        "russian": "Пёс бежит за брошенной палкой во дворе.",
-        "spanish": "El perro corre tras el palo en el patio.",
+        "russian": "Пёс быстро бежит за зелёным мячом.",
+        "spanish": "El perro corre rápido con la pelota verde.",
         "acceptedAnswers": [
-          "El perro corre tras el palo en el patio",
-          "El perro corre detrás del palo en el patio"
+          "El perro corre rápido con la pelota verde",
+          "El perro corre rapido con la pelota verde",
+          "Perro corre rápido con la pelota verde"
         ],
-        "hint": "бежать = correr • пёс бежит = el perro corre",
+        "hint": "бежать = correr • пёс бежит = el perro corre • быстро = rápido • мяч = la pelota • зелёный = verde",
         "distractors": [
-          "pelota",
-          "gato",
-          "camina"
+          "corre",
+          "despacio",
+          "auto"
         ]
       },
       {
@@ -2336,17 +2475,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "correr",
         "verbForm": "corre",
         "verbPerson": "ella",
-        "russian": "Подруга бежит навстречу с широкой улыбкой.",
-        "spanish": "La amiga corre al encuentro con una gran sonrisa.",
+        "russian": "Подруга радостно бежит на площадку.",
+        "spanish": "La amiga corre feliz a la plaza.",
         "acceptedAnswers": [
-          "La amiga corre al encuentro con una gran sonrisa",
-          "Mi amiga corre al encuentro con una gran sonrisa"
+          "La amiga corre feliz a la plaza",
+          "Amiga corre feliz a la plaza"
         ],
-        "hint": "бежать = correr • подруга бежит = la amiga corre",
+        "hint": "бежать = correr • подруга бежит = la amiga corre • радостно = feliz • площадка = la plaza",
         "distractors": [
-          "llorando",
-          "amigo",
-          "salta"
+          "corre",
+          "casa",
+          "cansada"
         ]
       },
       {
@@ -2354,17 +2493,18 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "escuchar",
         "verbForm": "escucha",
         "verbPerson": "él",
-        "russian": "Учитель слушает ответ ученика у доски.",
-        "spanish": "El maestro escucha la respuesta del alumno en el pizarrón.",
+        "russian": "Друг слушает учительницу на перемене.",
+        "spanish": "El amigo escucha a la seño en el recreo.",
         "acceptedAnswers": [
-          "El maestro escucha la respuesta del alumno en el pizarrón",
-          "El profesor escucha la respuesta del alumno en el pizarrón"
+          "El amigo escucha a la seño en el recreo",
+          "El amigo escucha a la seno en el recreo",
+          "Amigo escucha a la seño en el recreo"
         ],
-        "hint": "слушать = escuchar • учитель слушает = el maestro escucha",
+        "hint": "слушать = escuchar • друг слушает = el amigo escucha • учительница = la seño • перемена = el recreo",
         "distractors": [
-          "mira",
-          "pregunta",
-          "lee"
+          "escucha",
+          "mamá",
+          "auto"
         ]
       },
       {
@@ -2372,17 +2512,18 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "escuchar",
         "verbForm": "escucha",
         "verbPerson": "ella",
-        "russian": "Мама слушает пение птиц ранним утром.",
-        "spanish": "La mamá escucha el canto de las aves temprano.",
+        "russian": "Мама слушает дождь в машине.",
+        "spanish": "La mamá escucha la lluvia en el auto.",
         "acceptedAnswers": [
-          "La mamá escucha el canto de las aves temprano",
-          "Mamá escucha el canto de los pájaros temprano"
+          "La mamá escucha la lluvia en el auto",
+          "La mama escucha la lluvia en el auto",
+          "Mamá escucha la lluvia en el auto"
         ],
-        "hint": "слушать = escuchar • мама слушает = la mamá escucha",
+        "hint": "слушать = escuchar • мама слушает = la mamá escucha • дождь = la lluvia • машина = el auto",
         "distractors": [
-          "noche",
-          "tarde",
-          "mira"
+          "escucha",
+          "sol",
+          "casa"
         ]
       },
       {
@@ -2390,17 +2531,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "mirar",
         "verbForm": "mira",
         "verbPerson": "él",
-        "russian": "Друг смотрит на витрину с игрушечными поездами.",
-        "spanish": "El amigo mira la vidriera con trenes de juguete.",
+        "russian": "Кот смотрит на маленькую собаку из окна.",
+        "spanish": "El gato mira al perro chiquito por la ventana.",
         "acceptedAnswers": [
-          "El amigo mira la vidriera con trenes de juguete",
-          "Mi amigo mira la vidriera de trenes de juguete"
+          "El gato mira al perro chiquito por la ventana",
+          "El gato mira a la perra chiquita por la ventana"
         ],
-        "hint": "смотреть = mirar • друг смотрит = el amigo mira",
+        "hint": "смотреть = mirar • кот смотрит = el gato mira • собака = el perro • маленький = chiquito • окно = la ventana",
         "distractors": [
-          "autos",
-          "amiga",
-          "compra"
+          "mira",
+          "puerta",
+          "mesa"
         ]
       },
       {
@@ -2408,17 +2549,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "mirar",
         "verbForm": "mira",
         "verbPerson": "ella",
-        "russian": "Майя смотрит на разноцветных рыб в аквариуме.",
-        "spanish": "Maya mira los peces de colores en el acuario.",
+        "russian": "Майя смотрит на цветные карандаши в рюкзаке.",
+        "spanish": "Maya mira los lápices de colores en la mochila.",
         "acceptedAnswers": [
-          "Maya mira los peces de colores en el acuario",
-          "Maya mira peces coloridos en el acuario"
+          "Maya mira los lápices de colores en la mochila",
+          "Maya mira los lapices de colores en la mochila"
         ],
-        "hint": "смотреть = mirar • Майя смотрит = Maya mira",
+        "hint": "смотреть = mirar • Майя смотрит = Maya mira • карандаши = los lápices • цвета = los colores • рюкзак = la mochila",
         "distractors": [
-          "pájaros",
-          "laguna",
-          "pesca"
+          "mira",
+          "cuaderno",
+          "goma"
         ]
       },
       {
@@ -2426,17 +2567,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comprar",
         "verbForm": "compra",
         "verbPerson": "él",
-        "russian": "Дедушка покупает свежую газету в киоске.",
-        "spanish": "El abuelo compra el diario fresco en el quiosco.",
+        "russian": "Дедушка покупает вкусный хлеб в киоске.",
+        "spanish": "El abuelo compra pan rico en el quiosco.",
         "acceptedAnswers": [
-          "El abuelo compra el diario fresco en el quiosco",
-          "El abuelo compra el periódico en el quiosco"
+          "El abuelo compra pan rico en el quiosco",
+          "Abuelo compra pan rico en el quiosco"
         ],
-        "hint": "покупать = comprar • дедушка покупает = el abuelo compra",
+        "hint": "покупать = comprar • дедушка покупает = el abuelo compra • хлеб = el pan • вкусный = rico • киоск = el quiosco",
         "distractors": [
-          "revista",
-          "abuela",
-          "vende"
+          "compra",
+          "alfajor",
+          "leche"
         ]
       },
       {
@@ -2444,17 +2585,16 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comprar",
         "verbForm": "compra",
         "verbPerson": "ella",
-        "russian": "Сестра покупает цветные ленты для волос.",
-        "spanish": "La hermana compra cintas de colores para el pelo.",
+        "russian": "Сестра покупает шоколадное мороженое на свои деньги.",
+        "spanish": "La hermana compra helado de chocolate con su plata.",
         "acceptedAnswers": [
-          "La hermana compra cintas de colores para el pelo",
-          "Mi hermana compra cintas de colores para el pelo"
+          "La hermana compra helado de chocolate con su plata"
         ],
-        "hint": "покупать = comprar • сестра покупает = la hermana compra",
+        "hint": "покупать = comprar • сестра покупает = la hermana compra • мороженое = el helado • шоколад = el chocolate • деньги = la plata",
         "distractors": [
-          "gorra",
-          "hermano",
-          "busca"
+          "compra",
+          "pizza",
+          "jugo"
         ]
       },
       {
@@ -2462,17 +2602,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "saltar",
         "verbForm": "salta",
         "verbPerson": "él",
-        "russian": "Кот ловко прыгает на мягкое кресло.",
-        "spanish": "El gato salta con agilidad al sillón suave.",
+        "russian": "Брат радостно прыгает на большой горке.",
+        "spanish": "El hermano salta feliz en el tobogán grande.",
         "acceptedAnswers": [
-          "El gato salta con agilidad al sillón suave",
-          "El gato salta al sillón suave"
+          "El hermano salta feliz en el tobogán grande",
+          "El hermano salta feliz en el tobogan grande"
         ],
-        "hint": "прыгать = saltar • кот прыгает = el gato salta",
+        "hint": "прыгать = saltar • брат прыгает = el hermano salta • радостно = feliz • горка = el tobogán • большой = grande",
         "distractors": [
-          "cama",
-          "perro",
-          "corre"
+          "salta",
+          "hamaca",
+          "chiquito"
         ]
       },
       {
@@ -2480,17 +2620,16 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "saltar",
         "verbForm": "salta",
         "verbPerson": "ella",
-        "russian": "Малышка прыгает от восторга при виде щенка.",
-        "spanish": "La nena salta de emoción al ver al perrito.",
+        "russian": "Подруга прыгает на качелях на площадке.",
+        "spanish": "La amiga salta en la hamaca en la plaza.",
         "acceptedAnswers": [
-          "La nena salta de emoción al ver al perrito",
-          "La niña salta de alegría al ver al perrito"
+          "La amiga salta en la hamaca en la plaza"
         ],
-        "hint": "прыгать = saltar • девочка прыгает = la nena salta",
+        "hint": "прыгать = saltar • подруга прыгает = la amiga salta • качели = la hamaca • площадка = la plaza",
         "distractors": [
-          "miedo",
-          "gatito",
-          "llora"
+          "salta",
+          "tobogán",
+          "casa"
         ]
       },
       {
@@ -2498,17 +2637,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "esperar",
         "verbForm": "espera",
         "verbPerson": "él",
-        "russian": "Папа ждёт зелёный сигнал на перекрёстке.",
-        "spanish": "El papá espera la señal verde en la esquina.",
+        "russian": "Папа ждёт у синей двери дома.",
+        "spanish": "El papá espera en la puerta azul de la casa.",
         "acceptedAnswers": [
-          "El papá espera la señal verde en la esquina",
-          "Papá espera la luz verde en la esquina"
+          "El papá espera en la puerta azul de la casa",
+          "El papa espera en la puerta azul de la casa"
         ],
-        "hint": "ждать = esperar • папа ждёт = el papá espera",
+        "hint": "ждать = esperar • папа ждёт = el papá espera • дверь = la puerta • синий = azul • дом = la casa",
         "distractors": [
-          "roja",
-          "auto",
-          "mira"
+          "espera",
+          "ventana",
+          "auto"
         ]
       },
       {
@@ -2516,17 +2655,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "esperar",
         "verbForm": "espera",
         "verbPerson": "ella",
-        "russian": "Бабушка ждёт гостей с горячим пирогом.",
-        "spanish": "La abuela espera a los invitados con una tarta caliente.",
+        "russian": "Бабушка ждёт маму в машине.",
+        "spanish": "La abuela espera a mamá en el auto.",
         "acceptedAnswers": [
-          "La abuela espera a los invitados con una tarta caliente",
-          "Mi abuela espera visitas con una torta caliente"
+          "La abuela espera a mamá en el auto",
+          "La abuela espera a mama en el auto"
         ],
-        "hint": "ждать = esperar • бабушка ждёт = la abuela espera",
+        "hint": "ждать = esperar • бабушка ждёт = la abuela espera • мама = la mamá • машина = el auto",
         "distractors": [
-          "amigos",
-          "abuelo",
-          "come"
+          "espera",
+          "papá",
+          "casa"
         ]
       },
       {
@@ -2534,17 +2673,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "ayudar",
         "verbForm": "ayuda",
         "verbPerson": "él",
-        "russian": "Брат помогает папе собрать новую книжную полку.",
-        "spanish": "El hermano ayuda a papá a armar la biblioteca nueva.",
+        "russian": "Брат помогает папе за большим столом.",
+        "spanish": "El hermano ayuda a papá en la mesa grande.",
         "acceptedAnswers": [
-          "El hermano ayuda a papá a armar la biblioteca nueva",
-          "Mi hermano ayuda a papá a armar la estantería"
+          "El hermano ayuda a papá en la mesa grande",
+          "El hermano ayuda a papa en la mesa grande"
         ],
-        "hint": "помогать = ayudar • брат помогает = el hermano ayuda",
+        "hint": "помогать = ayudar • брат помогает = el hermano ayuda • папа = el papá • стол = la mesa • большой = grande",
         "distractors": [
-          "desarmar",
-          "mesa",
-          "mira"
+          "ayuda",
+          "mamá",
+          "silla"
         ]
       },
       {
@@ -2552,17 +2691,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "ayudar",
         "verbForm": "ayuda",
         "verbPerson": "ella",
-        "russian": "Подруга помогает учительнице сложить книги на столе.",
-        "spanish": "La amiga ayuda a la seño a ordenar los libros.",
+        "russian": "Подруга помогает учительнице с книгами.",
+        "spanish": "La amiga ayuda a la seño con los libros.",
         "acceptedAnswers": [
-          "La amiga ayuda a la seño a ordenar los libros",
-          "La amiga ayuda a la maestra a acomodar los libros"
+          "La amiga ayuda a la seño con los libros",
+          "La amiga ayuda a la seno con los libros"
         ],
-        "hint": "помогать = ayudar • подруга помогает = la amiga ayuda",
+        "hint": "помогать = ayudar • подруга помогает = la amiga ayuda • учительница = la seño • книги = los libros",
         "distractors": [
-          "tirar",
+          "ayuda",
           "cuadernos",
-          "lee"
+          "mochila"
         ]
       }
     ]
@@ -2571,7 +2710,7 @@ export const EXERCISES_RU_TO_ES = [
     "id": 3,
     "title": "Упр. 3: Мы делаем вместе (nosotros / nosotras)",
     "shortTitle": "3. Мы вместе",
-    "description": "Переводим русские предложения про \"мы\" с хвостиками -amos и -emos",
+    "description": "Пишем формы множественного числа для мы (хвостики -amos, -emos)",
     "icon": "🤝",
     "sentences": [
       {
@@ -2579,17 +2718,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "dibujar",
         "verbForm": "dibujamos",
         "verbPerson": "nosotros",
-        "russian": "Мы рисуем большую ракету, летящую в космос.",
-        "spanish": "Nosotros dibujamos un cohete grande que vuela al espacio.",
+        "russian": "Мы рисуем маленькую собаку чёрным карандашом.",
+        "spanish": "Nosotros dibujamos un perro chiquito con el lápiz negro.",
         "acceptedAnswers": [
-          "Nosotros dibujamos un cohete grande que vuela al espacio",
-          "Dibujamos un cohete grande que vuela al espacio"
+          "Nosotros dibujamos un perro chiquito con el lápiz negro",
+          "Dibujamos un perro chiquito con el lápiz negro",
+          "Nosotros dibujamos un perro chiquito con el lapiz negro",
+          "Dibujamos un perro chiquito con el lapiz negro"
         ],
-        "hint": "рисовать = dibujar • мы рисуем = nosotros dibujamos",
+        "hint": "рисовать = dibujar • мы рисуем = nosotros dibujamos • собака = el perro • маленький = chiquito • карандаш = el lápiz • чёрный = negro",
         "distractors": [
-          "avión",
-          "ustedes",
-          "pintamos"
+          "gato",
+          "blanco",
+          "libro"
         ]
       },
       {
@@ -2597,17 +2738,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "dibujar",
         "verbForm": "dibujamos",
         "verbPerson": "nosotras",
-        "russian": "Мы (девочки) рисуем пышные цветы в альбоме.",
-        "spanish": "Nosotras dibujamos flores hermosas en el álbum.",
+        "russian": "Мы (девочки) рисуем красивое солнце в тетради.",
+        "spanish": "Nosotras dibujamos un sol lindo en el cuaderno.",
         "acceptedAnswers": [
-          "Nosotras dibujamos flores hermosas en el álbum",
-          "Dibujamos flores hermosas en el álbum"
+          "Nosotras dibujamos un sol lindo en el cuaderno",
+          "Dibujamos un sol lindo en el cuaderno"
         ],
-        "hint": "рисовать = dibujar • мы рисуем = nosotras dibujamos",
+        "hint": "рисовать = dibujar • мы рисуем = nosotras dibujamos • солнце = el sol • красивый = lindo • тетрадь = el cuaderno",
         "distractors": [
-          "árboles",
-          "ellos",
-          "leemos"
+          "noche",
+          "amarillo",
+          "mesa"
         ]
       },
       {
@@ -2615,17 +2756,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "pintar",
         "verbForm": "pintamos",
         "verbPerson": "nosotros",
-        "russian": "Мы раскрашиваем деревянные кубики яркими красками.",
-        "spanish": "Nosotros pintamos los cubos de madera con témperas brillantes.",
+        "russian": "Мы красим большую дверь в синий цвет.",
+        "spanish": "Nosotros pintamos la puerta grande de color azul.",
         "acceptedAnswers": [
-          "Nosotros pintamos los cubos de madera con témperas brillantes",
-          "Pintamos los cubos de madera con témperas brillantes"
+          "Nosotros pintamos la puerta grande de color azul",
+          "Pintamos la puerta grande de color azul"
         ],
-        "hint": "раскрашивать = pintar • мы раскрашиваем = nosotros pintamos",
+        "hint": "красить = pintar • мы красим = nosotros pintamos • дверь = la puerta • большой = grande • синий = azul",
         "distractors": [
-          "papel",
-          "lápices",
-          "dibujamos"
+          "ventana",
+          "blanco",
+          "verde"
         ]
       },
       {
@@ -2633,17 +2774,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "pintar",
         "verbForm": "pintamos",
         "verbPerson": "nosotras",
-        "russian": "Мы (девочки) красим декоративные камни в золотой цвет.",
-        "spanish": "Nosotras pintamos piedras decorativas de color dorado.",
+        "russian": "Мы (девочки) раскрашиваем зелёное яблоко в книге.",
+        "spanish": "Nosotras pintamos una manzana verde en el libro.",
         "acceptedAnswers": [
-          "Nosotras pintamos piedras decorativas de color dorado",
-          "Pintamos piedras decorativas de color dorado"
+          "Nosotras pintamos una manzana verde en el libro",
+          "Pintamos una manzana verde en el libro"
         ],
-        "hint": "красить = pintar • мы красим = nosotras pintamos",
+        "hint": "раскрашивать = pintar • мы раскрашиваем = nosotras pintamos • яблоко = la manzana • зелёный = verde • книга = el libro",
         "distractors": [
-          "plata",
-          "madera",
-          "compramos"
+          "rojo",
+          "banana",
+          "cuaderno"
         ]
       },
       {
@@ -2651,17 +2792,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comer",
         "verbForm": "comemos",
         "verbPerson": "nosotros",
-        "russian": "Мы едим хрустящее печенье с тёплым молоком.",
-        "spanish": "Nosotros comemos galletitas crocantes con leche tibia.",
+        "russian": "Мы едим вкусное печенье с молоком за столом.",
+        "spanish": "Nosotros comemos galletitas ricas con leche en la mesa.",
         "acceptedAnswers": [
-          "Nosotros comemos galletitas crocantes con leche tibia",
-          "Comemos galletitas crocantes con leche tibia"
+          "Nosotros comemos galletitas ricas con leche en la mesa",
+          "Comemos galletitas ricas con leche en la mesa"
         ],
-        "hint": "есть = comer • мы едим = nosotros comemos",
+        "hint": "есть = comer • мы едим = nosotros comemos • печенье = las galletitas • молоко = la leche • стол = la mesa",
         "distractors": [
-          "té",
           "pan",
-          "comen"
+          "queso",
+          "silla"
         ]
       },
       {
@@ -2669,17 +2810,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comer",
         "verbForm": "comemos",
         "verbPerson": "nosotras",
-        "russian": "Мы (девочки) кушаем спелый арбуз в саду.",
-        "spanish": "Nosotras comemos sandía madura en el jardín.",
+        "russian": "Мы (девочки) кушаем вкусные бананы на полдник.",
+        "spanish": "Nosotras comemos bananas ricas en la merienda.",
         "acceptedAnswers": [
-          "Nosotras comemos sandía madura en el jardín",
-          "Comemos sandía madura en el jardín"
+          "Nosotras comemos bananas ricas en la merienda",
+          "Comemos bananas ricas en la merienda"
         ],
-        "hint": "кушать = comer • мы кушаем = nosotras comemos",
+        "hint": "кушать = comer • мы кушаем = nosotras comemos • бананы = las bananas • полдник = la merienda",
         "distractors": [
-          "manzana",
-          "cocina",
-          "beben"
+          "manzanas",
+          "helado",
+          "recreo"
         ]
       },
       {
@@ -2687,17 +2828,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "correr",
         "verbForm": "corremos",
         "verbPerson": "nosotros",
-        "russian": "Мы бежим на спортивную площадку после звонка.",
-        "spanish": "Nosotros corremos a la cancha después del timbre.",
+        "russian": "Мы быстро бежим к синей машине.",
+        "spanish": "Nosotros corremos rápido al auto azul.",
         "acceptedAnswers": [
-          "Nosotros corremos a la cancha después del timbre",
-          "Corremos a la cancha después del timbre"
+          "Nosotros corremos rápido al auto azul",
+          "Corremos rápido al auto azul",
+          "Nosotros corremos rapido al auto azul",
+          "Corremos rapido al auto azul"
         ],
-        "hint": "бежать = correr • мы бежим = nosotros corremos",
+        "hint": "бежать = correr • мы бежим = nosotros corremos • быстро = rápido • машина = el auto • синий = azul",
         "distractors": [
-          "aula",
-          "antes",
-          "saltamos"
+          "despacio",
+          "puerta",
+          "blanco"
         ]
       },
       {
@@ -2705,17 +2848,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "correr",
         "verbForm": "corremos",
         "verbPerson": "nosotras",
-        "russian": "Мы (девочки) быстро бежим под зонтом во время ливня.",
-        "spanish": "Nosotras corremos rápido bajo el paraguas durante la lluvia.",
+        "russian": "Мы (девочки) радостно бегаем с собакой на площадке.",
+        "spanish": "Nosotras corremos felices con el perro en la plaza.",
         "acceptedAnswers": [
-          "Nosotras corremos rápido bajo el paraguas durante la lluvia",
-          "Corremos rápido bajo el paraguas durante la lluvia"
+          "Nosotras corremos felices con el perro en la plaza",
+          "Corremos felices con el perro en la plaza"
         ],
-        "hint": "бежать = correr • мы бежим = nosotras corremos",
+        "hint": "бегать = correr • мы бегаем = nosotras corremos • радостно = feliz • собака = el perro • площадка = la plaza",
         "distractors": [
-          "sol",
-          "despacio",
-          "caminan"
+          "gato",
+          "pelota",
+          "casa"
         ]
       },
       {
@@ -2723,17 +2866,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "escuchar",
         "verbForm": "escuchamos",
         "verbPerson": "nosotros",
-        "russian": "Мы с интересом слушаем рассказ о динозаврах.",
-        "spanish": "Nosotros escuchamos con interés el relato sobre dinosaurios.",
+        "russian": "Мы слушаем доброго дедушку в доме.",
+        "spanish": "Nosotros escuchamos al abuelo lindo en la casa.",
         "acceptedAnswers": [
-          "Nosotros escuchamos con interés el relato sobre dinosaurios",
-          "Escuchamos con interés el relato sobre dinosaurios"
+          "Nosotros escuchamos al abuelo lindo en la casa",
+          "Escuchamos al abuelo lindo en la casa"
         ],
-        "hint": "слушать = escuchar • мы слушаем = nosotros escuchamos",
+        "hint": "слушать = escuchar • мы слушаем = nosotros escuchamos • дедушка = el abuelo • дом = la casa",
         "distractors": [
-          "miramos",
-          "planetas",
-          "leen"
+          "abuela",
+          "seño",
+          "auto"
         ]
       },
       {
@@ -2741,17 +2884,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "escuchar",
         "verbForm": "escuchamos",
         "verbPerson": "nosotras",
-        "russian": "Мы (девочки) слушаем весёлую аргентинскую песню.",
-        "spanish": "Nosotras escuchamos una canción argentina divertida.",
+        "russian": "Мы (девочки) слушаем маму в машине.",
+        "spanish": "Nosotras escuchamos a mamá en el auto.",
         "acceptedAnswers": [
-          "Nosotras escuchamos una canción argentina divertida",
-          "Escuchamos una canción argentina divertida"
+          "Nosotras escuchamos a mamá en el auto",
+          "Escuchamos a mamá en el auto",
+          "Nosotras escuchamos a mama en el auto",
+          "Escuchamos a mama en el auto"
         ],
-        "hint": "слушать = escuchar • мы слушаем = nosotras escuchamos",
+        "hint": "слушать = escuchar • мы слушаем = nosotras escuchamos • мама = la mamá • машина = el auto",
         "distractors": [
-          "triste",
-          "bailamos",
-          "miran"
+          "papá",
+          "lluvia",
+          "casa"
         ]
       },
       {
@@ -2759,17 +2904,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "mirar",
         "verbForm": "miramos",
         "verbPerson": "nosotros",
-        "russian": "Мы смотрим на парящих орлов высоко в небе.",
-        "spanish": "Nosotros miramos las águilas que vuelan alto en el cielo.",
+        "russian": "Мы смотрим на чёрную кошку на окне.",
+        "spanish": "Nosotros miramos la gata negra en la ventana.",
         "acceptedAnswers": [
-          "Nosotros miramos las águilas que vuelan alto en el cielo",
-          "Miramos las águilas que vuelan alto en el cielo"
+          "Nosotros miramos la gata negra en la ventana",
+          "Miramos la gata negra en la ventana",
+          "Nosotros miramos el gato negro en la ventana",
+          "Miramos el gato negro en la ventana"
         ],
-        "hint": "смотреть = mirar • мы смотрим = nosotros miramos",
+        "hint": "смотреть = mirar • мы смотрим = nosotros miramos • кошка = la gata / el gato • чёрный = negro • окно = la ventana",
         "distractors": [
-          "palomas",
-          "árbol",
-          "escuchan"
+          "blanco",
+          "perro",
+          "puerta"
         ]
       },
       {
@@ -2777,17 +2924,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "mirar",
         "verbForm": "miramos",
         "verbPerson": "nosotras",
-        "russian": "Мы (девочки) смотрим на яркие огни праздничного салюта.",
-        "spanish": "Nosotras miramos las luces brillantes de los fuegos artificiales.",
+        "russian": "Мы (девочки) смотрим на синюю машину папы.",
+        "spanish": "Nosotras miramos el auto azul de papá.",
         "acceptedAnswers": [
-          "Nosotras miramos las luces brillantes de los fuegos artificiales",
-          "Miramos las luces brillantes de los fuegos artificiales"
+          "Nosotras miramos el auto azul de papá",
+          "Miramos el auto azul de papá",
+          "Nosotras miramos el auto azul de papa",
+          "Miramos el auto azul de papa"
         ],
-        "hint": "смотреть = mirar • мы смотрим = nosotras miramos",
+        "hint": "смотреть = mirar • мы смотрим = nosotras miramos • машина = el auto • синий = azul • папа = el papá",
         "distractors": [
-          "estrellas",
-          "humo",
-          "buscan"
+          "mamá",
+          "blanco",
+          "casa"
         ]
       },
       {
@@ -2795,17 +2944,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comprar",
         "verbForm": "compramos",
         "verbPerson": "nosotros",
-        "russian": "Мы покупаем вкусные бублики в пекарне у дома.",
-        "spanish": "Nosotros compramos panes ricos en la panadería del barrio.",
+        "russian": "Мы покупаем шоколад и сок в киоске.",
+        "spanish": "Nosotros compramos chocolate y jugo en el quiosco.",
         "acceptedAnswers": [
-          "Nosotros compramos panes ricos en la panadería del barrio",
-          "Compramos panes ricos en la panadería del barrio"
+          "Nosotros compramos chocolate y jugo en el quiosco",
+          "Compramos chocolate y jugo en el quiosco"
         ],
-        "hint": "покупать = comprar • мы покупаем = nosotros compramos",
+        "hint": "покупать = comprar • мы покупаем = nosotros compramos • шоколад = el chocolate • сок = el jugo • киоск = el quiosco",
         "distractors": [
-          "supermercado",
-          "caros",
-          "venden"
+          "helado",
+          "pan",
+          "leche"
         ]
       },
       {
@@ -2813,17 +2962,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comprar",
         "verbForm": "compramos",
         "verbPerson": "nosotras",
-        "russian": "Мы (девочки) покупаем разноцветные резинки для волос.",
-        "spanish": "Nosotras compramos gomitas de colores para el peinado.",
+        "russian": "Мы (девочки) покупаем вкусные медиалуны на свои деньги.",
+        "spanish": "Nosotras compramos medialunas ricas con nuestra plata.",
         "acceptedAnswers": [
-          "Nosotras compramos gomitas de colores para el peinado",
-          "Compramos gomitas de colores para el peinado"
+          "Nosotras compramos medialunas ricas con nuestra plata",
+          "Compramos medialunas ricas con nuestra plata"
         ],
-        "hint": "покупать = comprar • мы покупаем = nosotras compramos",
+        "hint": "покупать = comprar • мы покупаем = nosotras compramos • медиалуны = las medialunas • деньги = la plata",
         "distractors": [
-          "hebillas",
-          "ropa",
-          "buscamos"
+          "galletitas",
+          "helado",
+          "quiosco"
         ]
       },
       {
@@ -2831,17 +2980,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "saltar",
         "verbForm": "saltamos",
         "verbPerson": "nosotros",
-        "russian": "Мы дружно прыгаем в бассейн в жаркий день.",
-        "spanish": "Nosotros saltamos juntos a la pileta en un día caluroso.",
+        "russian": "Мы прыгаем с мячом на зелёной площадке.",
+        "spanish": "Nosotros saltamos con la pelota en la plaza verde.",
         "acceptedAnswers": [
-          "Nosotros saltamos juntos a la pileta en un día caluroso",
-          "Saltamos juntos a la pileta en un día caluroso"
+          "Nosotros saltamos con la pelota en la plaza verde",
+          "Saltamos con la pelota en la plaza verde"
         ],
-        "hint": "прыгать = saltar • мы прыгаем = nosotros saltamos",
+        "hint": "прыгать = saltar • мы прыгаем = nosotros saltamos • мяч = la pelota • площадка = la plaza • зелёный = verde",
         "distractors": [
-          "frío",
-          "mar",
-          "corremos"
+          "tobogán",
+          "hamaca",
+          "azul"
         ]
       },
       {
@@ -2849,17 +2998,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "saltar",
         "verbForm": "saltamos",
         "verbPerson": "nosotras",
-        "russian": "Мы (девочки) высоко прыгаем на гимнастическом коврике.",
-        "spanish": "Nosotras saltamos alto en la colchoneta de gimnasia.",
+        "russian": "Мы (девочки) быстро прыгаем на качелях.",
+        "spanish": "Nosotras saltamos rápido en las hamacas.",
         "acceptedAnswers": [
-          "Nosotras saltamos alto en la colchoneta de gimnasia",
-          "Saltamos alto en la colchoneta de gimnasia"
+          "Nosotras saltamos rápido en las hamacas",
+          "Saltamos rápido en las hamacas",
+          "Nosotras saltamos rapido en las hamacas",
+          "Saltamos rapido en las hamacas"
         ],
-        "hint": "прыгать = saltar • мы прыгаем = nosotras saltamos",
+        "hint": "прыгать = saltar • мы прыгаем = nosotras saltamos • быстро = rápido • качели = las hamacas",
         "distractors": [
-          "suelo",
-          "cama",
-          "caen"
+          "tobogán",
+          "despacio",
+          "plaza"
         ]
       },
       {
@@ -2867,17 +3018,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "esperar",
         "verbForm": "esperamos",
         "verbPerson": "nosotros",
-        "russian": "Мы ждём свистка судьи к началу футбольного матча.",
-        "spanish": "Nosotros esperamos el silbato del árbitro para empezar el partido.",
+        "russian": "Мы ждём папу у белой двери.",
+        "spanish": "Nosotros esperamos a papá en la puerta blanca.",
         "acceptedAnswers": [
-          "Nosotros esperamos el silbato del árbitro para empezar el partido",
-          "Esperamos el silbato del árbitro para empezar el partido"
+          "Nosotros esperamos a papá en la puerta blanca",
+          "Esperamos a papá en la puerta blanca",
+          "Nosotros esperamos a papa en la puerta blanca",
+          "Esperamos a papa en la puerta blanca"
         ],
-        "hint": "ждать = esperar • мы ждём = nosotros esperamos",
+        "hint": "ждать = esperar • мы ждём = nosotros esperamos • папа = el papá • дверь = la puerta • белый = blanco",
         "distractors": [
-          "final",
-          "entrenador",
-          "juegan"
+          "mamá",
+          "ventana",
+          "auto"
         ]
       },
       {
@@ -2885,17 +3038,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "esperar",
         "verbForm": "esperamos",
         "verbPerson": "nosotras",
-        "russian": "Мы (девочки) терпеливо ждём открытия детского парка.",
-        "spanish": "Nosotras esperamos con paciencia la apertura del parque infantil.",
+        "russian": "Мы (девочки) ждём свою очередь на горке.",
+        "spanish": "Nosotras esperamos nuestro turno en el tobogán.",
         "acceptedAnswers": [
-          "Nosotras esperamos con paciencia la apertura del parque infantil",
-          "Esperamos con paciencia la apertura del parque infantil"
+          "Nosotras esperamos nuestro turno en el tobogán",
+          "Esperamos nuestro turno en el tobogán",
+          "Nosotras esperamos nuestro turno en el tobogan",
+          "Esperamos nuestro turno en el tobogan"
         ],
-        "hint": "ждать = esperar • мы ждём = nosotras esperamos",
+        "hint": "ждать = esperar • мы ждём = nosotras esperamos • очередь = el turno • горка = el tobogán",
         "distractors": [
-          "cierre",
-          "escuela",
-          "corren"
+          "hamaca",
+          "plaza",
+          "pelota"
         ]
       },
       {
@@ -2903,17 +3058,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "ayudar",
         "verbForm": "ayudamos",
         "verbPerson": "nosotros",
-        "russian": "Мы помогаем соседу найти убежавшего котёнка.",
-        "spanish": "Nosotros ayudamos al vecino a buscar el gatito perdido.",
+        "russian": "Мы помогаем маме с вкусным полдником.",
+        "spanish": "Nosotros ayudamos a mamá con la merienda rica.",
         "acceptedAnswers": [
-          "Nosotros ayudamos al vecino a buscar el gatito perdido",
-          "Ayudamos al vecino a buscar el gatito perdido"
+          "Nosotros ayudamos a mamá con la merienda rica",
+          "Ayudamos a mamá con la merienda rica",
+          "Nosotros ayudamos a mama con la merienda rica",
+          "Ayudamos a mama con la merienda rica"
         ],
-        "hint": "помогать = ayudar • мы помогаем = nosotros ayudamos",
+        "hint": "помогать = ayudar • мы помогаем = nosotros ayudamos • мама = la mamá • полдник = la merienda • вкусный = rico",
         "distractors": [
-          "perro",
-          "amiga",
-          "miramos"
+          "papá",
+          "mesa",
+          "pan"
         ]
       },
       {
@@ -2921,17 +3078,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "ayudar",
         "verbForm": "ayudamos",
         "verbPerson": "nosotras",
-        "russian": "Мы (девочки) с удовольствием помогаем готовить праздничный торт.",
-        "spanish": "Nosotras ayudamos con gusto a preparar la torta de fiesta.",
+        "russian": "Мы (девочки) помогаем подруге с рюкзаком.",
+        "spanish": "Nosotras ayudamos a la amiga con la mochila.",
         "acceptedAnswers": [
-          "Nosotras ayudamos con gusto a preparar la torta de fiesta",
-          "Ayudamos con gusto a preparar la torta de fiesta"
+          "Nosotras ayudamos a la amiga con la mochila",
+          "Ayudamos a la amiga con la mochila"
         ],
-        "hint": "помогать = ayudar • мы помогаем = nosotras ayudamos",
+        "hint": "помогать = ayudar • мы помогаем = nosotras ayudamos • подруга = la amiga • рюкзак = la mochila",
         "distractors": [
-          "comer",
-          "galletitas",
-          "compran"
+          "amigo",
+          "cuaderno",
+          "libros"
         ]
       }
     ]
@@ -2940,7 +3097,7 @@ export const EXERCISES_RU_TO_ES = [
     "id": 4,
     "title": "Упр. 4: Они и вы все (ellos, ellas, ustedes)",
     "shortTitle": "4. Они и вы",
-    "description": "Переводим русские фразы во множественном числе на испанский (-an, -en)",
+    "description": "Пишем формы множественного числа для ellos, ellas, ustedes (хвостики -an, -en)",
     "icon": "👥",
     "sentences": [
       {
@@ -2948,17 +3105,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "dibujar",
         "verbForm": "dibujan",
         "verbPerson": "ellos",
-        "russian": "Они рисуют забавных роботов на листах бумаги.",
-        "spanish": "Ellos dibujan robots divertidos en hojas de papel.",
+        "russian": "Они рисуют большой дом синим карандашом.",
+        "spanish": "Ellos dibujan una casa grande con lápiz azul.",
         "acceptedAnswers": [
-          "Ellos dibujan robots divertidos en hojas de papel",
-          "Dibujan robots divertidos en hojas de papel"
+          "Ellos dibujan una casa grande con lápiz azul",
+          "Dibujan una casa grande con lápiz azul",
+          "Ellos dibujan una casa grande con lapiz azul",
+          "Dibujan una casa grande con lapiz azul"
         ],
-        "hint": "рисовать = dibujar • они рисуют = ellos dibujan",
+        "hint": "рисовать = dibujar • они рисуют = ellos dibujan • дом = la casa • большой = grande • карандаш = el lápiz • синий = azul",
         "distractors": [
-          "monstruos",
-          "pared",
-          "pintan"
+          "rojo",
+          "cuaderno",
+          "perro"
         ]
       },
       {
@@ -2966,17 +3125,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "dibujar",
         "verbForm": "dibujan",
         "verbPerson": "ustedes",
-        "russian": "Вы рисуете портреты своих домашних любимцев.",
-        "spanish": "Ustedes dibujan retratos de sus mascotas queridas.",
+        "russian": "Вы рисуете маленьких кошек в тетради.",
+        "spanish": "Ustedes dibujan gatos chiquitos en el cuaderno.",
         "acceptedAnswers": [
-          "Ustedes dibujan retratos de sus mascotas queridas",
-          "Dibujan retratos de sus mascotas queridas"
+          "Ustedes dibujan gatos chiquitos en el cuaderno",
+          "Dibujan gatos chiquitos en el cuaderno",
+          "Ustedes dibujan gatas chiquitas en el cuaderno",
+          "Dibujan gatas chiquitas en el cuaderno"
         ],
-        "hint": "рисовать = dibujar • вы рисуете = ustedes dibujan",
+        "hint": "рисовать = dibujar • вы рисуете = ustedes dibujan • кошки = los gatos / las gatas • маленький = chiquito • тетрадь = el cuaderno",
         "distractors": [
-          "amigos",
-          "juguetes",
-          "miran"
+          "perros",
+          "grande",
+          "libro"
         ]
       },
       {
@@ -2984,17 +3145,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "pintar",
         "verbForm": "pintan",
         "verbPerson": "ellas",
-        "russian": "Они (девочки) раскрашивают глиняные горшочки для цветов.",
-        "spanish": "Ellas pintan macetas de barro para las flores.",
+        "russian": "Они (девочки) раскрашивают жёлтое солнце в книге.",
+        "spanish": "Ellas pintan el sol amarillo en el libro.",
         "acceptedAnswers": [
-          "Ellas pintan macetas de barro para las flores",
-          "Pintan macetas de barro para las flores"
+          "Ellas pintan el sol amarillo en el libro",
+          "Pintan el sol amarillo en el libro"
         ],
-        "hint": "раскрашивать = pintar • они раскрашивают = ellas pintan",
+        "hint": "раскрашивать = pintar • они (девочки) раскрашивают = ellas pintan • солнце = el sol • жёлтый = amarillo • книга = el libro",
         "distractors": [
-          "plástico",
-          "árboles",
-          "rompen"
+          "noche",
+          "azul",
+          "mesa"
         ]
       },
       {
@@ -3002,17 +3163,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "pintar",
         "verbForm": "pintan",
         "verbPerson": "ustedes",
-        "russian": "Вы красите беседку в саду в белый цвет.",
-        "spanish": "Ustedes pintan el gazebo del jardín de color blanco.",
+        "russian": "Вы красите белые стулья в зелёный цвет.",
+        "spanish": "Ustedes pintan las sillas blancas de color verde.",
         "acceptedAnswers": [
-          "Ustedes pintan el gazebo del jardín de color blanco",
-          "Pintan el gazebo del jardín de color blanco"
+          "Ustedes pintan las sillas blancas de color verde",
+          "Pintan las sillas blancas de color verde"
         ],
-        "hint": "красить = pintar • вы красите = ustedes pintan",
+        "hint": "красить = pintar • вы красите = ustedes pintan • стулья = las sillas • белый = blanco • зелёный = verde",
         "distractors": [
-          "negro",
-          "casa",
-          "construyen"
+          "mesas",
+          "azul",
+          "puertas"
         ]
       },
       {
@@ -3020,17 +3181,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comer",
         "verbForm": "comen",
         "verbPerson": "ellos",
-        "russian": "Они кушают сладкую кукурузу на ярмарке.",
-        "spanish": "Ellos comen choclo dulce en la feria.",
+        "russian": "Они едят вкусный хлеб с молоком.",
+        "spanish": "Ellos comen pan rico con leche.",
         "acceptedAnswers": [
-          "Ellos comen choclo dulce en la feria",
-          "Comen choclo dulce en la feria"
+          "Ellos comen pan rico con leche",
+          "Comen pan rico con leche"
         ],
-        "hint": "кушать = comer • они кушают = ellos comen",
+        "hint": "есть = comer • они едят = ellos comen • хлеб = el pan • вкусный = rico • молоко = la leche",
         "distractors": [
-          "salado",
-          "cine",
-          "compran"
+          "queso",
+          "agua",
+          "pizza"
         ]
       },
       {
@@ -3038,17 +3199,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comer",
         "verbForm": "comen",
         "verbPerson": "ustedes",
-        "russian": "Вы едите вкусные блинчики с карамельным соусом.",
-        "spanish": "Ustedes comen panqueques ricos con dulce de leche.",
+        "russian": "Вы кушаете красные яблоки за столом.",
+        "spanish": "Ustedes comen manzanas rojas en la mesa.",
         "acceptedAnswers": [
-          "Ustedes comen panqueques ricos con dulce de leche",
-          "Comen panqueques ricos con dulce de leche"
+          "Ustedes comen manzanas rojas en la mesa",
+          "Comen manzanas rojas en la mesa"
         ],
-        "hint": "есть = comer • вы едите = ustedes comen",
+        "hint": "кушать = comer • вы кушаете = ustedes comen • яблоки = las manzanas • красный = rojo • стол = la mesa",
         "distractors": [
-          "chocolate",
-          "frutas",
-          "cocinan"
+          "bananas",
+          "verde",
+          "silla"
         ]
       },
       {
@@ -3056,17 +3217,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "correr",
         "verbForm": "corren",
         "verbPerson": "ellas",
-        "russian": "Они (девочки) бегут по мягкой зелёной траве поляны.",
-        "spanish": "Ellas corren por el pasto verde y suave del campo.",
+        "russian": "Они (девочки) медленно бегают с собакой.",
+        "spanish": "Ellas corren despacio con el perro.",
         "acceptedAnswers": [
-          "Ellas corren por el pasto verde y suave del campo",
-          "Corren por el pasto verde y suave del campo"
+          "Ellas corren despacio con el perro",
+          "Corren despacio con el perro"
         ],
-        "hint": "бежать = correr • они бегут = ellas corren",
+        "hint": "бегать = correr • они (девочки) бегают = ellas corren • медленно = despacio • собака = el perro",
         "distractors": [
-          "arena",
-          "calle",
-          "saltan"
+          "rápido",
+          "gato",
+          "pelota"
         ]
       },
       {
@@ -3074,17 +3235,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "correr",
         "verbForm": "corren",
         "verbPerson": "ustedes",
-        "russian": "Вы бегаете утром вдоль береговой линии озера.",
-        "spanish": "Ustedes corren por la mañana por la orilla del lago.",
+        "russian": "Вы быстро бежите к двери дома.",
+        "spanish": "Ustedes corren rápido a la puerta de la casa.",
         "acceptedAnswers": [
-          "Ustedes corren por la mañana por la orilla del lago",
-          "Corren por la mañana por la orilla del lago"
+          "Ustedes corren rápido a la puerta de la casa",
+          "Corren rápido a la puerta de la casa",
+          "Ustedes corren rapido a la puerta de la casa",
+          "Corren rapido a la puerta de la casa"
         ],
-        "hint": "бегать = correr • вы бегаете = ustedes corren",
+        "hint": "бежать = correr • вы бежите = ustedes corren • быстро = rápido • дверь = la puerta • дом = la casa",
         "distractors": [
-          "mar",
-          "noche",
-          "nadan"
+          "ventana",
+          "despacio",
+          "auto"
         ]
       },
       {
@@ -3092,17 +3255,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "escuchar",
         "verbForm": "escuchan",
         "verbPerson": "ellos",
-        "russian": "Они внимательно слушают рассказ экскурсовода в музее.",
-        "spanish": "Ellos escuchan atentos al guía en el museo.",
+        "russian": "Они слушают добрую бабушку в доме.",
+        "spanish": "Ellos escuchan a la abuela linda en la casa.",
         "acceptedAnswers": [
-          "Ellos escuchan atentos al guía en el museo",
-          "Escuchan atentos al guía en el museo"
+          "Ellos escuchan a la abuela linda en la casa",
+          "Escuchan a la abuela linda en la casa"
         ],
-        "hint": "слушать = escuchar • они слушают = ellos escuchan",
+        "hint": "слушать = escuchar • они слушают = ellos escuchan • бабушка = la abuela • дом = la casa",
         "distractors": [
-          "miran",
-          "cine",
-          "hablan"
+          "abuelo",
+          "mamá",
+          "seño"
         ]
       },
       {
@@ -3110,17 +3273,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "escuchar",
         "verbForm": "escuchan",
         "verbPerson": "ustedes",
-        "russian": "Вы слушаете тихий шелест листьев в лесу.",
-        "spanish": "Ustedes escuchan el susurro suave de las hojas en el bosque.",
+        "russian": "Вы слушаете дождь за окном дома.",
+        "spanish": "Ustedes escuchan la lluvia en la ventana de la casa.",
         "acceptedAnswers": [
-          "Ustedes escuchan el susurro suave de las hojas en el bosque",
-          "Escuchan el susurro suave de las hojas en el bosque"
+          "Ustedes escuchan la lluvia en la ventana de la casa",
+          "Escuchan la lluvia en la ventana de la casa"
         ],
-        "hint": "слушать = escuchar • вы слушаете = ustedes escuchan",
+        "hint": "слушать = escuchar • вы слушаете = ustedes escuchan • дождь = la lluvia • окно = la ventana • дом = la casa",
         "distractors": [
-          "viento",
-          "ciudad",
-          "miran"
+          "sol",
+          "puerta",
+          "auto"
         ]
       },
       {
@@ -3128,17 +3291,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "mirar",
         "verbForm": "miran",
         "verbPerson": "ellas",
-        "russian": "Они (девочки) с восторгом смотрят на цирковое представление.",
-        "spanish": "Ellas miran el espectáculo del circo con emoción.",
+        "russian": "Они (девочки) смотрят на синий мяч на площадке.",
+        "spanish": "Ellas miran la pelota azul en la plaza.",
         "acceptedAnswers": [
-          "Ellas miran el espectáculo del circo con emoción",
-          "Miran el espectáculo del circo con emoción"
+          "Ellas miran la pelota azul en la plaza",
+          "Miran la pelota azul en la plaza"
         ],
-        "hint": "смотреть = mirar • они смотрят = ellas miran",
+        "hint": "смотреть = mirar • они (девочки) смотрят = ellas miran • мяч = la pelota • синий = azul • площадка = la plaza",
         "distractors": [
-          "teatro",
-          "tristeza",
-          "aplauden"
+          "verde",
+          "tobogán",
+          "casa"
         ]
       },
       {
@@ -3146,17 +3309,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "mirar",
         "verbForm": "miran",
         "verbPerson": "ustedes",
-        "russian": "Вы смотрите на разноцветные воздушные шары в небе.",
-        "spanish": "Ustedes miran los globos de colores en el cielo.",
+        "russian": "Вы смотрите на красивую машину папы.",
+        "spanish": "Ustedes miran el auto lindo de papá.",
         "acceptedAnswers": [
-          "Ustedes miran los globos de colores en el cielo",
-          "Miran los globos de colores en el cielo"
+          "Ustedes miran el auto lindo de papá",
+          "Miran el auto lindo de papá",
+          "Ustedes miran el auto lindo de papa",
+          "Miran el auto lindo de papa"
         ],
-        "hint": "смотреть = mirar • вы смотрите = ustedes miran",
+        "hint": "смотреть = mirar • вы смотрите = ustedes miran • машина = el auto • красивый = lindo • папа = el papá",
         "distractors": [
-          "pájaros",
-          "suelo",
-          "sueltan"
+          "mamá",
+          "casa",
+          "perro"
         ]
       },
       {
@@ -3164,17 +3329,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comprar",
         "verbForm": "compran",
         "verbPerson": "ellos",
-        "russian": "Они покупают новые краски и кисточки для урока.",
-        "spanish": "Ellos compran témperas nuevas y pinceles para la clase.",
+        "russian": "Они покупают вкусные альфахоры в киоске.",
+        "spanish": "Ellos compran alfajores ricos en el quiosco.",
         "acceptedAnswers": [
-          "Ellos compran témperas nuevas y pinceles para la clase",
-          "Compran témperas nuevas y pinceles para la clase"
+          "Ellos compran alfajores ricos en el quiosco",
+          "Compran alfajores ricos en el quiosco"
         ],
-        "hint": "покупать = comprar • они покупают = ellos compran",
+        "hint": "покупать = comprar • они покупают = ellos compran • альфахоры = los alfajores • вкусный = rico • киоск = el quiosco",
         "distractors": [
-          "lápices",
-          "cuadernos",
-          "usan"
+          "helado",
+          "chocolate",
+          "pan"
         ]
       },
       {
@@ -3182,17 +3347,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comprar",
         "verbForm": "compran",
         "verbPerson": "ustedes",
-        "russian": "Вы покупаете вкусный натуральный лимонад со льдом.",
-        "spanish": "Ustedes compran limonada natural rica con hielo.",
+        "russian": "Вы покупаете бананы и яблоки на свои деньги.",
+        "spanish": "Ustedes compran bananas y manzanas con su plata.",
         "acceptedAnswers": [
-          "Ustedes compran limonada natural rica con hielo",
-          "Compran limonada natural rica con hielo"
+          "Ustedes compran bananas y manzanas con su plata",
+          "Compran bananas y manzanas con su plata"
         ],
-        "hint": "покупать = comprar • вы покупаете = ustedes compran",
+        "hint": "покупать = comprar • вы покупаете = ustedes compran • бананы = las bananas • яблоки = las manzanas • деньги = la plata",
         "distractors": [
-          "jugo",
-          "caliente",
-          "beben"
+          "helado",
+          "medialunas",
+          "leche"
         ]
       },
       {
@@ -3200,17 +3365,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "saltar",
         "verbForm": "saltan",
         "verbPerson": "ellas",
-        "russian": "Они (девочки) синхронно прыгают в воду на тренировке.",
-        "spanish": "Ellas saltan juntas al agua en el entrenamiento.",
+        "russian": "Они (девочки) радостно прыгают на зелёной горке.",
+        "spanish": "Ellas saltan felices en el tobogán verde.",
         "acceptedAnswers": [
-          "Ellas saltan juntas al agua en el entrenamiento",
-          "Saltan juntas al agua en el entrenamiento"
+          "Ellas saltan felices en el tobogán verde",
+          "Saltan felices en el tobogán verde",
+          "Ellas saltan felices en el tobogan verde",
+          "Saltan felices en el tobogan verde"
         ],
-        "hint": "прыгать = saltar • они прыгают = ellas saltan",
+        "hint": "прыгать = saltar • они (девочки) прыгают = ellas saltan • радостно = feliz • горка = el tobogán • зелёный = verde",
         "distractors": [
-          "solas",
-          "pileta",
-          "corren"
+          "hamaca",
+          "azul",
+          "plaza"
         ]
       },
       {
@@ -3218,17 +3385,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "saltar",
         "verbForm": "saltan",
         "verbPerson": "ustedes",
-        "russian": "Вы весело прыгаете под бодрую ритмичную музыку.",
-        "spanish": "Ustedes saltan felices con la música alegre.",
+        "russian": "Вы прыгаете на качелях на перемене.",
+        "spanish": "Ustedes saltan en las hamacas en el recreo.",
         "acceptedAnswers": [
-          "Ustedes saltan felices con la música alegre",
-          "Saltan felices con la música alegre"
+          "Ustedes saltan en las hamacas en el recreo",
+          "Saltan en las hamacas en el recreo"
         ],
-        "hint": "прыгать = saltar • вы прыгаете = ustedes saltan",
+        "hint": "прыгать = saltar • вы прыгаете = ustedes saltan • качели = las hamacas • перемена = el recreo",
         "distractors": [
-          "triste",
-          "bailan",
-          "cantan"
+          "tobogán",
+          "pelota",
+          "recreo"
         ]
       },
       {
@@ -3236,17 +3403,18 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "esperar",
         "verbForm": "esperan",
         "verbPerson": "ellos",
-        "russian": "Они терпеливо ждут своей очереди на аттракцион.",
-        "spanish": "Ellos esperan con paciencia su turno en el juego.",
+        "russian": "Они ждут учительницу у двери на перемене.",
+        "spanish": "Ellos esperan a la seño en la puerta en el recreo.",
         "acceptedAnswers": [
-          "Ellos esperan con paciencia su turno en el juego",
-          "Esperan con paciencia su turno en el juego"
+          "Ellos esperan a la seño en la puerta en el recreo",
+          "Esperan a la seño en la puerta en el recreo",
+          "Ellos esperan a la seno en la puerta en el recreo"
         ],
-        "hint": "ждать = esperar • они ждут = ellos esperan",
+        "hint": "ждать = esperar • они ждут = ellos esperan • учительница = la seño • дверь = la puerta • перемена = el recreo",
         "distractors": [
-          "cine",
-          "desesperan",
-          "miran"
+          "mamá",
+          "ventana",
+          "auto"
         ]
       },
       {
@@ -3254,17 +3422,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "esperar",
         "verbForm": "esperan",
         "verbPerson": "ustedes",
-        "russian": "Вы ждёте начала праздничного концерта в зале.",
-        "spanish": "Ustedes esperan el inicio del recital en la sala.",
+        "russian": "Вы ждёте свою очередь на качелях.",
+        "spanish": "Ustedes esperan su turno en la hamaca.",
         "acceptedAnswers": [
-          "Ustedes esperan el inicio del recital en la sala",
-          "Esperan el inicio del recital en la sala"
+          "Ustedes esperan su turno en la hamaca",
+          "Esperan su turno en la hamaca"
         ],
-        "hint": "ждать = esperar • вы ждёте = ustedes esperan",
+        "hint": "ждать = esperar • вы ждёте = ustedes esperan • очередь = el turno • качели = la hamaca",
         "distractors": [
-          "final",
-          "calle",
-          "escuchan"
+          "tobogán",
+          "pelota",
+          "plaza"
         ]
       },
       {
@@ -3272,17 +3440,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "ayudar",
         "verbForm": "ayudan",
         "verbPerson": "ellas",
-        "russian": "Они (девочки) помогают упаковывать подарки к празднику.",
-        "spanish": "Ellas ayudan a envolver los regalos para la fiesta.",
+        "russian": "Они (девочки) помогают сестре с книгами.",
+        "spanish": "Ellas ayudan a la hermana con los libros.",
         "acceptedAnswers": [
-          "Ellas ayudan a envolver los regalos para la fiesta",
-          "Ayudan a envolver los regalos para la fiesta"
+          "Ellas ayudan a la hermana con los libros",
+          "Ayudan a la hermana con los libros"
         ],
-        "hint": "помогать = ayudar • они помогают = ellas ayudan",
+        "hint": "помогать = ayudar • они (девочки) помогают = ellas ayudan • сестра = la hermana • книги = los libros",
         "distractors": [
-          "abrir",
-          "comprar",
-          "miran"
+          "hermano",
+          "cuadernos",
+          "mochila"
         ]
       },
       {
@@ -3290,17 +3458,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "ayudar",
         "verbForm": "ayudan",
         "verbPerson": "ustedes",
-        "russian": "Вы помогаете поливать молодые саженцы в школьном саду.",
-        "spanish": "Ustedes ayudan a regar los arbolitos en el jardín escolar.",
+        "russian": "Вы помогаете дедушке за столом.",
+        "spanish": "Ustedes ayudan al abuelo en la mesa.",
         "acceptedAnswers": [
-          "Ustedes ayudan a regar los arbolitos en el jardín escolar",
-          "Ayudan a regar los arbolitos en el jardín escolar"
+          "Ustedes ayudan al abuelo en la mesa",
+          "Ayudan al abuelo en la mesa"
         ],
-        "hint": "помогать = ayudar • вы помогаете = ustedes ayudan",
+        "hint": "помогать = ayudar • вы помогаете = ustedes ayudan • дедушка = el abuelo • стол = la mesa",
         "distractors": [
-          "cortar",
-          "flores",
-          "plantan"
+          "abuela",
+          "silla",
+          "cama"
         ]
       }
     ]
@@ -3309,25 +3477,24 @@ export const EXERCISES_RU_TO_ES = [
     "id": 5,
     "title": "Упр. 5: Финальный супер-микс всех форм",
     "shortTitle": "5. Супер-микс",
-    "description": "Закрепляем все лица и формы правильных глаголов в переводе на испанский",
-    "icon": "🌈",
+    "description": "Пишем на испанском любые лица и формы глаголов на 100 словах Майи",
+    "icon": "🚀",
     "sentences": [
       {
         "id": "ru_es_5_01",
         "verb": "dibujar",
         "verbForm": "dibuja",
         "verbPerson": "ella",
-        "russian": "Майя рисует золотую бабочку на обложке тетради.",
-        "spanish": "Maya dibuja una mariposa dorada en la tapa del cuaderno.",
+        "russian": "Майя рисует красивый дом в тетради.",
+        "spanish": "Maya dibuja una casa linda en el cuaderno.",
         "acceptedAnswers": [
-          "Maya dibuja una mariposa dorada en la tapa del cuaderno",
-          "Maya dibuja una mariposa dorada en la portada del cuaderno"
+          "Maya dibuja una casa linda en el cuaderno"
         ],
-        "hint": "рисовать = dibujar • Майя рисует = Maya dibuja",
+        "hint": "рисовать = dibujar • Майя рисует = Maya dibuja • дом = la casa • красивый = lindo • тетрадь = el cuaderno",
         "distractors": [
-          "pinta",
-          "azul",
-          "libro"
+          "libro",
+          "perro",
+          "mesa"
         ]
       },
       {
@@ -3335,19 +3502,20 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "dibujar",
         "verbForm": "dibujás",
         "verbPerson": "vos",
-        "russian": "Ты рисуешь весёлого снеговика на белой бумаге.",
-        "spanish": "Vos dibujás un muñeco de nieve divertido en el papel blanco.",
+        "russian": "Ты рисуешь зелёный мяч чёрным карандашом.",
+        "spanish": "Vos dibujás una pelota verde con lápiz negro.",
         "acceptedAnswers": [
-          "Vos dibujás un muñeco de nieve divertido en el papel blanco",
-          "Dibujás un muñeco de nieve divertido en el papel blanco",
-          "Vos dibujas un muñeco de nieve divertido en el papel blanco",
-          "Tú dibujas un muñeco de nieve divertido en el papel blanco"
+          "Vos dibujás una pelota verde con lápiz negro",
+          "Dibujás una pelota verde con lápiz negro",
+          "Vos dibujas una pelota verde con lapiz negro",
+          "Dibujas una pelota verde con lapiz negro",
+          "Tú dibujas una pelota verde con lápiz negro"
         ],
-        "hint": "рисовать = dibujar • ты рисуешь = vos dibujás",
+        "hint": "рисовать = dibujar • ты рисуешь = vos dibujás • мяч = la pelota • зелёный = verde • карандаш = el lápiz • чёрный = negro",
         "distractors": [
-          "dibujo",
-          "triste",
-          "pared"
+          "blanco",
+          "azul",
+          "cuaderno"
         ]
       },
       {
@@ -3355,18 +3523,18 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "pintar",
         "verbForm": "pinto",
         "verbPerson": "yo",
-        "russian": "Я раскрашиваю осенний пейзаж тёплыми красками.",
-        "spanish": "Yo pinto un paisaje de otoño con colores cálidos.",
+        "russian": "Я раскрашиваю большую книгу цветными карандашами.",
+        "spanish": "Yo pinto el libro grande con lápices de colores.",
         "acceptedAnswers": [
-          "Yo pinto un paisaje de otoño con colores cálidos",
-          "Pinto un paisaje de otoño con colores cálidos",
-          "Yo pinto un paisaje de otono con colores calidos"
+          "Yo pinto el libro grande con lápices de colores",
+          "Pinto el libro grande con lápices de colores",
+          "Yo pinto el libro grande con lapices de colores"
         ],
-        "hint": "раскрашивать = pintar • я раскрашиваю = yo pinto",
+        "hint": "раскрашивать = pintar • я раскрашиваю = yo pinto • книга = el libro • большой = grande • карандаши = los lápices",
         "distractors": [
-          "pintas",
-          "fríos",
-          "primavera"
+          "cuaderno",
+          "chiquito",
+          "mesa"
         ]
       },
       {
@@ -3374,18 +3542,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "pintar",
         "verbForm": "pintan",
         "verbPerson": "ellos",
-        "russian": "Они красят деревянные скворечники для птиц.",
-        "spanish": "Ellos pintan casitas de madera para los pájaros.",
+        "russian": "Они красят стол в белый цвет.",
+        "spanish": "Ellos pintan la mesa de color blanco.",
         "acceptedAnswers": [
-          "Ellos pintan casitas de madera para los pájaros",
-          "Pintan casitas de madera para los pájaros",
-          "Ellos pintan casitas de madera para los pajaros"
+          "Ellos pintan la mesa de color blanco",
+          "Pintan la mesa de color blanco"
         ],
-        "hint": "красить = pintar • они красят = ellos pintan",
+        "hint": "красить = pintar • они красят = ellos pintan • стол = la mesa • белый = blanco",
         "distractors": [
-          "rompen",
-          "gatos",
-          "nosotros"
+          "silla",
+          "negro",
+          "azul"
         ]
       },
       {
@@ -3393,17 +3560,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comer",
         "verbForm": "comemos",
         "verbPerson": "nosotros",
-        "russian": "Мы едим домашний яблочный штрудель с корицей.",
-        "spanish": "Nosotros comemos strudel casero de manzana con canela.",
+        "russian": "Мы едим вкусную пиццу с сыром за столом.",
+        "spanish": "Nosotros comemos pizza rica con queso en la mesa.",
         "acceptedAnswers": [
-          "Nosotros comemos strudel casero de manzana con canela",
-          "Comemos strudel casero de manzana con canela"
+          "Nosotros comemos pizza rica con queso en la mesa",
+          "Comemos pizza rica con queso en la mesa"
         ],
-        "hint": "есть = comer • мы едим = nosotros comemos",
+        "hint": "есть = comer • мы едим = nosotros comemos • пицца = la pizza • сыр = el queso • стол = la mesa",
         "distractors": [
-          "torta",
-          "chocolate",
-          "ustedes"
+          "pan",
+          "leche",
+          "silla"
         ]
       },
       {
@@ -3411,17 +3578,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comer",
         "verbForm": "comen",
         "verbPerson": "ustedes",
-        "russian": "Вы кушаете хрустящие чипсы во время просмотра фильма.",
-        "spanish": "Ustedes comen papas crocantes mientras miran la película.",
+        "russian": "Вы кушаете вкусный шоколад на перемене.",
+        "spanish": "Ustedes comen chocolate rico en el recreo.",
         "acceptedAnswers": [
-          "Ustedes comen papas crocantes mientras miran la película",
-          "Comen papas crocantes mientras miran la película"
+          "Ustedes comen chocolate rico en el recreo",
+          "Comen chocolate rico en el recreo"
         ],
-        "hint": "кушать = comer • вы кушаете = ustedes comen",
+        "hint": "кушать = comer • вы кушаете = ustedes comen • шоколад = el chocolate • вкусный = rico • перемена = el recreo",
         "distractors": [
-          "pochoclos",
-          "serie",
-          "ellos"
+          "helado",
+          "pan",
+          "quiosco"
         ]
       },
       {
@@ -3429,17 +3596,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "correr",
         "verbForm": "corre",
         "verbPerson": "él",
-        "russian": "Маленький мальчик быстро бежит к бабушке с букетом.",
-        "spanish": "El nene chiquito corre rápido hacia la abuela con flores.",
+        "russian": "Маленький брат быстро бежит к бабушке.",
+        "spanish": "El hermano chiquito corre rápido a la abuela.",
         "acceptedAnswers": [
-          "El nene chiquito corre rápido hacia la abuela con flores",
-          "El niño corre rápido hacia la abuela con flores"
+          "El hermano chiquito corre rápido a la abuela",
+          "El hermano chiquito corre rapido a la abuela"
         ],
-        "hint": "бежать = correr • бежит = corre",
+        "hint": "бежать = correr • брат бежит = el hermano corre • маленький = chiquito • быстро = rápido • бабушка = la abuela",
         "distractors": [
-          "mamá",
+          "abuelo",
           "despacio",
-          "hermana"
+          "casa"
         ]
       },
       {
@@ -3447,37 +3614,39 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "correr",
         "verbForm": "corrés",
         "verbPerson": "vos",
-        "russian": "Ты бежишь со всех ног, чтобы успеть на поезд.",
-        "spanish": "Vos corrés con todas tus fuerzas para llegar al tren.",
+        "russian": "Ты быстро бежишь за мячом на площадке.",
+        "spanish": "Vos corrés rápido con la pelota en la plaza.",
         "acceptedAnswers": [
-          "Vos corrés con todas tus fuerzas para llegar al tren",
-          "Corrés con todas tus fuerzas para llegar al tren",
-          "Vos corres con todas tus fuerzas para llegar al tren",
-          "Tú corres con todas tus fuerzas para llegar al tren"
+          "Vos corrés rápido con la pelota en la plaza",
+          "Corrés rápido con la pelota en la plaza",
+          "Vos corres rapido con la pelota en la plaza",
+          "Corres rapido con la pelota en la plaza",
+          "Tú corres rápido con la pelota en la plaza"
         ],
-        "hint": "бежать = correr • ты бежишь = vos corrés",
+        "hint": "бежать = correr • ты бежишь = vos corrés • быстро = rápido • мяч = la pelota • площадка = la plaza",
         "distractors": [
-          "colectivo",
-          "corro",
-          "despacio"
+          "despacio",
+          "perro",
+          "casa"
         ]
       },
       {
         "id": "ru_es_5_09",
         "verb": "escuchar",
         "verbForm": "escuchamos",
-        "verbPerson": "nosotros",
-        "russian": "Мы внимательно слушаем указания тренера перед матчем.",
-        "spanish": "Nosotros escuchamos atentos las indicaciones del entrenador.",
+        "verbPerson": "nosotras",
+        "russian": "Мы (девочки) слушаем учительницу за столом.",
+        "spanish": "Nosotras escuchamos a la seño en la mesa.",
         "acceptedAnswers": [
-          "Nosotros escuchamos atentos las indicaciones del entrenador",
-          "Escuchamos atentos las indicaciones del entrenador"
+          "Nosotras escuchamos a la seño en la mesa",
+          "Escuchamos a la seño en la mesa",
+          "Nosotras escuchamos a la seno en la mesa"
         ],
-        "hint": "слушать = escuchar • мы слушаем = nosotros escuchamos",
+        "hint": "слушать = escuchar • мы слушаем = nosotras escuchamos • учительница = la seño • стол = la mesa",
         "distractors": [
-          "miramos",
-          "árbitro",
-          "partido"
+          "silla",
+          "mamá",
+          "recreo"
         ]
       },
       {
@@ -3485,17 +3654,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "escuchar",
         "verbForm": "escucha",
         "verbPerson": "ella",
-        "russian": "Она слушает добрые пожелания друзей в свой день рождения.",
-        "spanish": "Ella escucha los buenos deseos de sus amigos en su cumpleaños.",
+        "russian": "Она слушает доброго папу в машине.",
+        "spanish": "Ella escucha al papá lindo en el auto.",
         "acceptedAnswers": [
-          "Ella escucha los buenos deseos de sus amigos en su cumpleaños",
-          "Escucha los buenos deseos de sus amigos en su cumpleaños"
+          "Ella escucha al papá lindo en el auto",
+          "Ella escucha al papa lindo en el auto"
         ],
-        "hint": "слушать = escuchar • она слушает = ella escucha",
+        "hint": "слушать = escuchar • она слушает = ella escucha • папа = el papá • машина = el auto",
         "distractors": [
-          "él",
-          "regalos",
-          "fiesta"
+          "mamá",
+          "abuelo",
+          "casa"
         ]
       },
       {
@@ -3503,17 +3672,18 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "mirar",
         "verbForm": "miro",
         "verbPerson": "yo",
-        "russian": "Я смотрю на плывущие по небу белые облака.",
-        "spanish": "Yo miro las nubes blancas que flotan en el cielo.",
+        "russian": "Я смотрю на синий автомобиль из окна.",
+        "spanish": "Yo miro el auto azul por la ventana.",
         "acceptedAnswers": [
-          "Yo miro las nubes blancas que flotan en el cielo",
-          "Miro las nubes blancas que flotan en el cielo"
+          "Yo miro el auto azul por la ventana",
+          "Miro el auto azul por la ventana",
+          "Yo miro el auto azul en la ventana"
         ],
-        "hint": "смотреть = mirar • я смотрю = yo miro",
+        "hint": "смотреть = mirar • я смотрю = yo miro • машина = el auto • синий = azul • окно = la ventana",
         "distractors": [
-          "miras",
-          "negras",
-          "aves"
+          "puerta",
+          "blanco",
+          "casa"
         ]
       },
       {
@@ -3521,17 +3691,18 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "mirar",
         "verbForm": "miran",
         "verbPerson": "ustedes",
-        "russian": "Вы смотрите интересное научное видео о космосе.",
-        "spanish": "Ustedes miran un video educativo interesante sobre el espacio.",
+        "russian": "Вы смотрите на жёлтое солнце в тёплый день.",
+        "spanish": "Ustedes miran el sol amarillo en un día de calor.",
         "acceptedAnswers": [
-          "Ustedes miran un video educativo interesante sobre el espacio",
-          "Miran un video educativo interesante sobre el espacio"
+          "Ustedes miran el sol amarillo en un día de calor",
+          "Miran el sol amarillo en un día de calor",
+          "Ustedes miran el sol amarillo en un dia de calor"
         ],
-        "hint": "смотреть = mirar • вы смотрите = ustedes miran",
+        "hint": "смотреть = mirar • вы смотрите = ustedes miran • солнце = el sol • жёлтый = amarillo • день = el día • тепло = el calor",
         "distractors": [
-          "película",
-          "escuchan",
-          "tierra"
+          "lluvia",
+          "frío",
+          "noche"
         ]
       },
       {
@@ -3539,17 +3710,17 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comprar",
         "verbForm": "compra",
         "verbPerson": "ella",
-        "russian": "Мама покупает свежие ингредиенты для праздничного ужина.",
-        "spanish": "La mamá compra ingredientes frescos para la cena especial.",
+        "russian": "Мама покупает вкусный сок и хлеб на полдник.",
+        "spanish": "La mamá compra jugo rico y pan para la merienda.",
         "acceptedAnswers": [
-          "La mamá compra ingredientes frescos para la cena especial",
-          "Mamá compra ingredientes frescos para la cena especial"
+          "La mamá compra jugo rico y pan para la merienda",
+          "La mama compra jugo rico y pan para la merienda"
         ],
-        "hint": "покупать = comprar • мама покупает = la mamá compra",
+        "hint": "покупать = comprar • мама покупает = la mamá compra • сок = el jugo • хлеб = el pan • полдник = la merienda",
         "distractors": [
-          "almuerzo",
-          "papá",
-          "cocina"
+          "leche",
+          "queso",
+          "recreo"
         ]
       },
       {
@@ -3557,37 +3728,37 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "comprar",
         "verbForm": "comprás",
         "verbPerson": "vos",
-        "russian": "Ты покупаешь красивый блокнот в книжном магазине.",
-        "spanish": "Vos comprás un cuaderno lindo en la librería.",
+        "russian": "Ты покупаешь красивую тетрадь в киоске.",
+        "spanish": "Vos comprás un cuaderno lindo en el quiosco.",
         "acceptedAnswers": [
-          "Vos comprás un cuaderno lindo en la librería",
-          "Comprás un cuaderno lindo en la librería",
-          "Vos compras un cuaderno lindo en la librería",
-          "Tú compras un cuaderno lindo en la librería"
+          "Vos comprás un cuaderno lindo en el quiosco",
+          "Comprás un cuaderno lindo en el quiosco",
+          "Vos compras un cuaderno lindo en el quiosco",
+          "Compras un cuaderno lindo en el quiosco",
+          "Tú compras un cuaderno lindo en el quiosco"
         ],
-        "hint": "покупать = comprar • ты покупаешь = vos comprás",
+        "hint": "покупать = comprar • ты покупаешь = vos comprás • тетрадь = el cuaderno • красивый = lindo • киоск = el quiosco",
         "distractors": [
-          "compro",
-          "quiosco",
-          "lápiz"
+          "libro",
+          "lápiz",
+          "mochila"
         ]
       },
       {
         "id": "ru_es_5_15",
         "verb": "saltar",
-        "verbForm": "saltan",
-        "verbPerson": "ellos",
-        "russian": "Дети весело прыгают через надувные препятствия.",
-        "spanish": "Los chicos saltan felices sobre los obstáculos inflables.",
+        "verbForm": "salta",
+        "verbPerson": "él",
+        "russian": "Собака радостно прыгает с мячом на площадке.",
+        "spanish": "El perro salta feliz con la pelota en la plaza.",
         "acceptedAnswers": [
-          "Los chicos saltan felices sobre los obstáculos inflables",
-          "Los niños saltan felices sobre los obstáculos inflables"
+          "El perro salta feliz con la pelota en la plaza"
         ],
-        "hint": "прыгать = saltar • дети прыгают = los chicos saltan",
+        "hint": "прыгать = saltar • собака прыгает = el perro salta • радостно = feliz • мяч = la pelota • площадка = la plaza",
         "distractors": [
-          "corren",
-          "bancos",
-          "grandes"
+          "gato",
+          "tobogán",
+          "casa"
         ]
       },
       {
@@ -3595,17 +3766,18 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "saltar",
         "verbForm": "saltamos",
         "verbPerson": "nosotros",
-        "russian": "Мы прыгаем от радости, когда наша команда побеждает.",
-        "spanish": "Nosotros saltamos de alegría cuando nuestro equipo gana.",
+        "russian": "Мы радостно прыгаем на большой горке.",
+        "spanish": "Nosotros saltamos felices en el tobogán grande.",
         "acceptedAnswers": [
-          "Nosotros saltamos de alegría cuando nuestro equipo gana",
-          "Saltamos de alegría cuando nuestro equipo gana"
+          "Nosotros saltamos felices en el tobogán grande",
+          "Saltamos felices en el tobogán grande",
+          "Nosotros saltamos felices en el tobogan grande"
         ],
-        "hint": "прыгать = saltar • мы прыгаем = nosotros saltamos",
+        "hint": "прыгать = saltar • мы прыгаем = nosotros saltamos • радостно = feliz • горка = el tobogán • большой = grande",
         "distractors": [
-          "lloramos",
-          "pierde",
-          "ellos"
+          "hamaca",
+          "chiquito",
+          "casa"
         ]
       },
       {
@@ -3613,17 +3785,19 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "esperar",
         "verbForm": "espero",
         "verbPerson": "yo",
-        "russian": "Я жду маму возле школьных ворот после звонка.",
-        "spanish": "Yo espero a mamá en el portón de la escuela tras el timbre.",
+        "russian": "Я жду маму возле белой машины.",
+        "spanish": "Yo espero a mamá en el auto blanco.",
         "acceptedAnswers": [
-          "Yo espero a mamá en el portón de la escuela tras el timbre",
-          "Espero a mamá en el portón de la escuela tras el timbre"
+          "Yo espero a mamá en el auto blanco",
+          "Espero a mamá en el auto blanco",
+          "Yo espero a mama en el auto blanco",
+          "Espero a mama en el auto blanco"
         ],
-        "hint": "ждать = esperar • я жду = yo espero",
+        "hint": "ждать = esperar • я жду = yo espero • мама = la mamá • машина = el auto • белый = blanco",
         "distractors": [
           "papá",
-          "esperas",
-          "puerta"
+          "azul",
+          "casa"
         ]
       },
       {
@@ -3631,17 +3805,18 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "esperar",
         "verbForm": "esperan",
         "verbPerson": "ellos",
-        "russian": "Они ждут прибытия теплохода на причале.",
-        "spanish": "Ellos esperan la llegada del barco en el muelle.",
+        "russian": "Они ждут свою очередь на большой горке.",
+        "spanish": "Ellos esperan su turno en el tobogán grande.",
         "acceptedAnswers": [
-          "Ellos esperan la llegada del barco en el muelle",
-          "Esperan la llegada del barco en el muelle"
+          "Ellos esperan su turno en el tobogán grande",
+          "Esperan su turno en el tobogán grande",
+          "Ellos esperan su turno en el tobogan grande"
         ],
-        "hint": "ждать = esperar • они ждут = ellos esperan",
+        "hint": "ждать = esperar • они ждут = ellos esperan • очередь = el turno • горка = el tobogán • большой = grande",
         "distractors": [
-          "tren",
-          "esperamos",
-          "puerto"
+          "hamaca",
+          "chiquito",
+          "plaza"
         ]
       },
       {
@@ -3649,37 +3824,40 @@ export const EXERCISES_RU_TO_ES = [
         "verb": "ayudar",
         "verbForm": "ayudás",
         "verbPerson": "vos",
-        "russian": "Ты помогаешь другу понять сложное правило по грамматике.",
-        "spanish": "Vos ayudás a tu amigo a entender la regla difícil.",
+        "russian": "Ты помогаешь другу с рюкзаком.",
+        "spanish": "Vos ayudás al amigo con la mochila.",
         "acceptedAnswers": [
-          "Vos ayudás a tu amigo a entender la regla difícil",
-          "Ayudás a tu amigo a entender la regla difícil",
-          "Vos ayudas a tu amigo a entender la regla difícil",
-          "Tú ayudas a tu amigo a entender la regla difícil"
+          "Vos ayudás al amigo con la mochila",
+          "Ayudás al amigo con la mochila",
+          "Vos ayudas al amigo con la mochila",
+          "Ayudas al amigo con la mochila",
+          "Tú ayudas al amigo con la mochila"
         ],
-        "hint": "помогать = ayudar • ты помогаешь = vos ayudás",
+        "hint": "помогать = ayudar • ты помогаешь = vos ayudás • друг = el amigo • рюкзак = la mochila",
         "distractors": [
-          "ayudo",
-          "fácil",
-          "tarea"
+          "hermano",
+          "cuaderno",
+          "libros"
         ]
       },
       {
         "id": "ru_es_5_20",
         "verb": "ayudar",
         "verbForm": "ayudamos",
-        "verbPerson": "nosotros",
-        "russian": "Мы помогаем украсить школьный класс гирляндами.",
-        "spanish": "Nosotros ayudamos a adornar el aula con guirnaldas.",
+        "verbPerson": "nosotras",
+        "russian": "Мы (девочки) помогаем маме за столом.",
+        "spanish": "Nosotras ayudamos a mamá en la mesa.",
         "acceptedAnswers": [
-          "Nosotros ayudamos a adornar el aula con guirnaldas",
-          "Ayudamos a adornar el aula con guirnaldas"
+          "Nosotras ayudamos a mamá en la mesa",
+          "Ayudamos a mamá en la mesa",
+          "Nosotras ayudamos a mama en la mesa",
+          "Ayudamos a mama en la mesa"
         ],
-        "hint": "помогать = ayudar • мы помогаем = nosotros ayudamos",
+        "hint": "помогать = ayudar • мы помогаем = nosotras ayudamos • мама = la mamá • стол = la mesa",
         "distractors": [
-          "limpiar",
-          "casa",
-          "ustedes"
+          "papá",
+          "silla",
+          "cama"
         ]
       }
     ]
@@ -3698,16 +3876,16 @@ export function normalizeSentenceForCheck(text) {
     .toLowerCase()
     .replace(/[¿?¡!.,;:«»"()]/g, '')
     .replace(/ё/g, 'е')
-    .replace(/\s+/g, ' ')
+    .replace(/s+/g, ' ')
     .trim();
 }
 
 export function stripDiacritics(text) {
-  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return text.normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
 export function stripSpanishPronoun(text) {
-  return text.replace(/^(yo|vos|tu|tú|el|él|ella|nosotros|nosotras|ustedes|ellos|ellas)\s+/i, '').trim();
+  return text.replace(/^(yo|vos|tu|tú|el|él|ella|nosotros|nosotras|ustedes|ellos|ellas)s+/i, '').trim();
 }
 
 export function isMayaSentenceAnswerCorrect(userInput, sentence) {

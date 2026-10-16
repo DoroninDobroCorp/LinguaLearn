@@ -47,6 +47,12 @@ export default function Exercises() {
   }, [tabParam]);
 
   useEffect(() => {
+    if (isMaya && activeTab === 'translation') {
+      setActiveTab('maya_sentences');
+    }
+  }, [isMaya, activeTab]);
+
+  useEffect(() => {
     try {
       if (VALID_EXERCISE_TABS.includes(activeTab)) {
         localStorage.setItem('lingua_spanish_exercise_tab', activeTab);
@@ -55,10 +61,18 @@ export default function Exercises() {
   }, [activeTab]);
 
   const tabs = [
-    { id: 'maya_sentences', label: '✍️ Предложения Майи (письмо)', emoji: '✍️' },
-    { id: 'maya_verbs', label: '🎈 Урок 1: vos (с видео)', emoji: '🎈' },
-    { id: 'maya_pronouns', label: '🇦🇷 Урок 2: местоимения (без видео)', emoji: '🇦🇷' },
-    { id: 'translation', label: 'Перевод предложений', emoji: '🌐' },
+    ...(isMaya
+      ? [
+          { id: 'maya_sentences', label: '✍️ Переводы предложений (Майя)', emoji: '✍️' },
+          { id: 'maya_verbs', label: '🎈 Урок 1: vos (с видео)', emoji: '🎈' },
+          { id: 'maya_pronouns', label: '🇦🇷 Урок 2: местоимения (без видео)', emoji: '🇦🇷' },
+        ]
+      : [
+          { id: 'translation', label: 'Перевод предложений', emoji: '🌐' },
+          { id: 'maya_sentences', label: '✍️ Предложения Майи (письмо)', emoji: '✍️' },
+          { id: 'maya_verbs', label: '🎈 Урок 1: vos (с видео)', emoji: '🎈' },
+          { id: 'maya_pronouns', label: '🇦🇷 Урок 2: местоимения (без видео)', emoji: '🇦🇷' },
+        ]),
     { id: 'numbers', label: 'Числа (1–1000)', emoji: '🔢' },
     { id: 'demonstratives', label: 'Указатели & Дистанция', emoji: '📍' },
     { id: 'classic_quiz', label: 'Тесты & Экзамены (ИИ)', emoji: '🧠' },
@@ -111,7 +125,7 @@ export default function Exercises() {
         })}
       </div>
 
-      {activeTab === 'translation' && <SentenceTranslationSection />}
+      {activeTab === 'translation' && (isMaya ? <MayaSentenceTrainerSection /> : <SentenceTranslationSection />)}
       {activeTab === 'numbers' && <NumbersPracticeSection />}
       {activeTab === 'maya_sentences' && <MayaSentenceTrainerSection />}
       {activeTab === 'maya_verbs' && <MayaVerbLessonSection initialVersion="vos" />}
