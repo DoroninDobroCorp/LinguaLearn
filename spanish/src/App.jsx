@@ -2,7 +2,7 @@ import React from 'react';
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import {
   Sparkles, BookOpen, Settings, Brain, BookMarked, Moon, Sun,
-  Map, MessageCircle, Home, Compass
+  Map, MessageCircle, Home, Compass, Dumbbell, Target
 } from 'lucide-react';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { ProfileProvider, useProfile } from './contexts/ProfileContext';
@@ -16,13 +16,44 @@ import SettingsPanel from './components/Settings';
 import CurriculumMap from './components/CurriculumMap';
 import ProfileSelector from './components/ProfileSelector';
 import GamificationHeader from './components/GamificationHeader';
+import CoachHome from './components/coach/CoachHome';
+import CoachStart from './components/coach/CoachStart';
+import CoachChat from './components/coach/CoachChat';
+import CoachCall from './components/coach/CoachCall';
+import CoachReport from './components/coach/CoachReport';
+import CoachWorkout, { WorkoutLauncher } from './components/coach/CoachWorkout';
+import { CoachSpotsList, CoachSpotDetail } from './components/coach/CoachSpots';
+import CoachSettings from './components/coach/CoachSettings';
+
+// Adult conversation learners (B1+) get the coach as their home and a
+// focused navigation instead of the A1 course.
+function useConversationTrack() {
+  const { activeProfile } = useProfile();
+  return activeProfile?.learning_track === 'conversation';
+}
+
+const COACH_NAV_ITEMS = [
+  { path: '/', icon: Home, label: 'Главная' },
+  { path: '/coach/new', icon: MessageCircle, label: 'Разговор' },
+  { path: '/coach/workout', icon: Dumbbell, label: 'Тренировка' },
+  { path: '/coach/spots', icon: Target, label: 'Мои темы' },
+  { path: '/vocabulary', icon: BookMarked, label: 'Словарь' },
+  { path: '/coach/settings', icon: Settings, label: 'Настройки' },
+];
+
+function isNavActive(pathname, path) {
+  if (path === '/') return pathname === '/';
+  if (path === '/coach/new') return pathname.startsWith('/coach/new') || pathname.startsWith('/coach/chat') || pathname.startsWith('/coach/call') || pathname.startsWith('/coach/report');
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
 
 function NavBar() {
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
   const { t } = useLanguage();
+  const conversationTrack = useConversationTrack();
 
-  const navItems = [
+  const navItems = conversationTrack ? COACH_NAV_ITEMS : [
     { path: '/', icon: Home, label: t('nav_today', 'Главная') },
     { path: '/maya-verbs', icon: Sparkles, label: '🎈 Урок Майи' },
     { path: '/stories', icon: BookOpen, label: t('nav_stories', 'Истории') },
@@ -50,9 +81,12 @@ function NavBar() {
           </Link>
 
           {/* Middle: Gamification XP & Streaks Badge */}
-          <div className="flex items-center flex-shrink-0">
-            <GamificationHeader />
-          </div>
+          {/* Kids' daily quests (stories, speed match…) don't apply to the conversation track. */}
+          {!conversationTrack && (
+            <div className="flex items-center flex-shrink-0">
+              <GamificationHeader />
+            </div>
+          )}
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-1">
@@ -61,7 +95,7 @@ function NavBar() {
                 key={path}
                 to={path}
                 className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl transition-all duration-200 text-xs font-bold ${
-                  location.pathname === path
+                  (conversationTrack ? isNavActive(location.pathname, path) : location.pathname === path)
                     ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md scale-105'
                     : 'text-current hover:bg-pink-100 dark:hover:bg-gray-700'
                 }`}
@@ -73,7 +107,7 @@ function NavBar() {
 
             <div className="pl-2 border-l border-purple-100 dark:border-gray-700 flex items-center space-x-1.5">
               {/* Language Switcher */}
-              <LanguageSwitcher />
+              {!conversationTrack && <LanguageSwitcher />}
 
               <ProfileSelector />
 
@@ -89,7 +123,7 @@ function NavBar() {
 
           {/* Mobile Header Controls */}
           <div className="flex lg:hidden items-center space-x-1 sm:space-x-1.5 flex-shrink-0">
-            <LanguageSwitcher />
+            {!conversationTrack && <LanguageSwitcher />}
             <ProfileSelector />
             <button
               onClick={toggleTheme}
@@ -108,7 +142,8 @@ function NavBar() {
 function BottomNavBar() {
   const location = useLocation();
   const { t } = useLanguage();
-  const navItems = [
+  const conversationTrack = useConversationTrack();
+  const navItems = conversationTrack ? COACH_NAV_ITEMS.filter((item) => item.path !== '/coach/settings') : [
     { path: '/', icon: Home, label: t('nav_today', 'Главная') },
     { path: '/maya-verbs', icon: Sparkles, label: 'Урок Майи' },
     { path: '/exercises', icon: Brain, label: t('nav_exercises', 'Тренажер') },
@@ -127,7 +162,9 @@ function BottomNavBar() {
       }}
     >
       {navItems.map(({ path, icon: Icon, label }) => {
-        const isActive = location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
+        const isActive = conversationTrack
+          ? isNavActive(location.pathname, path)
+          : location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
         return (
           <Link
             key={path}
@@ -151,7 +188,8 @@ function BottomNavBar() {
 
 function AppContent() {
   const { isDark } = useTheme();
-  const { profileId, profileViewKey } = useProfile();
+  const { profileId, profileViewKey, loading: profilesLoading } = useProfile();
+  const conversationTrack = useConversationTrack();
   const [isOffline, setIsOffline] = React.useState(() => typeof navigator !== "undefined" && !navigator.onLine);
 
   React.useEffect(() => {
@@ -187,7 +225,17 @@ function AppContent() {
         }}
       >
         <Routes>
-          <Route path="/" element={<TodayDashboard />} />
+          <Route path="/" element={profilesLoading ? null : conversationTrack ? <CoachHome /> : <TodayDashboard />} />
+          <Route path="/coach" element={<CoachHome />} />
+          <Route path="/coach/new" element={<CoachStart />} />
+          <Route path="/coach/chat/:sessionId" element={<CoachChat />} />
+          <Route path="/coach/call/:sessionId" element={<CoachCall />} />
+          <Route path="/coach/report/:sessionId" element={<CoachReport />} />
+          <Route path="/coach/workout" element={<WorkoutLauncher />} />
+          <Route path="/coach/workout/:workoutId" element={<CoachWorkout />} />
+          <Route path="/coach/spots" element={<CoachSpotsList />} />
+          <Route path="/coach/spots/:spotId" element={<CoachSpotDetail />} />
+          <Route path="/coach/settings" element={<CoachSettings />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/stories" element={<Stories />} />
           <Route path="/curriculum" element={<CurriculumMap />} />

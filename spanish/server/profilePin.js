@@ -295,6 +295,7 @@ export function sanitizeProfile(profile) {
     created_at: profile.created_at,
     is_locked: isProfileLocked(profile),
     pin_updated_at: profile.pin_updated_at ?? null,
+    learning_track: profile.learning_track ?? null,
   };
 }
 

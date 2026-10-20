@@ -28,6 +28,7 @@ dist/
 .cache/
 english/.cache/
 english/server/.cache/
+spanish/server/cache/
 .vix/
 english/.vix/
 .pytest_cache/

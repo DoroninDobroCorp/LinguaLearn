@@ -105,6 +105,9 @@ import {
   verifyProfileUnlockToken,
 } from './profilePin.js';
 import { buildProfileNameKey } from './unicodeKeys.js';
+import { ensureCoachSchema } from './coach/coachStore.js';
+import { createCoachRoutes } from './coach/coachRoutes.js';
+import { attachCoachLive } from './coach/coachLive.js';
 import { ensureVocabularyExactDuplicateIndex } from './vocabularyUniquenessMigration.js';
 import {
   ensureStudentLogsSchema,
@@ -269,6 +272,9 @@ ensureCaseInsensitiveProfileNameIndex(db);
 
 // Ensure student vocabulary attempt logs schema
 ensureStudentLogsSchema(db);
+
+// Conversation coach (B1+ voice/text partner with weak-spot tracking)
+ensureCoachSchema(db);
 
 // Add profile_id to chat_history
 try {
@@ -666,8 +672,13 @@ const vocabularyImportJsonParser = express.json({
 const vocabularyStudySessionJsonParser = express.json({ limit: '2mb' });
 const a1SkillEvaluationJsonParser = express.json({ limit: '6mb' });
 const vocabularyMediaJsonParser = express.json({ limit: '25mb' });
+// Coach voice messages arrive as base64 audio (up to ~2.5 minutes).
+const coachJsonParser = express.json({ limit: '12mb' });
 
 app.use((req, res, next) => {
+  if (req.path.startsWith('/api/coach/')) {
+    return coachJsonParser(req, res, next);
+  }
   if (req.path === '/api/vocabulary/import') {
     return vocabularyImportJsonParser(req, res, next);
   }
@@ -696,6 +707,9 @@ app.use((error, req, res, next) => {
   }
   if (req.path.includes('/api/a1/skills/') && error?.type === 'entity.too.large') {
     return res.status(413).json({ error: 'Аудиозапись слишком большая.', code: 'A1_SKILL_SUBMISSION_TOO_LARGE' });
+  }
+  if (req.path.startsWith('/api/coach/') && error?.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Запись слишком длинная — разбейте на несколько сообщений.', code: 'COACH_PAYLOAD_TOO_LARGE' });
   }
 
   return next(error);
@@ -1725,6 +1739,11 @@ Respond ONLY with a valid JSON object matching this exact schema:
 // EXERCISE ROUTES (Game modes, batch generator, translation trainer)
 // ==========================================
 app.use('/api/exercises', createExerciseRoutes({ db, getProfileId }));
+
+// ==========================================
+// CONVERSATION COACH (chat + voice messages, live call, weak spots, workouts)
+// ==========================================
+app.use('/api/coach', createCoachRoutes({ db }));
 
 
 // API: Ручная установка прогресса темы (0%, 100% и Заморозка)
@@ -3593,10 +3612,28 @@ app.get('/api/recommendations/today', (req, res) => {
 app.use(express.static(join(__dirname, '../public')));
 app.use(express.static(join(__dirname, '../dist')));
 
+function authorizeCoachLiveConnection(params) {
+  const profileId = parseInt(params.get('profileId'), 10);
+  const profile = Number.isFinite(profileId) && profileId > 0
+    ? db.prepare('SELECT id, pin_hash, pin_salt, pin_updated_at FROM profiles WHERE id = ?').get(profileId)
+    : null;
+  if (!profile) {
+    throw Object.assign(new Error('Profile not found'), { status: 404 });
+  }
+  if (isProfileLocked(profile) && !verifyProfileUnlockToken(profile, params.get('pinToken'), PROFILE_PIN_TOKEN_SECRET)) {
+    throw Object.assign(new Error('Profile is locked'), { status: 423 });
+  }
+  return { profileId: profile.id };
+}
+
 function startServer(port = PORT) {
-  return app.listen(port, () => {
+  const server = app.listen(port, () => {
     console.log(`🇪🇸 Spanish Learning Server running on http://localhost:${port}`);
   });
+  if (geminiEnabled) {
+    attachCoachLive({ server, db, path: '/api/coach/live', authorize: authorizeCoachLiveConnection });
+  }
+  return server;
 }
 
 const isMainModule = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
