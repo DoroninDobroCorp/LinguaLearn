@@ -1,10 +1,11 @@
 import Database from 'better-sqlite3';
 import { buildVocabularyTextKey, buildProfileNameKey } from '../unicodeKeys.js';
 
-const DB_PATH = '/srv/LinguaLearn/spanish/server/spanish_learning.db';
+const DB_PATH = process.env.DB_PATH || '/srv/LinguaLearn/spanish/server/spanish_learning.db';
 const db = new Database(DB_PATH);
 
 const GROUPS_DATA = [
+  // ---------------- PART 1: Initial 10 groups (10 words each = 100 words) ----------------
   {
     name: '🌟 1. Первые слова (Старт)',
     isActiveNow: true,
@@ -164,6 +165,228 @@ const GROUPS_DATA = [
       { word: 'el calor', translation: 'жара / тепло', example: 'En verano hace mucho calor', pos: 'noun', gender: 'm' },
       { word: 'el frío', translation: 'холод', example: 'En invierno hace frío y uso campera', pos: 'noun', gender: 'm' }
     ]
+  },
+
+  // ---------------- PART 2: 20 New groups suitable for 12 y.o. Maya (5 words each = 100 words) ----------------
+  {
+    name: '📱 11. Телефон и гаджеты',
+    isActiveNow: false,
+    words: [
+      { word: 'el celular', translation: 'мобильный телефон / сотовый', example: 'Miro un video divertido en el celular', example_translation: 'Я смотрю весёлое видео на телефоне', pos: 'noun', gender: 'm' },
+      { word: 'la foto', translation: 'фотография / фото', example: 'Sacamos una foto linda con amigas', example_translation: 'Мы сделали красивое фото с подругами', pos: 'noun', gender: 'f' },
+      { word: 'el mensaje', translation: 'сообщение', example: 'Te mandé un mensaje por chat', example_translation: 'Я отправила тебе сообщение в чате', pos: 'noun', gender: 'm' },
+      { word: 'la pantalla', translation: 'экран', example: 'La pantalla de la tablet es grande', example_translation: 'Экран планшета большой', pos: 'noun', gender: 'f' },
+      { word: 'mandar', translation: 'отправлять / посылать', example: '¿Me mandás un audio, por favor?', example_translation: 'Отправишь мне голосовое, пожалуйста?', pos: 'verb', gender: null }
+    ]
+  },
+  {
+    name: '🎵 12. Музыка и танцы',
+    isActiveNow: false,
+    words: [
+      { word: 'la música', translation: 'музыка', example: 'Me encanta escuchar música pop', example_translation: 'Я обожаю слушать поп-музыку', pos: 'noun', gender: 'f' },
+      { word: 'la canción', translation: 'песня', example: 'Esta canción es re pegadiza', example_translation: 'Эта песня очень прилипчивая', pos: 'noun', gender: 'f' },
+      { word: 'cantar', translation: 'петь', example: 'Nos gusta cantar en el coro escolar', example_translation: 'Нам нравится петь в школьном хоре', pos: 'verb', gender: null },
+      { word: 'bailar', translation: 'танцевать', example: 'Vamos a bailar en la fiesta', example_translation: 'Давай танцевать на празднике', pos: 'verb', gender: null },
+      { word: 'los auriculares', translation: 'наушники', example: 'Me pongo los auriculares para viajar', example_translation: 'Я надеваю наушники для поездки', pos: 'noun', gender: 'm' }
+    ]
+  },
+  {
+    name: '👗 13. Одежда и стиль',
+    isActiveNow: false,
+    words: [
+      { word: 'la remera', translation: 'футболка', example: 'Me pongo una remera violeta cómoda', example_translation: 'Я надеваю удобную фиолетовую футболку', pos: 'noun', gender: 'f' },
+      { word: 'el pantalón', translation: 'брюки / штаны', example: 'Este pantalón me queda re bien', example_translation: 'Эти штаны сидят на мне отлично', pos: 'noun', gender: 'm' },
+      { word: 'la campera', translation: 'куртка', example: 'Llevá la campera porque refrescó', example_translation: 'Возьми куртку, потому что похолодало', pos: 'noun', gender: 'f' },
+      { word: 'el vestido', translation: 'платье', example: 'Un vestido lindo para la fiesta', example_translation: 'Красивое платье для праздника', pos: 'noun', gender: 'm' },
+      { word: 'la zapatilla', translation: 'кроссовок / кед', example: 'Mis zapatillas nuevas son blancas', example_translation: 'Мои новые кроссовки белые', pos: 'noun', gender: 'f' }
+    ]
+  },
+  {
+    name: '✍️ 14. Письмо и секреты',
+    isActiveNow: false,
+    words: [
+      { word: 'escribir', translation: 'писать', example: 'Me gusta escribir cartas y cuentos', example_translation: 'Мне нравится писать письма и рассказы', pos: 'verb', gender: null },
+      { word: 'la carta', translation: 'письмо', example: 'Escribí una carta para mi amiga', example_translation: 'Я написала письмо для подруги', pos: 'noun', gender: 'f' },
+      { word: 'la palabra', translation: 'слово', example: 'Aprendí una palabra nueva en español', example_translation: 'Я выучила новое слово на испанском', pos: 'noun', gender: 'f' },
+      { word: 'la historia', translation: 'история / рассказ', example: 'Contame una historia divertida', example_translation: 'Расскажи мне забавную историю', pos: 'noun', gender: 'f' },
+      { word: 'el secreto', translation: 'секрет / тайна', example: 'Te cuento un secreto al oído', example_translation: 'Я скажу тебе секрет на ушко', pos: 'noun', gender: 'm' }
+    ]
+  },
+  {
+    name: '🚪 15. Дома и в комнате',
+    isActiveNow: false,
+    words: [
+      { word: 'abrir', translation: 'открывать', example: 'Abrí la ventana para que entre aire', example_translation: 'Открой окно, чтобы вошёл воздух', pos: 'verb', gender: null },
+      { word: 'cerrar', translation: 'закрывать', example: 'Cerrá la puerta al salir, por favor', example_translation: 'Закрой дверь при выходе, пожалуйста', pos: 'verb', gender: null },
+      { word: 'la habitación', translation: 'комната', example: 'Mi habitación está ordenada y limpia', example_translation: 'Моя комната убранная и чистая', pos: 'noun', gender: 'f' },
+      { word: 'el espejo', translation: 'зеркало', example: 'Me miro al espejo antes de salir', example_translation: 'Я смотрюсь в зеркало перед выходом', pos: 'noun', gender: 'm' },
+      { word: 'la luz', translation: 'свет', example: 'Prendé la luz del escritorio', example_translation: 'Включи свет на письменном столе', pos: 'noun', gender: 'f' }
+    ]
+  },
+  {
+    name: '🏙️ 16. Город и жизнь',
+    isActiveNow: false,
+    words: [
+      { word: 'vivir', translation: 'жить', example: 'Vivo en un barrio tranquilo y lindo', example_translation: 'Я живу в тихом и красивом районе', pos: 'verb', gender: null, image_url: '/spanish/images/vocab/vivir.jpg' },
+      { word: 'la ciudad', translation: 'город', example: 'Buenos Aires es una gran ciudad', example_translation: 'Буэнос-Айрес — большой город', pos: 'noun', gender: 'f' },
+      { word: 'la calle', translation: 'улица', example: 'Cruzamos la calle con cuidado', example_translation: 'Мы переходим улицу осторожно', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/calle.jpg' },
+      { word: 'el barrio', translation: 'район / квартал', example: 'En mi barrio hay muchas plazas', example_translation: 'В моём районе много парков', pos: 'noun', gender: 'm' },
+      { word: 'la tienda', translation: 'магазин', example: 'Compré ropa linda en la tienda', example_translation: 'Я купила красивую одежду в магазине', pos: 'noun', gender: 'f' }
+    ]
+  },
+  {
+    name: '🚶‍♀️ 17. Прогулка и встречи',
+    isActiveNow: false,
+    words: [
+      { word: 'salir', translation: 'выходить / гулять', example: '¿Podemos salir a caminar un rato?', example_translation: 'Мы можем выйти погулять немного?', pos: 'verb', gender: null },
+      { word: 'caminar', translation: 'гулять / ходить пешком', example: 'Me gusta caminar por la tarde', example_translation: 'Мне нравится гулять во второй половине дня', pos: 'verb', gender: null },
+      { word: 'llegar', translation: 'приходить / приезжать', example: 'Llego a casa después de la escuela', example_translation: 'Я прихожу домой после школы', pos: 'verb', gender: null },
+      { word: 'la tarde', translation: 'день (после полудня) / вечер', example: 'A la tarde hacemos los deberes', example_translation: 'Днём мы делаем уроки', pos: 'noun', gender: 'f' },
+      { word: 'el parque', translation: 'парк', example: 'Paseamos a los perros en el parque', example_translation: 'Мы выгуливаем собак в парке', pos: 'noun', gender: 'm' }
+    ]
+  },
+  {
+    name: '🛌 18. Сон и отдых',
+    isActiveNow: false,
+    words: [
+      { word: 'dormir', translation: 'спать', example: 'Los fines de semana me gusta dormir más', example_translation: 'По выходным мне нравится спать подольше', pos: 'verb', gender: null },
+      { word: 'el sueño', translation: 'сон / мечта', example: 'Tengo mucho sueño, me voy a acostar', example_translation: 'Я очень хочу спать, пойду лягу', pos: 'noun', gender: 'm' },
+      { word: 'descansar', translation: 'отдыхать', example: 'Vamos a descansar un ratito en el sillón', example_translation: 'Давай отдохнём немного в кресле', pos: 'verb', gender: null },
+      { word: 'despertar', translation: 'просыпаться / будить', example: 'Me despierto temprano para ir a clase', example_translation: 'Я просыпаюсь рано, чтобы идти на уроки', pos: 'verb', gender: null },
+      { word: 'la almohada', translation: 'подушка', example: 'Mi almohada es muy suave', example_translation: 'Моя подушка очень мягкая', pos: 'noun', gender: 'f' }
+    ]
+  },
+  {
+    name: '🤝 19. Дружба и забота',
+    isActiveNow: false,
+    words: [
+      { word: 'compartir', translation: 'делиться', example: 'Es lindo compartir los caramelos con amigos', example_translation: 'Приятно делиться конфетами с друзьями', pos: 'verb', gender: null },
+      { word: 'el abrazo', translation: 'объятие', example: 'Te doy un abrazo fuerte y cálido', example_translation: 'Крепко обнимаю тебя', pos: 'noun', gender: 'm' },
+      { word: 'abrazar', translation: 'обнимать', example: 'Me gusta abrazar a mis abuelos', example_translation: 'Мне нравится обнимать бабушку и дедушку', pos: 'verb', gender: null },
+      { word: 'sonreír', translation: 'улыбаться', example: 'Sonreír te hace ver muy feliz', example_translation: 'Улыбка делает тебя очень счастливой', pos: 'verb', gender: null },
+      { word: 'el corazón', translation: 'сердце', example: 'Lo digo de todo corazón', example_translation: 'Я говорю это от всего сердца', pos: 'noun', gender: 'm' }
+    ]
+  },
+  {
+    name: '🐾 20. Животные и питомцы',
+    isActiveNow: false,
+    words: [
+      { word: 'el conejo', translation: 'кролик', example: 'El conejo blanco come zanahorias', example_translation: 'Белый кролик ест морковку', pos: 'noun', gender: 'm' },
+      { word: 'el pájaro', translation: 'птица / птичка', example: 'El pájaro canta en la rama', example_translation: 'Птица поёт на ветке', pos: 'noun', gender: 'm' },
+      { word: 'el caballo', translation: 'лошадь / конь', example: 'Un caballo marrón galopa en el campo', example_translation: 'Коричневая лошадь скачет в поле', pos: 'noun', gender: 'm' },
+      { word: 'el pez', translation: 'рыба / рыбка', example: 'El pez nada en la pecera redonda', example_translation: 'Рыбка плавает в круглом аквариуме', pos: 'noun', gender: 'm' },
+      { word: 'el delfín', translation: 'дельфин', example: 'Vimos un delfín saltando en el agua', example_translation: 'Мы видели дельфина, прыгающего в воде', pos: 'noun', gender: 'm' }
+    ]
+  },
+  {
+    name: '📚 21. Школьные уроки',
+    isActiveNow: false,
+    words: [
+      { word: 'la clase', translation: 'урок / класс', example: 'La clase de ciencias fue interesante', example_translation: 'Урок естествознания был интересным', pos: 'noun', gender: 'f' },
+      { word: 'la tarea', translation: 'домашнее задание / уроки', example: 'Terminé toda la tarea temprano', example_translation: 'Я сделала всё домашнее задание рано', pos: 'noun', gender: 'f' },
+      { word: 'aprender', translation: 'учить / учиться', example: 'Quiero aprender muchas cosas nuevas', example_translation: 'Я хочу научиться многому новому', pos: 'verb', gender: null },
+      { word: 'la pregunta', translation: 'вопрос', example: 'Tengo una pregunta para la seño', example_translation: 'У меня вопрос к учительнице', pos: 'noun', gender: 'f' },
+      { word: 'la respuesta', translation: 'ответ', example: 'Sé la respuesta correcta del ejercicio', example_translation: 'Я знаю правильный ответ к упражнению', pos: 'noun', gender: 'f' }
+    ]
+  },
+  {
+    name: '💻 22. Компьютер и интернет',
+    isActiveNow: false,
+    words: [
+      { word: 'la computadora', translation: 'компьютер', example: 'Uso la computadora para hacer trabajos', example_translation: 'Я использую компьютер для выполнения заданий', pos: 'noun', gender: 'f' },
+      { word: 'el video', translation: 'видео', example: 'Grabamos un video divertido con amigas', example_translation: 'Мы записали забавное видео с подругами', pos: 'noun', gender: 'm' },
+      { word: 'el juego', translation: 'игра', example: 'Este juego de aventuras es atrapante', example_translation: 'Эта приключенческая игра захватывающая', pos: 'noun', gender: 'm' },
+      { word: 'la red', translation: 'сеть / интернет', example: 'Buscamos información en la red', example_translation: 'Мы ищем информацию в сети', pos: 'noun', gender: 'f' },
+      { word: 'buscar', translation: 'искать', example: 'Voy a buscar mi cartuchera favorita', example_translation: 'Я пойду поищу свой любимый пенал', pos: 'verb', gender: null }
+    ]
+  },
+  {
+    name: '🍔 23. Обед и кафе',
+    isActiveNow: false,
+    words: [
+      { word: 'las papas fritas', translation: 'картошка фри', example: 'Pedimos una porción de papas fritas', example_translation: 'Мы заказали порцию картошки фри', pos: 'noun', gender: 'f' },
+      { word: 'la hamburguesa', translation: 'гамбургер / бургер', example: 'Una hamburguesa casera con queso', example_translation: 'Домашний бургер с сыром', pos: 'noun', gender: 'f' },
+      { word: 'la ensalada', translation: 'салат', example: 'Ensalada fresca de tomate y lechuga', example_translation: 'Свежий салат из помидоров и салата', pos: 'noun', gender: 'f' },
+      { word: 'la fruta', translation: 'фрукты / фрукт', example: 'Comer fruta todos los días es sano', example_translation: 'Есть фрукты каждый день полезно', pos: 'noun', gender: 'f' },
+      { word: 'la frutilla', translation: 'клубника', example: 'Helado de crema americana con frutillas', example_translation: 'Сливочное мороженое с клубникой', pos: 'noun', gender: 'f' }
+    ]
+  },
+  {
+    name: '🥤 24. Напитки и сладости',
+    isActiveNow: false,
+    words: [
+      { word: 'el té', translation: 'чай', example: 'Tomo un té con miel calentito', example_translation: 'Я пью тёплый чай с мёдом', pos: 'noun', gender: 'm' },
+      { word: 'el mate', translation: 'мате', example: 'Mamá ceba mate con menta', example_translation: 'Мама наливает мате с мятой', pos: 'noun', gender: 'm' },
+      { word: 'la torta', translation: 'торт / пирог', example: 'Una torta rica de cumpleaños', example_translation: 'Вкусный праздничный торт на день рождения', pos: 'noun', gender: 'f' },
+      { word: 'el caramelo', translation: 'конфета / леденец', example: 'Elegí un caramelo sabor a frutilla', example_translation: 'Я выбрала конфету со вкусом клубники', pos: 'noun', gender: 'm' },
+      { word: 'dulce', translation: 'сладкий', example: 'El dulce de leche es delicioso', example_translation: 'Дульсе де лече очень сладкий и вкусный', pos: 'adjective', gender: null }
+    ]
+  },
+  {
+    name: '🚲 25. Спорт и активный отдых',
+    isActiveNow: false,
+    words: [
+      { word: 'la bicicleta', translation: 'велосипед', example: 'Andar en bicicleta los fines de semana', example_translation: 'Кататься на велосипеде по выходным', pos: 'noun', gender: 'f' },
+      { word: 'nadar', translation: 'плавать', example: 'Me gusta nadar en la pileta cuando hace calor', example_translation: 'Мне нравится плавать в бассейне, когда жарко', pos: 'verb', gender: null },
+      { word: 'el patín', translation: 'ролик / конёк / скейтборд', example: 'Salgo con los patines por la costanera', example_translation: 'Я катаюсь на роликах по набережной', pos: 'noun', gender: 'm' },
+      { word: 'la pileta', translation: 'бассейн', example: 'Nos tiramos a la pileta en verano', example_translation: 'Мы прыгаем в бассейн летом', pos: 'noun', gender: 'f' },
+      { word: 'el equipo', translation: 'команда', example: 'Jugamos todas juntas en el mismo equipo', example_translation: 'Мы все вместе играем в одной команде', pos: 'noun', gender: 'm' }
+    ]
+  },
+  {
+    name: '⏰ 26. Время и дни',
+    isActiveNow: false,
+    words: [
+      { word: 'la hora', translation: 'час / время', example: '¿Qué hora es? Ya casi son las cuatro', example_translation: 'Который час? Уже почти четыре', pos: 'noun', gender: 'f' },
+      { word: 'la semana', translation: 'неделя', example: 'Esta semana tenemos muchos planes divertidos', example_translation: 'На этой неделе у нас много весёлых планов', pos: 'noun', gender: 'f' },
+      { word: 'hoy', translation: 'сегодня', example: 'Hoy es un día hermoso y soleado', example_translation: 'Сегодня прекрасный и солнечный день', pos: 'adverb', gender: null },
+      { word: 'mañana', translation: 'завтра / утро', example: 'Mañana nos vemos en la escuela', example_translation: 'Завтра увидимся в школе', pos: 'adverb', gender: null },
+      { word: 'el fin de semana', translation: 'выходные / уикенд', example: 'El fin de semana vamos de paseo', example_translation: 'На выходных мы поедем на прогулку', pos: 'noun', gender: 'm' }
+    ]
+  },
+  {
+    name: '🌸 27. Природа вокруг нас',
+    isActiveNow: false,
+    words: [
+      { word: 'la flor', translation: 'цветок', example: 'Una flor violeta perfumada en el jardín', example_translation: 'Ароматный фиолетовый цветок в саду', pos: 'noun', gender: 'f' },
+      { word: 'el árbol', translation: 'дерево', example: 'Un árbol grande que da linda sombra', example_translation: 'Большое дерево, дающее приятную тень', pos: 'noun', gender: 'm' },
+      { word: 'el mar', translation: 'море', example: 'Las olas del mar suenan tranquilas', example_translation: 'Морские волны звучат спокойно', pos: 'noun', gender: 'm' },
+      { word: 'la playa', translation: 'пляж', example: 'Hacemos castillos de arena en la playa', example_translation: 'Мы строим замки из песка на пляже', pos: 'noun', gender: 'f' },
+      { word: 'la luna', translation: 'луна', example: 'La luna brilla clara en la noche', example_translation: 'Луна ярко светит в ночи', pos: 'noun', gender: 'f' }
+    ]
+  },
+  {
+    name: '🎬 28. Кино и творчество',
+    isActiveNow: false,
+    words: [
+      { word: 'la película', translation: 'фильм / кино', example: 'Vimos una película animada hermosa', example_translation: 'Мы посмотрели чудесный мультфильм', pos: 'noun', gender: 'f' },
+      { word: 'la actriz', translation: 'актриса', example: 'Mi actriz favorita actúa muy bien', example_translation: 'Моя любимая актриса отлично играет', pos: 'noun', gender: 'f' },
+      { word: 'el cine', translation: 'кинотеатр / кино', example: 'Vamos al cine a comer pochoclos', example_translation: 'Пойдём в кинотеатр кушать попкорн', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/cine.jpg' },
+      { word: 'actuar', translation: 'выступать / играть роль', example: 'Me divierte actuar en las obras de teatro', example_translation: 'Мне весело выступать в театральных постановках', pos: 'verb', gender: null },
+      { word: 'la estrella', translation: 'звезда', example: 'Miro una estrella fugaz en el cielo', example_translation: 'Я смотрю на падающую звезду в небе', pos: 'noun', gender: 'f' }
+    ]
+  },
+  {
+    name: '💬 29. Разговор и вежливость',
+    isActiveNow: false,
+    words: [
+      { word: '¿cómo estás?', translation: 'как дела? / как поживаешь?', example: '¡Hola, Sofi! ¿Cómo estás hoy?', example_translation: 'Привет, Софи! Как ты сегодня?', pos: 'phrase', gender: null, image_url: '/spanish/images/vocab/cómo_estás.jpg' },
+      { word: 'bien', translation: 'хорошо', example: 'Todo está muy bien, gracias', example_translation: 'Всё очень хорошо, спасибо', pos: 'adverb', gender: null, image_url: '/spanish/images/vocab/bien.jpg' },
+      { word: 'de nada', translation: 'не за что / пожалуйста (в ответ)', example: '—Muchas gracias. —¡De nada!', example_translation: '—Большое спасибо. —Не за что!', pos: 'phrase', gender: null },
+      { word: 'perdón', translation: 'извини / прости', example: 'Perdón, no me di cuenta', example_translation: 'Извини, я не заметила', pos: 'interjection', gender: null, image_url: '/spanish/images/vocab/perdón.jpg' },
+      { word: 'hasta luego', translation: 'до встречи / пока', example: 'Hasta luego, nos vemos pronto', example_translation: 'До встречи, скоро увидимся', pos: 'phrase', gender: null }
+    ]
+  },
+  {
+    name: '🌟 30. Эмоции и характер',
+    isActiveNow: false,
+    words: [
+      { word: 'divertido', translation: 'весёлый / забавный', example: 'El paseo con amigas fue muy divertido', example_translation: 'Прогулка с подругами была очень весёлой', pos: 'adjective', gender: 'm' },
+      { word: 'tranquila', translation: 'спокойная', example: 'Estoy tranquila leyendo en mi cuarto', example_translation: 'Я спокойно читаю в своей комнате', pos: 'adjective', gender: 'f' },
+      { word: 'inteligente', translation: 'умная / сообразительная', example: 'Es una chica muy inteligente y curiosa', example_translation: 'Она очень умная и любознательная девочка', pos: 'adjective', gender: null },
+      { word: 'genial', translation: 'отличный / крутой / здорово', example: '¡Esa idea para el dibujo está genial!', example_translation: 'Эта идея для рисунка просто супер!', pos: 'adjective', gender: null },
+      { word: 'la sorpresa', translation: 'сюрприз', example: 'Le preparamos una linda sorpresa de cumple', example_translation: 'Мы приготовили ей приятный сюрприз на день рождения', pos: 'noun', gender: 'f' }
+    ]
   }
 ];
 
@@ -172,7 +395,7 @@ const FUTURE_REVIEW_DATE = '2099-01-01T00:00:00.000Z';
 
 function seedMaya() {
   const now = new Date().toISOString();
-  console.log(`Starting Maya profile & 100-word (10 groups x 10 words) curriculum seed...`);
+  console.log(`Starting Maya profile & expanded 200-word (30 groups) curriculum seed...`);
 
   // Ensure image_url column exists in vocabulary
   try {
@@ -223,7 +446,7 @@ function seedMaya() {
   let totalGroupMembers = 0;
 
   const transaction = db.transaction(() => {
-    // Clean up obsolete groups not in the 10-group definition
+    // Clean up obsolete groups not in the 30-group definition
     const validNames = new Set(GROUPS_DATA.map((g) => g.name));
     const currentGroups = db.prepare('SELECT id, name FROM vocabulary_groups WHERE profile_id = ?').all(mayaId);
     for (const g of currentGroups) {
@@ -258,26 +481,38 @@ function seedMaya() {
         const cardNextReview = groupDef.isActiveNow ? now : FUTURE_REVIEW_DATE;
         let vocabId;
 
+        const raw = w.word.toLowerCase().replace(/^(el|la|los|las|un|una)\s+/, '').replace(/[¿¡?!]/g, '').trim();
+        const slugAscii = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/_+$/, '');
+        const autoImageUrl = w.image_url || `/spanish/images/vocab/${slugAscii}.jpg`;
+
         if (!vocabEntry) {
           const insertInfo = db.prepare(`
             INSERT INTO vocabulary (
               word, translation, example, level, next_review, review_count,
               created_at, profile_id, word_key, translation_key,
-              is_favorite, cefr_level, part_of_speech, gender
+              is_favorite, cefr_level, part_of_speech, gender,
+              example_translation, image_url
             ) VALUES (
               ?, ?, ?, 0, ?, 0,
               ?, ?, ?, ?,
-              0, 'A1', ?, ?
+              0, 'A1', ?, ?,
+              ?, ?
             )
           `).run(
             w.word, w.translation, w.example, cardNextReview,
             now, mayaId, wordKey, translationKey,
-            w.pos, w.gender
+            w.pos, w.gender,
+            w.example_translation || null,
+            autoImageUrl
           );
           vocabId = Number(insertInfo.lastInsertRowid);
           totalInsertedWords++;
         } else {
           vocabId = Number(vocabEntry.id);
+          db.prepare('UPDATE vocabulary SET image_url = COALESCE(image_url, ?) WHERE id = ?').run(autoImageUrl, vocabId);
+          if (w.example_translation) {
+            db.prepare('UPDATE vocabulary SET example_translation = COALESCE(example_translation, ?) WHERE id = ?').run(w.example_translation, vocabId);
+          }
         }
 
         // Ensure review cards (source_to_target and target_to_source) - only initialize new cards without overwriting existing cards
