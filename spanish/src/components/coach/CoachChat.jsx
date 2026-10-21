@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Mic, Send, X, Check, Lightbulb, Languages, Flag, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
-import { blobToBase64, coachApi } from '../../utils/coachApi';
+import { blobToBase64, coachApi, stripDisfluencies } from '../../utils/coachApi';
 import { useVoiceRecorder, isVoiceRecordingSupported } from '../../hooks/useVoiceRecorder';
 import { microphoneBlockReason } from '../../utils/coachApi';
 import { playCoachSpeech, stopCoachSpeech, unlockCoachAudio } from '../../hooks/useCoachSpeech';
@@ -14,7 +14,7 @@ const ANALYSIS_STEPS = [
   'Собираю тренировку из твоих фраз…',
 ];
 
-function FeedbackChip({ message, onLoadFeedback }) {
+function FeedbackChip({ message, onLoadFeedback, onRetryFeedback }) {
   const [open, setOpen] = useState(false);
   const feedback = message.feedback;
 
@@ -24,11 +24,18 @@ function FeedbackChip({ message, onLoadFeedback }) {
 
   if (message.temp) return null;
   if (!feedback) {
+    if (message.feedbackFailed) {
+      return (
+        <div className="mt-1 mr-1 text-[12px] c-muted inline-flex items-center gap-2">
+          Не удалось проверить
+          <button type="button" onClick={() => onRetryFeedback(message.id)} className="font-bold c-accent underline underline-offset-2">Повторить</button>
+        </div>
+      );
+    }
     if (!message.feedbackPending) return null;
     return <div className="mt-1 mr-1 text-[11px] c-faint inline-flex items-center gap-1"><Spinner className="w-3 h-3" /> проверяю</div>;
   }
 
-  const count = feedback.issues.length;
   const retractedNote = feedback.retracted_note_ru && (
     <span className="text-[12px] c-muted max-w-[85%] text-right">Уточнение после разбора: {feedback.retracted_note_ru}</span>
   );
@@ -45,37 +52,43 @@ function FeedbackChip({ message, onLoadFeedback }) {
     );
   }
 
-  const tone = feedback.verdict === 'minor' ? 'c-bg-warn' : 'c-bg-bad';
+  // Corrections are shown right away (not hidden behind a pill): after a voice
+  // message attention goes to Lucía's spoken reply and a collapsed chip is missed.
+  const tone = feedback.verdict === 'minor' ? 'var(--c-warn)' : 'var(--c-bad)';
+  const original = message.input_mode === 'text' ? message.content : stripDisfluencies(message.content);
   return (
-    <div className="mt-1 flex flex-col items-end w-full">
-      <button type="button" onClick={() => setOpen((value) => !value)} className={`text-[11px] font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1 ${tone}`}>
-        {count === 1 ? '1 исправление' : `${count} ${count < 5 ? 'исправления' : 'исправлений'}`}
-        {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-      </button>
-      {open && (
-        <div className="c-card rounded-2xl p-3.5 mt-1.5 w-full max-w-[92%] text-left animate-fade-in">
-          <div className="text-[15px] c-text"><CorrectionDiff original={message.content} corrected={feedback.corrected} /></div>
-          <div className="mt-1.5"><SpeakButton text={feedback.corrected} speechKey={`fix-${message.id}`} label="Как это звучит" /></div>
-          <ul className="mt-3 space-y-2.5">
-            {feedback.issues.map((issue, index) => (
-              <li key={index} className="text-[13px] leading-snug">
-                <span className="line-through c-bad">{issue.original}</span>
-                <span className="c-faint mx-1">→</span>
-                <span className="font-semibold c-good">{issue.fix}</span>
-                <span className="block c-muted mt-0.5">{issue.explanation_ru}</span>
-              </li>
-            ))}
-          </ul>
-          {feedback.natural && (
-            <div className="mt-3 pt-3 border-t c-border text-[13px]">
-              <span className="c-muted">Естественнее по-аргентински: </span>
-              <span className="c-text italic">{feedback.natural}</span>
-            </div>
-          )}
-          {feedback.praise_ru && <div className="mt-2 text-[12px] c-good">{feedback.praise_ru}</div>}
-          {feedback.retracted_note_ru && <div className="mt-2 text-[12px] c-muted">Уточнение после разбора: {feedback.retracted_note_ru}</div>}
-        </div>
-      )}
+    <div className="mt-1.5 w-full flex justify-end">
+      <div className="c-card rounded-2xl px-3.5 py-2.5 max-w-[92%] text-left animate-fade-in" style={{ borderLeft: `3px solid ${tone}` }}>
+        <ul className="space-y-1.5">
+          {feedback.issues.map((issue, index) => (
+            <li key={index} className="text-[14px] leading-snug">
+              <span className="line-through c-bad">{issue.original}</span>
+              <span className="c-faint mx-1">→</span>
+              <span className="font-semibold c-good">{issue.fix}</span>
+              {open && <span className="block text-[13px] c-muted mt-0.5">{issue.explanation_ru}</span>}
+            </li>
+          ))}
+        </ul>
+        {open && (
+          <div className="mt-3 pt-3 border-t c-border">
+            <div className="text-[12px] c-muted mb-1">Вся фраза правильно{message.input_mode !== 'text' ? ' (без «eh» и повторов)' : ''}:</div>
+            <div className="text-[15px] c-text"><CorrectionDiff original={original} corrected={feedback.corrected} /></div>
+            <div className="mt-1.5"><SpeakButton text={feedback.corrected} speechKey={`fix-${message.id}`} label="Как это звучит" /></div>
+            {feedback.natural && (
+              <div className="mt-3 text-[13px]">
+                <span className="c-muted">Естественнее по-аргентински: </span>
+                <span className="c-text italic">{feedback.natural}</span>
+              </div>
+            )}
+            {feedback.praise_ru && <div className="mt-2 text-[12px] c-good">{feedback.praise_ru}</div>}
+            {feedback.retracted_note_ru && <div className="mt-2 text-[12px] c-muted">Уточнение после разбора: {feedback.retracted_note_ru}</div>}
+          </div>
+        )}
+        <button type="button" onClick={() => setOpen((value) => !value)} className="mt-1.5 text-[12px] font-semibold c-muted inline-flex items-center gap-1 hover:opacity-80">
+          {open ? 'Свернуть' : 'Почему так и вся фраза'}
+          {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        </button>
+      </div>
     </div>
   );
 }
@@ -208,19 +221,44 @@ export default function CoachChat() {
     return () => clearInterval(timer);
   }, [finishing]);
 
-  const loadFeedback = useCallback(async (messageId) => {
-    try {
-      const { feedback } = await coachApi.feedback(messageId);
-      setMessages((list) => list.map((message) => (message.id === messageId ? { ...message, feedback, feedbackPending: false } : message)));
-    } catch {
-      setMessages((list) => list.map((message) => (message.id === messageId ? { ...message, feedbackPending: false } : message)));
-    }
+  const updateMessage = useCallback((messageId, patch) => {
+    setMessages((list) => list.map((message) => (message.id === messageId ? { ...message, ...patch } : message)));
   }, []);
+
+  // The check runs in the background on the server; keep asking while it is
+  // still working and say so plainly if it failed instead of hiding it.
+  const loadFeedback = useCallback(async (messageId, attempt = 0) => {
+    try {
+      const data = await coachApi.feedback(messageId);
+      if (data.feedback) {
+        updateMessage(messageId, { feedback: data.feedback, feedbackPending: false, feedbackFailed: false });
+        return;
+      }
+      if (data.pending && attempt < 3) {
+        setTimeout(() => loadFeedback(messageId, attempt + 1), 1500);
+        return;
+      }
+    } catch {
+      if (attempt < 1) {
+        setTimeout(() => loadFeedback(messageId, attempt + 1), 2000);
+        return;
+      }
+    }
+    updateMessage(messageId, { feedbackPending: false, feedbackFailed: true });
+  }, [updateMessage]);
+
+  const retryFeedback = useCallback((messageId) => {
+    updateMessage(messageId, { feedbackPending: true, feedbackFailed: false });
+  }, [updateMessage]);
 
   const applyResult = (tempId, result) => {
     setMessages((list) => [
       ...list.filter((message) => message.id !== tempId),
-      { ...result.user_message, feedbackPending: result.feedback_pending && learner?.show_inline_feedback },
+      {
+        ...result.user_message,
+        feedbackPending: result.feedback_pending && learner?.show_inline_feedback,
+        feedbackFailed: Boolean(result.feedback_failed),
+      },
       result.assistant_message,
     ]);
     setNeedsRetry(false);
@@ -381,7 +419,7 @@ export default function CoachChat() {
                 {message.input_mode === 'voice' && !message.temp && <Mic className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5 opacity-70" />}
                 {message.content}
               </div>
-              <FeedbackChip message={message} onLoadFeedback={loadFeedback} />
+              <FeedbackChip message={message} onLoadFeedback={loadFeedback} onRetryFeedback={retryFeedback} />
             </div>
           )))}
           {sending && <div className="pl-10"><TypingDots label={`${partner.name} пишет…`} /></div>}

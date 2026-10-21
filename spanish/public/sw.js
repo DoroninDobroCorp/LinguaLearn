@@ -1,4 +1,4 @@
-const CACHE_VERSION = "spanish-pwa-v13-offline-bulletproof-1792529469825";
+const CACHE_VERSION = "spanish-pwa-v13-offline-bulletproof-1792554221488";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 
@@ -16,8 +16,8 @@ const PRECACHE_ASSETS = [
   "/spanish/pwa-192.png",
   "/spanish/pwa-512.png",
   "/spanish/a1_first_18_offline_pack_100.json",
-  "/spanish/assets/index-CSbwl_Mo.js",
-  "/spanish/assets/index-DcnjPutQ.css"
+  "/spanish/assets/index-Cg58UjZS.css",
+  "/spanish/assets/index-DBtWgNOo.js"
 ];
 
 // Helper to sanitize responses before storing into cache so WebKit on iOS never discards them
@@ -161,6 +161,13 @@ self.addEventListener("fetch", (event) => {
         { headers: { "Content-Type": "text/html; charset=utf-8" } }
       );
     })());
+    return;
+  }
+
+  // Conversation coach: live AI requests that legitimately take 2–40 s (inline
+  // checks, workout generation, lessons). The 1.5 s offline fallback below would
+  // answer them with a fake "Offline network mode" 503, so they bypass the worker.
+  if (url.pathname.startsWith("/spanish/api/coach/") || url.pathname.startsWith("/api/coach/")) {
     return;
   }
 

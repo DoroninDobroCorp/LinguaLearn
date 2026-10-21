@@ -1,9 +1,14 @@
 // Gemini REST client for the conversation coach.
 //
-// The API keys are on the free tier, so every call goes through a key pool with
-// per-(key, model) cooldowns and an ordered model fallback chain. Text models
-// with heavy default thinking are far too slow for chat (30–90 s), so each task
-// sets an explicit thinking effort.
+// Two upstreams speak the same Gemini generateContent API:
+// - "vp:<model>" goes through VibeProxy (CLIProxyAPI on the dev host, reached via
+//   the local relay at 127.0.0.1:8318 which injects its token). It rotates the
+//   owner's Google/Antigravity accounts, so text and speech recognition use
+//   their quota first. It has no TTS and no Live API.
+// - plain model names use the Gemini API keys from .env (free tier: ~20 requests
+//   per model per key per day), with a key pool and per-(key, model) cooldowns.
+// Text models with heavy default thinking are far too slow for chat (30–90 s),
+// so each task sets an explicit thinking effort.
 
 import crypto from 'crypto';
 import fs from 'fs';
@@ -16,27 +21,40 @@ import { promisify } from 'util';
 const execFileAsync = promisify(execFile);
 
 const API_BASE = String(process.env.COACH_GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
+const PROXY_SETTING = String(process.env.COACH_PROXY_BASE_URL ?? '').trim();
+const PROXY_BASE = PROXY_SETTING === 'off' ? '' : (PROXY_SETTING || 'http://127.0.0.1:8318').replace(/\/+$/, '');
+const PROXY_PREFIX = 'vp:';
+const PROXY_SLOT = 'vibeproxy';
+
+const vp = (model) => (PROXY_BASE ? [`${PROXY_PREFIX}${model}`] : []);
+const isProxyModel = (model) => model.startsWith(PROXY_PREFIX);
+const upstreamModel = (model) => (isProxyModel(model) ? model.slice(PROXY_PREFIX.length) : model);
+
+// Free-tier keys allow ~20 requests per model per key per day, so every task
+// ends with "lite"/preview models that have their own separate daily quota.
+const FAST_TAIL = ['gemini-3-flash-preview', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
 
 export const COACH_MODELS = {
-  chat: ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3.1-flash-lite'],
-  feedback: ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3.1-flash-lite'],
-  // 3.5-flash often answers 503 under load; 2.5-flash gives a comparable
-  // diagnosis in ~17 s, while 3.7-flash needs 60–90 s even at low thinking.
-  analysis: ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3.7-flash'],
-  workout: ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3.7-flash'],
-  grade: ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3.1-flash-lite'],
-  lesson: ['gemini-3.5-flash', 'gemini-2.5-flash'],
-  utility: ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3.1-flash-lite'],
-  // 2.5-flash keeps learner mistakes verbatim; gemini-3.5-transcribe silently
-  // "fixes" them (de el → del), which would hide exactly what we analyse.
-  stt: ['gemini-2.5-flash', 'gemini-3.5-flash'],
+  chat: [...vp('gemini-3-flash'), ...vp('gemini-3.5-flash-lite'), 'gemini-3.5-flash', 'gemini-2.5-flash', ...FAST_TAIL],
+  feedback: [...vp('gemini-3-flash'), 'gemini-3.5-flash', 'gemini-2.5-flash', ...vp('gemini-3.5-flash-lite'), ...FAST_TAIL],
+  // Diagnosis quality matters more than speed: 3.8-flash-high (~10–30 s) first.
+  // On keys 3.7-flash needs 60–90 s even at low thinking, so it sits late.
+  analysis: [...vp('gemini-3.8-flash-high'), ...vp('gemini-3-flash'), 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-3.7-flash', 'gemini-3.5-flash-lite'],
+  workout: [...vp('gemini-3.8-flash-high'), ...vp('gemini-3-flash'), 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-3.7-flash', 'gemini-3.5-flash-lite'],
+  grade: [...vp('gemini-3-flash'), ...vp('gemini-3.5-flash-lite'), 'gemini-3.5-flash', 'gemini-2.5-flash', ...FAST_TAIL],
+  lesson: [...vp('gemini-3.8-flash-high'), ...vp('gemini-3-flash'), 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-3.5-flash-lite'],
+  utility: [...vp('gemini-3.5-flash-lite'), ...vp('gemini-3-flash'), 'gemini-3.5-flash', 'gemini-2.5-flash', ...FAST_TAIL],
+  // Transcripts must keep her mistakes verbatim. Checked on "Ayer yo iba…",
+  // "Si yo tendría…": proxy 3-flash / 3.1-flash-lite and key 2.5-flash keep them;
+  // gemini-3.5-transcribe silently "fixes" them, so it is never used.
+  stt: [...vp('gemini-3-flash'), ...vp('gemini-3.1-flash-lite'), 'gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'],
   // 3.1/2.5 TTS treat a leading style sentence as direction; the 3.8 TTS models
   // read it aloud, so they only get the bare text.
   tts: ['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts', 'gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts'],
 };
 
 const TTS_STYLE_MODELS = new Set(['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts', 'gemini-2.5-pro-preview-tts']);
-const NO_MINIMAL_THINKING = new Set(['gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.8-flash']);
+const NO_MINIMAL_THINKING = new Set(['gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.8-flash', 'gemini-3.8-flash-high']);
 
 export class CoachAiError extends Error {
   constructor(message, { status = 502, code = 'AI_UNAVAILABLE', details } = {}) {
@@ -57,7 +75,7 @@ const cooldowns = new Map();
 let rotation = 0;
 
 export function isCoachAiConfigured() {
-  return keys.length > 0;
+  return keys.length > 0 || Boolean(PROXY_BASE);
 }
 
 export function getCoachApiKeys() {
@@ -102,7 +120,8 @@ function parseRetryMs(errorBody) {
   return 60_000;
 }
 
-export function thinkingConfigFor(model, effort = 'none') {
+export function thinkingConfigFor(modelName, effort = 'none') {
+  const model = upstreamModel(modelName);
   if (model.startsWith('gemini-2.5')) {
     const budget = { none: 0, low: 1024, medium: 4096 }[effort] ?? 0;
     return { thinkingBudget: budget };
@@ -117,7 +136,9 @@ export function thinkingConfigFor(model, effort = 'none') {
 }
 
 async function callModel({ model, key, body, timeoutMs }) {
-  const url = `${API_BASE}/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+  const url = isProxyModel(model)
+    ? `${PROXY_BASE}/v1beta/models/${upstreamModel(model)}:generateContent`
+    : `${API_BASE}/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -140,12 +161,13 @@ async function callModel({ model, key, body, timeoutMs }) {
  * differences (thinking config, TTS style prompt) stay in the caller.
  */
 export async function runWithFallback({ task, models, buildBody, timeoutMs = 30_000, extract }) {
-  if (!keys.length) {
+  if (!isCoachAiConfigured()) {
     throw new CoachAiError('Gemini API key is not configured on the server.', { status: 503, code: 'AI_NOT_CONFIGURED' });
   }
   const attempts = [];
   for (const model of models) {
-    const candidates = orderedKeys().filter((key) => !isCooling(key, model));
+    // The proxy rotates its own accounts, so it is a single "key" slot here.
+    const candidates = (isProxyModel(model) ? [PROXY_SLOT] : orderedKeys()).filter((key) => !isCooling(key, model));
     if (!candidates.length) {
       attempts.push(`${model}: all keys cooling down`);
       continue;
@@ -155,7 +177,7 @@ export async function runWithFallback({ task, models, buildBody, timeoutMs = 30_
       const startedAt = Date.now();
       try {
         let result = await callModel({ model, key, body, timeoutMs });
-        if (result.status === 400 && /thinking level/i.test(result.data?.error?.message || '')) {
+        if (result.status === 400 && /thinking level|level "minimal" not supported/i.test(result.data?.error?.message || '')) {
           body = { ...body, generationConfig: { ...body.generationConfig, thinkingConfig: { thinkingLevel: 'low' } } };
           result = await callModel({ model, key, body, timeoutMs });
         }
@@ -172,26 +194,32 @@ export async function runWithFallback({ task, models, buildBody, timeoutMs = 30_
         const message = String(result.data?.error?.message || result.raw || '').slice(0, 200);
         attempts.push(`${model}: HTTP ${result.status} ${message}`);
         if (result.status === 429) {
-          coolDown(key, model, parseRetryMs(result.data));
+          // The proxy already tried all its accounts; don't trust long upstream hints.
+          coolDown(key, model, isProxyModel(model) ? Math.min(parseRetryMs(result.data), 10 * 60_000) : parseRetryMs(result.data));
           continue;
         }
-        if (result.status === 503 || result.status === 500) {
-          coolDown(key, model, 20_000);
+        if (result.status >= 500) {
+          coolDown(key, model, isProxyModel(model) ? 30_000 : 20_000);
           continue;
         }
         break; // 4xx other than quota: the request itself is bad for this model.
       } catch (error) {
         attempts.push(`${model}: ${error.name === 'TimeoutError' ? `timeout after ${timeoutMs} ms` : error.message}`);
+        // Proxy unreachable (tunnel down): skip it for a minute instead of every call.
+        if (isProxyModel(model) && error.name !== 'TimeoutError') coolDown(key, model, 60_000);
         break; // A timeout usually means the model is overloaded; move down the chain.
       }
     }
   }
   console.warn(`[coach] ${task} failed on every model:`, attempts.join(' | '));
-  throw new CoachAiError('Нейросеть сейчас перегружена. Попробуйте ещё раз через минуту.', {
-    status: 503,
-    code: 'AI_UNAVAILABLE',
-    details: { attempts },
-  });
+  // Running out of the daily free quota is not "overload": say what it is.
+  const quotaOnly = attempts.length > 0 && attempts.every((line) => /HTTP 429|cooling down/.test(line));
+  throw new CoachAiError(
+    quotaOnly
+      ? 'Закончился дневной лимит бесплатных запросов к Google Gemini. Он обновится ночью (около 4:00 по Буэнос-Айресу).'
+      : 'Нейросеть Google Gemini сейчас перегружена. Попробуйте ещё раз через минуту.',
+    { status: 503, code: quotaOnly ? 'AI_QUOTA' : 'AI_UNAVAILABLE', details: { attempts } },
+  );
 }
 
 function textFromResponse(data) {

@@ -416,7 +416,7 @@ async function computeFeedback(db, message, contextMessages) {
   let feedback = sanitizeFeedback((await request(COACH_MODELS.feedback)).json, message.content);
   if (feedbackIsGarbled(feedback)) {
     try {
-      const retry = sanitizeFeedback((await request(['gemini-2.5-flash'])).json, message.content);
+      const retry = sanitizeFeedback((await request(COACH_MODELS.feedback.filter((model) => model !== 'vp:gemini-3-flash' && model !== 'gemini-3.5-flash'))).json, message.content);
       if (!feedbackIsGarbled(retry)) feedback = retry;
     } catch (error) {
       console.warn('[coach] feedback retry failed:', error.message);
@@ -438,12 +438,26 @@ function applyFixes(content, issues) {
   return result;
 }
 
+const FILLER_WORD = /^(e+h+|e+m+|m{2,}|a+h+|u+h+|u+m+)$/i;
+
+/** Speech hesitations and stutters are not mistakes ("en en en particular"). */
+export function dropDisfluencies(text) {
+  const out = [];
+  for (const word of normalizeForMatch(text).split(' ').filter(Boolean)) {
+    if (FILLER_WORD.test(word) || out[out.length - 1] === word) continue;
+    out.push(word);
+  }
+  return out.join(' ');
+}
+
 export function sanitizeFeedback(raw, original) {
   const issues = Array.isArray(raw?.issues) ? raw.issues : [];
   const normalizedOriginal = normalizeForMatch(original);
   const cleanIssues = issues
     .filter((issue) => issue && issue.original && issue.fix)
     .filter((issue) => normalizeForMatch(issue.original) !== normalizeForMatch(issue.fix))
+    // An "error" that only removes a stutter or an "eh" is just spoken disfluency.
+    .filter((issue) => dropDisfluencies(issue.original) !== dropDisfluencies(issue.fix))
     // Guard against invented quotes: the fragment must really be in her message.
     .filter((issue) => normalizedOriginal.includes(normalizeForMatch(issue.original)) || issue.type === 'vocabulary')
     .slice(0, 5)
@@ -489,7 +503,11 @@ export async function postUserMessage(db, profileId, sessionId, payload) {
       return null;
     });
     pendingFeedback.set(userMessage.id, feedbackPromise);
-    feedbackPromise.finally(() => setTimeout(() => pendingFeedback.delete(userMessage.id), 60_000));
+    // A failed check is forgotten at once so that "Повторить" really recomputes it.
+    feedbackPromise.then((result) => {
+      if (!result) pendingFeedback.delete(userMessage.id);
+      else setTimeout(() => pendingFeedback.delete(userMessage.id), 60_000);
+    });
   }
 
   const context = sessionPromptContext(db, profileId, session);
@@ -520,6 +538,7 @@ export async function postUserMessage(db, profileId, sessionId, payload) {
     user_message: { ...userMessage, feedback: feedback || null },
     assistant_message: assistantMessage,
     feedback_pending: feedback === undefined,
+    feedback_failed: Boolean(feedbackPromise) && feedback === null,
   };
 }
 
@@ -552,6 +571,7 @@ export async function getMessageFeedback(db, profileId, messageId) {
   if (pending) {
     const feedback = await Promise.race([pending, new Promise((resolve) => setTimeout(() => resolve(undefined), 30_000))]);
     if (feedback === undefined) return { feedback: null, pending: true };
+    if (!feedback) return { feedback: null, failed: true };
     return { feedback };
   }
   // Server restarted or feedback failed: compute it now.

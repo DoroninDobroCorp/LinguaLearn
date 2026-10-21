@@ -121,7 +121,7 @@ export const FEEDBACK_SCHEMA = O({
 export function buildFeedbackPrompt({ inputMode }) {
   const modeRule = inputMode === 'text'
     ? `El mensaje fue ESCRITO. No marques la falta de ¿ ¡, mayúsculas ni puntuación (es un chat). Tildes: solo si cambian la palabra o la forma verbal (esta/está, el/él, si/sí, tu/tú, mas/más, hablo/habló, que/qué en preguntas) — y en ese caso como type=spelling, severity=low, agrupadas en un solo issue.`
-    : `El mensaje es una TRANSCRIPCIÓN AUTOMÁTICA de voz. Ignorá por completo puntuación, mayúsculas, tildes, ¿ ¡ y posibles errores de reconocimiento (palabras que suenan igual). Evaluá solo gramática, elección de palabras y estructura de lo que dijo.`;
+    : `El mensaje es una TRANSCRIPCIÓN AUTOMÁTICA de voz. Ignorá por completo puntuación, mayúsculas, tildes, ¿ ¡ y posibles errores de reconocimiento (palabras que suenan igual). Evaluá solo gramática, elección de palabras y estructura de lo que dijo. Es habla espontánea: las vacilaciones (eh, mmm, este), las repeticiones («de de», «en en en», «no no no») y las autocorrecciones («dice, dicen», «y pero…») NO son errores; no las señales nunca. Corregí solo lo que sigue mal después de que ella se corrige.`;
 
   return `Sos un corrector experto de español para una alumna rusohablante de nivel B1 que aprende la variante rioplatense. Analizás SOLO el último mensaje de la alumna; los mensajes anteriores son contexto.
 
@@ -210,7 +210,7 @@ ${learnerCard(learner)}
 
 ${RIOPLATENSE_NORMS}
 
-ENTRADA: la transcripción con id por mensaje. Los mensajes con input=voice/call son transcripciones automáticas de voz: ignorá puntuación, mayúsculas, tildes y posibles errores de reconocimiento. Algunos mensajes traen "inline_feedback" (correcciones rápidas hechas durante el chat): son pistas, verificálas; descartá las que estén mal.
+ENTRADA: la transcripción con id por mensaje. Los mensajes con input=voice/call son transcripciones automáticas de voz: ignorá puntuación, mayúsculas, tildes y posibles errores de reconocimiento. Es habla espontánea: las vacilaciones (eh, mmm, este), las repeticiones («de de», «en en en», «no no no») y las autocorrecciones («dice, dicen», «y pero…») NO son errores; no las señales nunca. Corregí solo lo que sigue mal después de que ella se corrige. Algunos mensajes traen "inline_feedback" (correcciones rápidas hechas durante el chat): son pistas, verificálas; descartá las que estén mal.
 
 ${RUSSIAN_STYLE}
 
@@ -329,7 +329,7 @@ export const GRADE_SCHEMA = O({
 
 export function buildGradePrompt({ item, inputMode }) {
   const modeRule = inputMode === 'voice'
-    ? 'La respuesta es una transcripción automática de voz: ignorá puntuación, mayúsculas, tildes y errores de reconocimiento.'
+    ? 'La respuesta es una transcripción automática de voz: ignorá puntuación, mayúsculas, tildes y errores de reconocimiento. Es habla espontánea: las vacilaciones (eh, mmm, este), las repeticiones («de de», «en en en», «no no no») y las autocorrecciones («dice, dicen», «y pero…») NO son errores; no las señales nunca. Corregí solo lo que sigue mal después de que ella se corrige.'
     : 'Ignorá mayúsculas, puntuación y la falta de ¿ ¡. Una tilde faltante que cambia la forma (ej. "esta" por "está") cuenta como almost, no incorrect, salvo que la tilde sea justamente lo entrenado.';
   return `Sos una profesora de español rioplatense corrigiendo un ejercicio de una alumna rusohablante de nivel B1.
 

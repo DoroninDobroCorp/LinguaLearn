@@ -111,6 +111,29 @@ export function blobToBase64(blob) {
   });
 }
 
+const FILLER_WORD = /^(e+h+|e+m+|m{2,}|a+h+|u+h+|u+m+)$/i;
+const stripPunctuation = (token) => token.toLowerCase().replace(/[.,!?¡¿;:"«»()…]/g, '');
+
+/**
+ * Voice transcripts keep hesitations ("eh", "mmm", "no no no no"). They are not
+ * mistakes, so they are removed before showing what a correction changed.
+ * A repeat is dropped only when nothing separates it ("no, no sé" stays).
+ */
+export function stripDisfluencies(text) {
+  const out = [];
+  for (const token of String(text || '').split(/\s+/).filter(Boolean)) {
+    const bare = stripPunctuation(token);
+    if (!bare || FILLER_WORD.test(bare)) continue;
+    const previous = out[out.length - 1];
+    if (previous && stripPunctuation(previous) === bare && !/[.,!?;:…]$/.test(previous)) {
+      out[out.length - 1] = token;
+      continue;
+    }
+    out.push(token);
+  }
+  return out.join(' ');
+}
+
 /** Word-level diff for showing exactly what changed in a correction. */
 export function diffWords(original, corrected) {
   const tokenize = (text) => String(text || '').split(/(\s+)/).filter((token) => token.length > 0);

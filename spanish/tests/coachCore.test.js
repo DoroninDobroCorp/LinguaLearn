@@ -18,7 +18,7 @@ import {
   sanitizeFeedback,
   sanitizeWorkoutItems,
 } from '../server/coach/coachService.js';
-import { diffWords } from '../src/utils/coachApi.js';
+import { diffWords, stripDisfluencies } from '../src/utils/coachApi.js';
 
 function createCoachDb() {
   const db = new Database(':memory:');
@@ -74,6 +74,18 @@ describe('Coach store', () => {
 });
 
 describe('Coach validation', () => {
+  it('ignores "corrections" that only remove stutters or fillers', () => {
+    const feedback = sanitizeFeedback({
+      verdict: 'errors',
+      corrected: 'Me interesa el tema en particular.',
+      issues: [
+        { original: 'la tema', fix: 'el tema', explanation_ru: 'Tema — мужской род.', type: 'grammar', spot_key: 'genero-concordancia', severity: 'high' },
+        { original: 'en en en particular', fix: 'en particular', explanation_ru: 'Повтор.', type: 'style', spot_key: 'otros', severity: 'low' },
+      ],
+    }, 'Me interesa la tema eh en en en particular.');
+    assert.deepEqual(feedback.issues.map((issue) => issue.fix), ['el tema']);
+  });
+
   it('drops inline corrections that quote words she never wrote', () => {
     const feedback = sanitizeFeedback({
       verdict: 'errors',
@@ -128,6 +140,20 @@ describe('Custom topics and scenarios', () => {
     const custom = normalizeCustomInput({ customScenario: { character: 'мастер по кондиционерам', goal: 'Узнать цену ремонта', voice: 'male', formal: 1 } });
     assert.deepEqual(custom.scenario, { character: 'мастер по кондиционерам', goal: 'Узнать цену ремонта', name: '', voice: 'male', formal: true });
     assert.throws(() => normalizeCustomInput({ customScenario: { character: 'мастер', goal: '' } }), /ситуацию/);
+  });
+});
+
+describe('Voice transcript clean-up', () => {
+  it('drops hesitations and stuttered repeats', () => {
+    assert.equal(
+      stripDisfluencies('Me gusta ver películas eh en inglés o no no no no no vi eh un ninguna película. Eh pero mmm me gusta'),
+      'Me gusta ver películas en inglés o no vi un ninguna película. pero me gusta',
+    );
+    assert.equal(stripDisfluencies('entender que que las personas dicen'), 'entender que las personas dicen');
+  });
+
+  it('keeps meaningful repeats separated by punctuation', () => {
+    assert.equal(stripDisfluencies('Creo que no, no sé.'), 'Creo que no, no sé.');
   });
 });
 
