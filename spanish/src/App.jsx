@@ -24,6 +24,7 @@ import CoachReport from './components/coach/CoachReport';
 import CoachWorkout, { WorkoutLauncher } from './components/coach/CoachWorkout';
 import { CoachSpotsList, CoachSpotDetail } from './components/coach/CoachSpots';
 import CoachSettings from './components/coach/CoachSettings';
+import { secureAppUrl } from './utils/coachApi';
 
 // Adult conversation learners (B1+) get the coach as their home and a
 // focused navigation instead of the A1 course.
@@ -190,6 +191,16 @@ function AppContent() {
   const { isDark } = useTheme();
   const { profileId, profileViewKey, loading: profilesLoading } = useProfile();
   const conversationTrack = useConversationTrack();
+  const location = useLocation();
+
+  // Voice needs a secure page: move the conversation track off the plain-http IP.
+  React.useEffect(() => {
+    if (profilesLoading) return;
+    if (!conversationTrack && !location.pathname.startsWith('/coach')) return;
+    const secureUrl = secureAppUrl(profileId);
+    if (secureUrl) window.location.replace(secureUrl);
+  }, [profilesLoading, conversationTrack, location.pathname, profileId]);
+
   const [isOffline, setIsOffline] = React.useState(() => typeof navigator !== "undefined" && !navigator.onLine);
 
   React.useEffect(() => {

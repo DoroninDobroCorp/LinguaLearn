@@ -79,6 +79,29 @@ export function coachLiveUrl(sessionId) {
   return `${proto}://${window.location.host}${prefix}?${params.toString()}`;
 }
 
+/**
+ * Browsers expose the microphone only on secure (https) pages. The app is also
+ * reachable over plain http on the bare server IP, where getUserMedia simply
+ * does not exist, so the coach sends people to the https sslip.io host instead.
+ */
+export function secureAppUrl(profileId = getActiveProfileId()) {
+  if (typeof window === 'undefined') return null;
+  const { protocol, hostname, pathname, search } = window.location;
+  if (protocol === 'https:') return null;
+  if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) return null;
+  // Profile choice lives in per-origin localStorage, so carry it over explicitly.
+  const params = new URLSearchParams(search);
+  params.set('student', String(profileId));
+  return `https://${hostname}.sslip.io${pathname}?${params.toString()}`;
+}
+
+/** Why voice can't work here: 'insecure' (http page), 'unsupported' (e.g. in-app browser) or null. */
+export function microphoneBlockReason() {
+  if (typeof window === 'undefined') return 'unsupported';
+  if (navigator.mediaDevices?.getUserMedia) return null;
+  return window.isSecureContext === false ? 'insecure' : 'unsupported';
+}
+
 export function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

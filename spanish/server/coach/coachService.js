@@ -1223,7 +1223,8 @@ export function getDashboard(db, profileId) {
       example: listEvidence(db, spot.id, { kind: 'error', limit: 1 })[0] || null,
     })),
     focus: prioritizedSpots(db, profileId, 3).map((spot) => ({ id: spot.id, spot_key: spot.spot_key, title_ru: spot.title_ru, score: spot.score })),
-    sessions: sessions.slice(0, 8),
+    // Calls that never connected and chats she never answered are noise in the history.
+    sessions: sessions.filter((session) => session.user_messages > 0 || session.status === 'analyzed').slice(0, 8),
     active_session: sessions.find((session) => session.status === 'active' && session.mode === 'chat' && session.user_messages > 0) || null,
     open_workout: openWorkout
       ? { id: openWorkout.id, status: openWorkout.status, total: openWorkout.items.length, answered: Object.values(openWorkout.results).filter((entry) => entry.final).length }

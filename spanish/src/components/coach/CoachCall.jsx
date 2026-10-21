@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Mic, MicOff, PhoneOff, Phone, Keyboard, Send, Captions, Headphones } from 'lucide-react';
-import { coachApi, coachLiveUrl } from '../../utils/coachApi';
-import { CoachPage, ErrorNote, PartnerAvatar, Spinner } from './CoachUI';
+import { coachApi, coachLiveUrl, microphoneBlockReason } from '../../utils/coachApi';
+import { CoachPage, ErrorNote, MicUnavailable, PartnerAvatar, Spinner } from './CoachUI';
 
 const MAX_RECONNECTS = 2;
 
@@ -126,6 +126,7 @@ export default function CoachCall() {
   const [elapsed, setElapsed] = useState(0);
   const [maxMs, setMaxMs] = useState(15 * 60 * 1000);
 
+  const micBlock = microphoneBlockReason();
   const wsRef = useRef(null);
   const playerRef = useRef(null);
   const micRef = useRef(null);
@@ -295,6 +296,7 @@ export default function CoachCall() {
 
   const startCall = async () => {
     setError('');
+    if (micBlock) return;
     setStatus('connecting');
     endingRef.current = false;
     let context = null;
@@ -424,9 +426,13 @@ export default function CoachCall() {
               <div className="flex gap-2.5"><Keyboard className="w-4 h-4 c-accent flex-shrink-0 mt-0.5" /><span>Если не знаешь слово — скажи его по-русски, Лусия подскажет.</span></div>
             </div>
             {session.scenario?.goal_ru && <div className="c-bg-accent rounded-xl px-4 py-2.5 text-sm"><b>Цель:</b> {session.scenario.goal_ru}</div>}
-            <button type="button" onClick={startCall} className="w-full py-4 rounded-2xl font-extrabold text-white text-lg inline-flex items-center justify-center gap-2.5 active:scale-[0.99] transition-transform" style={{ background: 'var(--c-good)' }}>
-              <Phone className="w-5 h-5" /> Позвонить
-            </button>
+            {micBlock ? (
+              <MicUnavailable reason={micBlock} />
+            ) : (
+              <button type="button" onClick={startCall} className="w-full py-4 rounded-2xl font-extrabold text-white text-lg inline-flex items-center justify-center gap-2.5 active:scale-[0.99] transition-transform" style={{ background: 'var(--c-good)' }}>
+                <Phone className="w-5 h-5" /> Позвонить
+              </button>
+            )}
           </div>
         )}
 

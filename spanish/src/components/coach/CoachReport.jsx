@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowUpRight, BookMarked, Brain, ChevronDown, ChevronUp, Dumbbell, MessageCircle, Sparkles, ThumbsUp, TrendingDown, TrendingUp } from 'lucide-react';
 import { coachApi } from '../../utils/coachApi';
@@ -26,9 +26,17 @@ export default function CoachReport() {
   const [startingWorkout, setStartingWorkout] = useState(false);
   const [polls, setPolls] = useState(0);
 
+  const settleRef = useRef(false);
+
   const load = useCallback(async () => {
     try {
-      const detail = await coachApi.session(sessionId);
+      let detail = await coachApi.session(sessionId);
+      // A call that was left without hanging up stays "active"; on the report
+      // page the call is over, so close it (empty calls become "empty").
+      if (detail.status === 'active' && detail.mode === 'call' && !settleRef.current) {
+        settleRef.current = true;
+        detail = await coachApi.finish(sessionId).catch(() => detail);
+      }
       setSession(detail);
       if (detail.workout_id) {
         const workoutDetail = await coachApi.workout(detail.workout_id);

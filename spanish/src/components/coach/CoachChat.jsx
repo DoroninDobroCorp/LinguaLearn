@@ -3,8 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Mic, Send, X, Check, Lightbulb, Languages, Flag, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
 import { blobToBase64, coachApi } from '../../utils/coachApi';
 import { useVoiceRecorder, isVoiceRecordingSupported } from '../../hooks/useVoiceRecorder';
+import { microphoneBlockReason } from '../../utils/coachApi';
 import { playCoachSpeech, stopCoachSpeech, unlockCoachAudio } from '../../hooks/useCoachSpeech';
-import { CoachPage, CorrectionDiff, ErrorNote, PartnerAvatar, SpeakButton, Spinner, TypingDots } from './CoachUI';
+import { CoachPage, CorrectionDiff, ErrorNote, MicUnavailable, PartnerAvatar, SpeakButton, Spinner, TypingDots } from './CoachUI';
 
 const ANALYSIS_STEPS = [
   'Перечитываю твои сообщения…',
@@ -138,6 +139,7 @@ export default function CoachChat() {
   const [error, setError] = useState('');
   const [hint, setHint] = useState(null);
   const [hintLoading, setHintLoading] = useState(false);
+  const [showMicNotice, setShowMicNotice] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [analysisStep, setAnalysisStep] = useState(0);
   const recorder = useVoiceRecorder();
@@ -260,6 +262,10 @@ export default function CoachChat() {
   };
 
   const toggleRecording = async () => {
+    if (!voiceSupported) {
+      setShowMicNotice(true);
+      return;
+    }
     unlockCoachAudio();
     if (recorder.isRecording) {
       const recording = await recorder.stop();
@@ -408,6 +414,7 @@ export default function CoachChat() {
           </div>
         )}
 
+        {showMicNotice && <div className="mb-2"><MicUnavailable reason={microphoneBlockReason()} /></div>}
         {(error || recorder.error) && <div className="mb-2"><ErrorNote message={error || recorder.error} /></div>}
 
         <div className="c-card rounded-2xl p-2 flex items-end gap-2">
@@ -455,10 +462,10 @@ export default function CoachChat() {
                 <button
                   type="button"
                   onClick={toggleRecording}
-                  disabled={sending || !voiceSupported || recorder.state === 'requesting' || recorder.state === 'processing'}
+                  disabled={sending || recorder.state === 'requesting' || recorder.state === 'processing'}
                   className="w-11 h-11 rounded-xl c-btn-primary flex items-center justify-center flex-shrink-0"
                   aria-label="Записать голосовое"
-                  title={voiceSupported ? 'Записать голосовое' : 'Браузер не поддерживает запись'}
+                  title={voiceSupported ? 'Записать голосовое' : 'Микрофон недоступен в этом браузере'}
                 >
                   {recorder.state === 'requesting' ? <Spinner className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                 </button>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, Volume2, Square } from 'lucide-react';
-import { diffWords } from '../../utils/coachApi';
+import { diffWords, microphoneBlockReason, secureAppUrl } from '../../utils/coachApi';
 import { useCoachSpeech } from '../../hooks/useCoachSpeech';
 
 export const STATUS_LABELS = {
@@ -86,6 +86,26 @@ export function ErrorNote({ message, onRetry }) {
         <button type="button" onClick={onRetry} className="font-bold underline underline-offset-2 whitespace-nowrap">
           Повторить
         </button>
+      )}
+    </div>
+  );
+}
+
+/** Explains why the microphone is unavailable and offers the https version when that fixes it. */
+export function MicUnavailable({ reason = microphoneBlockReason() }) {
+  if (!reason) return null;
+  const secureUrl = reason === 'insecure' ? secureAppUrl() : null;
+  return (
+    <div className="c-bg-warn rounded-xl px-4 py-3 text-sm space-y-2">
+      {reason === 'insecure' ? (
+        <p>Браузер даёт микрофон только на защищённой странице (https), а эта открыта по http.</p>
+      ) : (
+        <p>Этот браузер не даёт доступ к микрофону. Если ссылка открыта внутри Telegram, WhatsApp или Instagram — открой её в Safari или Chrome.</p>
+      )}
+      {secureUrl && (
+        <a href={secureUrl} className="c-btn-primary inline-flex px-4 py-2 rounded-lg font-bold">
+          Открыть защищённую версию
+        </a>
       )}
     </div>
   );
