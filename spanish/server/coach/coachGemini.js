@@ -202,6 +202,12 @@ export async function runWithFallback({ task, models, buildBody, timeoutMs = 30_
           coolDown(key, model, isProxyModel(model) ? 30_000 : 20_000);
           continue;
         }
+        if (!isProxyModel(model) && (result.status === 404 || result.status === 403)) {
+          // Model not offered to this key's project (e.g. 2.5-flash for new
+          // projects): skip just this key for this model, keep trying the others.
+          coolDown(key, model, 6 * 3600_000);
+          continue;
+        }
         break; // 4xx other than quota: the request itself is bad for this model.
       } catch (error) {
         attempts.push(`${model}: ${error.name === 'TimeoutError' ? `timeout after ${timeoutMs} ms` : error.message}`);
