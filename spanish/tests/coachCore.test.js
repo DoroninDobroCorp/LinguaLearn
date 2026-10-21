@@ -11,7 +11,9 @@ import {
   upsertLearner,
 } from '../server/coach/coachStore.js';
 import {
+  cleanPartnerText,
   looksGarbledRussian,
+  normalizeCustomInput,
   normalizeForMatch,
   sanitizeFeedback,
   sanitizeWorkoutItems,
@@ -104,8 +106,28 @@ describe('Coach validation', () => {
     assert.equal(looksGarbledRussian('После «quiero que» нужен Subjuntivo: «mi hijo haga».'), false);
   });
 
+  it('strips markdown emphasis from partner replies but keeps underscores in words', () => {
+    assert.equal(cleanPartnerText('Me parece bárbaro hablar de *El Eternauta*. ¿Y vos?'), 'Me parece bárbaro hablar de El Eternauta. ¿Y vos?');
+    assert.equal(cleanPartnerText('**Ojo**: es re lindo'), 'Ojo: es re lindo');
+    assert.equal(cleanPartnerText('mi_usuario está bien'), 'mi_usuario está bien');
+  });
+
   it('normalises text for quote matching', () => {
     assert.equal(normalizeForMatch('¡Ojalá QUE podamos!'), 'ojala que podamos');
+  });
+});
+
+describe('Custom topics and scenarios', () => {
+  it('cleans her own topic text and rejects empty input', () => {
+    assert.deepEqual(normalizeCustomInput({ customTopic: '  Обсудить\nсериал  ' }), { topic: { text: 'Обсудить сериал' } });
+    assert.throws(() => normalizeCustomInput({ customTopic: ' a ' }), /подробнее/);
+    assert.equal(normalizeCustomInput({}), null);
+  });
+
+  it('requires a character and a goal for her own scenario', () => {
+    const custom = normalizeCustomInput({ customScenario: { character: 'мастер по кондиционерам', goal: 'Узнать цену ремонта', voice: 'male', formal: 1 } });
+    assert.deepEqual(custom.scenario, { character: 'мастер по кондиционерам', goal: 'Узнать цену ремонта', name: '', voice: 'male', formal: true });
+    assert.throws(() => normalizeCustomInput({ customScenario: { character: 'мастер', goal: '' } }), /ситуацию/);
   });
 });
 

@@ -115,6 +115,11 @@ export function ensureCoachSchema(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_coach_workouts_profile ON coach_workouts(profile_id, created_at);
   `);
+
+  // Learner-defined topic or role-play scenario for a session.
+  if (!hasColumn(db, 'coach_sessions', 'custom_json')) {
+    db.exec('ALTER TABLE coach_sessions ADD COLUMN custom_json TEXT');
+  }
 }
 
 export function parseJson(value, fallback) {
@@ -264,11 +269,11 @@ export function setProfileLearningTrack(db, profileId, track) {
 
 // ---------------------------------------------------------------- sessions
 
-export function createSession(db, profileId, { mode, topicId, scenarioId, focusKeys }) {
+export function createSession(db, profileId, { mode, topicId, scenarioId, focusKeys, custom = null }) {
   const result = db.prepare(`
-    INSERT INTO coach_sessions (profile_id, mode, topic_id, scenario_id, focus_json, status, started_at)
-    VALUES (?, ?, ?, ?, ?, 'active', ?)
-  `).run(profileId, mode, topicId || null, scenarioId || null, JSON.stringify(focusKeys || []), nowIso());
+    INSERT INTO coach_sessions (profile_id, mode, topic_id, scenario_id, focus_json, status, started_at, custom_json)
+    VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
+  `).run(profileId, mode, topicId || null, scenarioId || null, JSON.stringify(focusKeys || []), nowIso(), custom ? JSON.stringify(custom) : null);
   return getSession(db, profileId, result.lastInsertRowid);
 }
 
@@ -280,6 +285,7 @@ function mapSession(row) {
     mode: row.mode,
     topic_id: row.topic_id,
     scenario_id: row.scenario_id,
+    custom: parseJson(row.custom_json, null),
     focus_keys: parseJson(row.focus_json, []),
     status: row.status,
     started_at: row.started_at,
@@ -304,6 +310,28 @@ export function listSessions(db, profileId, limit = 20) {
     ORDER BY s.started_at DESC
     LIMIT ?
   `).all(profileId, limit).map((row) => ({ ...mapSession(row), user_messages: row.user_messages }));
+}
+
+/** Most recent distinct learner-defined topics and scenarios, for one-tap reuse. */
+export function listRecentCustom(db, profileId, limit = 5) {
+  const rows = db.prepare(`
+    SELECT custom_json FROM coach_sessions
+    WHERE profile_id = ? AND custom_json IS NOT NULL
+    ORDER BY started_at DESC LIMIT 60
+  `).all(profileId);
+  const topics = [];
+  const scenarios = [];
+  const seen = new Set();
+  for (const row of rows) {
+    const custom = parseJson(row.custom_json, null);
+    if (!custom) continue;
+    const key = JSON.stringify(custom).toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (custom.topic && topics.length < limit) topics.push(custom.topic);
+    if (custom.scenario && scenarios.length < limit) scenarios.push(custom.scenario);
+  }
+  return { topics, scenarios };
 }
 
 export function updateSession(db, sessionId, fields) {

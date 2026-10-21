@@ -4,6 +4,7 @@ import { MessageCircle, Phone } from 'lucide-react';
 import { coachApi } from '../../utils/coachApi';
 import { unlockCoachAudio } from '../../hooks/useCoachSpeech';
 import { BackLink, Card, CoachPage, ErrorNote, Spinner } from './CoachUI';
+import { CustomScenarioForm, CustomTopicForm } from './CoachCustomForms';
 
 export default function CoachStart() {
   const navigate = useNavigate();
@@ -12,20 +13,24 @@ export default function CoachStart() {
   const [tab, setTab] = useState(searchParams.get('tab') === 'roles' ? 'roles' : 'topics');
   const [catalog, setCatalog] = useState(null);
   const [focus, setFocus] = useState([]);
+  const [recentCustom, setRecentCustom] = useState({ topics: [], scenarios: [] });
   const [starting, setStarting] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     coachApi.catalog().then(setCatalog).catch((loadError) => setError(loadError.message));
-    coachApi.dashboard().then((data) => setFocus(data.focus || [])).catch(() => {});
+    coachApi.dashboard().then((data) => {
+      setFocus(data.focus || []);
+      if (data.recent_custom) setRecentCustom(data.recent_custom);
+    }).catch(() => {});
   }, []);
 
-  const start = async ({ topicId = null, scenarioId = null }) => {
+  const start = async ({ topicId = null, scenarioId = null, customTopic = null, customScenario = null, key = null }) => {
     unlockCoachAudio();
-    setStarting(topicId || scenarioId);
+    setStarting(key || topicId || scenarioId);
     setError('');
     try {
-      const session = await coachApi.startSession({ mode, topicId, scenarioId });
+      const session = await coachApi.startSession({ mode, topicId, scenarioId, customTopic, customScenario });
       navigate(mode === 'call' ? `/coach/call/${session.id}` : `/coach/chat/${session.id}`, { replace: true });
     } catch (startError) {
       setError(startError.message);
@@ -97,6 +102,9 @@ export default function CoachStart() {
         <div className="py-16 flex justify-center c-muted"><Spinner className="w-6 h-6" /></div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+          {tab === 'topics'
+            ? <CustomTopicForm recent={recentCustom.topics} starting={starting} onStart={start} />
+            : <CustomScenarioForm recent={recentCustom.scenarios} starting={starting} onStart={start} />}
           {items.map((item) => {
             const isStarting = starting === item.id;
             return (

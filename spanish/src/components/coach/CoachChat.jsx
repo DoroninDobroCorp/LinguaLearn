@@ -187,7 +187,7 @@ export default function CoachChat() {
     const last = messages[messages.length - 1];
     if (last && last.role === 'assistant' && !last.temp && !autoplayedRef.current.has(last.id)) {
       autoplayedRef.current.add(last.id);
-      playCoachSpeech(last.content, { key: `m-${last.id}`, voice, style: voiceStyle });
+      playCoachSpeech(last.content, { key: `m-${last.id}`, voice, style: voiceStyle, allowBrowserFallback: false });
     }
   }, [messages, learner, voice, voiceStyle]);
 

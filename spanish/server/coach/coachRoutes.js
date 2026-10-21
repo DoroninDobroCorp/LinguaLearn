@@ -101,6 +101,8 @@ export function createCoachRoutes({ db }) {
     mode: req.body?.mode,
     topicId: req.body?.topicId,
     scenarioId: req.body?.scenarioId,
+    customTopic: req.body?.customTopic,
+    customScenario: req.body?.customScenario && typeof req.body.customScenario === 'object' ? req.body.customScenario : null,
   })));
 
   router.get('/sessions/:id', handle((req) => getSessionDetail(db, pid(req), Number(req.params.id))));

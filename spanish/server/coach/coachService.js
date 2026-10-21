@@ -45,6 +45,7 @@ import {
   latestOpenWorkout,
   listEvidence,
   listMessages,
+  listRecentCustom,
   listSessions,
   listSpots,
   listWorkouts,
@@ -98,6 +99,15 @@ function normalizeAnswer(text) {
     .toLowerCase()
     .replace(/[¿?¡!.,;:"«»()]/g, ' ')
     .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Chat bubbles are plain text: drop markdown emphasis and list markers the model sometimes adds. */
+export function cleanPartnerText(text) {
+  return String(text || '')
+    .replace(/\*\*([^*\n]+)\*\*/g, '$1')
+    .replace(/(^|[\s(¿¡"«])[*_]([^*_\n]+)[*_](?=[\s.,;:!?)"»]|$)/g, '$1$2')
+    .replace(/^\s*[-*•]\s+/gm, '')
     .trim();
 }
 
@@ -158,10 +168,79 @@ function buildContents(messages, openingInstruction) {
   return contents;
 }
 
+// ------------------------------------------------- learner-defined content
+
+const CUSTOM_VOICES = { female: 'Aoede', male: 'Charon' };
+
+function cleanCustomText(value, max) {
+  return String(value || '').replace(/[\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
+function shortTitle(text, max = 60) {
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
+/** Validate what she typed into "Своя тема" / "Своя ситуация". */
+export function normalizeCustomInput({ customTopic, customScenario } = {}) {
+  if (customScenario) {
+    const character = cleanCustomText(customScenario.character, 200);
+    const goal = cleanCustomText(customScenario.goal, 400);
+    if (character.length < 3) throw new CoachError(400, 'Напиши, кого играет собеседник.', 'BAD_CUSTOM_SCENARIO');
+    if (goal.length < 5) throw new CoachError(400, 'Опиши ситуацию и чего ты хочешь добиться.', 'BAD_CUSTOM_SCENARIO');
+    return {
+      scenario: {
+        character,
+        goal,
+        name: cleanCustomText(customScenario.name, 40),
+        voice: customScenario.voice === 'male' ? 'male' : 'female',
+        formal: Boolean(customScenario.formal),
+      },
+    };
+  }
+  if (customTopic !== undefined && customTopic !== null) {
+    const text = cleanCustomText(customTopic, 300);
+    if (text.length < 3) throw new CoachError(400, 'Напиши тему чуть подробнее.', 'BAD_CUSTOM_TOPIC');
+    return { topic: { text } };
+  }
+  return null;
+}
+
+function customTopicObject(custom) {
+  return {
+    id: 'custom',
+    custom: true,
+    emoji: '✍️',
+    title_ru: shortTitle(custom.text),
+    opener: `abrí la charla sobre el tema que ella misma eligió: «${custom.text}» (puede estar escrito en ruso: entendelo y hablá en español). Hacé una primera pregunta concreta sobre ese tema`,
+    focus: [],
+  };
+}
+
+function customScenarioObject(custom) {
+  return {
+    id: 'custom',
+    custom: true,
+    emoji: '✍️',
+    name: custom.name || 'Собеседник',
+    title_ru: shortTitle(custom.goal),
+    goal_ru: custom.goal,
+    character: `${custom.character}${custom.name ? `, que se llama ${custom.name}` : ''} (la descripción puede estar en ruso: interpretala y actuá en español rioplatense); ${custom.formal ? 'trato de usted' : 'trato de vos'}`,
+    voice: CUSTOM_VOICES[custom.voice] || CUSTOM_VOICES.female,
+    focus: [],
+  };
+}
+
+/** Topic and scenario of a session, whether from the catalog or typed by her. */
+function resolveSessionSetting(session) {
+  const custom = session.custom || null;
+  const topic = custom?.topic ? customTopicObject(custom.topic) : (session.topic_id ? getTopic(session.topic_id) : null);
+  const scenario = custom?.scenario ? customScenarioObject(custom.scenario) : (session.scenario_id ? getScenario(session.scenario_id) : null);
+  return { topic, scenario };
+}
+
 function sessionPromptContext(db, profileId, session) {
   const learner = requireLearner(db, profileId);
-  const topic = session.topic_id ? getTopic(session.topic_id) : null;
-  const scenario = session.scenario_id ? getScenario(session.scenario_id) : null;
+  const { topic, scenario } = resolveSessionSetting(session);
   const focusSpots = (session.focus_keys || []).map((key) => {
     const spot = getSpotByKey(db, profileId, key);
     const reference = getTaxonomySpot(key);
@@ -175,7 +254,7 @@ function sessionPromptContext(db, profileId, session) {
 }
 
 export function describeSessionPartner(session) {
-  const scenario = session.scenario_id ? getScenario(session.scenario_id) : null;
+  const { scenario } = resolveSessionSetting(session);
   if (scenario) {
     return { name: scenario.name, role_ru: scenario.title_ru, voice: scenario.voice, formal: /usted/.test(scenario.character) };
   }
@@ -194,19 +273,29 @@ export function getCatalog() {
 
 // ----------------------------------------------------------------- sessions
 
-export async function startSession(db, profileId, { mode = 'chat', topicId = 'free', scenarioId = null } = {}) {
+export async function startSession(db, profileId, { mode = 'chat', topicId = 'free', scenarioId = null, customTopic = null, customScenario = null } = {}) {
   requireLearner(db, profileId);
   const safeMode = mode === 'call' ? 'call' : 'chat';
-  const scenario = scenarioId ? getScenario(scenarioId) : null;
-  const topic = scenario ? null : (getTopic(topicId) || getTopic('free'));
-  if (scenarioId && !scenario) throw new CoachError(400, 'Неизвестная ситуация.', 'BAD_SCENARIO');
+  const custom = normalizeCustomInput({ customTopic, customScenario });
+  let topic = null;
+  let scenario = null;
+  if (custom?.scenario) {
+    scenario = customScenarioObject(custom.scenario);
+  } else if (custom?.topic) {
+    topic = customTopicObject(custom.topic);
+  } else {
+    scenario = scenarioId ? getScenario(scenarioId) : null;
+    if (scenarioId && !scenario) throw new CoachError(400, 'Неизвестная ситуация.', 'BAD_SCENARIO');
+    topic = scenario ? null : (getTopic(topicId) || getTopic('free'));
+  }
 
   const focusSpots = chooseFocusSpots(db, profileId, { topic, scenario });
   const session = createSession(db, profileId, {
     mode: safeMode,
-    topicId: topic?.id || null,
-    scenarioId: scenario?.id || null,
+    topicId: custom ? null : topic?.id || null,
+    scenarioId: custom ? null : scenario?.id || null,
     focusKeys: focusSpots.map((spot) => spot.spot_key),
+    custom,
   });
 
   if (safeMode === 'chat') {
@@ -221,7 +310,7 @@ export async function startSession(db, profileId, { mode = 'chat', topicId = 'fr
         maxOutputTokens: 300,
         timeoutMs: 25_000,
       });
-      addMessage(db, { sessionId: session.id, profileId, role: 'assistant', content: text });
+      addMessage(db, { sessionId: session.id, profileId, role: 'assistant', content: cleanPartnerText(text) });
     } catch (error) {
       const fallback = scenario
         ? 'Hola, buenas. ¿En qué la puedo ayudar?'
@@ -236,8 +325,7 @@ export async function startSession(db, profileId, { mode = 'chat', topicId = 'fr
 export function getSessionDetail(db, profileId, sessionId) {
   const session = requireSession(db, profileId, sessionId);
   const messages = listMessages(db, session.id);
-  const topic = session.topic_id ? getTopic(session.topic_id) : null;
-  const scenario = session.scenario_id ? getScenario(session.scenario_id) : null;
+  const { topic, scenario } = resolveSessionSetting(session);
   return {
     ...session,
     partner: describeSessionPartner(session),
@@ -248,20 +336,23 @@ export function getSessionDetail(db, profileId, sessionId) {
 }
 
 export function listSessionSummaries(db, profileId, limit = 20) {
-  return listSessions(db, profileId, limit).map((session) => ({
+  return listSessions(db, profileId, limit).map((session) => {
+    const { topic, scenario } = resolveSessionSetting(session);
+    return {
     id: session.id,
     mode: session.mode,
     status: session.status,
     started_at: session.started_at,
     ended_at: session.ended_at,
     user_messages: session.user_messages,
-    topic: session.topic_id ? { id: session.topic_id, title_ru: getTopic(session.topic_id)?.title_ru, emoji: getTopic(session.topic_id)?.emoji } : null,
-    scenario: session.scenario_id ? { id: session.scenario_id, title_ru: getScenario(session.scenario_id)?.title_ru, emoji: getScenario(session.scenario_id)?.emoji } : null,
+    topic: topic ? { id: topic.id, title_ru: topic.title_ru, emoji: topic.emoji } : null,
+    scenario: scenario ? { id: scenario.id, title_ru: scenario.title_ru, emoji: scenario.emoji } : null,
     summary_ru: session.analysis?.summary_ru || null,
     cefr_estimate: session.analysis?.cefr_estimate || null,
     stats: session.stats,
     workout_id: session.workout_id,
-  }));
+    };
+  });
 }
 
 async function prepareUserText({ text, audio, mimeType }) {
@@ -418,7 +509,7 @@ export async function postUserMessage(db, profileId, sessionId, payload) {
     // Keep the user's message; the client can retry the reply.
     throw new CoachError(503, error instanceof CoachAiError ? error.message : 'Не удалось получить ответ. Попробуйте ещё раз.', 'REPLY_FAILED');
   }
-  const assistantMessage = addMessage(db, { sessionId: session.id, profileId, role: 'assistant', content: replyText });
+  const assistantMessage = addMessage(db, { sessionId: session.id, profileId, role: 'assistant', content: cleanPartnerText(replyText) });
 
   // Give the feedback a short head start so it usually arrives together with the reply.
   const feedback = feedbackPromise
@@ -449,7 +540,7 @@ export async function retryReply(db, profileId, sessionId) {
     maxOutputTokens: 400,
     timeoutMs: 30_000,
   });
-  return { assistant_message: addMessage(db, { sessionId: session.id, profileId, role: 'assistant', content: text }) };
+  return { assistant_message: addMessage(db, { sessionId: session.id, profileId, role: 'assistant', content: cleanPartnerText(text) }) };
 }
 
 export async function getMessageFeedback(db, profileId, messageId) {
@@ -538,6 +629,16 @@ function buildTranscriptForAnalysis(messages) {
     }
     return line;
   }).join('\n');
+}
+
+// Role-play lines are not facts about her life; tell the analyst so they stay out of memory.
+function analysisSettingNote(session) {
+  const { topic, scenario } = resolveSessionSetting(session);
+  if (scenario) {
+    return `CONTEXTO: juego de rol. La compañera hizo de ${scenario.character}. Objetivo de la alumna: ${scenario.goal_ru}. Lo que ella dice dentro de la escena NO son datos reales de su vida (no los pongas en memory).\n\n`;
+  }
+  if (topic?.custom) return `CONTEXTO: tema elegido por ella: «${session.custom.topic.text}».\n\n`;
+  return '';
 }
 
 function ensureVocabularyGroup(db, profileId) {
@@ -758,7 +859,7 @@ export async function finishSession(db, profileId, sessionId, { generateWorkoutA
         task: 'analysis',
         models: COACH_MODELS.analysis,
         system: buildAnalysisPrompt({ learner, existingSpots }),
-        contents: [{ role: 'user', parts: [{ text: `TRANSCRIPCIÓN:\n${buildTranscriptForAnalysis(messages)}` }] }],
+        contents: [{ role: 'user', parts: [{ text: `${analysisSettingNote(session)}TRANSCRIPCIÓN:\n${buildTranscriptForAnalysis(messages)}` }] }],
         schema: ANALYSIS_SCHEMA,
         effort: 'low',
         temperature: 0.2,
@@ -1232,6 +1333,7 @@ export function getDashboard(db, profileId) {
     last_report: lastAnalyzed?.analysis ? { session_id: lastAnalyzed.id, next_topic_ru: lastAnalyzed.analysis.next_topic_ru, cefr_estimate: lastAnalyzed.analysis.cefr_estimate, scores: lastAnalyzed.analysis.scores } : null,
     trend,
     totals: { ...totals, workouts: completedWorkouts },
+    recent_custom: listRecentCustom(db, profileId),
   };
 }
 
