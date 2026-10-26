@@ -387,6 +387,118 @@ const GROUPS_DATA = [
       { word: 'genial', translation: 'отличный / крутой / здорово', example: '¡Esa idea para el dibujo está genial!', example_translation: 'Эта идея для рисунка просто супер!', pos: 'adjective', gender: null },
       { word: 'la sorpresa', translation: 'сюрприз', example: 'Le preparamos una linda sorpresa de cumple', example_translation: 'Мы приготовили ей приятный сюрприз на день рождения', pos: 'noun', gender: 'f' }
     ]
+  },
+
+  // ---------------- PART 3: 10 New groups for Maya (5 words each = 50 words) ----------------
+  {
+    name: '📖 31. Книги и чтение',
+    isActiveNow: false,
+    words: [
+      { word: 'leer', translation: 'читать', example: 'Me gusta leer cuentos antes de dormir', example_translation: 'Мне нравится читать сказки перед сном', pos: 'verb', gender: null, image_url: '/spanish/images/vocab/leer.jpg' },
+      { word: 'el cuento', translation: 'сказка / рассказ', example: 'La abuela me contó un cuento hermoso', example_translation: 'Бабушка рассказала мне красивую сказку', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/cuento.jpg' },
+      { word: 'la página', translation: 'страница', example: 'Abrí el libro en la página diez', example_translation: 'Открой книгу на десятой странице', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/pagina.jpg' },
+      { word: 'el dibujo', translation: 'рисунок', example: 'Hice un dibujo lleno de colores para mamá', example_translation: 'Я нарисовала рисунок, полный ярких цветов, для мамы', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/dibujo.jpg' },
+      { word: 'la biblioteca', translation: 'библиотека', example: 'En la biblioteca de la escuela hay muchos libros', example_translation: 'В школьной библиотеке много книг', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/biblioteca.jpg' }
+    ]
+  },
+  {
+    name: '🍳 32. Кухня и готовка',
+    isActiveNow: false,
+    words: [
+      { word: 'cocinar', translation: 'готовить (еду)', example: 'Los domingos me gusta cocinar con papá', example_translation: 'По воскресеньям мне нравится готовить с папой', pos: 'verb', gender: null, image_url: '/spanish/images/vocab/cocinar.jpg' },
+      { word: 'la cocina', translation: 'кухня', example: 'La cocina huele a galletitas recién horneadas', example_translation: 'На кухне пахнет свежеиспечённым печеньем', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/cocina.jpg' },
+      { word: 'la empanada', translation: 'эмпанада (пирожок)', example: 'Comimos empanadas caseras de queso', example_translation: 'Мы поели домашних эмпанад с сыром', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/empanada.jpg' },
+      { word: 'el plato', translation: 'тарелка / блюдо', example: 'Pongo el plato limpio sobre la mesa', example_translation: 'Я ставлю чистую тарелку на стол', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/plato.jpg' },
+      { word: 'el vaso', translation: 'стакан', example: 'Tomé un vaso de agua fresca con hielo', example_translation: 'Я выпила стакан прохладной воды со льдом', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/vaso.jpg' }
+    ]
+  },
+  {
+    name: '🚌 33. Транспорт и город',
+    isActiveNow: false,
+    words: [
+      { word: 'el colectivo', translation: 'автобус (в Аргентине)', example: 'Tomamos el colectivo para ir al centro', example_translation: 'Мы садимся на автобус, чтобы поехать в центр', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/colectivo.jpg' },
+      { word: 'el tren', translation: 'поезд', example: 'El tren viaja rápido entre las estaciones', example_translation: 'Поезд едет быстро между станциями', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/tren.jpg' },
+      { word: 'el avión', translation: 'самолёт', example: 'El avión vuela alto entre las nubes blancas', example_translation: 'Самолёт летит высоко среди белых облаков', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/avion.jpg' },
+      { word: 'viajar', translation: 'путешествовать / ездить', example: 'En las vacaciones nos encanta viajar en familia', example_translation: 'На каникулах нам очень нравится путешествовать всей семьёй', pos: 'verb', gender: null, image_url: '/spanish/images/vocab/viajar.jpg' },
+      { word: 'el mapa', translation: 'карта', example: 'Miramos el mapa para encontrar el camino al parque', example_translation: 'Мы смотрим на карту, чтобы найти дорогу в парк', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/mapa.jpg' }
+    ]
+  },
+  {
+    name: '🦋 34. Насекомые и птицы',
+    isActiveNow: false,
+    words: [
+      { word: 'la mariposa', translation: 'бабочка', example: 'Una mariposa de colores brillantes vuela en el jardín', example_translation: 'Яркая разноцветная бабочка летает в саду', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/mariposa.jpg' },
+      { word: 'la abeja', translation: 'пчела', example: 'La abeja busca polen en las flores amarillas', example_translation: 'Пчела собирает пыльцу на жёлтых цветах', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/abeja.jpg' },
+      { word: 'la hormiga', translation: 'муравей', example: 'La hormiga camina muy rápido por la hoja', example_translation: 'Муравей очень быстро бежит по листку', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/hormiga.jpg' },
+      { word: 'el loro', translation: 'попугай', example: 'El loro verde habla y repite palabras graciosas', example_translation: 'Зелёный попугай говорит и повторяет забавные слова', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/loro.jpg' },
+      { word: 'el pingüino', translation: 'пингвин', example: 'Los pingüinos nadan felices en el sur argentino', example_translation: 'Пингвины весело плавают на юге Аргентины', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/pinguino.jpg' }
+    ]
+  },
+  {
+    name: '🦁 35. Дикие животные',
+    isActiveNow: false,
+    words: [
+      { word: 'el león', translation: 'лев', example: 'El león tiene una melena dorada y majestuosa', example_translation: 'У льва величественная золотистая грива', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/leon.jpg' },
+      { word: 'el elefante', translation: 'слон', example: 'El elefante camina tranquilo con sus orejas grandes', example_translation: 'Слон спокойно идёт, шевеля большими ушами', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/elefante.jpg' },
+      { word: 'el mono', translation: 'обезьяна', example: 'El mono salta de rama en rama en la selva', example_translation: 'Обезьяна прыгает с ветки на ветку в джунглях', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/mono.jpg' },
+      { word: 'el oso', translation: 'медведь', example: 'El oso marrón duerme cerca del río de la montaña', example_translation: 'Бурый медведь спит у горной реки', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/oso.jpg' },
+      { word: 'la jirafa', translation: 'жираф', example: 'La jirafa alta come hojas de la copa de los árboles', example_translation: 'Высокий жираф ест листья с верхушек деревьев', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/jirafa.jpg' }
+    ]
+  },
+  {
+    name: '🌦️ 36. Погода и небо',
+    isActiveNow: false,
+    words: [
+      { word: 'el cielo', translation: 'небо', example: 'El cielo de la tarde está completamente azul', example_translation: 'Дневное небо совершенно голубое', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/cielo.jpg' },
+      { word: 'la nube', translation: 'облако', example: 'Una nube blanca suave parece un copo de algodón', example_translation: 'Белое пушистое облако похоже на комочек ваты', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/nube.jpg' },
+      { word: 'el viento', translation: 'ветер', example: 'El viento fresco mueve las hojas de la plaza', example_translation: 'Свежий ветер колышет листья в сквере', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/viento.jpg' },
+      { word: 'el arcoíris', translation: 'радуга', example: 'Después de la lluvia salió un arcoíris brillante', example_translation: 'После дождя появилась яркая радуга', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/arcoiris.jpg' },
+      { word: 'la nieve', translation: 'снег', example: 'La nieve blanca cubre los pinos en invierno', example_translation: 'Белый снег укрывает сосны зимой', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/nieve.jpg' }
+    ]
+  },
+  {
+    name: '🏡 37. Уют дома и сад',
+    isActiveNow: false,
+    words: [
+      { word: 'el jardín', translation: 'сад', example: 'En nuestro jardín florecen rosas perfumadas', example_translation: 'В нашем саду цветут ароматные розы', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/jardin.jpg' },
+      { word: 'el sillón', translation: 'диван / кресло', example: 'Me siento cómoda en el sillón a leer un rato', example_translation: 'Я уютно устроилась в кресле немного почитать', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/sillon.jpg' },
+      { word: 'la lámpara', translation: 'лампа / светильник', example: 'Prendí la lámpara del escritorio para dibujar', example_translation: 'Я зажгла настольную лампу, чтобы рисовать', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/lampara.jpg' },
+      { word: 'la planta', translation: 'растение', example: 'Riego mi planta verde todas las mañanas', example_translation: 'Я поливаю своё зелёное растение каждое утро', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/planta.jpg' },
+      { word: 'la llave', translation: 'ключ', example: 'Guardo la llave de casa en mi mochila escolar', example_translation: 'Я храню ключ от дома в своём школьном рюкзаке', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/llave.jpg' }
+    ]
+  },
+  {
+    name: '🧼 38. Утро и гигиена',
+    isActiveNow: false,
+    words: [
+      { word: 'lavar', translation: 'мыть / умывать', example: 'Hay que lavarse bien las manos antes de almorzar', example_translation: 'Нужно хорошо мыть руки перед обедом', pos: 'verb', gender: null, image_url: '/spanish/images/vocab/lavar.jpg' },
+      { word: 'el jabón', translation: 'мыло', example: 'El jabón hace espuma suave y huele muy rico', example_translation: 'Мыло даёт мягкую пену и очень вкусно пахнет', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/jabon.jpg' },
+      { word: 'el cepillo', translation: 'зубная щётка / щётка', example: 'Me cepillo los dientes con mi cepillo nuevo', example_translation: 'Я чищу зубы своей новой щёткой', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/cepillo.jpg' },
+      { word: 'la toalla', translation: 'полотенце', example: 'Me seco las manos con una toalla suave y limpia', example_translation: 'Я вытираю руки мягким чистым полотенцем', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/toalla.jpg' },
+      { word: 'la ducha', translation: 'душ', example: 'Me doy una ducha tibia y refrescante por la mañana', example_translation: 'Я принимаю тёплый освежающий душ по утрам', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/ducha.jpg' }
+    ]
+  },
+  {
+    name: '🎸 39. Музыкальные инструменты и творчество',
+    isActiveNow: false,
+    words: [
+      { word: 'la guitarra', translation: 'гитара', example: 'Toco canciones lindas con la guitarra criolla', example_translation: 'Я играю красивые песни на гитаре', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/guitarra.jpg' },
+      { word: 'el piano', translation: 'пианино / фортепиано', example: 'Las teclas del piano suenan suaves y melodiosas', example_translation: 'Клавиши пианино звучат нежно и мелодично', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/piano.jpg' },
+      { word: 'la radio', translation: 'радио', example: 'Ponemos la radio para escuchar música alegre', example_translation: 'Мы включаем радио, чтобы послушать весёлую музыку', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/radio.jpg' },
+      { word: 'el teatro', translation: 'театр', example: 'Fuimos al teatro a ver una obra divertida', example_translation: 'Мы ходили в театр посмотреть весёлый спектакль', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/teatro.jpg' },
+      { word: 'la fiesta', translation: 'праздник / вечеринка', example: 'Preparamos una fiesta hermosa con globos y música', example_translation: 'Мы приготовили чудесный праздник с шариками и музыкой', pos: 'noun', gender: 'f', image_url: '/spanish/images/vocab/fiesta.jpg' }
+    ]
+  },
+  {
+    name: '🎁 40. Праздник и чувства',
+    isActiveNow: false,
+    words: [
+      { word: 'el regalo', translation: 'подарок', example: 'Abrí un regalo sorpresa con una cinta dorada', example_translation: 'Я открыла подарок-сюрприз с золотой ленточкой', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/regalo.jpg' },
+      { word: 'alegre', translation: 'радостный / весёлый', example: 'Maya está muy alegre jugando con sus amigas', example_translation: 'Майя очень радостная, когда играет с подругами', pos: 'adjective', gender: null, image_url: '/spanish/images/vocab/alegre.jpg' },
+      { word: 'hablar', translation: 'говорить / разговаривать', example: 'Nos gusta hablar y reírnos en el recreo', example_translation: 'Нам нравится разговаривать и смеяться на перемене', pos: 'verb', gender: null, image_url: '/spanish/images/vocab/hablar.jpg' },
+      { word: 'pensar', translation: 'думать', example: 'Me detengo a pensar antes de responder la pregunta', example_translation: 'Я останавливаюсь подумать, прежде чем ответить на вопрос', pos: 'verb', gender: null, image_url: '/spanish/images/vocab/pensar.jpg' },
+      { word: 'el cumpleaños', translation: 'день рождения', example: '¡Celebramos mi cumpleaños con una torta deliciosa!', example_translation: 'Мы празднуем мой день рождения с вкусным тортом!', pos: 'noun', gender: 'm', image_url: '/spanish/images/vocab/cumpleanos.jpg' }
+    ]
   }
 ];
 
@@ -395,7 +507,7 @@ const FUTURE_REVIEW_DATE = '2099-01-01T00:00:00.000Z';
 
 function seedMaya() {
   const now = new Date().toISOString();
-  console.log(`Starting Maya profile & expanded 200-word (30 groups) curriculum seed...`);
+  console.log(`Starting Maya profile & expanded 250-word (40 groups) curriculum seed...`);
 
   // Ensure image_url column exists in vocabulary
   try {
