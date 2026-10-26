@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { MessageCircle, Phone, Dumbbell, ChevronRight, Sparkles, ArrowRight, Settings } from 'lucide-react';
 import { coachApi } from '../../utils/coachApi';
 import { useProfile } from '../../contexts/ProfileContext';
+import { BooksHomeCard } from '../books/Books';
 import CoachOnboarding from './CoachOnboarding';
 import { Card, CoachPage, ErrorNote, ScoreBar, SectionTitle, Spinner, StatusPill, formatDate, plural } from './CoachUI';
 
@@ -120,6 +121,8 @@ export default function CoachHome() {
             : 'Начни с короткого разговора — 5–10 минут достаточно для первого разбора.'}
         </p>
       </header>
+
+      {activeProfile?.books_enabled && <BooksHomeCard />}
 
       {activeSession && (
         <Link to={`/coach/chat/${activeSession.id}`} className="c-card rounded-2xl px-4 py-3 mb-3 flex items-center justify-between gap-3 hover:opacity-95">

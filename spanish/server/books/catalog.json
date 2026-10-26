@@ -1,0 +1,3545 @@
+{
+  "version": "books-v1-2026-10-25",
+  "books": [
+    {
+      "id": "nivel2",
+      "title": "Español para extranjeros · Nivel 2",
+      "subtitle": "Университет Буэнос-Айреса · 4 раздела и дополнительная практика",
+      "pages": 131,
+      "sha256": "8b4f75a5f61953afdda90bbd4aa50ca3447bf928024332c0959d59a3b8a5ff91"
+    },
+    {
+      "id": "gramatica",
+      "title": "Gramática de uso del español",
+      "subtitle": "A1–B2 · 126 разделов · теория и практика",
+      "pages": 291,
+      "sha256": "57d099289a46cea8a3f942dd6232f0b2c3b4161b99769452f1aee5e2931eb175"
+    }
+  ],
+  "lessons": [
+    {
+      "id": "grammar-001",
+      "book_id": "gramatica",
+      "unit": 1,
+      "title": "Род существительных: люди",
+      "title_es": "el hijo, la hija — Masculino, femenino (1) — padre — hijo",
+      "group": "Основы и слова",
+      "pages": [
+        12,
+        13
+      ],
+      "printed_pages": [
+        10,
+        11
+      ],
+      "spot_keys": [
+        "genero-concordancia"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Род существительных: люди». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-002",
+      "book_id": "gramatica",
+      "unit": 2,
+      "title": "Род существительных: предметы",
+      "title_es": "el libro, la mesa — Masculino, femenino (2) — silla — teléfono",
+      "group": "Основы и слова",
+      "pages": [
+        14,
+        15
+      ],
+      "printed_pages": [
+        12,
+        13
+      ],
+      "spot_keys": [
+        "genero-concordancia"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Род существительных: предметы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-003",
+      "book_id": "gramatica",
+      "unit": 3,
+      "title": "Единственное и множественное число",
+      "title_es": "libro, libros — Singular, plural — libro — reloj",
+      "group": "Основы и слова",
+      "pages": [
+        16,
+        17
+      ],
+      "printed_pages": [
+        14,
+        15
+      ],
+      "spot_keys": [
+        "genero-concordancia"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Единственное и множественное число». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-004",
+      "book_id": "gramatica",
+      "unit": 4,
+      "title": "Неопределённые артикли",
+      "title_es": "4 un, una, unos, unas — El artículo indeterminado — ¿Qué es eso? — Es un reloj. — Una entrada,",
+      "group": "Основы и слова",
+      "pages": [
+        18,
+        19
+      ],
+      "printed_pages": [
+        16,
+        17
+      ],
+      "spot_keys": [
+        "articulos"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Неопределённые артикли». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-005",
+      "book_id": "gramatica",
+      "unit": 5,
+      "title": "Когда артикль не нужен",
+      "title_es": "un coche / coche — Ausencia de artículo — • No se usa un, una, unos, unas detrás de sero hacerse — con nombres de profesión, religión, nacionalidad o ideología",
+      "group": "Основы и слова",
+      "pages": [
+        20,
+        21
+      ],
+      "printed_pages": [
+        18,
+        19
+      ],
+      "spot_keys": [
+        "articulos"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Когда артикль не нужен». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-006",
+      "book_id": "gramatica",
+      "unit": 6,
+      "title": "Определённые артикли",
+      "title_es": "el, la, los, las — El artículo determinado — Mira, la madre — de Antonio.",
+      "group": "Основы и слова",
+      "pages": [
+        22,
+        23
+      ],
+      "printed_pages": [
+        20,
+        21
+      ],
+      "spot_keys": [
+        "articulos"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Определённые артикли». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-007",
+      "book_id": "gramatica",
+      "unit": 7,
+      "title": "Определённый или неопределённый артикль",
+      "title_es": "un perro / el perro — Contraste entre el artículo determinado — y el indeterminado — Compare:",
+      "group": "Основы и слова",
+      "pages": [
+        24,
+        25
+      ],
+      "printed_pages": [
+        22,
+        23
+      ],
+      "spot_keys": [
+        "articulos"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Определённый или неопределённый артикль». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-008",
+      "book_id": "gramatica",
+      "unit": 8,
+      "title": "Артикли с именами и названиями",
+      "title_es": "8 el señor Alonso, la calle Mayor — El artículo determinado con nombres propios — • El, la, los, las con nombres de personas — Se usa el, la, los, las + señor, señora, señorita, do",
+      "group": "Основы и слова",
+      "pages": [
+        26,
+        27
+      ],
+      "printed_pages": [
+        24,
+        25
+      ],
+      "spot_keys": [
+        "articulos"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Артикли с именами и названиями». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-009",
+      "book_id": "gramatica",
+      "unit": 9,
+      "title": "Артикли с датами и количеством",
+      "title_es": "el seis de enero — El artículo determinado con expresiones — de tiempo y de cantidad — • Se usa la, las + horas.",
+      "group": "Основы и слова",
+      "pages": [
+        28,
+        29
+      ],
+      "printed_pages": [
+        26,
+        27
+      ],
+      "spot_keys": [
+        "articulos"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Артикли с датами и количеством». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-010",
+      "book_id": "gramatica",
+      "unit": 10,
+      "title": "Другие употребления артикля",
+      "title_es": "tocar la guitarra — Otros usos del artículo determinado — • Se usa el, la, los, las en los casos siguientes: — - tocar el piano, la guitarra...",
+      "group": "Основы и слова",
+      "pages": [
+        30,
+        31
+      ],
+      "printed_pages": [
+        28,
+        29
+      ],
+      "spot_keys": [
+        "articulos"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Другие употребления артикля». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-011",
+      "book_id": "gramatica",
+      "unit": 11,
+      "title": "Когда существительное опускается",
+      "title_es": "el rojo, uno rojo — Omisión del nombre — ¿Qué — sombrero",
+      "group": "Основы и слова",
+      "pages": [
+        32,
+        33
+      ],
+      "printed_pages": [
+        30,
+        31
+      ],
+      "spot_keys": [
+        "articulos"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Когда существительное опускается». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-012",
+      "book_id": "gramatica",
+      "unit": 12,
+      "title": "Указательные слова: este, ese, aquel",
+      "title_es": "este, ese, aquel... — Demostrativos — Quiero — este libro.",
+      "group": "Основы и слова",
+      "pages": [
+        34,
+        35
+      ],
+      "printed_pages": [
+        32,
+        33
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Указательные слова: este, ese, aquel». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-013",
+      "book_id": "gramatica",
+      "unit": 13,
+      "title": "Прилагательные и согласование",
+      "title_es": "un coche pequeño — Adjetivos calificativos — Rosi es — alta.",
+      "group": "Основы и слова",
+      "pages": [
+        36,
+        37
+      ],
+      "printed_pages": [
+        34,
+        35
+      ],
+      "spot_keys": [
+        "genero-concordancia"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Прилагательные и согласование». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-014",
+      "book_id": "gramatica",
+      "unit": 14,
+      "title": "Национальности",
+      "title_es": "una amiga chilena — Adjetivos de nacionalidad — Esta es Elsa, una amiga chilena — ¿De dónde sois?",
+      "group": "Основы и слова",
+      "pages": [
+        38,
+        39
+      ],
+      "printed_pages": [
+        36,
+        37
+      ],
+      "spot_keys": [
+        "genero-concordancia"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Национальности». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-015",
+      "book_id": "gramatica",
+      "unit": 15,
+      "title": "Сравнения: más и menos",
+      "title_es": "más caro, menos trabajador — Forma comparativa de los adjetivos (1) — Relomátic — 120 €",
+      "group": "Основы и слова",
+      "pages": [
+        40,
+        41
+      ],
+      "printed_pages": [
+        38,
+        39
+      ],
+      "spot_keys": [
+        "comparativos"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Сравнения: más и menos». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-016",
+      "book_id": "gramatica",
+      "unit": 16,
+      "title": "Сравнения: tan и igual de",
+      "title_es": "tan alto, igual de alto — Forma comparativa de los adjetivos (2) — Martín — Carlos",
+      "group": "Основы и слова",
+      "pages": [
+        42,
+        43
+      ],
+      "printed_pages": [
+        40,
+        41
+      ],
+      "spot_keys": [
+        "comparativos"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Сравнения: tan и igual de». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-017",
+      "book_id": "gramatica",
+      "unit": 17,
+      "title": "Превосходная степень",
+      "title_es": "17 la más alta, el menos trabajador — Superlativo — 2 LOTON — Los más cómados — Carla es la más alta",
+      "group": "Основы и слова",
+      "pages": [
+        44,
+        45
+      ],
+      "printed_pages": [
+        42,
+        43
+      ],
+      "spot_keys": [
+        "comparativos"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Превосходная степень». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-018",
+      "book_id": "gramatica",
+      "unit": 18,
+      "title": "Притяжательные: mi, tu, su",
+      "title_es": "¿Cual es — tu coche? — mi, tu, su... — Posesivos (1)",
+      "group": "Основы и слова",
+      "pages": [
+        46,
+        47
+      ],
+      "printed_pages": [
+        44,
+        45
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Притяжательные: mi, tu, su». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-019",
+      "book_id": "gramatica",
+      "unit": 19,
+      "title": "Притяжательные: mío, tuyo, suyo",
+      "title_es": "mío, tuyo, suyo... — Posesivos (2) — ¿De quién es — esta maleta?",
+      "group": "Основы и слова",
+      "pages": [
+        48,
+        49
+      ],
+      "printed_pages": [
+        46,
+        47
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Притяжательные: mío, tuyo, suyo». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-020",
+      "book_id": "gramatica",
+      "unit": 20,
+      "title": "Todos, algunos, ninguno",
+      "title_es": "todos, algunos, unos, ninguno... — Indefinidos (1) — Todos los niños — Algunos niños",
+      "group": "Основы и слова",
+      "pages": [
+        50,
+        51
+      ],
+      "printed_pages": [
+        48,
+        49
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Todos, algunos, ninguno». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-021",
+      "book_id": "gramatica",
+      "unit": 21,
+      "title": "Uno, otro, cualquiera",
+      "title_es": "uno, otro, cualquiera — Indefinidos (2) — • un, una, unos, unas • UNIDAD 20: Indefinidos (1) — un, una = un elemento indeterminado, no se dice cuál. Necesito un móvil nuevo.",
+      "group": "Основы и слова",
+      "pages": [
+        52,
+        53
+      ],
+      "printed_pages": [
+        50,
+        51
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Uno, otro, cualquiera». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-022",
+      "book_id": "gramatica",
+      "unit": 22,
+      "title": "Mucho, poco, demasiado",
+      "title_es": "22 mucho, poco, demasiado, suficiente... — Indefinidos (3) — 61 * — ENTRADA — 5 EUROS",
+      "group": "Основы и слова",
+      "pages": [
+        54,
+        55
+      ],
+      "printed_pages": [
+        52,
+        53
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Mucho, poco, demasiado». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-023",
+      "book_id": "gramatica",
+      "unit": 23,
+      "title": "Alguien, algo, nadie, nada",
+      "title_es": "23 alguien, algo, nadie, nada — Indefinidos (4) — Hay alguien detrás — de la puerta. — No hay nadie detrás",
+      "group": "Основы и слова",
+      "pages": [
+        56,
+        57
+      ],
+      "printed_pages": [
+        54,
+        55
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Alguien, algo, nadie, nada». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-024",
+      "book_id": "gramatica",
+      "unit": 24,
+      "title": "Сравнение количества",
+      "title_es": "24 más, menos, tanto — Comparación con nombres — Hoy no tengo — tanto trabajo — como ayer.",
+      "group": "Основы и слова",
+      "pages": [
+        58,
+        59
+      ],
+      "printed_pages": [
+        56,
+        57
+      ],
+      "spot_keys": [
+        "comparativos"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Сравнение количества». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-025",
+      "book_id": "gramatica",
+      "unit": 25,
+      "title": "Числа: uno, dos, tres",
+      "title_es": "uno, dos, tres... — Números cardinales (1) — • Números cardinales 0-99 — 1",
+      "group": "Основы и слова",
+      "pages": [
+        60,
+        61
+      ],
+      "printed_pages": [
+        58,
+        59
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Числа: uno, dos, tres». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-026",
+      "book_id": "gramatica",
+      "unit": 26,
+      "title": "Числа: cien, mil, un millón",
+      "title_es": "cien, mil, un millón... — Números cardinales (2) — • Números cardinales: 100, 1 000... — 100",
+      "group": "Основы и слова",
+      "pages": [
+        62,
+        63
+      ],
+      "printed_pages": [
+        60,
+        61
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Числа: cien, mil, un millón». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-027",
+      "book_id": "gramatica",
+      "unit": 27,
+      "title": "Порядковые числительные",
+      "title_es": "primero, segundo, tercero... — Números ordinales — Yo vivo alli, en — el cuarto piso",
+      "group": "Основы и слова",
+      "pages": [
+        64,
+        65
+      ],
+      "printed_pages": [
+        62,
+        63
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Порядковые числительные». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-028",
+      "book_id": "gramatica",
+      "unit": 28,
+      "title": "Относительные: que, quien",
+      "title_es": "28 que, el que, quien... — Relativos (1) — ¿Has visto el paquete — El chico con el que sale Nieves — es bombero.",
+      "group": "Основы и слова",
+      "pages": [
+        66,
+        67
+      ],
+      "printed_pages": [
+        64,
+        65
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Относительные: que, quien». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-029",
+      "book_id": "gramatica",
+      "unit": 29,
+      "title": "Cuyo, donde, cuando",
+      "title_es": "cuyo, donde, cuando... — Relativos (2) — Esa es la persona cuyo perro ganó el concurso. — • Se usa cuyo, cuya, cuyos, cuyas para indicar posesión y otro tipo de relaciones: parente",
+      "group": "Основы и слова",
+      "pages": [
+        68,
+        69
+      ],
+      "printed_pages": [
+        66,
+        67
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Cuyo, donde, cuando». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-030",
+      "book_id": "gramatica",
+      "unit": 30,
+      "title": "Вопросы: quién и qué",
+      "title_es": "¿quién?, ¿qué?... — Interrogativos (1) — ¿Quién vive — en esa casa?",
+      "group": "Основы и слова",
+      "pages": [
+        70,
+        71
+      ],
+      "printed_pages": [
+        68,
+        69
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Вопросы: quién и qué». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-031",
+      "book_id": "gramatica",
+      "unit": 31,
+      "title": "Вопросы: cuál и qué",
+      "title_es": "¿cuál?, ¿qué? — Interrogativos (2) — ¿Cuál es tu coche? — El que tiene muchas pegatinas.",
+      "group": "Основы и слова",
+      "pages": [
+        72,
+        73
+      ],
+      "printed_pages": [
+        70,
+        71
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Вопросы: cuál и qué». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-032",
+      "book_id": "gramatica",
+      "unit": 32,
+      "title": "Вопросы: cuándo и dónde",
+      "title_es": "¿cuándo?, ¿dónde?... — Interrogativos (3) — • Se usa dónde para pedir información sobre un lugar. — dónde",
+      "group": "Основы и слова",
+      "pages": [
+        74,
+        75
+      ],
+      "printed_pages": [
+        72,
+        73
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Вопросы: cuándo и dónde». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-033",
+      "book_id": "gramatica",
+      "unit": 33,
+      "title": "Восклицания",
+      "title_es": "¡qué!, icuánto!, icómo!... — Exclamativos — ¡Qué alegria! ¡Cuánto tiempo — sin vernos!",
+      "group": "Основы и слова",
+      "pages": [
+        76,
+        77
+      ],
+      "printed_pages": [
+        74,
+        75
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Восклицания». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-034",
+      "book_id": "gramatica",
+      "unit": 34,
+      "title": "Личные местоимения",
+      "title_es": "yo, tú, él... — Pronombres personales de sujeto — tu — tú",
+      "group": "Местоимения",
+      "pages": [
+        78,
+        79
+      ],
+      "printed_pages": [
+        76,
+        77
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Личные местоимения». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-035",
+      "book_id": "gramatica",
+      "unit": 35,
+      "title": "Прямое дополнение: lo, la, los, las",
+      "title_es": "Te amo — Pronombres personales de complemento — directo — (¿Me amas,",
+      "group": "Местоимения",
+      "pages": [
+        80,
+        81
+      ],
+      "printed_pages": [
+        78,
+        79
+      ],
+      "spot_keys": [
+        "pronombres-objeto"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Прямое дополнение: lo, la, los, las». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-036",
+      "book_id": "gramatica",
+      "unit": 36,
+      "title": "Косвенное дополнение: me, te, le",
+      "title_es": "Me han regalado un reloj — Pronombres personales de complemento — indirecto — ¿Que te ha",
+      "group": "Местоимения",
+      "pages": [
+        82,
+        83
+      ],
+      "printed_pages": [
+        80,
+        81
+      ],
+      "spot_keys": [
+        "pronombres-objeto"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Косвенное дополнение: me, te, le». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-037",
+      "book_id": "gramatica",
+      "unit": 37,
+      "title": "Два местоимения: se lo",
+      "title_es": "Se lo he dado. Te lo he dado — Pronombres de complemento indirecto — y directo — ¡Que corbata",
+      "group": "Местоимения",
+      "pages": [
+        84,
+        85
+      ],
+      "printed_pages": [
+        82,
+        83
+      ],
+      "spot_keys": [
+        "pronombres-objeto"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Два местоимения: se lo». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-038",
+      "book_id": "gramatica",
+      "unit": 38,
+      "title": "Как различать lo, la и le",
+      "title_es": "lo/la/le — Confusión entre pronombres personales — de complemento — • Lo, la, los, las se usan como complemento directo de un verbo",
+      "group": "Местоимения",
+      "pages": [
+        86,
+        87
+      ],
+      "printed_pages": [
+        84,
+        85
+      ],
+      "spot_keys": [
+        "pronombres-objeto"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Как различать lo, la и le». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-039",
+      "book_id": "gramatica",
+      "unit": 39,
+      "title": "Местоимения с разными формами глагола",
+      "title_es": "ámame, dámelo — Pronombres de complemento con — el imperativo; el infinitivo y el gerundio — • Pronombres de complemento con el imperativo afirmativo",
+      "group": "Местоимения",
+      "pages": [
+        88,
+        89
+      ],
+      "printed_pages": [
+        86,
+        87
+      ],
+      "spot_keys": [
+        "pronombres-objeto"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Местоимения с разными формами глагола». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-040",
+      "book_id": "gramatica",
+      "unit": 40,
+      "title": "Возвратные и взаимные действия",
+      "title_es": "me ducho, nos queremos — Pronombres reflexivos y con valor recíproco — Me ducho — todos los días.",
+      "group": "Местоимения",
+      "pages": [
+        90,
+        91
+      ],
+      "printed_pages": [
+        88,
+        89
+      ],
+      "spot_keys": [
+        "verbos-pronominales"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Возвратные и взаимные действия». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-041",
+      "book_id": "gramatica",
+      "unit": 41,
+      "title": "Местоимения после предлогов",
+      "title_es": "para mí, contigo... — Pronombres personales con preposiciones — Toma. — Es para ti",
+      "group": "Местоимения",
+      "pages": [
+        92,
+        93
+      ],
+      "printed_pages": [
+        90,
+        91
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Местоимения после предлогов». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-042",
+      "book_id": "gramatica",
+      "unit": 42,
+      "title": "Ser в настоящем времени",
+      "title_es": "soy, eres, es... — Presente de indicativo de ser — • Ser: presente de indicativo — ser",
+      "group": "Глаголы и времена",
+      "pages": [
+        94,
+        95
+      ],
+      "printed_pages": [
+        92,
+        93
+      ],
+      "spot_keys": [
+        "ser-estar"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Ser в настоящем времени». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-043",
+      "book_id": "gramatica",
+      "unit": 43,
+      "title": "Estar в настоящем времени",
+      "title_es": "estoy, estás, está... — Presente de indicativo de estar — Estoy — en Sevilla.",
+      "group": "Глаголы и времена",
+      "pages": [
+        96,
+        97
+      ],
+      "printed_pages": [
+        94,
+        95
+      ],
+      "spot_keys": [
+        "ser-estar"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Estar в настоящем времени». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-044",
+      "book_id": "gramatica",
+      "unit": 44,
+      "title": "Ser или estar",
+      "title_es": "soy alegre / estoy alegre — Contraste entre ser y estar — Compare: — SER",
+      "group": "Глаголы и времена",
+      "pages": [
+        98,
+        99
+      ],
+      "printed_pages": [
+        96,
+        97
+      ],
+      "spot_keys": [
+        "ser-estar"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Ser или estar». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-045",
+      "book_id": "gramatica",
+      "unit": 45,
+      "title": "Tener в настоящем времени",
+      "title_es": "tengo, tienes, tiene... — Presente de indicativo de tener — ¿Tienes dinero? — Es tarde.",
+      "group": "Глаголы и времена",
+      "pages": [
+        100,
+        101
+      ],
+      "printed_pages": [
+        98,
+        99
+      ],
+      "spot_keys": [
+        "conjugacion-presente"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Tener в настоящем времени». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-046",
+      "book_id": "gramatica",
+      "unit": 46,
+      "title": "Hay: что есть вокруг",
+      "title_es": "Hay un vaso en la mesa — Presente de indicativo de haber impersonal — Hay un vaso en la mesa. — Hay cinco alumnos en clase.",
+      "group": "Глаголы и времена",
+      "pages": [
+        102,
+        103
+      ],
+      "printed_pages": [
+        100,
+        101
+      ],
+      "spot_keys": [
+        "hay-estar"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Hay: что есть вокруг». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-047",
+      "book_id": "gramatica",
+      "unit": 47,
+      "title": "Hay или está",
+      "title_es": "Hay un cine. Está en la calle Mayor — Contraste entre haber y estar — Compare: — HAY",
+      "group": "Глаголы и времена",
+      "pages": [
+        104,
+        105
+      ],
+      "printed_pages": [
+        102,
+        103
+      ],
+      "spot_keys": [
+        "hay-estar"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Hay или está». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-048",
+      "book_id": "gramatica",
+      "unit": 48,
+      "title": "Правильные глаголы в настоящем",
+      "title_es": "trabajo, como, vivo... — Presente de indicativo: verbos regulares — ¿Y dónde vives ahora? — Perdone.",
+      "group": "Глаголы и времена",
+      "pages": [
+        106,
+        107
+      ],
+      "printed_pages": [
+        104,
+        105
+      ],
+      "spot_keys": [
+        "conjugacion-presente"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Правильные глаголы в настоящем». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-049",
+      "book_id": "gramatica",
+      "unit": 49,
+      "title": "Настоящее: изменение корня",
+      "title_es": "quiero, mido, sueño... — Presente de indicativo: verbos irregulares (1) — Formación del presente de indicativo: verbos irregulares — • e → ie",
+      "group": "Глаголы и времена",
+      "pages": [
+        108,
+        109
+      ],
+      "printed_pages": [
+        106,
+        107
+      ],
+      "spot_keys": [
+        "conjugacion-presente"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Настоящее: изменение корня». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-050",
+      "book_id": "gramatica",
+      "unit": 50,
+      "title": "Настоящее: voy, hago, conozco",
+      "title_es": "voy, hago, conozco... — Presente de indicativo: verbos irregulares (2) — Formación del presente de indicativo: verbos irregulares — • Primera persona del singular (yo) irregular",
+      "group": "Глаголы и времена",
+      "pages": [
+        110,
+        111
+      ],
+      "printed_pages": [
+        108,
+        109
+      ],
+      "spot_keys": [
+        "conjugacion-presente"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Настоящее: voy, hago, conozco». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-051",
+      "book_id": "gramatica",
+      "unit": 51,
+      "title": "Другие значения настоящего времени",
+      "title_es": "51 Mañana voy al médico — Presente de indicativo: otros usos — • Usos del presente de indicativo • UNIDAD 48: Presente de indicativo: verbos regulares — • Otros usos del presente d",
+      "group": "Глаголы и времена",
+      "pages": [
+        112,
+        113
+      ],
+      "printed_pages": [
+        110,
+        111
+      ],
+      "spot_keys": [
+        "conjugacion-presente"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Другие значения настоящего времени». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-052",
+      "book_id": "gramatica",
+      "unit": 52,
+      "title": "Hace и desde: как давно",
+      "title_es": "1998 — Vivo en México desde 1998 — Presente para expresar períodos de tiempo — AHORA",
+      "group": "Глаголы и времена",
+      "pages": [
+        114,
+        115
+      ],
+      "printed_pages": [
+        112,
+        113
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Hace и desde: как давно». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-053",
+      "book_id": "gramatica",
+      "unit": 53,
+      "title": "Возвратные глаголы",
+      "title_es": "me levanto — Verbos con me, te, se... (1) — • Verbos regulares con se: presente de indicativo — UNIDAD 49: Presente de indicativo: verbos irregulares (1) UNIDAD 50: Presente de ind",
+      "group": "Глаголы и времена",
+      "pages": [
+        116,
+        117
+      ],
+      "printed_pages": [
+        114,
+        115
+      ],
+      "spot_keys": [
+        "verbos-pronominales"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Возвратные глаголы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-054",
+      "book_id": "gramatica",
+      "unit": 54,
+      "title": "Глаголы с se и без se",
+      "title_es": "me lavo / lavo — Contraste entre verbos con y sin me, te, se... — Compare: — VERBOS SIN ME, TE, SE...",
+      "group": "Глаголы и времена",
+      "pages": [
+        118,
+        119
+      ],
+      "printed_pages": [
+        116,
+        117
+      ],
+      "spot_keys": [
+        "verbos-pronominales"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Глаголы с se и без se». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-055",
+      "book_id": "gramatica",
+      "unit": 55,
+      "title": "Gustar, encantar, doler",
+      "title_es": "Me gusta la ópera — Verbos con me, te, le... — • Gustar, encantar: presente de indicativo — (a mi)",
+      "group": "Глаголы и времена",
+      "pages": [
+        120,
+        121
+      ],
+      "printed_pages": [
+        118,
+        119
+      ],
+      "spot_keys": [
+        "verbos-gustar"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Gustar, encantar, doler». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-056",
+      "book_id": "gramatica",
+      "unit": 56,
+      "title": "Estar + gerundio",
+      "title_es": "Estoy viendo las noticias — Presente de estar + gerundio — ¿Qué estás — haciendo?",
+      "group": "Глаголы и времена",
+      "pages": [
+        122,
+        123
+      ],
+      "printed_pages": [
+        120,
+        121
+      ],
+      "spot_keys": [
+        "perifrasis"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Estar + gerundio». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-057",
+      "book_id": "gramatica",
+      "unit": 57,
+      "title": "Hago или estoy haciendo",
+      "title_es": "57 hago / estoy haciendo — Contraste entre presente de indicativo — y estar + gerundio — Compare: — PRESENTE DE INDICATIVO",
+      "group": "Глаголы и времена",
+      "pages": [
+        124,
+        125
+      ],
+      "printed_pages": [
+        122,
+        123
+      ],
+      "spot_keys": [
+        "perifrasis"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Hago или estoy haciendo». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-058",
+      "book_id": "gramatica",
+      "unit": 58,
+      "title": "Indefinido: правильные глаголы",
+      "title_es": "trabajé, comí, viví.. — Pretérito indefinido: verbos regulares — ¿Saliste anoche? — No, me quede en casa. Vi un poco la tele.",
+      "group": "Глаголы и времена",
+      "pages": [
+        126,
+        127
+      ],
+      "printed_pages": [
+        124,
+        125
+      ],
+      "spot_keys": [
+        "preterito-irregulares"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Indefinido: правильные глаголы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-059",
+      "book_id": "gramatica",
+      "unit": 59,
+      "title": "Indefinido: неправильные глаголы",
+      "title_es": "durmió, leyó, hizo... — Pretérito indefinido: verbos irregulares — Formación del pretérito indefinido: verbos irregulares — • Segunda persona de cortesía (usted, ustedes) y tercera",
+      "group": "Глаголы и времена",
+      "pages": [
+        128,
+        129
+      ],
+      "printed_pages": [
+        126,
+        127
+      ],
+      "spot_keys": [
+        "preterito-irregulares"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Indefinido: неправильные глаголы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-060",
+      "book_id": "gramatica",
+      "unit": 60,
+      "title": "Pretérito perfecto: образование",
+      "title_es": "he trabajado — Pretérito perfecto de indicativo (1) — 6:30 — Hoy he tenido un dia agotador. Me he levantado",
+      "group": "Глаголы и времена",
+      "pages": [
+        130,
+        131
+      ],
+      "printed_pages": [
+        128,
+        129
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Pretérito perfecto: образование». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-061",
+      "book_id": "gramatica",
+      "unit": 61,
+      "title": "Pretérito perfecto: употребление",
+      "title_es": "He viajado mucho — Pretérito perfecto de indicativo (2) — • Se usa el pretérito perfecto de indicativo para hablar de experiencias pasadas, sin decir cuán- — do sucedieron. Informa",
+      "group": "Глаголы и времена",
+      "pages": [
+        132,
+        133
+      ],
+      "printed_pages": [
+        130,
+        131
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Pretérito perfecto: употребление». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-062",
+      "book_id": "gramatica",
+      "unit": 62,
+      "title": "Perfecto или indefinido",
+      "title_es": "he trabajado / trabajé — Contraste entre pretérito perfecto — y pretérito indefinido — Compare:",
+      "group": "Глаголы и времена",
+      "pages": [
+        134,
+        135
+      ],
+      "printed_pages": [
+        132,
+        133
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Perfecto или indefinido». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-063",
+      "book_id": "gramatica",
+      "unit": 63,
+      "title": "Imperfecto: привычки и описания",
+      "title_es": "trabajaba, comía, vivía — Pretérito imperfecto — Cuando era joven, trabajaba en un laboratorio. — Los incas cultivaban maíz y papas.",
+      "group": "Глаголы и времена",
+      "pages": [
+        136,
+        137
+      ],
+      "printed_pages": [
+        134,
+        135
+      ],
+      "spot_keys": [
+        "preterito-vs-imperfecto"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Imperfecto: привычки и описания». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-064",
+      "book_id": "gramatica",
+      "unit": 64,
+      "title": "Indefinido или imperfecto",
+      "title_es": "trabajé/trabajaba — Contraste entre pretérito indefinido — y pretérito imperfecto — Compare:",
+      "group": "Глаголы и времена",
+      "pages": [
+        138,
+        139
+      ],
+      "printed_pages": [
+        136,
+        137
+      ],
+      "spot_keys": [
+        "preterito-vs-imperfecto"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Indefinido или imperfecto». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-065",
+      "book_id": "gramatica",
+      "unit": 65,
+      "title": "Estaba haciendo или hice",
+      "title_es": "estaba trabajando / trabajé — Estaba+gerundio y contraste con el pretérito — indefinido — • Pretérito imperfecto de estar + gerundio del verbo",
+      "group": "Глаголы и времена",
+      "pages": [
+        140,
+        141
+      ],
+      "printed_pages": [
+        138,
+        139
+      ],
+      "spot_keys": [
+        "preterito-vs-imperfecto"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Estaba haciendo или hice». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-066",
+      "book_id": "gramatica",
+      "unit": 66,
+      "title": "Pluscuamperfecto: что было раньше",
+      "title_es": "había trabajado — Pretérito pluscuamperfecto — HINAY 14.15 — 8.",
+      "group": "Глаголы и времена",
+      "pages": [
+        142,
+        143
+      ],
+      "printed_pages": [
+        140,
+        141
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Pluscuamperfecto: что было раньше». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-067",
+      "book_id": "gramatica",
+      "unit": 67,
+      "title": "Будущее: правильные глаголы",
+      "title_es": "trabajaré, comeré, viviré — Futuro simple: verbos regulares — Llegaremos a Caracas a las — cuatro y cuarto hora local",
+      "group": "Глаголы и времена",
+      "pages": [
+        144,
+        145
+      ],
+      "printed_pages": [
+        142,
+        143
+      ],
+      "spot_keys": [
+        "futuro-planes"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Будущее: правильные глаголы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-068",
+      "book_id": "gramatica",
+      "unit": 68,
+      "title": "Будущее: неправильные глаголы",
+      "title_es": "habré, podré... — Futuro simple: verbos irregulares — • Formación del futuro simple: verbos irregulares — haber →",
+      "group": "Глаголы и времена",
+      "pages": [
+        146,
+        147
+      ],
+      "printed_pages": [
+        144,
+        145
+      ],
+      "spot_keys": [
+        "futuro-planes"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Будущее: неправильные глаголы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-069",
+      "book_id": "gramatica",
+      "unit": 69,
+      "title": "Планы: ir a + infinitivo",
+      "title_es": "voy a salir... — Presente de ir a + infinitivo — Voy a salir con unos — amigos",
+      "group": "Глаголы и времена",
+      "pages": [
+        148,
+        149
+      ],
+      "printed_pages": [
+        146,
+        147
+      ],
+      "spot_keys": [
+        "futuro-planes"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Планы: ir a + infinitivo». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-070",
+      "book_id": "gramatica",
+      "unit": 70,
+      "title": "Три способа говорить о будущем",
+      "title_es": "haré / hago / voy a hacer — Contraste entre las diversas formas — de hablar del futuro — Compare:",
+      "group": "Глаголы и времена",
+      "pages": [
+        150,
+        151
+      ],
+      "printed_pages": [
+        148,
+        149
+      ],
+      "spot_keys": [
+        "futuro-planes"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Три способа говорить о будущем». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-071",
+      "book_id": "gramatica",
+      "unit": 71,
+      "title": "Condicional: правильные глаголы",
+      "title_es": "trabajaría, comería, viviría — Condicional simple: verbos regulares — Está buena, pero estaría mejor — n menos se",
+      "group": "Глаголы и времена",
+      "pages": [
+        152,
+        153
+      ],
+      "printed_pages": [
+        150,
+        151
+      ],
+      "spot_keys": [
+        "condicional"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Condicional: правильные глаголы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-072",
+      "book_id": "gramatica",
+      "unit": 72,
+      "title": "Condicional: неправильные глаголы",
+      "title_es": "72 habría, podría... — Condicional simple: verbos irregulares — • Formación del condicional simple: verbos irregulares — haber →",
+      "group": "Глаголы и времена",
+      "pages": [
+        154,
+        155
+      ],
+      "printed_pages": [
+        152,
+        153
+      ],
+      "spot_keys": [
+        "condicional"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Condicional: неправильные глаголы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-073",
+      "book_id": "gramatica",
+      "unit": 73,
+      "title": "Утвердительные просьбы и команды",
+      "title_es": "Abre la ventana — Imperativo afirmativo: verbos regulares — Abrid el libro — en la página diez",
+      "group": "Глаголы и времена",
+      "pages": [
+        156,
+        157
+      ],
+      "printed_pages": [
+        154,
+        155
+      ],
+      "spot_keys": [
+        "imperativo"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Утвердительные просьбы и команды». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-074",
+      "book_id": "gramatica",
+      "unit": 74,
+      "title": "Отрицательные просьбы и команды",
+      "title_es": "74 No abras la ventana — Imperativo negativo: verbos regulares — ¡No toques eso! — Es peligroso. — No abras la ventana, por favor.",
+      "group": "Глаголы и времена",
+      "pages": [
+        158,
+        159
+      ],
+      "printed_pages": [
+        156,
+        157
+      ],
+      "spot_keys": [
+        "imperativo"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Отрицательные просьбы и команды». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-075",
+      "book_id": "gramatica",
+      "unit": 75,
+      "title": "Imperativo: изменение корня",
+      "title_es": "Cierra la ventana — Imperativo: verbos irregulares (1) — Formación del imperativo: algunos verbos irregulares — • e → i",
+      "group": "Глаголы и времена",
+      "pages": [
+        160,
+        161
+      ],
+      "printed_pages": [
+        158,
+        159
+      ],
+      "spot_keys": [
+        "imperativo"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Imperativo: изменение корня». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-076",
+      "book_id": "gramatica",
+      "unit": 76,
+      "title": "Imperativo: pon, ven, di",
+      "title_es": "Pon la mesa — Imperativo: verbos irregulares (2) — • Formación del imperativo: otros verbos irregulares — - decir:",
+      "group": "Глаголы и времена",
+      "pages": [
+        162,
+        163
+      ],
+      "printed_pages": [
+        160,
+        161
+      ],
+      "spot_keys": [
+        "imperativo"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Imperativo: pon, ven, di». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-077",
+      "book_id": "gramatica",
+      "unit": 77,
+      "title": "Повелительное наклонение с se",
+      "title_es": "lávate — Imperativos de verbos con se — ¡Lávate ahora mismo! — • Imperativo: verbos regulares con se",
+      "group": "Глаголы и времена",
+      "pages": [
+        164,
+        165
+      ],
+      "printed_pages": [
+        162,
+        163
+      ],
+      "spot_keys": [
+        "imperativo"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Повелительное наклонение с se». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-078",
+      "book_id": "gramatica",
+      "unit": 78,
+      "title": "Повелительное наклонение с местоимениями",
+      "title_es": "78 dámelo, no me lo des — Imperativo con pronombres de complemento — • Pronombres de complemento directo (CD) con el imperativo — UNIDAD 35: Pronombres personales de complemento di",
+      "group": "Глаголы и времена",
+      "pages": [
+        166,
+        167
+      ],
+      "printed_pages": [
+        164,
+        165
+      ],
+      "spot_keys": [
+        "imperativo"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Повелительное наклонение с местоимениями». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-079",
+      "book_id": "gramatica",
+      "unit": 79,
+      "title": "Subjuntivo: правильные глаголы",
+      "title_es": "79 trabaje, coma, viva — Presente de subjuntivo: verbos regulares — ¿Dónde está Pepe? — Este es tu despacho. Espero que — No me gusta que comáis nada",
+      "group": "Глаголы и времена",
+      "pages": [
+        168,
+        169
+      ],
+      "printed_pages": [
+        166,
+        167
+      ],
+      "spot_keys": [
+        "subjuntivo-deseo"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Subjuntivo: правильные глаголы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-080",
+      "book_id": "gramatica",
+      "unit": 80,
+      "title": "Subjuntivo: изменение корня",
+      "title_es": "quiera, juegue... — Presente de subjuntivo: verbos irregulares (1) — • Formación del presente de subjuntivo: verbos irregulares — e → ie/e",
+      "group": "Глаголы и времена",
+      "pages": [
+        170,
+        171
+      ],
+      "printed_pages": [
+        168,
+        169
+      ],
+      "spot_keys": [
+        "subjuntivo-deseo"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Subjuntivo: изменение корня». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-081",
+      "book_id": "gramatica",
+      "unit": 81,
+      "title": "Subjuntivo: conozca, diga, vaya",
+      "title_es": "conozca, diga, vaya... — Presente de subjuntivo: verbos irregulares (2) — Ven, quiero — que conozcas a Teresa.",
+      "group": "Глаголы и времена",
+      "pages": [
+        172,
+        173
+      ],
+      "printed_pages": [
+        170,
+        171
+      ],
+      "spot_keys": [
+        "subjuntivo-deseo"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Subjuntivo: conozca, diga, vaya». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-082",
+      "book_id": "gramatica",
+      "unit": 82,
+      "title": "Imperfecto de subjuntivo: правильные глаголы",
+      "title_es": "trabajara, comiera, viviera — Pretérito imperfecto de subjuntivo: — verbos regulares — ¿Estás libre este domingo?",
+      "group": "Глаголы и времена",
+      "pages": [
+        174,
+        175
+      ],
+      "printed_pages": [
+        172,
+        173
+      ],
+      "spot_keys": [
+        "si-hipotetico"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Imperfecto de subjuntivo: правильные глаголы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-083",
+      "book_id": "gramatica",
+      "unit": 83,
+      "title": "Imperfecto de subjuntivo: неправильные глаголы",
+      "title_es": "fuera, tuviera... — Pretérito imperfecto de subjuntivo: — verbos irregulares — • Formación del pretérito imperfecto de subjuntivo: verbos irregulares",
+      "group": "Глаголы и времена",
+      "pages": [
+        176,
+        177
+      ],
+      "printed_pages": [
+        174,
+        175
+      ],
+      "spot_keys": [
+        "si-hipotetico"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Imperfecto de subjuntivo: неправильные глаголы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-084",
+      "book_id": "gramatica",
+      "unit": 84,
+      "title": "Желания: quiero que",
+      "title_es": "Quiero que me ayudes — Expresión de deseos — Para expresar deseos, se pueden usar las siguientes construcciones: — • Algunos verbos o expresiones que indican deseo + infinitivo o s",
+      "group": "Глаголы и времена",
+      "pages": [
+        178,
+        179
+      ],
+      "printed_pages": [
+        176,
+        177
+      ],
+      "spot_keys": [
+        "subjuntivo-deseo"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Желания: quiero que». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-085",
+      "book_id": "gramatica",
+      "unit": 85,
+      "title": "Вероятность: quizás",
+      "title_es": "Quizás lo haga — Expresión de probabilidad — Para expresar probabilidad, se pueden usar las siguientes construcciones: — • Algunas expresiones que indican diferentes grados de prob",
+      "group": "Глаголы и времена",
+      "pages": [
+        180,
+        181
+      ],
+      "printed_pages": [
+        178,
+        179
+      ],
+      "spot_keys": [
+        "subjuntivo-emocion-opinion"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Вероятность: quizás». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-086",
+      "book_id": "gramatica",
+      "unit": 86,
+      "title": "Чувства и оценки: me gusta que",
+      "title_es": "Me gusta que venga a casa — Expresión de emociones, sentimientos — y valoraciones — • Para expresar diversos sentimientos y emociones como agrado, desagrado, alegría, sorpresa,",
+      "group": "Глаголы и времена",
+      "pages": [
+        182,
+        183
+      ],
+      "printed_pages": [
+        180,
+        181
+      ],
+      "spot_keys": [
+        "subjuntivo-emocion-opinion"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Чувства и оценки: me gusta que». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-087",
+      "book_id": "gramatica",
+      "unit": 87,
+      "title": "Creo que или no creo que",
+      "title_es": "Creo que es... / No creo que sea... — Contraste entre indicativo y subjuntivo — Compare: — INDICATIVO",
+      "group": "Глаголы и времена",
+      "pages": [
+        184,
+        185
+      ],
+      "printed_pages": [
+        182,
+        183
+      ],
+      "spot_keys": [
+        "subjuntivo-emocion-opinion"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Creo que или no creo que». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-088",
+      "book_id": "gramatica",
+      "unit": 88,
+      "title": "Косвенная речь: утверждения",
+      "title_es": "Dice que vive... Dijo que vivía... — Estilo indirecto (1) — Soy Martin. — No puedo ir. Tengo",
+      "group": "Глаголы и времена",
+      "pages": [
+        186,
+        187
+      ],
+      "printed_pages": [
+        184,
+        185
+      ],
+      "spot_keys": [
+        "estilo-indirecto"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Косвенная речь: утверждения». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-089",
+      "book_id": "gramatica",
+      "unit": 89,
+      "title": "Косвенная речь: вопросы",
+      "title_es": "Me preguntó dónde vivía — Estilo indirecto (2) — 50 4 — Arturo, soy Fede.",
+      "group": "Глаголы и времена",
+      "pages": [
+        188,
+        189
+      ],
+      "printed_pages": [
+        186,
+        187
+      ],
+      "spot_keys": [
+        "estilo-indirecto"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Косвенная речь: вопросы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-090",
+      "book_id": "gramatica",
+      "unit": 90,
+      "title": "Косвенная речь: просьбы",
+      "title_es": "Me pidió que le ayudara — Estilo indirecto (3) — Dile a Jaime — que venga.",
+      "group": "Глаголы и времена",
+      "pages": [
+        190,
+        191
+      ],
+      "printed_pages": [
+        188,
+        189
+      ],
+      "spot_keys": [
+        "estilo-indirecto"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Косвенная речь: просьбы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-091",
+      "book_id": "gramatica",
+      "unit": 91,
+      "title": "Реальные условия: si",
+      "title_es": "Si ganan, serán campeones — Condicionales (1) — ¿Crees que van a ganar?) — No sé; es posible. Si ganan",
+      "group": "Глаголы и времена",
+      "pages": [
+        192,
+        193
+      ],
+      "printed_pages": [
+        190,
+        191
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Реальные условия: si». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-092",
+      "book_id": "gramatica",
+      "unit": 92,
+      "title": "Предположения: si tuviera",
+      "title_es": "92 Si encontrara trabajo, me casaría — Condicionales (2) — Si encontrara — trabajo, me — casaria.",
+      "group": "Глаголы и времена",
+      "pages": [
+        194,
+        195
+      ],
+      "printed_pages": [
+        192,
+        193
+      ],
+      "spot_keys": [
+        "si-hipotetico"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Предположения: si tuviera». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-093",
+      "book_id": "gramatica",
+      "unit": 93,
+      "title": "Инфинитив",
+      "title_es": "93 Viajar es estupendo — Infinitivo — Conducir es fácil. — Necesito descansar. — Conducir y descansar son formas de infinitivo. El infinitivo de un verbo es la forma que se da en",
+      "group": "Глаголы и времена",
+      "pages": [
+        196,
+        197
+      ],
+      "printed_pages": [
+        194,
+        195
+      ],
+      "spot_keys": [
+        "perifrasis"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Инфинитив». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-094",
+      "book_id": "gramatica",
+      "unit": 94,
+      "title": "Перифразы: empezar, acabar, dejar",
+      "title_es": "94 Me puse a trabajar. Voy a trabajar — Expresiones con infinitivo (1) — / No, gracias. He dejado de tomar café — Mira. El autobús acaba de irse — Dejar de y acabar de son expresio",
+      "group": "Глаголы и времена",
+      "pages": [
+        198,
+        199
+      ],
+      "printed_pages": [
+        196,
+        197
+      ],
+      "spot_keys": [
+        "perifrasis"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Перифразы: empezar, acabar, dejar». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-095",
+      "book_id": "gramatica",
+      "unit": 95,
+      "title": "Необходимость и возможность",
+      "title_es": "Tengo que trabajar. ¿Puedo abrir la ventana? — Expresiones con infinitivo (2) — • tener que, deber, haber que — - Se usa tener que + infinitivo para expresar la",
+      "group": "Глаголы и времена",
+      "pages": [
+        200,
+        201
+      ],
+      "printed_pages": [
+        198,
+        199
+      ],
+      "spot_keys": [
+        "perifrasis"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Необходимость и возможность». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-096",
+      "book_id": "gramatica",
+      "unit": 96,
+      "title": "Привычки: soler и volver a",
+      "title_es": "Suelo comer en casa — Expresiones con infinitivo (3) — • soler — - Se usa soler + infinitivo para hablar de acciones habituales o frecuentes.",
+      "group": "Глаголы и времена",
+      "pages": [
+        202,
+        203
+      ],
+      "printed_pages": [
+        200,
+        201
+      ],
+      "spot_keys": [
+        "perifrasis"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Привычки: soler и volver a». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-097",
+      "book_id": "gramatica",
+      "unit": 97,
+      "title": "Quiero ir или quiero que vayas",
+      "title_es": "Quiero ir / Quiero que vayas. — Verbos seguidos de infinitivo o de subjuntivo — Quiero hacer un viaje a — Colombia el año que viene.",
+      "group": "Глаголы и времена",
+      "pages": [
+        204,
+        205
+      ],
+      "printed_pages": [
+        202,
+        203
+      ],
+      "spot_keys": [
+        "subjuntivo-deseo"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Quiero ir или quiero que vayas». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-098",
+      "book_id": "gramatica",
+      "unit": 98,
+      "title": "Герундий",
+      "title_es": "trabajando, comiendo, viviendo — Gerundio — Cantando es una forma de gerundio. El — erundio se retiere a la realización de l",
+      "group": "Глаголы и времена",
+      "pages": [
+        206,
+        207
+      ],
+      "printed_pages": [
+        204,
+        205
+      ],
+      "spot_keys": [
+        "perifrasis"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Герундий». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-099",
+      "book_id": "gramatica",
+      "unit": 99,
+      "title": "Причастие",
+      "title_es": "99 trabajado, comido, vivido — Participio — ] — CERRANC — Pot",
+      "group": "Глаголы и времена",
+      "pages": [
+        208,
+        209
+      ],
+      "printed_pages": [
+        206,
+        207
+      ],
+      "spot_keys": [
+        "perifrasis"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Причастие». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-100",
+      "book_id": "gramatica",
+      "unit": 100,
+      "title": "Наречия места",
+      "title_es": "aquí, allí, abajo... — Adverbios de lugar — Aquí y enfrente son adverbios de lugar. Dan — información sobre las circunstancias de",
+      "group": "Связная речь",
+      "pages": [
+        210,
+        211
+      ],
+      "printed_pages": [
+        208,
+        209
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Наречия места». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-101",
+      "book_id": "gramatica",
+      "unit": 101,
+      "title": "Наречия времени",
+      "title_es": "101 hoy, ayer, entonces, luego... — Adverbios de tiempo (1) — SÁBADO 19 — DOMINGO 20 — LUNES21",
+      "group": "Связная речь",
+      "pages": [
+        212,
+        213
+      ],
+      "printed_pages": [
+        210,
+        211
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Наречия времени». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-102",
+      "book_id": "gramatica",
+      "unit": 102,
+      "title": "Ya, todavía, aún",
+      "title_es": "ya, todavía, aún — Adverbios de tiempo (2) — • todavía, aún, ya no — - Todavía y aún indican que una acción que comenzó en el",
+      "group": "Связная речь",
+      "pages": [
+        214,
+        215
+      ],
+      "printed_pages": [
+        212,
+        213
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Ya, todavía, aún». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-103",
+      "book_id": "gramatica",
+      "unit": 103,
+      "title": "Частота: siempre, a veces",
+      "title_es": "siempre, de vez en cuando, a veces... — Adverbios y expresiones de frecuencia — LUNES — MARTES",
+      "group": "Связная речь",
+      "pages": [
+        216,
+        217
+      ],
+      "printed_pages": [
+        214,
+        215
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Частота: siempre, a veces». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-104",
+      "book_id": "gramatica",
+      "unit": 104,
+      "title": "Количество: muy, mucho",
+      "title_es": "104 muy, mucho, bastante... — Adverbios de cantidad — Nuria trabaja mucho. — Julia y su hermano son — bastante diferentes.",
+      "group": "Связная речь",
+      "pages": [
+        218,
+        219
+      ],
+      "printed_pages": [
+        216,
+        217
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Количество: muy, mucho». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-105",
+      "book_id": "gramatica",
+      "unit": 105,
+      "title": "Степень качества и количества",
+      "title_es": "muy, mucho, muchos, -ísimo... — Contraste entre formas de expresar grados — de cualidad o cantidad — • muy, mucho, mucha, muchos, muchas...",
+      "group": "Связная речь",
+      "pages": [
+        220,
+        221
+      ],
+      "printed_pages": [
+        218,
+        219
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Степень качества и количества». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-106",
+      "book_id": "gramatica",
+      "unit": 106,
+      "title": "Образ действия: bien, fácilmente",
+      "title_es": "106 bien, fácilmente... — Adverbios de modo — Gema conduce prudentemente. — Serafín toca el piano muy bien. — Prudentemente y bien son adverbios de modo. Expresan cómo sucede algo ",
+      "group": "Связная речь",
+      "pages": [
+        222,
+        223
+      ],
+      "printed_pages": [
+        220,
+        221
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Образ действия: bien, fácilmente». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-107",
+      "book_id": "gramatica",
+      "unit": 107,
+      "title": "Сравнения: mejor и peor",
+      "title_es": "107 más rápido, mejor, peor... — Comparación de adverbios — No hay duda. Camila es la — que mejor canta. — No te oigo. Habla más alto, por favor.",
+      "group": "Связная речь",
+      "pages": [
+        224,
+        225
+      ],
+      "printed_pages": [
+        222,
+        223
+      ],
+      "spot_keys": [
+        "comparativos"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Сравнения: mejor и peor». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-108",
+      "book_id": "gramatica",
+      "unit": 108,
+      "title": "Отрицания: no, nunca, jamás",
+      "title_es": "no, nunca, jamás... — Adverbios de negación — No, gracias. — No tomo café",
+      "group": "Связная речь",
+      "pages": [
+        226,
+        227
+      ],
+      "printed_pages": [
+        224,
+        225
+      ],
+      "spot_keys": [
+        "doble-negacion"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Отрицания: no, nunca, jamás». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-109",
+      "book_id": "gramatica",
+      "unit": 109,
+      "title": "Согласие: también и tampoco",
+      "title_es": "yo sí, yo no, yo también, yo tampoco — Expresión de coincidiencia o no coincidencia — • también y tampoco — Me ha encantado",
+      "group": "Связная речь",
+      "pages": [
+        228,
+        229
+      ],
+      "printed_pages": [
+        226,
+        227
+      ],
+      "spot_keys": [
+        "doble-negacion"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Согласие: también и tampoco». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-110",
+      "book_id": "gramatica",
+      "unit": 110,
+      "title": "Предлоги времени",
+      "title_es": "a las cinco, por la mañana... — Preposiciones (1) — Algunas preposiciones se usan para indicar relaciones temporales. — • a + horas",
+      "group": "Связная речь",
+      "pages": [
+        230,
+        231
+      ],
+      "printed_pages": [
+        228,
+        229
+      ],
+      "spot_keys": [
+        "preposiciones"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Предлоги времени». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-111",
+      "book_id": "gramatica",
+      "unit": 111,
+      "title": "Предлоги движения",
+      "title_es": "a Tijuana, desde la playa... — Preposiciones (2) — Las preposiciones también pueden indicar relaciones de movimiento o dirección y de lugar. — • a indica destino y distancia.",
+      "group": "Связная речь",
+      "pages": [
+        232,
+        233
+      ],
+      "printed_pages": [
+        230,
+        231
+      ],
+      "spot_keys": [
+        "preposiciones"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Предлоги движения». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-112",
+      "book_id": "gramatica",
+      "unit": 112,
+      "title": "Предлоги расположения",
+      "title_es": "encima de la mesa, dentro de la caja... — Preposiciones (3) — ¿Dónde están — los documentos?",
+      "group": "Связная речь",
+      "pages": [
+        234,
+        235
+      ],
+      "printed_pages": [
+        232,
+        233
+      ],
+      "spot_keys": [
+        "preposiciones"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Предлоги расположения». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-113",
+      "book_id": "gramatica",
+      "unit": 113,
+      "title": "Предлоги: a, de, en",
+      "title_es": "a Pedro, de Elvira, en autobús... — Preposiciones (4) — • Se usa a: — - delante del complemento indirecto.",
+      "group": "Связная речь",
+      "pages": [
+        236,
+        237
+      ],
+      "printed_pages": [
+        234,
+        235
+      ],
+      "spot_keys": [
+        "preposiciones"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Предлоги: a, de, en». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-114",
+      "book_id": "gramatica",
+      "unit": 114,
+      "title": "Предлоги: por и para",
+      "title_es": "para ti, por amor... — Preposiciones (5) — • Se usa para: — - para indicar destino o finalidad.",
+      "group": "Связная речь",
+      "pages": [
+        238,
+        239
+      ],
+      "printed_pages": [
+        236,
+        237
+      ],
+      "spot_keys": [
+        "por-para"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Предлоги: por и para». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-115",
+      "book_id": "gramatica",
+      "unit": 115,
+      "title": "Глаголы с предлогами",
+      "title_es": "Pienso en ti — Verbos con preposiciones — ¿Me ayudas — a recoger?",
+      "group": "Связная речь",
+      "pages": [
+        240,
+        241
+      ],
+      "printed_pages": [
+        238,
+        239
+      ],
+      "spot_keys": [
+        "preposiciones"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Глаголы с предлогами». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-116",
+      "book_id": "gramatica",
+      "unit": 116,
+      "title": "Союзы: y, o, pero",
+      "title_es": "y o, pero... — Conjunciones — Tengo dos — hijas y un hijo.",
+      "group": "Связная речь",
+      "pages": [
+        242,
+        243
+      ],
+      "printed_pages": [
+        240,
+        241
+      ],
+      "spot_keys": [
+        "conectores"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Союзы: y, o, pero». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-117",
+      "book_id": "gramatica",
+      "unit": 117,
+      "title": "Цель: para и para que",
+      "title_es": "para, para que — Oraciones finales — Necesito tiempo para estudiar. — 20",
+      "group": "Связная речь",
+      "pages": [
+        244,
+        245
+      ],
+      "printed_pages": [
+        242,
+        243
+      ],
+      "spot_keys": [
+        "conectores"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Цель: para и para que». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-118",
+      "book_id": "gramatica",
+      "unit": 118,
+      "title": "Время: cuando и antes de que",
+      "title_es": "cuando, antes de que, siempre que... — Oraciones temporales — Cuando era joven, — hacía mucho deporte.",
+      "group": "Связная речь",
+      "pages": [
+        246,
+        247
+      ],
+      "printed_pages": [
+        244,
+        245
+      ],
+      "spot_keys": [
+        "subjuntivo-temporal"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Время: cuando и antes de que». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-119",
+      "book_id": "gramatica",
+      "unit": 119,
+      "title": "Причина: porque и como",
+      "title_es": "porque, como, puesto que... — Oraciones causales — Hoy no salimos porque hace mucho frío. — Como es alta, a Marta se le da bien el baloncesto.",
+      "group": "Связная речь",
+      "pages": [
+        248,
+        249
+      ],
+      "printed_pages": [
+        246,
+        247
+      ],
+      "spot_keys": [
+        "conectores"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Причина: porque и como». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-120",
+      "book_id": "gramatica",
+      "unit": 120,
+      "title": "Уступка: aunque",
+      "title_es": "aunque, a pesar de que... — Oraciones concesivas — AGOSTO — SÁBADO",
+      "group": "Связная речь",
+      "pages": [
+        250,
+        251
+      ],
+      "printed_pages": [
+        248,
+        249
+      ],
+      "spot_keys": [
+        "conectores"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Уступка: aunque». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-121",
+      "book_id": "gramatica",
+      "unit": 121,
+      "title": "Следствие: por eso и así que",
+      "title_es": "por eso, así que, tanto... que — Oraciones consecutivas — PRIMARO — entran.",
+      "group": "Связная речь",
+      "pages": [
+        252,
+        253
+      ],
+      "printed_pages": [
+        250,
+        251
+      ],
+      "spot_keys": [
+        "conectores"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Следствие: por eso и así que». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-122",
+      "book_id": "gramatica",
+      "unit": 122,
+      "title": "Безличные предложения",
+      "title_es": "Aquí se trabaja mucho — Oraciones impersonales — Las oraciones impersonales son aquellas que no se refieren a una persona concreta. — Aquí se trabaja mucho.",
+      "group": "Связная речь",
+      "pages": [
+        254,
+        255
+      ],
+      "printed_pages": [
+        252,
+        253
+      ],
+      "spot_keys": [
+        "conectores"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Безличные предложения». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-123",
+      "book_id": "gramatica",
+      "unit": 123,
+      "title": "Правила ударения",
+      "title_es": "médico, árbol, inglés — Reglas de acentuación (1) — Las sílabas ma en hermano, Án en Ángel y mé — en médico llevan el acento; se pronuncian con",
+      "group": "Письмо и vos",
+      "pages": [
+        258,
+        259
+      ],
+      "printed_pages": [
+        256,
+        257
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Правила ударения». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-124",
+      "book_id": "gramatica",
+      "unit": 124,
+      "title": "Ударение и сочетания гласных",
+      "title_es": "adiós, león, continúa — Reglas de acentuación (2) — Acentuación de grupos de vocales — • Los grupos formados por i/u y e/a/o forman normalmente una sola sílaba.",
+      "group": "Письмо и vos",
+      "pages": [
+        260,
+        261
+      ],
+      "printed_pages": [
+        258,
+        259
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Ударение и сочетания гласных». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-125",
+      "book_id": "gramatica",
+      "unit": 125,
+      "title": "Прописные буквы",
+      "title_es": "Arturo Sánchez — Uso de mayúsculas — Arturo Sánchez — Calle Mayor, 26",
+      "group": "Письмо и vos",
+      "pages": [
+        262,
+        263
+      ],
+      "printed_pages": [
+        260,
+        261
+      ],
+      "spot_keys": [
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Прописные буквы». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "grammar-126",
+      "book_id": "gramatica",
+      "unit": 126,
+      "title": "Аргентинское vos",
+      "title_es": "CONJUGACIÓN VERBAL CON VOS — En algunas zonas de América Latina como Argentina, Paraguay y Uruguay se usa vos en lugar — de tú y esto supone algunos cambios en la conjugación. Debe",
+      "group": "Письмо и vos",
+      "pages": [
+        264
+      ],
+      "printed_pages": [
+        262
+      ],
+      "spot_keys": [
+        "conjugacion-presente"
+      ],
+      "grammar_links": [],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление именно темы «Аргентинское vos». Не подменять её общим уровнем грамматики или словаря."
+    },
+    {
+      "id": "nivel2-01",
+      "book_id": "nivel2",
+      "unit": 1,
+      "title": "Профессии и повседневная жизнь",
+      "title_es": "",
+      "group": "Unidad 1",
+      "pages": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "printed_pages": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "spot_keys": [
+        "conjugacion-presente",
+        "verbos-gustar",
+        "verbos-pronominales"
+      ],
+      "grammar_links": [
+        "grammar-048",
+        "grammar-049",
+        "grammar-050",
+        "grammar-053",
+        "grammar-055"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Содержательный рассказ о профессии, повседневной жизни или привычках в настоящем времени. Рассказ о себе через yo подходит; не требовать обращения vos в каждой фразе."
+    },
+    {
+      "id": "nivel2-02",
+      "book_id": "nivel2",
+      "unit": 1,
+      "title": "Природа, работа и жизнь в Антарктиде",
+      "title_es": "",
+      "group": "Unidad 1",
+      "pages": [
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "printed_pages": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "spot_keys": [
+        "conjugacion-presente",
+        "vocabulario-preciso"
+      ],
+      "grammar_links": [
+        "grammar-048",
+        "grammar-052",
+        "grammar-103"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Содержательный рассказ о профессии, повседневной жизни или привычках в настоящем времени. Рассказ о себе через yo подходит; не требовать обращения vos в каждой фразе."
+    },
+    {
+      "id": "nivel2-03",
+      "book_id": "nivel2",
+      "unit": 1,
+      "title": "Что случилось вчера",
+      "title_es": "",
+      "group": "Unidad 1",
+      "pages": [
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "printed_pages": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ],
+      "spot_keys": [
+        "preterito-irregulares"
+      ],
+      "grammar_links": [
+        "grammar-058",
+        "grammar-059"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Рассказ о конкретных событиях в прошлом с корректными формами indefinido."
+    },
+    {
+      "id": "nivel2-04",
+      "book_id": "nivel2",
+      "unit": 1,
+      "title": "Путешествие по Патагонии",
+      "title_es": "",
+      "group": "Unidad 1",
+      "pages": [
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "printed_pages": [
+        22,
+        23,
+        24,
+        25,
+        26,
+        27
+      ],
+      "spot_keys": [
+        "preterito-irregulares"
+      ],
+      "grammar_links": [
+        "grammar-058",
+        "grammar-059"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Рассказ о конкретных событиях в прошлом с корректными формами indefinido."
+    },
+    {
+      "id": "nivel2-05",
+      "book_id": "nivel2",
+      "unit": 1,
+      "title": "Рассказываем по картинкам",
+      "title_es": "",
+      "group": "Unidad 1",
+      "pages": [
+        32,
+        33,
+        34
+      ],
+      "printed_pages": [
+        28,
+        29,
+        30
+      ],
+      "spot_keys": [
+        "preterito-irregulares"
+      ],
+      "grammar_links": [
+        "grammar-058",
+        "grammar-059"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Рассказ о конкретных событиях в прошлом с корректными формами indefinido."
+    },
+    {
+      "id": "nivel2-06",
+      "book_id": "nivel2",
+      "unit": 2,
+      "title": "Выбираем путешествие и сравниваем",
+      "title_es": "",
+      "group": "Unidad 2",
+      "pages": [
+        37,
+        38,
+        39,
+        40,
+        41,
+        42
+      ],
+      "printed_pages": [
+        33,
+        34,
+        35,
+        36,
+        37,
+        38
+      ],
+      "spot_keys": [
+        "comparativos"
+      ],
+      "grammar_links": [
+        "grammar-015",
+        "grammar-016",
+        "grammar-024"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Собственные сравнения людей, мест, предметов или условий: más/menos/tan/tanto, mejor/peor или превосходная степень."
+    },
+    {
+      "id": "nivel2-07",
+      "book_id": "nivel2",
+      "unit": 2,
+      "title": "Снимаем жильё и выбираем район",
+      "title_es": "",
+      "group": "Unidad 2",
+      "pages": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "printed_pages": [
+        39,
+        40,
+        41,
+        42,
+        43
+      ],
+      "spot_keys": [
+        "comparativos",
+        "hay-estar"
+      ],
+      "grammar_links": [
+        "grammar-015",
+        "grammar-017",
+        "grammar-047"
+      ],
+      "audio_missing": true,
+      "application_focus_ru": "Собственные сравнения людей, мест, предметов или условий: más/menos/tan/tanto, mejor/peor или превосходная степень."
+    },
+    {
+      "id": "nivel2-08",
+      "book_id": "nivel2",
+      "unit": 2,
+      "title": "Плюсы и минусы большого города",
+      "title_es": "",
+      "group": "Unidad 2",
+      "pages": [
+        48,
+        49,
+        50
+      ],
+      "printed_pages": [
+        44,
+        45,
+        46
+      ],
+      "spot_keys": [
+        "comparativos"
+      ],
+      "grammar_links": [
+        "grammar-015",
+        "grammar-016",
+        "grammar-107"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Собственные сравнения людей, мест, предметов или условий: más/menos/tan/tanto, mejor/peor или превосходная степень."
+    },
+    {
+      "id": "nivel2-09",
+      "book_id": "nivel2",
+      "unit": 2,
+      "title": "Как было раньше: imperfecto",
+      "title_es": "",
+      "group": "Unidad 2",
+      "pages": [
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58
+      ],
+      "printed_pages": [
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54
+      ],
+      "spot_keys": [
+        "preterito-vs-imperfecto"
+      ],
+      "grammar_links": [
+        "grammar-063"
+      ],
+      "audio_missing": true,
+      "application_focus_ru": "Собственные описания или привычки в прошлом с imperfecto; в биографии возможны законченные события в indefinido."
+    },
+    {
+      "id": "nivel2-10",
+      "book_id": "nivel2",
+      "unit": 2,
+      "title": "Школа, детство и праздники",
+      "title_es": "",
+      "group": "Unidad 2",
+      "pages": [
+        59,
+        60,
+        61,
+        62,
+        63,
+        64
+      ],
+      "printed_pages": [
+        55,
+        56,
+        57,
+        58,
+        59,
+        60
+      ],
+      "spot_keys": [
+        "preterito-vs-imperfecto"
+      ],
+      "grammar_links": [
+        "grammar-063"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Собственные описания или привычки в прошлом с imperfecto; в биографии возможны законченные события в indefinido."
+    },
+    {
+      "id": "nivel2-11",
+      "book_id": "nivel2",
+      "unit": 2,
+      "title": "Город раньше и сейчас",
+      "title_es": "",
+      "group": "Unidad 2",
+      "pages": [
+        65,
+        66,
+        67,
+        68
+      ],
+      "printed_pages": [
+        61,
+        62,
+        63,
+        64
+      ],
+      "spot_keys": [
+        "comparativos",
+        "preterito-vs-imperfecto"
+      ],
+      "grammar_links": [
+        "grammar-063",
+        "grammar-015",
+        "grammar-024"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Собственные описания или привычки в прошлом с imperfecto; в биографии возможны законченные события в indefinido."
+    },
+    {
+      "id": "nivel2-12",
+      "book_id": "nivel2",
+      "unit": 2,
+      "title": "Биографии и важные события",
+      "title_es": "",
+      "group": "Unidad 2",
+      "pages": [
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76
+      ],
+      "printed_pages": [
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72
+      ],
+      "spot_keys": [
+        "preterito-irregulares",
+        "preterito-vs-imperfecto"
+      ],
+      "grammar_links": [
+        "grammar-058",
+        "grammar-059",
+        "grammar-063"
+      ],
+      "audio_missing": true,
+      "application_focus_ru": "Собственные описания или привычки в прошлом с imperfecto; в биографии возможны законченные события в indefinido."
+    },
+    {
+      "id": "nivel2-13",
+      "book_id": "nivel2",
+      "unit": 3,
+      "title": "Неожиданная встреча",
+      "title_es": "",
+      "group": "Unidad 3",
+      "pages": [
+        79,
+        80,
+        81
+      ],
+      "printed_pages": [
+        75,
+        76,
+        77
+      ],
+      "spot_keys": [
+        "preterito-vs-imperfecto"
+      ],
+      "grammar_links": [
+        "grammar-064",
+        "grammar-065"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Собственная история, где корректно сочетаются события в indefinido и фон или процессы в imperfecto."
+    },
+    {
+      "id": "nivel2-14",
+      "book_id": "nivel2",
+      "unit": 3,
+      "title": "История медведя и разговор о животных",
+      "title_es": "",
+      "group": "Unidad 3",
+      "pages": [
+        82,
+        83,
+        84,
+        85,
+        86
+      ],
+      "printed_pages": [
+        78,
+        79,
+        80,
+        81,
+        82
+      ],
+      "spot_keys": [
+        "preterito-vs-imperfecto"
+      ],
+      "grammar_links": [
+        "grammar-064",
+        "grammar-065"
+      ],
+      "audio_missing": true,
+      "application_focus_ru": "Собственная история, где корректно сочетаются события в indefinido и фон или процессы в imperfecto."
+    },
+    {
+      "id": "nivel2-15",
+      "book_id": "nivel2",
+      "unit": 3,
+      "title": "Придумываем и рассказываем истории",
+      "title_es": "",
+      "group": "Unidad 3",
+      "pages": [
+        87,
+        88,
+        89,
+        90
+      ],
+      "printed_pages": [
+        83,
+        84,
+        85,
+        86
+      ],
+      "spot_keys": [
+        "preterito-vs-imperfecto"
+      ],
+      "grammar_links": [
+        "grammar-064",
+        "grammar-065"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Собственная история, где корректно сочетаются события в indefinido и фон или процессы в imperfecto."
+    },
+    {
+      "id": "nivel2-16",
+      "book_id": "nivel2",
+      "unit": 3,
+      "title": "История семьи: действия и обстоятельства",
+      "title_es": "",
+      "group": "Unidad 3",
+      "pages": [
+        91,
+        92,
+        93,
+        94,
+        95
+      ],
+      "printed_pages": [
+        87,
+        88,
+        89,
+        90,
+        91
+      ],
+      "spot_keys": [
+        "preterito-vs-imperfecto"
+      ],
+      "grammar_links": [
+        "grammar-064",
+        "grammar-065"
+      ],
+      "audio_missing": true,
+      "application_focus_ru": "Собственная история, где корректно сочетаются события в indefinido и фон или процессы в imperfecto."
+    },
+    {
+      "id": "nivel2-17",
+      "book_id": "nivel2",
+      "unit": 4,
+      "title": "Кому что сказали: косвенное дополнение",
+      "title_es": "",
+      "group": "Unidad 4",
+      "pages": [
+        99,
+        100,
+        101,
+        102,
+        103
+      ],
+      "printed_pages": [
+        95,
+        96,
+        97,
+        98,
+        99
+      ],
+      "spot_keys": [
+        "pronombres-objeto"
+      ],
+      "grammar_links": [
+        "grammar-036"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление прямого или косвенного дополнения (lo/la/le/me/te/nos/les) по теме текущего занятия; для se lo нужен пример сочетания местоимений."
+    },
+    {
+      "id": "nivel2-18",
+      "book_id": "nivel2",
+      "unit": 4,
+      "title": "Местоимения вместе: se lo, me la",
+      "title_es": "",
+      "group": "Unidad 4",
+      "pages": [
+        104,
+        105,
+        106,
+        107
+      ],
+      "printed_pages": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "spot_keys": [
+        "pronombres-objeto"
+      ],
+      "grammar_links": [
+        "grammar-035",
+        "grammar-036",
+        "grammar-037",
+        "grammar-039"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление прямого или косвенного дополнения (lo/la/le/me/te/nos/les) по теме текущего занятия; для se lo нужен пример сочетания местоимений."
+    },
+    {
+      "id": "nivel2-19",
+      "book_id": "nivel2",
+      "unit": 1,
+      "title": "Практика: прошедшие события",
+      "title_es": "",
+      "group": "Дополнительная практика",
+      "pages": [
+        111,
+        112,
+        113,
+        114
+      ],
+      "printed_pages": [
+        107,
+        108,
+        109,
+        110
+      ],
+      "spot_keys": [
+        "preterito-irregulares"
+      ],
+      "grammar_links": [
+        "grammar-058",
+        "grammar-059"
+      ],
+      "audio_missing": true,
+      "application_focus_ru": "Рассказ о конкретных событиях в прошлом с корректными формами indefinido."
+    },
+    {
+      "id": "nivel2-20",
+      "book_id": "nivel2",
+      "unit": 4,
+      "title": "Практика: прямое дополнение",
+      "title_es": "",
+      "group": "Дополнительная практика",
+      "pages": [
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121
+      ],
+      "printed_pages": [
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117
+      ],
+      "spot_keys": [
+        "preposiciones",
+        "pronombres-objeto"
+      ],
+      "grammar_links": [
+        "grammar-035",
+        "grammar-038",
+        "grammar-113"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление прямого или косвенного дополнения (lo/la/le/me/te/nos/les) по теме текущего занятия; для se lo нужен пример сочетания местоимений."
+    },
+    {
+      "id": "nivel2-21",
+      "book_id": "nivel2",
+      "unit": 2,
+      "title": "Практика: сравнения",
+      "title_es": "",
+      "group": "Дополнительная практика",
+      "pages": [
+        122,
+        123
+      ],
+      "printed_pages": [
+        118,
+        119
+      ],
+      "spot_keys": [
+        "comparativos"
+      ],
+      "grammar_links": [
+        "grammar-015",
+        "grammar-016",
+        "grammar-017",
+        "grammar-024"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Собственные сравнения людей, мест, предметов или условий: más/menos/tan/tanto, mejor/peor или превосходная степень."
+    },
+    {
+      "id": "nivel2-22",
+      "book_id": "nivel2",
+      "unit": 2,
+      "title": "Практика: привычки в прошлом",
+      "title_es": "",
+      "group": "Дополнительная практика",
+      "pages": [
+        124,
+        125
+      ],
+      "printed_pages": [
+        120,
+        121
+      ],
+      "spot_keys": [
+        "preterito-vs-imperfecto"
+      ],
+      "grammar_links": [
+        "grammar-063"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Собственные описания или привычки в прошлом с imperfecto; в биографии возможны законченные события в indefinido."
+    },
+    {
+      "id": "nivel2-23",
+      "book_id": "nivel2",
+      "unit": 3,
+      "title": "Практика: собственная история",
+      "title_es": "",
+      "group": "Дополнительная практика",
+      "pages": [
+        126,
+        127,
+        128
+      ],
+      "printed_pages": [
+        122,
+        123,
+        124
+      ],
+      "spot_keys": [
+        "preterito-vs-imperfecto"
+      ],
+      "grammar_links": [
+        "grammar-064",
+        "grammar-065"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Собственная история, где корректно сочетаются события в indefinido и фон или процессы в imperfecto."
+    },
+    {
+      "id": "nivel2-24",
+      "book_id": "nivel2",
+      "unit": 4,
+      "title": "Практика: кому, что и как передали",
+      "title_es": "",
+      "group": "Дополнительная практика",
+      "pages": [
+        129,
+        130,
+        131
+      ],
+      "printed_pages": [
+        125,
+        126,
+        127
+      ],
+      "spot_keys": [
+        "pronombres-objeto",
+        "verbos-pronominales"
+      ],
+      "grammar_links": [
+        "grammar-035",
+        "grammar-036",
+        "grammar-037",
+        "grammar-040"
+      ],
+      "audio_missing": false,
+      "application_focus_ru": "Корректное самостоятельное употребление прямого или косвенного дополнения (lo/la/le/me/te/nos/les) по теме текущего занятия; для se lo нужен пример сочетания местоимений."
+    }
+  ]
+}

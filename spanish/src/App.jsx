@@ -16,6 +16,7 @@ import SettingsPanel from './components/Settings';
 import CurriculumMap from './components/CurriculumMap';
 import ProfileSelector from './components/ProfileSelector';
 import GamificationHeader from './components/GamificationHeader';
+import { BooksHome,BookOutline,BookLesson } from './components/books/Books';
 import CoachHome from './components/coach/CoachHome';
 import CoachStart from './components/coach/CoachStart';
 import CoachChat from './components/coach/CoachChat';
@@ -39,6 +40,7 @@ const COACH_NAV_ITEMS = [
   { path: '/coach/workout', icon: Dumbbell, label: 'Тренировка' },
   { path: '/coach/spots', icon: Target, label: 'Мои темы' },
   { path: '/vocabulary', icon: BookMarked, label: 'Словарь' },
+  { path: '/books', icon: BookOpen, label: 'Книги' },
   { path: '/coach/settings', icon: Settings, label: 'Настройки' },
 ];
 
@@ -53,8 +55,9 @@ function NavBar() {
   const { isDark, toggleTheme } = useTheme();
   const { t } = useLanguage();
   const conversationTrack = useConversationTrack();
+  const booksEnabled = Boolean(useProfile().activeProfile?.books_enabled);
 
-  const navItems = conversationTrack ? COACH_NAV_ITEMS : [
+  const navItems = conversationTrack ? COACH_NAV_ITEMS.filter(item=>item.path!=='/books'||booksEnabled) : [
     { path: '/', icon: Home, label: t('nav_today', 'Главная') },
     { path: '/maya-verbs', icon: Sparkles, label: '🎈 Урок Майи' },
     { path: '/stories', icon: BookOpen, label: t('nav_stories', 'Истории') },
@@ -144,7 +147,8 @@ function BottomNavBar() {
   const location = useLocation();
   const { t } = useLanguage();
   const conversationTrack = useConversationTrack();
-  const navItems = conversationTrack ? COACH_NAV_ITEMS.filter((item) => item.path !== '/coach/settings') : [
+  const booksEnabled = Boolean(useProfile().activeProfile?.books_enabled);
+  const navItems = conversationTrack ? COACH_NAV_ITEMS.filter((item) => item.path !== '/coach/settings' && (item.path !== '/books' || booksEnabled)) : [
     { path: '/', icon: Home, label: t('nav_today', 'Главная') },
     { path: '/maya-verbs', icon: Sparkles, label: 'Урок Майи' },
     { path: '/exercises', icon: Brain, label: t('nav_exercises', 'Тренажер') },
@@ -237,6 +241,9 @@ function AppContent() {
       >
         <Routes>
           <Route path="/" element={profilesLoading ? null : conversationTrack ? <CoachHome /> : <TodayDashboard />} />
+          <Route path="/books" element={<BooksHome />} />
+          <Route path="/books/lesson/:lessonId" element={<BookLesson />} />
+          <Route path="/books/:bookId" element={<BookOutline />} />
           <Route path="/coach" element={<CoachHome />} />
           <Route path="/coach/new" element={<CoachStart />} />
           <Route path="/coach/chat/:sessionId" element={<CoachChat />} />

@@ -1,3 +1,5 @@
+import {assessBookConversation} from '../books/bookApplication.js';
+import {catalog as bookCatalog,enabled as booksEnabled} from '../books/bookStore.js';
 // Conversation coach orchestration: sessions, partner replies, inline feedback,
 // end-of-session diagnosis, personalised workouts and grading.
 
@@ -235,6 +237,7 @@ function resolveSessionSetting(session) {
   const custom = session.custom || null;
   const topic = custom?.topic ? customTopicObject(custom.topic) : (session.topic_id ? getTopic(session.topic_id) : null);
   const scenario = custom?.scenario ? customScenarioObject(custom.scenario) : (session.scenario_id ? getScenario(session.scenario_id) : null);
+  if (topic && custom?.book) { topic.opener = custom.book.goal_es; topic.focus = custom.book.focus_keys; }
   return { topic, scenario };
 }
 
@@ -273,10 +276,10 @@ export function getCatalog() {
 
 // ----------------------------------------------------------------- sessions
 
-export async function startSession(db, profileId, { mode = 'chat', topicId = 'free', scenarioId = null, customTopic = null, customScenario = null } = {}) {
+export async function startSession(db, profileId, { mode = 'chat', topicId = 'free', scenarioId = null, customTopic = null, customScenario = null, bookContext = null } = {}) {
   requireLearner(db, profileId);
   const safeMode = mode === 'call' ? 'call' : 'chat';
-  const custom = normalizeCustomInput({ customTopic, customScenario });
+  const custom = bookContext ? {topic:{text:'По книге: '+bookContext.title},book:bookContext} : normalizeCustomInput({ customTopic, customScenario });
   let topic = null;
   let scenario = null;
   if (custom?.scenario) {
@@ -289,7 +292,7 @@ export async function startSession(db, profileId, { mode = 'chat', topicId = 'fr
     topic = scenario ? null : (getTopic(topicId) || getTopic('free'));
   }
 
-  const focusSpots = chooseFocusSpots(db, profileId, { topic, scenario });
+  const focusSpots = bookContext ? bookContext.focus_keys.map(spot_key=>ensureSpot(db,profileId,{spot_key})) : chooseFocusSpots(db, profileId, { topic, scenario });
   const session = createSession(db, profileId, {
     mode: safeMode,
     topicId: custom ? null : topic?.id || null,
@@ -297,6 +300,10 @@ export async function startSession(db, profileId, { mode = 'chat', topicId = 'fr
     focusKeys: focusSpots.map((spot) => spot.spot_key),
     custom,
   });
+
+  if (bookContext) {
+    db.prepare('INSERT INTO book_conversations(session_id,profile_id,lesson_id,version) VALUES(?,?,?,?)').run(session.id,profileId,bookContext.lesson_id,bookCatalog.version);
+  }
 
   if (safeMode === 'chat') {
     const context = sessionPromptContext(db, profileId, session);
@@ -328,6 +335,7 @@ export function getSessionDetail(db, profileId, sessionId) {
   const { topic, scenario } = resolveSessionSetting(session);
   return {
     ...session,
+    book: session.custom?.book ? {lesson_id:session.custom.book.lesson_id,title:session.custom.book.title,requires_written:Boolean(session.custom.book.requires_written)} : null,
     partner: describeSessionPartner(session),
     topic: topic ? { id: topic.id, title_ru: topic.title_ru, emoji: topic.emoji } : null,
     scenario: scenario ? { id: scenario.id, title_ru: scenario.title_ru, goal_ru: scenario.goal_ru, emoji: scenario.emoji } : null,
@@ -898,6 +906,7 @@ export async function finishSession(db, profileId, sessionId, { generateWorkoutA
       } catch (error) {
         console.warn('[coach] xp failed:', error.message);
       }
+      await assessBookConversation(db,profileId,session.id).catch(error=>console.warn('[books] application check deferred',error.message));
       if (generateWorkoutAfter && report.spot_changes.length) {
         startWorkoutGeneration(db, profileId, { sessionId: session.id, spotKeys: (report.next_focus.length ? report.next_focus : report.spot_changes).map((spot) => spot.spot_key).slice(0, 3) });
       }
@@ -1264,6 +1273,7 @@ export function getSpotDetail(db, profileId, spotId) {
   if (!spot) throw new CoachError(404, 'Тема не найдена.', 'SPOT_NOT_FOUND');
   return {
     ...spot,
+    book_lessons: booksEnabled(db,profileId) ? bookCatalog.lessons.filter(l=>l.spot_keys.includes(spot.spot_key)).slice(0,10).map(l=>({id:l.id,title:l.title,book_id:l.book_id})) : [],
     errors: listEvidence(db, spot.id, { kind: 'error', limit: 12 }),
     successes: listEvidence(db, spot.id, { kind: 'success', limit: 6 }),
   };

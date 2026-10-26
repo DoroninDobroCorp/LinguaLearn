@@ -105,6 +105,9 @@ import {
   verifyProfileUnlockToken,
 } from './profilePin.js';
 import { buildProfileNameKey } from './unicodeKeys.js';
+import { ensureBookSchema } from './books/bookStore.js';
+import { initPreparations } from './books/bookService.js';
+import { createBookRoutes } from './books/bookRoutes.js';
 import { ensureCoachSchema } from './coach/coachStore.js';
 import { createCoachRoutes } from './coach/coachRoutes.js';
 import { attachCoachLive } from './coach/coachLive.js';
@@ -275,6 +278,8 @@ ensureStudentLogsSchema(db);
 
 // Conversation coach (B1+ voice/text partner with weak-spot tracking)
 ensureCoachSchema(db);
+ensureBookSchema(db);
+initPreparations(db);
 
 // Add profile_id to chat_history
 try {
@@ -676,7 +681,7 @@ const vocabularyMediaJsonParser = express.json({ limit: '25mb' });
 const coachJsonParser = express.json({ limit: '12mb' });
 
 app.use((req, res, next) => {
-  if (req.path.startsWith('/api/coach/')) {
+  if (req.path.startsWith('/api/coach/') || req.path.startsWith('/api/books/')) {
     return coachJsonParser(req, res, next);
   }
   if (req.path === '/api/vocabulary/import') {
@@ -708,7 +713,7 @@ app.use((error, req, res, next) => {
   if (req.path.includes('/api/a1/skills/') && error?.type === 'entity.too.large') {
     return res.status(413).json({ error: 'Аудиозапись слишком большая.', code: 'A1_SKILL_SUBMISSION_TOO_LARGE' });
   }
-  if (req.path.startsWith('/api/coach/') && error?.type === 'entity.too.large') {
+  if ((req.path.startsWith('/api/coach/') || req.path.startsWith('/api/books/')) && error?.type === 'entity.too.large') {
     return res.status(413).json({ error: 'Запись слишком длинная — разбейте на несколько сообщений.', code: 'COACH_PAYLOAD_TOO_LARGE' });
   }
 
@@ -724,7 +729,7 @@ const profileManagementRouter = express.Router();
 
 profileManagementRouter.get('/profiles', (req, res) => {
   try {
-    const profiles = db.prepare('SELECT * FROM profiles ORDER BY id').all().map(sanitizeProfile);
+    const profiles = db.prepare('SELECT * FROM profiles ORDER BY id').all().map(profile => ({...sanitizeProfile(profile), books_enabled: Boolean(db.prepare('SELECT 1 FROM book_enrollments WHERE profile_id=?').get(profile.id))}));
     res.json({ profiles });
   } catch (error) {
     console.error('Error fetching profiles:', error);
@@ -1744,6 +1749,7 @@ app.use('/api/exercises', createExerciseRoutes({ db, getProfileId }));
 // CONVERSATION COACH (chat + voice messages, live call, weak spots, workouts)
 // ==========================================
 app.use('/api/coach', createCoachRoutes({ db }));
+app.use('/api/books', createBookRoutes({ db }));
 
 
 // API: Ручная установка прогресса темы (0%, 100% и Заморозка)

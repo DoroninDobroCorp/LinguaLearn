@@ -114,6 +114,7 @@ export function CoachSpotDetail() {
         </button>
       </Card>
 
+      {spot.book_lessons?.length>0&&<Card className="p-4 mt-4"><h2 className="font-bold c-text text-sm">Разобрать тему по книгам</h2>{spot.book_lessons.map(l=><Link key={l.id} to={`/books/lesson/${l.id}`} className="block text-sm c-accent underline mt-2">{l.book_id==='nivel2'?'Nivel 2':'Грамматика'} · {l.title}</Link>)}</Card>}
       <SectionTitle>Правило коротко</SectionTitle>
       {!lesson && !lessonError && <Card className="p-6 flex items-center gap-3 c-muted text-sm"><Spinner /> Готовлю объяснение на твоих примерах…</Card>}
       {lessonError && <ErrorNote message={lessonError} />}

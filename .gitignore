@@ -67,3 +67,6 @@ run_game/
 .sparkle*
 
 
+
+# Private learner book files and OCR (owner supplied)
+spanish/server/private/

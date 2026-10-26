@@ -159,7 +159,7 @@ export default function CoachChat() {
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
   const autoplayedRef = useRef(new Set());
-  const voiceSupported = isVoiceRecordingSupported();
+  const voiceSupported = isVoiceRecordingSupported() && !session?.book?.requires_written;
 
   const partner = session?.partner || { name: 'Lucía' };
   const voice = partner.voice || learner?.partner_voice || 'Sulafat';

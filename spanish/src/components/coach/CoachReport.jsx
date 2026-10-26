@@ -109,7 +109,7 @@ export default function CoachReport() {
   const title = session.scenario?.title_ru || session.topic?.title_ru || 'Разговор';
   const header = (
     <>
-      <BackLink to="/" label="Главная" />
+      <BackLink to={session.book?`/books/lesson/${session.book.lesson_id}`:"/"} label={session.book?"Вернуться к занятию по книге":"Главная"} />
       <div className="flex items-center gap-3">
         <span className="text-2xl">{session.scenario?.emoji || session.topic?.emoji || '💬'}</span>
         <div>

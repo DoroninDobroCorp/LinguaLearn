@@ -139,6 +139,11 @@ describe('Profile lock routing', () => {
     assert.equal(result.status, 423);
     assert.equal(result.body.code, 'PROFILE_LOCKED');
 
+    for (const endpoint of ['/api/books/', '/api/books/gramatica/pages/139', '/api/books/runs/not-a-run']) {
+      const denied = await fetch(baseUrl + endpoint);
+      assert.equal(denied.status, 423, endpoint + ' must stay behind the PIN gate');
+    }
+
     result = await readJsonResponse(await fetch(`${baseUrl}/api/profiles`));
     assert.equal(result.status, 200);
     assert.equal(result.body.profiles.find((profile) => profile.id === 1)?.is_locked, true);
