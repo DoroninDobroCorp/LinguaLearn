@@ -25,6 +25,7 @@ import {
   startWorkoutGeneration,
   suggestReply,
   translateMessage,
+  explainScreenWithAi,
 } from './coachService.js';
 import { ONBOARDING_GOALS, ONBOARDING_INTERESTS } from './coachTaxonomy.js';
 
@@ -166,6 +167,16 @@ export function createCoachRoutes({ db }) {
     Number(req.params.itemId),
     req.body || {},
   )));
+
+  router.post('/screen-chat', requireAi, aiRateLimit, handle(async (req) => {
+    const { screenshot, messages, userQuestion, pageContext } = req.body || {};
+    return explainScreenWithAi(db, pid(req), {
+      screenshot,
+      messages,
+      userQuestion,
+      pageContext,
+    });
+  }));
 
   return router;
 }

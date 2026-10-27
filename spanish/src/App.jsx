@@ -25,6 +25,7 @@ import CoachReport from './components/coach/CoachReport';
 import CoachWorkout, { WorkoutLauncher } from './components/coach/CoachWorkout';
 import { CoachSpotsList, CoachSpotDetail } from './components/coach/CoachSpots';
 import CoachSettings from './components/coach/CoachSettings';
+import NataliiaScreenHelp from './components/coach/NataliiaScreenHelp';
 import { secureAppUrl } from './utils/coachApi';
 
 // Adult conversation learners (B1+) get the coach as their home and a
@@ -269,6 +270,7 @@ function AppContent() {
       </main>
 
       <BottomNavBar />
+      <NataliiaScreenHelp />
     </div>
   );
 }

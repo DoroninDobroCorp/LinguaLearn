@@ -17,6 +17,8 @@ import {
   normalizeForMatch,
   sanitizeFeedback,
   sanitizeWorkoutItems,
+  buildScreenExplainSystem,
+  cleanBase64Screenshot,
 } from '../server/coach/coachService.js';
 import { diffWords, stripDisfluencies } from '../src/utils/coachApi.js';
 
@@ -161,5 +163,24 @@ describe('Correction diff', () => {
   it('marks removed and added words', () => {
     const parts = diffWords('Yo nunca no estuve en Tigre', 'Yo nunca estuve en Tigre');
     assert.deepEqual(parts.filter((part) => part.type !== 'same').map((part) => `${part.type}:${part.text.trim()}`), ['del:no']);
+  });
+});
+
+describe('Nataliia screen explain helper', () => {
+  it('strips data URL prefix from base64 screenshot', () => {
+    assert.equal(cleanBase64Screenshot('data:image/jpeg;base64,/9j/4AAQSkZJRg=='), '/9j/4AAQSkZJRg==');
+    assert.equal(cleanBase64Screenshot('data:image/png;base64,iVBORw0KGgo=='), 'iVBORw0KGgo==');
+    assert.equal(cleanBase64Screenshot('/9j/4AAQSkZJRg=='), '/9j/4AAQSkZJRg==');
+    assert.equal(cleanBase64Screenshot(''), null);
+    assert.equal(cleanBase64Screenshot(null), null);
+  });
+
+  it('builds personalized system prompt for Nataliia with B1 and rioplatense dialect', () => {
+    const prompt = buildScreenExplainSystem({ display_name: 'Nataliia', level: 'B1', dialect: 'rioplatense' }, '/books/lesson/45');
+    assert.ok(prompt.includes('Nataliia'));
+    assert.ok(prompt.includes('B1'));
+    assert.ok(prompt.includes('rioplatense'));
+    assert.ok(prompt.includes('/books/lesson/45'));
+    assert.ok(prompt.includes('аргентинский испанский'));
   });
 });

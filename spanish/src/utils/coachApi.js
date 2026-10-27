@@ -57,6 +57,7 @@ export const coachApi = {
   nextWorkout: () => request('POST', '/workouts/next', {}),
   workout: (id, wait = false) => request('GET', `/workouts/${id}${wait ? '?wait=1' : ''}`),
   answer: (workoutId, itemId, payload) => request('POST', `/workouts/${workoutId}/items/${itemId}/answer`, payload),
+  screenChat: (payload) => request('POST', '/screen-chat', payload),
 };
 
 export async function fetchSpeech(text, { voice, style } = {}) {

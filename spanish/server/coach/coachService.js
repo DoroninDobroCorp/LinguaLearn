@@ -1367,4 +1367,81 @@ export function getDashboard(db, profileId) {
   };
 }
 
+// -------------------------------------------------------------- screen QA / explain
+
+export function buildScreenExplainSystem(learner, pageContext = '') {
+  const learnerName = learner?.display_name || 'Наталия';
+  const dialect = learner?.dialect || 'rioplatense';
+  const level = learner?.level || 'B1';
+
+  return `Ты — внимательный, чуткий и высококвалифицированный персональный преподаватель испанского языка для взрослой ученицы по имени ${learnerName}.
+Уровень ученицы: ${level}. Языковая среда: ${dialect} (аргентинский испанский, Буэнос-Айрес / Патагония).
+Наталия учится в приложении и нажала кнопку "Почему так?", потому что встретила что-то непонятное на экране (задание, ошибку, грамматическую форму, незнакомое выражение в книге, карточку слова или исправление).
+
+Тебе прислан скриншот её текущего экрана (адрес страницы: "${pageContext || ''}").
+
+Твои правила:
+1. Внимательно рассмотри скриншот: пойми, какую страницу, упражнение, фразу, ошибку или варианты выбора видит Наталия.
+2. Отвечай прямо на вопрос Наталии на чистом, понятном, дружелюбном и живом русском языке.
+3. Главное — доходчиво объяснить ЛОГИКУ: ПОЧЕМУ здесь используется именно такое слово, предлог (например, por vs para), время глагола (Indefinido vs Imperfecto, Subjuntivo vs Indicativo), форма voseo или порядок слов. Почему другие варианты были бы неверными или неестественными.
+4. Учитывай живой аргентинский контекст: если на экране или в вопросе есть особенности Rioplatense (vos, che, произношение ll/y как [ш], разговорные выражения), дружелюбно подсвети их.
+5. Форматируй ответ красиво и структурированно:
+   - Короткие абзацы;
+   - Ключевые испанские слова выделяй **жирным шрифтом**;
+   - Дай короткую подсказку-лайфхак («💡 Как легко запомнить: ...»).
+6. Поддерживай и ободряй Наталию, отвечай с теплом и уважением.`;
+}
+
+export function cleanBase64Screenshot(screenshot) {
+  if (typeof screenshot !== 'string' || !screenshot.trim()) return null;
+  return screenshot.replace(/^data:image\/[a-zA-Z+]+;base64,/, '').trim();
+}
+
+export async function explainScreenWithAi(db, profileId, { screenshot, messages = [], userQuestion, pageContext = '' } = {}) {
+  const learner = getLearner(db, profileId);
+  const system = buildScreenExplainSystem(learner, pageContext);
+  const cleanScreenshot = cleanBase64Screenshot(screenshot);
+
+  const contents = [];
+  const history = Array.isArray(messages) ? messages : [];
+
+  for (let i = 0; i < history.length; i++) {
+    const msg = history[i];
+    const role = msg.role === 'assistant' || msg.role === 'model' ? 'model' : 'user';
+    const parts = [];
+    if (i === 0 && role === 'user' && cleanScreenshot) {
+      parts.push({ text: msg.content || 'Посмотри на скриншот моего экрана.' });
+      parts.push({ inlineData: { mimeType: 'image/jpeg', data: cleanScreenshot } });
+    } else {
+      parts.push({ text: msg.content || '' });
+    }
+    contents.push({ role, parts });
+  }
+
+  const userPrompt = String(userQuestion || 'Объясни, пожалуйста, что здесь на экране и почему так.').trim();
+  const currentParts = [{ text: userPrompt }];
+
+  const hasImage = contents.some((c) => c.parts.some((p) => p.inlineData));
+  if (cleanScreenshot && !hasImage) {
+    currentParts.push({ inlineData: { mimeType: 'image/jpeg', data: cleanScreenshot } });
+  }
+
+  contents.push({
+    role: 'user',
+    parts: currentParts,
+  });
+
+  const { text, model, ms } = await generateText({
+    task: 'screen_chat_explain',
+    models: COACH_MODELS.chat,
+    system,
+    contents,
+    temperature: 0.7,
+    maxOutputTokens: 1500,
+    timeoutMs: 35_000,
+  });
+
+  return { reply: text, model, ms };
+}
+
 export { parseJson };
