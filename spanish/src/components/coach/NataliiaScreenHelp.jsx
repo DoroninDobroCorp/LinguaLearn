@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import html2canvas from 'html2canvas';
-import { Sparkles, X, Send, Camera, RefreshCw, ZoomIn, Bot, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, X, Send, Camera, RefreshCw, ZoomIn, Bot, HelpCircle, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
 import { useProfile } from '../../contexts/ProfileContext';
 import { coachApi } from '../../utils/coachApi';
 
@@ -111,6 +111,7 @@ export default function NataliiaScreenHelp() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const lastPathRef = useRef('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -148,13 +149,33 @@ export default function NataliiaScreenHelp() {
       // Brief delay to let any button hover effects settle
       await new Promise((resolve) => setTimeout(resolve, 80));
 
-      const canvas = await html2canvas(document.body, {
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        scale: Math.min(window.devicePixelRatio || 1, 1.5),
-        ignoreElements: (el) => el.classList?.contains?.('screen-qa-ignore'),
-      });
+      let canvas;
+      try {
+        // 1. Capture the exact visible viewport that Nataliia is looking at
+        canvas = await html2canvas(document.documentElement, {
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          width: window.innerWidth,
+          height: window.innerHeight,
+          x: window.scrollX,
+          y: window.scrollY,
+          scrollX: 0,
+          scrollY: 0,
+          scale: Math.min(window.devicePixelRatio || 1, 1.5),
+          ignoreElements: (el) => el.classList?.contains?.('screen-qa-ignore'),
+        });
+      } catch (viewportErr) {
+        console.warn('[NataliiaScreenHelp] Viewport capture fallback to document.body:', viewportErr);
+        // 2. Fallback to document.body capture
+        canvas = await html2canvas(document.body, {
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          scale: 1,
+          ignoreElements: (el) => el.classList?.contains?.('screen-qa-ignore'),
+        });
+      }
 
       const fullDataUrl = canvas.toDataURL('image/jpeg', 0.82);
       const cleanBase64 = fullDataUrl.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
@@ -171,10 +192,15 @@ export default function NataliiaScreenHelp() {
   };
 
   const handleOpenClick = async () => {
-    const shot = await captureScreen();
+    const currentPath = window.location.pathname + window.location.search;
+    const pathChanged = lastPathRef.current !== currentPath;
+    lastPathRef.current = currentPath;
+
+    await captureScreen();
     setIsOpen(true);
 
-    if (messages.length === 0) {
+    // If opening first time or if page changed, give fresh greeting for this screen
+    if (messages.length === 0 || pathChanged) {
       setMessages([
         {
           role: 'assistant',
@@ -189,7 +215,7 @@ export default function NataliiaScreenHelp() {
     // Hide modal temporarily for clean capture
     setIsOpen(false);
     await new Promise((r) => setTimeout(r, 120));
-    const shot = await captureScreen();
+    await captureScreen();
     setIsOpen(true);
     setMessages((prev) => [
       ...prev,
@@ -199,6 +225,17 @@ export default function NataliiaScreenHelp() {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       },
     ]);
+  };
+
+  const handleResetChat = () => {
+    setMessages([
+      {
+        role: 'assistant',
+        content: 'Диалог сброшен. Я по-прежнему вижу твой экран. Задай новый вопрос или выбери быстрый вариант ниже:',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+    ]);
+    setError(null);
   };
 
   const handleSendMessage = async (textOverride) => {
@@ -309,18 +346,29 @@ export default function NataliiaScreenHelp() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
-                aria-label="Закрыть"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleResetChat}
+                  className="p-1.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
+                  title="Очистить диалог и начать новый вопрос"
+                  aria-label="Сбросить диалог"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="p-1.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
+                  aria-label="Закрыть"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Attached Screenshot Bar */}
-            {screenshotDataUrl && (
+            {screenshotDataUrl ? (
               <div className="px-4 py-2 bg-purple-50/70 dark:bg-slate-800/60 border-b border-purple-100/70 dark:border-purple-900/40 flex-shrink-0">
                 <div className="flex items-center justify-between text-xs">
                   <button
@@ -367,6 +415,17 @@ export default function NataliiaScreenHelp() {
                     </button>
                   </div>
                 )}
+              </div>
+            ) : (
+              <div className="px-4 py-2 bg-amber-50/70 dark:bg-amber-950/40 border-b border-amber-200/60 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-200 flex items-center justify-between">
+                <span>📍 Контекст страницы передан Gemini ({window.location.pathname})</span>
+                <button
+                  type="button"
+                  onClick={handleRetakeScreenshot}
+                  className="font-bold underline ml-2"
+                >
+                  Попробовать снимок ещё раз
+                </button>
               </div>
             )}
 
