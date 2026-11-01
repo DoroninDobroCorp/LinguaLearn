@@ -2,7 +2,7 @@ import React from 'react';
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import {
   Sparkles, BookOpen, Settings, Brain, BookMarked, Moon, Sun,
-  Map, MessageCircle, Home, Compass, Dumbbell, Target
+  Map, MessageCircle, Home, Compass, Dumbbell, Target, GraduationCap
 } from 'lucide-react';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { ProfileProvider, useProfile } from './contexts/ProfileContext';
@@ -17,6 +17,7 @@ import CurriculumMap from './components/CurriculumMap';
 import ProfileSelector from './components/ProfileSelector';
 import GamificationHeader from './components/GamificationHeader';
 import { BooksHome,BookOutline,BookLesson } from './components/books/Books';
+import { BookCourseLesson } from './components/books/BookCourses';
 import CoachHome from './components/coach/CoachHome';
 import CoachStart from './components/coach/CoachStart';
 import CoachChat from './components/coach/CoachChat';
@@ -37,6 +38,7 @@ function useConversationTrack() {
 
 const COACH_NAV_ITEMS = [
   { path: '/', icon: Home, label: 'Главная' },
+  { path: '/curriculum', icon: GraduationCap, label: 'Курсы CEFR' },
   { path: '/coach/new', icon: MessageCircle, label: 'Разговор' },
   { path: '/coach/workout', icon: Dumbbell, label: 'Тренировка' },
   { path: '/coach/spots', icon: Target, label: 'Мои темы' },
@@ -48,6 +50,7 @@ const COACH_NAV_ITEMS = [
 function isNavActive(pathname, path) {
   if (path === '/') return pathname === '/';
   if (path === '/coach/new') return pathname.startsWith('/coach/new') || pathname.startsWith('/coach/chat') || pathname.startsWith('/coach/call') || pathname.startsWith('/coach/report');
+  if (path === '/curriculum') return pathname.startsWith('/curriculum') || pathname.startsWith('/book-course') || pathname === '/topics' || pathname === '/cefr' || pathname === '/courses' || pathname === '/book-courses' || pathname === '/checkpoints';
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
@@ -151,6 +154,7 @@ function BottomNavBar() {
   const booksEnabled = Boolean(useProfile().activeProfile?.books_enabled);
   const navItems = conversationTrack ? COACH_NAV_ITEMS.filter((item) => item.path !== '/coach/settings' && (item.path !== '/books' || booksEnabled)) : [
     { path: '/', icon: Home, label: t('nav_today', 'Главная') },
+    { path: '/curriculum', icon: GraduationCap, label: 'Курсы CEFR' },
     { path: '/maya-verbs', icon: Sparkles, label: 'Урок Майи' },
     { path: '/exercises', icon: Brain, label: t('nav_exercises', 'Тренажер') },
     { path: '/vocabulary', icon: BookMarked, label: t('nav_vocabulary', 'Словарь') },
@@ -160,10 +164,10 @@ function BottomNavBar() {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 glass-strong border-t border-purple-200/50 dark:border-gray-800 shadow-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md flex items-center justify-around px-1"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 glass-strong border-t border-purple-200/50 dark:border-gray-800 shadow-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md flex items-center justify-around px-0.5 sm:px-1"
       style={{
         paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)',
-        paddingTop: '6px',
+        paddingTop: '5px',
         minHeight: 'calc(3.75rem + env(safe-area-inset-bottom, 0px))',
       }}
     >
@@ -175,16 +179,18 @@ function BottomNavBar() {
           <Link
             key={path}
             to={path}
-            className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-2xl transition-all duration-200 active:scale-95 ${
+            className={`flex flex-col items-center justify-center flex-1 py-1 px-0.5 rounded-2xl transition-all duration-200 active:scale-95 min-w-0 ${
               isActive
                 ? 'text-fuchsia-600 dark:text-fuchsia-400 font-extrabold scale-105'
                 : 'text-slate-500 dark:text-slate-400 font-medium hover:text-fuchsia-500'
             }`}
           >
             <div className={`p-1 rounded-xl transition-colors ${isActive ? 'bg-fuchsia-100 dark:bg-fuchsia-950/60' : ''}`}>
-              <Icon className={`h-5 w-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+              <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
             </div>
-            <span className="text-[10px] mt-0.5 tracking-tight font-bold">{label}</span>
+            <span className="text-[9px] sm:text-[10px] mt-0.5 tracking-tight font-bold truncate max-w-full text-center leading-none">
+              {label}
+            </span>
           </Link>
         );
       })}
@@ -245,6 +251,7 @@ function AppContent() {
           <Route path="/books" element={<BooksHome />} />
           <Route path="/books/lesson/:lessonId" element={<BookLesson />} />
           <Route path="/books/:bookId" element={<BookOutline />} />
+          <Route path="/book-course/:courseId/:lessonId" element={<BookCourseLesson />} />
           <Route path="/coach" element={<CoachHome />} />
           <Route path="/coach/new" element={<CoachStart />} />
           <Route path="/coach/chat/:sessionId" element={<CoachChat />} />
@@ -258,6 +265,10 @@ function AppContent() {
           <Route path="/chat" element={<Chat />} />
           <Route path="/stories" element={<Stories />} />
           <Route path="/curriculum" element={<CurriculumMap />} />
+          <Route path="/cefr" element={<Navigate to="/curriculum" replace />} />
+          <Route path="/courses" element={<Navigate to="/curriculum?tab=book_courses" replace />} />
+          <Route path="/book-courses" element={<Navigate to="/curriculum?tab=book_courses" replace />} />
+          <Route path="/checkpoints" element={<Navigate to="/curriculum?tab=checkpoints" replace />} />
           <Route path="/topics" element={<Navigate to="/curriculum?tab=all_topics" replace />} />
           <Route path="/maya-verbs" element={<Navigate to="/exercises?tab=maya_verbs" replace />} />
           <Route path="/maya-pronouns" element={<Navigate to="/exercises?tab=maya_pronouns" replace />} />

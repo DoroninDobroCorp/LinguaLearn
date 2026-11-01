@@ -2027,7 +2027,12 @@ export function listVocabularyGroups(db, profileId) {
     wordIdsByGroup.get(row.group_id).push(row.vocabulary_id);
   }
 
-  return groups.map((g) => ({
+  const extractGroupNum = (name) => {
+    const m = String(name || '').match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : 999999;
+  };
+
+  const result = groups.map((g) => ({
     id: g.id,
     profile_id: g.profile_id,
     name: g.name,
@@ -2036,6 +2041,15 @@ export function listVocabularyGroups(db, profileId) {
     word_count: Number(g.word_count) || 0,
     word_ids: wordIdsByGroup.get(g.id) || [],
   }));
+
+  result.sort((a, b) => {
+    const numA = extractGroupNum(a.name);
+    const numB = extractGroupNum(b.name);
+    if (numA !== numB) return numA - numB;
+    return String(a.name || '').localeCompare(String(b.name || ''), undefined, { numeric: true, sensitivity: 'base' });
+  });
+
+  return result;
 }
 
 export function createVocabularyGroup(db, profileId, name) {

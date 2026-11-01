@@ -1,0 +1,2373 @@
+import json
+
+# Full curated dataset of 256 words for Maya
+WORDS_DATA = [
+  # 👤 41. Личные местоимения
+  {
+    "group": "👤 41. Личные местоимения",
+    "word": "yo",
+    "translation": "я",
+    "example": "Yo soy Maya y estudio español.",
+    "example_translation": "Я Майя и я учу испанский.",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "👤 41. Личные местоимения",
+    "word": "tú",
+    "translation": "ты",
+    "example": "¿Tú querés venir a jugar?",
+    "example_translation": "Ты хочешь пойти поиграть?",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "👤 41. Личные местоимения",
+    "word": "él",
+    "translation": "он",
+    "example": "Él es mi hermano mayor.",
+    "example_translation": "Он мой старший брат.",
+    "pos": "pronoun",
+    "gender": "m"
+  },
+  {
+    "group": "👤 41. Личные местоимения",
+    "word": "ella",
+    "translation": "она",
+    "example": "Ella dibuja muy lindo.",
+    "example_translation": "Она очень красиво рисует.",
+    "pos": "pronoun",
+    "gender": "f"
+  },
+  {
+    "group": "👤 41. Личные местоимения",
+    "word": "usted",
+    "translation": "Вы (вежливо)",
+    "example": "¿Usted cómo se llama, señor?",
+    "example_translation": "Как Вас зовут, сеньор?",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "👤 41. Личные местоимения",
+    "word": "nosotros",
+    "translation": "мы",
+    "example": "Nosotros vamos juntos a la plaza.",
+    "example_translation": "Мы идём вместе в парк.",
+    "pos": "pronoun",
+    "gender": "m"
+  },
+  {
+    "group": "👤 41. Личные местоимения",
+    "word": "vosotros",
+    "translation": "вы (мн. число в Испании)",
+    "example": "Vosotros sois muy amables.",
+    "example_translation": "Вы очень любезны.",
+    "pos": "pronoun",
+    "gender": "m"
+  },
+  {
+    "group": "👤 41. Личные местоимения",
+    "word": "ellos",
+    "translation": "они (муж. / смеш.)",
+    "example": "Ellos juegan a la pelota en el patio.",
+    "example_translation": "Они играют в мяч во дворе.",
+    "pos": "pronoun",
+    "gender": "m"
+  },
+  {
+    "group": "👤 41. Личные местоимения",
+    "word": "ellas",
+    "translation": "они (жен.)",
+    "example": "Ellas cantan una canción hermosa.",
+    "example_translation": "Они поют красивую песню.",
+    "pos": "pronoun",
+    "gender": "f"
+  },
+  {
+    "group": "👤 41. Личные местоимения",
+    "word": "ustedes",
+    "translation": "вы (мн. число)",
+    "example": "¿Ustedes tienen la tarea lista?",
+    "example_translation": "У вас готово домашнее задание?",
+    "pos": "pronoun",
+    "gender": None
+  },
+
+  # 👉 42. Местоимения и указатели
+  {
+    "group": "👉 42. Местоимения и указатели",
+    "word": "me",
+    "translation": "меня / мне",
+    "example": "Mamá me ayuda con el dibujo.",
+    "example_translation": "Мама помогает мне с рисунком.",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "👉 42. Местоимения и указатели",
+    "word": "te",
+    "translation": "тебя / тебе",
+    "example": "Te presto mi lápiz de color.",
+    "example_translation": "Я одолжу тебе свой цветной карандаш.",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "👉 42. Местоимения и указатели",
+    "word": "se",
+    "translation": "себя / себе",
+    "example": "Mateo se levanta temprano para ir a la escuela.",
+    "example_translation": "Матео встаёт рано, чтобы пойти в школу.",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "👉 42. Местоимения и указатели",
+    "word": "nos",
+    "translation": "нас / нам",
+    "example": "La seño nos lee un cuento divertido.",
+    "example_translation": "Учительница читает нам забавную сказку.",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "👉 42. Местоимения и указатели",
+    "word": "mi",
+    "translation": "мой / моя",
+    "example": "Esta es mi mochila favorita.",
+    "example_translation": "Это мой любимый рюкзак.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "👉 42. Местоимения и указатели",
+    "word": "tu",
+    "translation": "твой / твоя",
+    "example": "¿Dónde está tu cuaderno?",
+    "example_translation": "Где твоя тетрадь?",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "👉 42. Местоимения и указатели",
+    "word": "su",
+    "translation": "его / её / их / Ваш",
+    "example": "Su perrito es blanco y juguetón.",
+    "example_translation": "Её щенок белый и игривый.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "👉 42. Местоимения и указатели",
+    "word": "este",
+    "translation": "этот",
+    "example": "Este libro tiene historias muy lindas.",
+    "example_translation": "В этой книге очень хорошие рассказы.",
+    "pos": "pronoun",
+    "gender": "m"
+  },
+  {
+    "group": "👉 42. Местоимения и указатели",
+    "word": "ese",
+    "translation": "тот",
+    "example": "Ese gatito duerme sobre la silla.",
+    "example_translation": "Тот котёнок спит на стуле.",
+    "pos": "pronoun",
+    "gender": "m"
+  },
+  {
+    "group": "👉 42. Местоимения и указатели",
+    "word": "aquel",
+    "translation": "вон тот (далёкий)",
+    "example": "Aquel árbol grande da mucha sombra.",
+    "example_translation": "Вон то большое дерево даёт много тени.",
+    "pos": "pronoun",
+    "gender": "m"
+  },
+
+  # ❓ 43. Неопределённые местоимения
+  {
+    "group": "❓ 43. Неопределённые местоимения",
+    "word": "alguien",
+    "translation": "кто-то / кто-нибудь",
+    "example": "¿Alguien golpeó la puerta?",
+    "example_translation": "Кто-то постучал в дверь?",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "❓ 43. Неопределённые местоимения",
+    "word": "nadie",
+    "translation": "никто",
+    "example": "No hay nadie en el aula durante el recreo.",
+    "example_translation": "Во время перемены в классе никого нет.",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "❓ 43. Неопределённые местоимения",
+    "word": "algo",
+    "translation": "что-то / что-нибудь",
+    "example": "¿Querés comer algo rico?",
+    "example_translation": "Хочешь съесть что-нибудь вкусное?",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "❓ 43. Неопределённые местоимения",
+    "word": "nada",
+    "translation": "ничего",
+    "example": "No me falta nada para la clase.",
+    "example_translation": "Мне ничего не не хватает к уроку.",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "❓ 43. Неопределённые местоимения",
+    "word": "todo",
+    "translation": "всё / весь",
+    "example": "Terminé todo el ejercicio de matemática.",
+    "example_translation": "Я закончила всё упражнение по математике.",
+    "pos": "pronoun",
+    "gender": "m"
+  },
+  {
+    "group": "❓ 43. Неопределённые местоимения",
+    "word": "cada",
+    "translation": "каждый / каждая",
+    "example": "Cada mañana desayuno leche caliente.",
+    "example_translation": "Каждое утро я завтракаю тёплым молоком.",
+    "pos": "determiner",
+    "gender": None
+  },
+  {
+    "group": "❓ 43. Неопределённые местоимения",
+    "word": "otro",
+    "translation": "другой",
+    "example": "Quiero probar otro sabor de helado.",
+    "example_translation": "Я хочу попробовать другой вкус мороженого.",
+    "pos": "pronoun",
+    "gender": "m"
+  },
+  {
+    "group": "❓ 43. Неопределённые местоимения",
+    "word": "mismo",
+    "translation": "тот же самый / сам",
+    "example": "Llevamos el mismo uniforme a la escuela.",
+    "example_translation": "Мы носим одинаковую школьную форму.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+
+  # 👥 44. Люди и окружение
+  {
+    "group": "👥 44. Люди и окружение",
+    "word": "persona",
+    "translation": "человек / персона",
+    "example": "La abuela es una persona muy cariñosa.",
+    "example_translation": "Бабушка — очень добрый и заботливый человек.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "👥 44. Люди и окружение",
+    "word": "hombre",
+    "translation": "мужчина",
+    "example": "Ese hombre amable ayuda a cruzar la calle.",
+    "example_translation": "Этот вежливый мужчина помогает перейти улицу.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "👥 44. Люди и окружение",
+    "word": "mujer",
+    "translation": "женщина",
+    "example": "La doctora es una mujer muy sabia.",
+    "example_translation": "Врач — очень мудрая женщина.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "👥 44. Люди и окружение",
+    "word": "niño",
+    "translation": "ребёнок / мальчик",
+    "example": "El niño juega contento con sus autitos.",
+    "example_translation": "Мальчик радостно играет со своими машинками.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "👥 44. Люди и окружение",
+    "word": "familia",
+    "translation": "семья",
+    "example": "Los domingos almorzamos en familia.",
+    "example_translation": "По воскресеньям мы обедаем всей семьёй.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "👥 44. Люди и окружение",
+    "word": "gente",
+    "translation": "люди",
+    "example": "Hay mucha gente alegre en la fiesta.",
+    "example_translation": "На празднике много весёлых людей.",
+    "pos": "noun",
+    "gender": "f"
+  },
+
+  # ⚡ 45. Главные глаголы
+  {
+    "group": "⚡ 45. Главные глаголы",
+    "word": "ser",
+    "translation": "быть / являться",
+    "example": "Es importante ser amable con todos.",
+    "example_translation": "Важно быть добрым со всеми.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "⚡ 45. Главные глаголы",
+    "word": "estar",
+    "translation": "находиться / чувствовать себя",
+    "example": "Estoy muy contenta con mi dibujo.",
+    "example_translation": "Я очень довольна своим рисунком.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "⚡ 45. Главные глаголы",
+    "word": "tener",
+    "translation": "иметь / обладать",
+    "example": "Tengo que ordenar mi cuarto hoy.",
+    "example_translation": "Мне нужно убрать в своей комнате сегодня.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "⚡ 45. Главные глаголы",
+    "word": "hacer",
+    "translation": "делать",
+    "example": "Vamos a hacer una torta de chocolate.",
+    "example_translation": "Мы собираемся сделать шоколадный торт.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "⚡ 45. Главные глаголы",
+    "word": "ir",
+    "translation": "идти / ехать",
+    "example": "Voy a la escuela en colectivo.",
+    "example_translation": "Я еду в школу на автобусе.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "⚡ 45. Главные глаголы",
+    "word": "venir",
+    "translation": "приходить / приезжать",
+    "example": "¿Querés venir a mi casa a jugar?",
+    "example_translation": "Хочешь прийти ко мне домой поиграть?",
+    "pos": "verb",
+    "gender": None
+  },
+
+  # 🧠 46. Глаголы мышления и знания
+  {
+    "group": "🧠 46. Глаголы мышления и знания",
+    "word": "querer",
+    "translation": "хотеть / любить",
+    "example": "Quiero aprender muchas palabras nuevas.",
+    "example_translation": "Я хочу выучить много новых слов.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🧠 46. Глаголы мышления и знания",
+    "word": "poder",
+    "translation": "мочь / уметь",
+    "example": "Puedo dibujar una mariposa muy linda.",
+    "example_translation": "Я могу нарисовать очень красивую бабочку.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🧠 46. Глаголы мышления и знания",
+    "word": "saber",
+    "translation": "знать / уметь",
+    "example": "Ya sé contar hasta cien en español.",
+    "example_translation": "Я уже умею считать до ста по-испански.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🧠 46. Глаголы мышления и знания",
+    "word": "conocer",
+    "translation": "знать / быть знакомым",
+    "example": "Quiero conocer la ciudad de Córdoba.",
+    "example_translation": "Я хочу познакомиться с городом Кордова.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🧠 46. Глаголы мышления и знания",
+    "word": "decir",
+    "translation": "сказать / говорить",
+    "example": "Siempre hay que decir la verdad.",
+    "example_translation": "Всегда нужно говорить правду.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🧠 46. Глаголы мышления и знания",
+    "word": "ver",
+    "translation": "видеть",
+    "example": "Desde mi ventana puedo ver las flores del jardín.",
+    "example_translation": "Из моего окна я вижу цветы в саду.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🧠 46. Глаголы мышления и знания",
+    "word": "oír",
+    "translation": "слышать",
+    "example": "¿Podés oír el canto de los pájaros?",
+    "example_translation": "Ты слышишь пение птиц?",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🧠 46. Глаголы мышления и знания",
+    "word": "creer",
+    "translation": "верить / думать",
+    "example": "Creo que mañana va a salir el sol.",
+    "example_translation": "Я думаю, что завтра будет солнце.",
+    "pos": "verb",
+    "gender": None
+  },
+
+  # 🏃 47. Глаголы движения и действий
+  {
+    "group": "🏃 47. Глаголы движения и действий",
+    "word": "trabajar",
+    "translation": "работать",
+    "example": "Papá trabaja con su computadora.",
+    "example_translation": "Папа работает за своим компьютером.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🏃 47. Глаголы движения и действий",
+    "word": "estudiar",
+    "translation": "учиться / изучать",
+    "example": "Me gusta estudiar español todos los días.",
+    "example_translation": "Мне нравится учить испанский каждый день.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🏃 47. Глаголы движения и действий",
+    "word": "encontrar",
+    "translation": "находить",
+    "example": "Pude encontrar mi cartuchera debajo de la cama.",
+    "example_translation": "Я смогла найти свой пенал под кроватью.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🏃 47. Глаголы движения и действий",
+    "word": "dar",
+    "translation": "давать",
+    "example": "Me gusta dar abrazos a mis papás.",
+    "example_translation": "Мне нравится обнимать родителей.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🏃 47. Глаголы движения и действий",
+    "word": "poner",
+    "translation": "класть / ставить",
+    "example": "Pongo los platos limpios en la mesa.",
+    "example_translation": "Я ставлю чистые тарелки на стол.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🏃 47. Глаголы движения и действий",
+    "word": "llevar",
+    "translation": "носить / уносить",
+    "example": "Llevo mi mochila violeta a la escuela.",
+    "example_translation": "Я ношу свой фиолетовый рюкзак в школу.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🏃 47. Глаголы движения и действий",
+    "word": "traer",
+    "translation": "приносить / привозить",
+    "example": "¿Podés traer un vaso de agua fresca?",
+    "example_translation": "Можешь принести стакан прохладной воды?",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🏃 47. Глаголы движения и действий",
+    "word": "dejar",
+    "translation": "оставлять / позволять",
+    "example": "Dejo mis zapatillas cerca de la puerta.",
+    "example_translation": "Я оставляю свои кроссовки у двери.",
+    "pos": "verb",
+    "gender": None
+  },
+
+  # 🚪 48. Глаголы перемещения и чувств
+  {
+    "group": "🚪 48. Глаголы перемещения и чувств",
+    "word": "pasar",
+    "translation": "проходить / проводить время",
+    "example": "Nos gusta pasar la tarde en la plaza.",
+    "example_translation": "Нам нравится проводить день в парке.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🚪 48. Глаголы перемещения и чувств",
+    "word": "entrar",
+    "translation": "входить",
+    "example": "Vamos a entrar al aula cuando toque el timbre.",
+    "example_translation": "Мы войдём в класс, когда прозвенит звонок.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🚪 48. Глаголы перемещения и чувств",
+    "word": "volver",
+    "translation": "возвращаться",
+    "example": "A las cinco volvemos a casa de la escuela.",
+    "example_translation": "В пять мы возвращаемся домой из школы.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🚪 48. Глаголы перемещения и чувств",
+    "word": "necesitar",
+    "translation": "нуждаться / быть нужным",
+    "example": "Necesito una goma para borrar este dibujo.",
+    "example_translation": "Мне нужен ластик, чтобы стереть этот рисунок.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🚪 48. Глаголы перемещения и чувств",
+    "word": "gustar",
+    "translation": "нравиться",
+    "example": "Me gusta mucho cantar y bailar.",
+    "example_translation": "Мне очень нравится петь и танцевать.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🚪 48. Глаголы перемещения и чувств",
+    "word": "amar",
+    "translation": "любить",
+    "example": "Amo a mi familia y a mis amigos.",
+    "example_translation": "Я люблю свою семью и друзей.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🚪 48. Глаголы перемещения и чувств",
+    "word": "sentir",
+    "translation": "чувствовать",
+    "example": "Hoy me siento con mucha energía para jugar.",
+    "example_translation": "Сегодня я чувствую в себе много сил для игр.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🚪 48. Глаголы перемещения и чувств",
+    "word": "elegir",
+    "translation": "выбирать",
+    "example": "Puedo elegir el color que más me guste.",
+    "example_translation": "Я могу выбрать цвет, который мне больше нравится.",
+    "pos": "verb",
+    "gender": None
+  },
+
+  # 🛒 49. Глаголы в делах и общении
+  {
+    "group": "🛒 49. Глаголы в делах и общении",
+    "word": "pagar",
+    "translation": "платить",
+    "example": "Voy a pagar el alfajor en el quiosco.",
+    "example_translation": "Я заплачу за альфахор в киоске.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🛒 49. Глаголы в делах и общении",
+    "word": "vender",
+    "translation": "продавать",
+    "example": "En esa tienda venden flores hermosas.",
+    "example_translation": "В том магазине продают красивые цветы.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🛒 49. Глаголы в делах и общении",
+    "word": "usar",
+    "translation": "использовать",
+    "example": "Uso lápices de colores para pintar.",
+    "example_translation": "Я использую цветные карандаши для раскрашивания.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🛒 49. Глаголы в делах и общении",
+    "word": "llamar",
+    "translation": "звать / звонить",
+    "example": "Mamá me llama para cenar.",
+    "example_translation": "Мама зовёт меня ужинать.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🛒 49. Глаголы в делах и общении",
+    "word": "preguntar",
+    "translation": "спрашивать",
+    "example": "Levanto la mano para preguntar a la seño.",
+    "example_translation": "Я поднимаю руку, чтобы спросить учительницу.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🛒 49. Глаголы в делах и общении",
+    "word": "responder",
+    "translation": "отвечать",
+    "example": "Sé responder todas las preguntas de la clase.",
+    "example_translation": "Я умею отвечать на все вопросы урока.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🛒 49. Глаголы в делах и общении",
+    "word": "empezar",
+    "translation": "начинать",
+    "example": "La clase va a empezar en cinco minutos.",
+    "example_translation": "Урок начнётся через пять минут.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "🛒 49. Глаголы в делах и общении",
+    "word": "terminar",
+    "translation": "заканчивать",
+    "example": "Terminé de leer este cuento divertido.",
+    "example_translation": "Я закончила читать эту забавную сказку.",
+    "pos": "verb",
+    "gender": None
+  },
+
+  # 💭 50. Действия и восприятие
+  {
+    "group": "💭 50. Действия и восприятие",
+    "word": "recordar",
+    "translation": "помнить / вспоминать",
+    "example": "Recuerdo todas las canciones de la escuela.",
+    "example_translation": "Я помню все школьные песенки.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "💭 50. Действия и восприятие",
+    "word": "olvidar",
+    "translation": "забывать",
+    "example": "No me voy a olvidar de llevar la cartuchera.",
+    "example_translation": "Я не забуду взять пенал.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "💭 50. Действия и восприятие",
+    "word": "tomar",
+    "translation": "пить / брать",
+    "example": "Tomo un vaso de leche con galletitas.",
+    "example_translation": "Я пью стакан молока с печеньем.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "💭 50. Действия и восприятие",
+    "word": "beber",
+    "translation": "пить",
+    "example": "Es importante beber mucha agua en verano.",
+    "example_translation": "Летом важно пить много воды.",
+    "pos": "verb",
+    "gender": None
+  },
+  {
+    "group": "💭 50. Действия и восприятие",
+    "word": "también",
+    "translation": "также / тоже",
+    "example": "A mí también me gusta el helado de chocolate.",
+    "example_translation": "Мне тоже нравится шоколадное мороженое.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "💭 50. Действия и восприятие",
+    "word": "tampoco",
+    "translation": "тоже не",
+    "example": "Yo tampoco tengo frío hoy.",
+    "example_translation": "Мне сегодня тоже не холодно.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "💭 50. Действия и восприятие",
+    "word": "claro",
+    "translation": "конечно / ясно",
+    "example": "¡Claro que sí, vamos a jugar!",
+    "example_translation": "Конечно да, пойдём играть!",
+    "pos": "adverb",
+    "gender": None
+  },
+
+  # ⏳ 51. Время и частота
+  {
+    "group": "⏳ 51. Время и частота",
+    "word": "siempre",
+    "translation": "всегда",
+    "example": "Siempre saludo con una sonrisa.",
+    "example_translation": "Я всегда здороваюсь с улыбкой.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⏳ 51. Время и частота",
+    "word": "nunca",
+    "translation": "никогда",
+    "example": "Nunca olvido guardar mis juguetes.",
+    "example_translation": "Я никогда не забываю убирать свои игрушки.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⏳ 51. Время и частота",
+    "word": "ahora",
+    "translation": "сейчас",
+    "example": "Ahora vamos a merendar algo rico.",
+    "example_translation": "Сейчас мы перекусим чем-нибудь вкусным.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⏳ 51. Время и частота",
+    "word": "antes",
+    "translation": "до / раньше",
+    "example": "Me lavo las manos antes de comer.",
+    "example_translation": "Я мою руки перед едой.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⏳ 51. Время и частота",
+    "word": "después",
+    "translation": "после / потом",
+    "example": "Después de hacer la tarea voy a la plaza.",
+    "example_translation": "После уроков я пойду в парк.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⏳ 51. Время и частота",
+    "word": "ayer",
+    "translation": "вчера",
+    "example": "Ayer jugamos un partido divertido.",
+    "example_translation": "Вчера мы играли в весёлую игру.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⏳ 51. Время и частота",
+    "word": "temprano",
+    "translation": "рано",
+    "example": "Me despierto temprano los días de escuela.",
+    "example_translation": "Я просыпаюсь рано в школьные дни.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⏳ 51. Время и частота",
+    "word": "pronto",
+    "translation": "скоро",
+    "example": "Pronto van a llegar las vacaciones.",
+    "example_translation": "Скоро начнутся каникулы.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⏳ 51. Время и частота",
+    "word": "todavía",
+    "translation": "всё ещё / пока",
+    "example": "Todavía hay tiempo para jugar un rato más.",
+    "example_translation": "Ещё есть время поиграть немного.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⏳ 51. Время и частота",
+    "word": "ya",
+    "translation": "уже",
+    "example": "¡Ya terminé todo mi dibujo!",
+    "example_translation": "Я уже закончила весь свой рисунок!",
+    "pos": "adverb",
+    "gender": None
+  },
+
+  # 📍 52. Местоположение и расстояние
+  {
+    "group": "📍 52. Местоположение и расстояние",
+    "word": "aquí",
+    "translation": "здесь / тут",
+    "example": "Aquí tengo mis témperas y pinceles.",
+    "example_translation": "Здесь у меня гуашь и кисточки.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "📍 52. Местоположение и расстояние",
+    "word": "allí",
+    "translation": "там",
+    "example": "Allí en el árbol hay un nido de pájaros.",
+    "example_translation": "Там на дереве птичье гнездо.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "📍 52. Местоположение и расстояние",
+    "word": "cerca",
+    "translation": "близко / рядом",
+    "example": "La escuela queda muy cerca de mi casa.",
+    "example_translation": "Школа находится очень близко от моего дома.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "📍 52. Местоположение и расстояние",
+    "word": "lejos",
+    "translation": "далеко",
+    "example": "La playa queda lejos de la ciudad.",
+    "example_translation": "Пляж находится далеко от города.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "📍 52. Местоположение и расстояние",
+    "word": "dentro",
+    "translation": "внутри",
+    "example": "Los lápices están dentro de la cartuchera.",
+    "example_translation": "Карандаши лежат внутри пенала.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "📍 52. Местоположение и расстояние",
+    "word": "fuera",
+    "translation": "снаружи",
+    "example": "Jugamos fuera porque hace lindo día.",
+    "example_translation": "Мы играем на улице, потому что хороший день.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "📍 52. Местоположение и расстояние",
+    "word": "arriba",
+    "translation": "наверху / вверх",
+    "example": "Mirá hacia arriba, hay nubes blancas.",
+    "example_translation": "Посмотри наверх, там белые облака.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "📍 52. Местоположение и расстояние",
+    "word": "abajo",
+    "translation": "внизу / вниз",
+    "example": "La pelota rodó hacia abajo.",
+    "example_translation": "Мяч покатился вниз.",
+    "pos": "adverb",
+    "gender": None
+  },
+
+  # ⚖️ 53. Количество и степень
+  {
+    "group": "⚖️ 53. Количество и степень",
+    "word": "mucho",
+    "translation": "много",
+    "example": "Tengo mucho entusiasmo por aprender.",
+    "example_translation": "У меня много энтузиазма учиться.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⚖️ 53. Количество и степень",
+    "word": "poco",
+    "translation": "мало / немного",
+    "example": "Queda un poco de jugo en la jarra.",
+    "example_translation": "В кувшине осталось немного сока.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⚖️ 53. Количество и степень",
+    "word": "más",
+    "translation": "больше / более",
+    "example": "¿Querés un poco más de ensalada?",
+    "example_translation": "Хочешь ещё немного салата?",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⚖️ 53. Количество и степень",
+    "word": "menos",
+    "translation": "меньше / менее",
+    "example": "Hoy hace menos calor que ayer.",
+    "example_translation": "Сегодня менее жарко, чем вчера.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⚖️ 53. Количество и степень",
+    "word": "muy",
+    "translation": "очень",
+    "example": "Este alfajor está muy rico.",
+    "example_translation": "Этот альфахор очень вкусный.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⚖️ 53. Количество и степень",
+    "word": "bastante",
+    "translation": "достаточно / довольно",
+    "example": "El libro es bastante interesante.",
+    "example_translation": "Книга довольно интересная.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⚖️ 53. Количество и степень",
+    "word": "casi",
+    "translation": "почти",
+    "example": "Casi termino de armar el rompecabezas.",
+    "example_translation": "Я почти закончила собирать пазл.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⚖️ 53. Количество и степень",
+    "word": "solamente",
+    "translation": "только / лишь",
+    "example": "Solamente me falta un ejercicio.",
+    "example_translation": "Мне осталось сделать только одно упражнение.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⚖️ 53. Количество и степень",
+    "word": "quizá",
+    "translation": "может быть / возможно",
+    "example": "Quizá vayamos al parque el domingo.",
+    "example_translation": "Может быть, мы пойдём в парк в воскресенье.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "⚖️ 53. Количество и степень",
+    "word": "otra vez",
+    "translation": "ещё раз / снова",
+    "example": "¿Podés repetir otra vez, por favor?",
+    "example_translation": "Можешь повторить ещё раз, пожалуйста?",
+    "pos": "phrase",
+    "gender": None
+  },
+
+  # 🎯 54. Оценки и связь
+  {
+    "group": "🎯 54. Оценки и связь",
+    "word": "mal",
+    "translation": "плохо",
+    "example": "No te preocupes, no pasa nada si sale mal.",
+    "example_translation": "Не переживай, ничего страшного, если получится плохо.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "🎯 54. Оценки и связь",
+    "word": "mejor",
+    "translation": "лучше / лучший",
+    "example": "Hoy me siento mucho mejor.",
+    "example_translation": "Сегодня я чувствую себя намного лучше.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🎯 54. Оценки и связь",
+    "word": "peor",
+    "translation": "хуже / худший",
+    "example": "Nada es peor que perder el tren.",
+    "example_translation": "Ничего нет хуже, чем опоздать на поезд.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🎯 54. Оценки и связь",
+    "word": "juntos",
+    "translation": "вместе",
+    "example": "Hacemos la tarea juntos.",
+    "example_translation": "Мы делаем уроки вместе.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "🎯 54. Оценки и связь",
+    "word": "solo",
+    "translation": "только / один",
+    "example": "Mateo puede atar sus cordones solo.",
+    "example_translation": "Матео умеет завязывать шнурки сам.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "🎯 54. Оценки и связь",
+    "word": "además",
+    "translation": "кроме того",
+    "example": "Es divertido y además aprendo mucho.",
+    "example_translation": "Это весело и кроме того я многому учусь.",
+    "pos": "conjunction",
+    "gender": None
+  },
+
+  # ❓ 55. Вопросительные слова
+  {
+    "group": "❓ 55. Вопросительные слова",
+    "word": "qué",
+    "translation": "что? / какой?",
+    "example": "¿Qué libro estás leyendo ahora?",
+    "example_translation": "Какую книгу ты сейчас читаешь?",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "❓ 55. Вопросительные слова",
+    "word": "quién",
+    "translation": "кто?",
+    "example": "¿Quién quiere jugar a las escondidas?",
+    "example_translation": "Кто хочет поиграть в прятки?",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "❓ 55. Вопросительные слова",
+    "word": "cuándo",
+    "translation": "когда?",
+    "example": "¿Cuándo empieza el recreo?",
+    "example_translation": "Когда начинается перемена?",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "❓ 55. Вопросительные слова",
+    "word": "dónde",
+    "translation": "где?",
+    "example": "¿Dónde dejaste tu lápiz?",
+    "example_translation": "Где ты оставила свой карандаш?",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "❓ 55. Вопросительные слова",
+    "word": "adónde",
+    "translation": "куда?",
+    "example": "¿Adónde vamos de paseo el sábado?",
+    "example_translation": "Куда мы пойдём гулять в субботу?",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "❓ 55. Вопросительные слова",
+    "word": "cómo",
+    "translation": "как?",
+    "example": "¿Cómo se dice esta palabra en español?",
+    "example_translation": "Как говорится это слово по-испански?",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "❓ 55. Вопросительные слова",
+    "word": "cuánto",
+    "translation": "сколько?",
+    "example": "¿Cuánto tiempo falta para salir?",
+    "example_translation": "Сколько времени осталось до выхода?",
+    "pos": "determiner",
+    "gender": "m"
+  },
+  {
+    "group": "❓ 55. Вопросительные слова",
+    "word": "cuál",
+    "translation": "какой? / который?",
+    "example": "¿Cuál es tu color preferido?",
+    "example_translation": "Какой твой любимый цвет?",
+    "pos": "pronoun",
+    "gender": None
+  },
+  {
+    "group": "❓ 55. Вопросительные слова",
+    "word": "por qué",
+    "translation": "почему?",
+    "example": "¿Por qué las hojas caen en otoño?",
+    "example_translation": "Почему листья опадают осенью?",
+    "pos": "adverb",
+    "gender": None
+  },
+
+  # 🔗 56. Предлоги
+  {
+    "group": "🔗 56. Предлоги",
+    "word": "de",
+    "translation": "из / от / о",
+    "example": "El vaso es de vidrio limpio.",
+    "example_translation": "Стакан из чистого стекла.",
+    "pos": "preposition",
+    "gender": None
+  },
+  {
+    "group": "🔗 56. Предлоги",
+    "word": "a",
+    "translation": "к / в / на",
+    "example": "Vamos a la biblioteca a leer.",
+    "example_translation": "Мы идём в библиотеку читать.",
+    "pos": "preposition",
+    "gender": None
+  },
+  {
+    "group": "🔗 56. Предлоги",
+    "word": "en",
+    "translation": "в / на",
+    "example": "Los libros están en la mesa.",
+    "example_translation": "Книги лежат на столе.",
+    "pos": "preposition",
+    "gender": None
+  },
+  {
+    "group": "🔗 56. Предлоги",
+    "word": "con",
+    "translation": "с / вместе с",
+    "example": "Juego con mis amigas en el patio.",
+    "example_translation": "Я играю с подругами во дворе.",
+    "pos": "preposition",
+    "gender": None
+  },
+  {
+    "group": "🔗 56. Предлоги",
+    "word": "sin",
+    "translation": "без",
+    "example": "Tomo té sin azúcar.",
+    "example_translation": "Я пью чай без сахара.",
+    "pos": "preposition",
+    "gender": None
+  },
+  {
+    "group": "🔗 56. Предлоги",
+    "word": "para",
+    "translation": "для / чтобы",
+    "example": "Este dibujo es para mi mamá.",
+    "example_translation": "Этот рисунок для моей мамы.",
+    "pos": "preposition",
+    "gender": None
+  },
+  {
+    "group": "🔗 56. Предлоги",
+    "word": "por",
+    "translation": "по / из-за / через",
+    "example": "Paseamos por el parque verde.",
+    "example_translation": "Мы гуляем по зелёному парку.",
+    "pos": "preposition",
+    "gender": None
+  },
+  {
+    "group": "🔗 56. Предлоги",
+    "word": "sobre",
+    "translation": "на / о / над",
+    "example": "Dejé la cartuchera sobre el escritorio.",
+    "example_translation": "Я оставила пенал на письменном столе.",
+    "pos": "preposition",
+    "gender": None
+  },
+  {
+    "group": "🔗 56. Предлоги",
+    "word": "entre",
+    "translation": "между / среди",
+    "example": "La mariposa vuela entre las flores.",
+    "example_translation": "Бабочка летает среди цветов.",
+    "pos": "preposition",
+    "gender": None
+  },
+  {
+    "group": "🔗 56. Предлоги",
+    "word": "hasta",
+    "translation": "до",
+    "example": "Caminamos juntos hasta la esquina.",
+    "example_translation": "Мы идём вместе до угла.",
+    "pos": "preposition",
+    "gender": None
+  },
+  {
+    "group": "🔗 56. Предлоги",
+    "word": "desde",
+    "translation": "от / с",
+    "example": "Desde aquí puedo ver las montañas.",
+    "example_translation": "Отсюда я вижу горы.",
+    "pos": "preposition",
+    "gender": None
+  },
+  {
+    "group": "🔗 56. Предлоги",
+    "word": "hacia",
+    "translation": "по направлению к / в сторону",
+    "example": "Caminamos hacia la plaza soleada.",
+    "example_translation": "Мы идём в сторону солнечного парка.",
+    "pos": "preposition",
+    "gender": None
+  },
+  {
+    "group": "🔗 56. Предлоги",
+    "word": "contra",
+    "translation": "против / о",
+    "example": "Reboto la pelota contra la pared.",
+    "example_translation": "Я бросаю мяч о стену.",
+    "pos": "preposition",
+    "gender": None
+  },
+
+  # 🔗 57. Союзы и связки
+  {
+    "group": "🔗 57. Союзы и связки",
+    "word": "y",
+    "translation": "и",
+    "example": "Tengo lápices y cuadernos nuevos.",
+    "example_translation": "У меня новые карандаши и тетради.",
+    "pos": "conjunction",
+    "gender": None
+  },
+  {
+    "group": "🔗 57. Союзы и связки",
+    "word": "o",
+    "translation": "или",
+    "example": "¿Querés manzana o banana?",
+    "example_translation": "Хочешь яблоко или банан?",
+    "pos": "conjunction",
+    "gender": None
+  },
+  {
+    "group": "🔗 57. Союзы и связки",
+    "word": "pero",
+    "translation": "но",
+    "example": "Está nublado pero no llueve.",
+    "example_translation": "Облачно, но дождь не идёт.",
+    "pos": "conjunction",
+    "gender": None
+  },
+  {
+    "group": "🔗 57. Союзы и связки",
+    "word": "aunque",
+    "translation": "хотя",
+    "example": "Salimos a jugar aunque hace un poco de frío.",
+    "example_translation": "Мы выходим играть, хотя немного прохладно.",
+    "pos": "conjunction",
+    "gender": None
+  },
+  {
+    "group": "🔗 57. Союзы и связки",
+    "word": "si",
+    "translation": "если",
+    "example": "Si terminás la tarea, vamos a la plaza.",
+    "example_translation": "Если закончишь уроки, пойдём в парк.",
+    "pos": "conjunction",
+    "gender": None
+  },
+  {
+    "group": "🔗 57. Союзы и связки",
+    "word": "porque",
+    "translation": "потому что",
+    "example": "Estoy feliz porque hoy es mi cumpleaños.",
+    "example_translation": "Я счастлива, потому что сегодня мой день рождения.",
+    "pos": "conjunction",
+    "gender": None
+  },
+  {
+    "group": "🔗 57. Союзы и связки",
+    "word": "entonces",
+    "translation": "тогда",
+    "example": "Si llueve, entonces leemos un libro adentro.",
+    "example_translation": "Если пойдёт дождь, тогда мы почитаем книгу дома.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "🔗 57. Союзы и связки",
+    "word": "así",
+    "translation": "так / таким образом",
+    "example": "Se dibuja así, paso a paso.",
+    "example_translation": "Это рисуется вот так, шаг за шагом.",
+    "pos": "adverb",
+    "gender": None
+  },
+  {
+    "group": "🔗 57. Союзы и связки",
+    "word": "como",
+    "translation": "как",
+    "example": "Corre rápido como un gato.",
+    "example_translation": "Он бегает быстро, как кошка.",
+    "pos": "conjunction",
+    "gender": None
+  },
+  {
+    "group": "🔗 57. Союзы и связки",
+    "word": "que",
+    "translation": "что / который",
+    "example": "El libro que me diste es muy divertido.",
+    "example_translation": "Книга, которую ты мне дал, очень забавная.",
+    "pos": "conjunction",
+    "gender": None
+  },
+  {
+    "group": "🔗 57. Союзы и связки",
+    "word": "cuando",
+    "translation": "когда",
+    "example": "Me pongo contenta cuando vienen mis amigos.",
+    "example_translation": "Я радуюсь, когда приходят мои друзья.",
+    "pos": "conjunction",
+    "gender": None
+  },
+  {
+    "group": "🔗 57. Союзы и связки",
+    "word": "mientras",
+    "translation": "в то время как / пока",
+    "example": "Escucho música mientras dibujo.",
+    "example_translation": "Я слушаю музыку, пока рисую.",
+    "pos": "conjunction",
+    "gender": None
+  },
+
+  # ✨ 58. Описания: характер и размер
+  {
+    "group": "✨ 58. Описания: характер и размер",
+    "word": "bueno",
+    "translation": "хороший / добрый",
+    "example": "Mateo es un chico muy bueno y amigable.",
+    "example_translation": "Матео очень хороший и дружелюбный мальчик.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "✨ 58. Описания: характер и размер",
+    "word": "malo",
+    "translation": "плохой",
+    "example": "El lobo del cuento no era tan malo.",
+    "example_translation": "Волк из сказки был не таким уж и плохим.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "✨ 58. Описания: характер и размер",
+    "word": "pequeño",
+    "translation": "маленький",
+    "example": "El pajarito pequeño aprende a volar.",
+    "example_translation": "Маленькая птичка учится летать.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "✨ 58. Описания: характер и размер",
+    "word": "alto",
+    "translation": "высокий",
+    "example": "La jirafa es un animal muy alto.",
+    "example_translation": "Жираф — очень высокое животное.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "✨ 58. Описания: характер и размер",
+    "word": "bajo",
+    "translation": "низкий",
+    "example": "El banquito es bajo y cómodo.",
+    "example_translation": "Табуретка низкая и удобная.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "✨ 58. Описания: характер и размер",
+    "word": "largo",
+    "translation": "длинный",
+    "example": "El tren tiene un camino muy largo.",
+    "example_translation": "У поезда очень длинный путь.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "✨ 58. Описания: характер и размер",
+    "word": "corto",
+    "translation": "короткий",
+    "example": "El recreo nos pareció muy corto.",
+    "example_translation": "Перемена показалась нам очень короткой.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "✨ 58. Описания: характер и размер",
+    "word": "nuevo",
+    "translation": "новый",
+    "example": "Tengo un cuaderno nuevo para dibujar.",
+    "example_translation": "У меня новая тетрадь для рисования.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "✨ 58. Описания: характер и размер",
+    "word": "viejo",
+    "translation": "старый",
+    "example": "Mi osito viejo de peluche es muy suave.",
+    "example_translation": "Мой старый плюшевый мишка очень мягкий.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "✨ 58. Описания: характер и размер",
+    "word": "joven",
+    "translation": "молодой",
+    "example": "La profesora de música es muy joven y alegre.",
+    "example_translation": "Учительница музыки очень молодая и весёлая.",
+    "pos": "adjective",
+    "gender": None
+  },
+
+  # 🎨 59. Впечатления и оценки
+  {
+    "group": "🎨 59. Впечатления и оценки",
+    "word": "bonito",
+    "translation": "красивый / симпатичный",
+    "example": "Ese vestido con flores es muy bonito.",
+    "example_translation": "Это платье с цветами очень красивое.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "🎨 59. Впечатления и оценки",
+    "word": "feo",
+    "translation": "некрасивый",
+    "example": "El dibujo no quedó feo, ¡quedó gracioso!",
+    "example_translation": "Рисунок получился не некрасивым, он получился забавным!",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "🎨 59. Впечатления и оценки",
+    "word": "fácil",
+    "translation": "лёгкий / простой",
+    "example": "Este ejercicio de palabras es muy fácil.",
+    "example_translation": "Это упражнение со словами очень лёгкое.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🎨 59. Впечатления и оценки",
+    "word": "difícil",
+    "translation": "трудный / сложный",
+    "example": "Al principio parecía difícil, pero lo logré.",
+    "example_translation": "Вначале казалось сложным, но у меня получилось.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🎨 59. Впечатления и оценки",
+    "word": "importante",
+    "translation": "важный",
+    "example": "Es importante lavarse los dientes todos los días.",
+    "example_translation": "Важно чистить зубы каждый день.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🎨 59. Впечатления и оценки",
+    "word": "diferente",
+    "translation": "другой / различный",
+    "example": "Cada flor del jardín tiene un color diferente.",
+    "example_translation": "У каждого цветка в саду свой цвет.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🎨 59. Впечатления и оценки",
+    "word": "igual",
+    "translation": "одинаковый / равный",
+    "example": "Los dos cuadernos son de igual tamaño.",
+    "example_translation": "Обе тетради одинакового размера.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🎨 59. Впечатления и оценки",
+    "word": "triste",
+    "translation": "грустный",
+    "example": "Si mi amiga está triste, le doy un abrazo.",
+    "example_translation": "Если моя подруга грустная, я её обнимаю.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🎨 59. Впечатления и оценки",
+    "word": "ocupado",
+    "translation": "занятый",
+    "example": "Papá está ocupado cocinando la cena.",
+    "example_translation": "Папа занят приготовлением ужина.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "🎨 59. Впечатления и оценки",
+    "word": "libre",
+    "translation": "свободный",
+    "example": "En mi tiempo libre me gusta bailar.",
+    "example_translation": "В свободное время мне нравится танцевать.",
+    "pos": "adjective",
+    "gender": None
+  },
+
+  # 🌡️ 60. Свойства предметов
+  {
+    "group": "🌡️ 60. Свойства предметов",
+    "word": "lleno",
+    "translation": "полный",
+    "example": "El vaso está lleno de jugo de naranja.",
+    "example_translation": "Стакан полон апельсинового сока.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "🌡️ 60. Свойства предметов",
+    "word": "vacío",
+    "translation": "пустой",
+    "example": "El plato quedó vacío después de la merienda.",
+    "example_translation": "Тарелка осталась пустой после полдника.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "🌡️ 60. Свойства предметов",
+    "word": "caliente",
+    "translation": "горячий",
+    "example": "La sopa está rica y caliente.",
+    "example_translation": "Суп вкусный и горячий.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🌡️ 60. Свойства предметов",
+    "word": "limpio",
+    "translation": "чистый",
+    "example": "Mi cuarto quedó ordenado y limpio.",
+    "example_translation": "Моя комната осталась прибранной и чистой.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "🌡️ 60. Свойства предметов",
+    "word": "sucio",
+    "translation": "грязный",
+    "example": "Lavé mis zapatillas porque estaban con barro.",
+    "example_translation": "Я помыла свои кроссовки, потому что они были в грязи.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "🌡️ 60. Свойства предметов",
+    "word": "caro",
+    "translation": "дорогой (по цене)",
+    "example": "Ese juguete grande es muy caro.",
+    "example_translation": "Та большая игрушка очень дорогая.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "🌡️ 60. Свойства предметов",
+    "word": "barato",
+    "translation": "дешёвый / недорогой",
+    "example": "Compré un alfajor rico y barato.",
+    "example_translation": "Я купила вкусный и недорогой альфахор.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "🌡️ 60. Свойства предметов",
+    "word": "lento",
+    "translation": "медленный",
+    "example": "El caracol camina con paso lento.",
+    "example_translation": "Улитка ползёт медленным шагом.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "🌡️ 60. Свойства предметов",
+    "word": "fuerte",
+    "translation": "сильный",
+    "example": "El viento sopló fuerte y movió los árboles.",
+    "example_translation": "Ветер подул сильно и раскачал деревья.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🌡️ 60. Свойства предметов",
+    "word": "débil",
+    "translation": "слабый",
+    "example": "La plantita pequeña todavía es débil y necesita sol.",
+    "example_translation": "Маленькое растение ещё слабое и ему нужно солнце.",
+    "pos": "adjective",
+    "gender": None
+  },
+
+  # 🛡️ 61. Качества и возможности
+  {
+    "group": "🛡️ 61. Качества и возможности",
+    "word": "amable",
+    "translation": "любезный / приветливый",
+    "example": "La vecina siempre es muy amable con nosotros.",
+    "example_translation": "Соседка всегда очень приветлива с нами.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🛡️ 61. Качества и возможности",
+    "word": "interesante",
+    "translation": "интересный",
+    "example": "La clase sobre dinosaurios fue muy interesante.",
+    "example_translation": "Урок про динозавров был очень интересным.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🛡️ 61. Качества и возможности",
+    "word": "seguro",
+    "translation": "безопасный / уверенный",
+    "example": "El patio de la escuela es un lugar seguro para jugar.",
+    "example_translation": "Школьный двор — безопасное место для игр.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "🛡️ 61. Качества и возможности",
+    "word": "peligroso",
+    "translation": "опасный",
+    "example": "Cruzar la calle sin mirar es peligroso.",
+    "example_translation": "Переходить улицу, не глядя по сторонам, опасно.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "🛡️ 61. Качества и возможности",
+    "word": "posible",
+    "translation": "возможный",
+    "example": "Con práctica todo es posible.",
+    "example_translation": "С практикой всё возможно.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🛡️ 61. Качества и возможности",
+    "word": "imposible",
+    "translation": "невозможный",
+    "example": "Nada es imposible si nos ayudamos entre todos.",
+    "example_translation": "Ничего нет невозможного, если мы помогаем друг другу.",
+    "pos": "adjective",
+    "gender": None
+  },
+  {
+    "group": "🛡️ 61. Качества и возможности",
+    "word": "necesario",
+    "translation": "необходимый",
+    "example": "Es necesario dormir bien para crecer fuerte.",
+    "example_translation": "Необходимо хорошо спать, чтобы расти сильной.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+  {
+    "group": "🛡️ 61. Качества и возможности",
+    "word": "listo",
+    "translation": "готовый / сообразительный",
+    "example": "Mi mochila ya está lista para mañana.",
+    "example_translation": "Мой рюкзак уже готов на завтра.",
+    "pos": "adjective",
+    "gender": "m"
+  },
+
+  # 🍽️ 62. Приёмы пищи и продукты
+  {
+    "group": "🍽️ 62. Приёмы пищи и продукты",
+    "word": "comida",
+    "translation": "еда",
+    "example": "La comida casera de mamá es riquísima.",
+    "example_translation": "Домашняя мамина еда очень вкусная.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "🍽️ 62. Приёмы пищи и продукты",
+    "word": "desayuno",
+    "translation": "завтрак",
+    "example": "Para el desayuno me gusta una tostada con manteca.",
+    "example_translation": "На завтрак мне нравится тост со сливочным маслом.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🍽️ 62. Приёмы пищи и продукты",
+    "word": "almuerzo",
+    "translation": "обед",
+    "example": "En el almuerzo comemos fideos con queso.",
+    "example_translation": "На обед мы едим макароны с сыром.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🍽️ 62. Приёмы пищи и продукты",
+    "word": "cena",
+    "translation": "ужин",
+    "example": "Para la cena preparamos una tarta de verduras.",
+    "example_translation": "На ужин мы готовим пирог с овощами.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "🍽️ 62. Приёмы пищи и продукты",
+    "word": "café",
+    "translation": "кофе",
+    "example": "Papá toma café caliente por la mañana.",
+    "example_translation": "Папа пьёт горячий кофе по утрам.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🍽️ 62. Приёмы пищи и продукты",
+    "word": "carne",
+    "translation": "мясо",
+    "example": "En Argentina el asado de carne es muy popular.",
+    "example_translation": "В Аргентине мясное асадо очень популярно.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "🍽️ 62. Приёмы пищи и продукты",
+    "word": "pollo",
+    "translation": "курица",
+    "example": "Comimos pollo al horno con papas doradas.",
+    "example_translation": "Мы поели запечённую курицу с золотистой картошкой.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🍽️ 62. Приёмы пищи и продукты",
+    "word": "pescado",
+    "translation": "рыба (блюдо)",
+    "example": "El pescado con limón es sano y rico.",
+    "example_translation": "Рыба с лимоном — полезная и вкусная.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🍽️ 62. Приёмы пищи и продукты",
+    "word": "arroz",
+    "translation": "рис",
+    "example": "Mamá preparó un rico arroz con pollo.",
+    "example_translation": "Мама приготовила вкусный рис с курицей.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🍽️ 62. Приёмы пищи и продукты",
+    "word": "pasta",
+    "translation": "макароны / паста",
+    "example": "Los domingos comemos pasta casera en familia.",
+    "example_translation": "По воскресеньям мы едим домашнюю пасту всей семьёй.",
+    "pos": "noun",
+    "gender": "f"
+  },
+
+  # 🥗 63. Бакалея и напитки
+  {
+    "group": "🥗 63. Бакалея и напитки",
+    "word": "huevo",
+    "translation": "яйцо",
+    "example": "Usamos dos huevos para hacer la torta.",
+    "example_translation": "Мы берём два яйца, чтобы испечь торт.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🥗 63. Бакалея и напитки",
+    "word": "verdura",
+    "translation": "овощ / овощи",
+    "example": "La ensalada tiene lechuga, tomate y verdura fresca.",
+    "example_translation": "В салате листья салата, помидор и свежие овощи.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "🥗 63. Бакалея и напитки",
+    "word": "naranja",
+    "translation": "апельсин",
+    "example": "Exprimí una naranja dulce para el desayuno.",
+    "example_translation": "Я выжала сладкий апельсин к завтраку.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "🥗 63. Бакалея и напитки",
+    "word": "azúcar",
+    "translation": "сахар",
+    "example": "Le pongo una cucharadita de azúcar al té.",
+    "example_translation": "Я кладу ложечку сахара в чай.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🥗 63. Бакалея и напитки",
+    "word": "sal",
+    "translation": "соль",
+    "example": "Poné un poquito de sal en la ensalada.",
+    "example_translation": "Положи немного соли в салат.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "🥗 63. Бакалея и напитки",
+    "word": "aceite",
+    "translation": "масло (растительное)",
+    "example": "Condimentamos los tomates con aceite de oliva.",
+    "example_translation": "Мы заправляем помидоры оливковым маслом.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🥗 63. Бакалея и напитки",
+    "word": "cerveza",
+    "translation": "пиво",
+    "example": "Los adultos brindaron con una cerveza fresca.",
+    "example_translation": "Взрослые чокнулись прохладным пивом.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "🥗 63. Бакалея и напитки",
+    "word": "vino",
+    "translation": "вино",
+    "example": "Los grandes tomaron una copa de vino en la cena.",
+    "example_translation": "Взрослые выпили бокал вина за ужином.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🥗 63. Бакалея и напитки",
+    "word": "cuenta",
+    "translation": "счёт",
+    "example": "Papá pidió la cuenta al mozo en el restaurante.",
+    "example_translation": "Папа попросил счёт у официанта в ресторане.",
+    "pos": "noun",
+    "gender": "f"
+  },
+
+  # 🏙️ 64. Городские места
+  {
+    "group": "🏙️ 64. Городские места",
+    "word": "pueblo",
+    "translation": "посёлок / деревня / городок",
+    "example": "En las vacaciones visitamos un pueblo tranquilo.",
+    "example_translation": "На каникулах мы посетили тихий городок.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🏙️ 64. Городские места",
+    "word": "país",
+    "translation": "страна",
+    "example": "Argentina es un país muy hermoso y grande.",
+    "example_translation": "Аргентина — очень красивая и большая страна.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🏙️ 64. Городские места",
+    "word": "lugar",
+    "translation": "место",
+    "example": "La plaza es mi lugar preferido para jugar.",
+    "example_translation": "Парк — моё любимое место для игр.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🏙️ 64. Городские места",
+    "word": "supermercado",
+    "translation": "супермаркет",
+    "example": "Acompaño a mamá a hacer las compras al supermercado.",
+    "example_translation": "Я иду с мамой за покупками в супермаркет.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🏙️ 64. Городские места",
+    "word": "restaurante",
+    "translation": "ресторан",
+    "example": "Fuimos a un restaurante italiano a comer pizza.",
+    "example_translation": "Мы пошли в итальянский ресторан поесть пиццы.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🏙️ 64. Городские места",
+    "word": "hotel",
+    "translation": "отель / гостиница",
+    "example": "Nos quedamos en un hotel lindo cerca del mar.",
+    "example_translation": "Мы остановились в хорошем отеле рядом с морем.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🏙️ 64. Городские места",
+    "word": "hospital",
+    "translation": "больница",
+    "example": "El hospital tiene médicos amables que curan a los niños.",
+    "example_translation": "В больнице добрые врачи, которые лечат детей.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🏙️ 64. Городские места",
+    "word": "escuela",
+    "translation": "школа",
+    "example": "Mi escuela tiene un patio grande con árboles.",
+    "example_translation": "В моей школе большой двор с деревьями.",
+    "pos": "noun",
+    "gender": "f"
+  },
+
+  # 🚗 65. Работа, деньги и транспорт
+  {
+    "group": "🚗 65. Работа, деньги и транспорт",
+    "word": "trabajo",
+    "translation": "работа",
+    "example": "Mamá vuelve contenta de su trabajo.",
+    "example_translation": "Мама возвращается довольная с работы.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🚗 65. Работа, деньги и транспорт",
+    "word": "dinero",
+    "translation": "деньги",
+    "example": "Ahorro mi dinero en una alcancía con forma de chanchito.",
+    "example_translation": "Я коплю свои деньги в копилке-свинке.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🚗 65. Работа, деньги и транспорт",
+    "word": "precio",
+    "translation": "цена",
+    "example": "El libro tiene un precio muy accesible.",
+    "example_translation": "У книги очень доступная цена.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🚗 65. Работа, деньги и транспорт",
+    "word": "coche",
+    "translation": "машина / автомобиль",
+    "example": "El coche viaja por la ruta hacia la costa.",
+    "example_translation": "Машина едет по трассе к побережью.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🚗 65. Работа, деньги и транспорт",
+    "word": "autobús",
+    "translation": "автобус",
+    "example": "El autobús escolar nos pasa a buscar por la mañana.",
+    "example_translation": "Школьный автобус заезжает за нами по утрам.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🚗 65. Работа, деньги и транспорт",
+    "word": "taxi",
+    "translation": "такси",
+    "example": "Tomamos un taxi amarillo y negro para llegar rápido.",
+    "example_translation": "Мы взяли жёлто-чёрное такси, чтобы добраться быстрее.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🚗 65. Работа, деньги и транспорт",
+    "word": "camino",
+    "translation": "дорога / путь",
+    "example": "El camino al parque está lleno de flores.",
+    "example_translation": "Дорога в парк полна цветов.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "🚗 65. Работа, деньги и транспорт",
+    "word": "tiempo",
+    "translation": "время / погода",
+    "example": "Hoy hace un tiempo hermoso y soleado.",
+    "example_translation": "Сегодня прекрасная и солнечная погода.",
+    "pos": "noun",
+    "gender": "m"
+  },
+
+  # 🧭 66. Направления и ориентиры
+  {
+    "group": "🧭 66. Направления и ориентиры",
+    "word": "izquierda",
+    "translation": "лево / слева",
+    "example": "Doblá a la izquierda en la esquina de la plaza.",
+    "example_translation": "Поверни налево на углу парка.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "🧭 66. Направления и ориентиры",
+    "word": "derecha",
+    "translation": "право / справа",
+    "example": "La biblioteca queda a la derecha de la entrada.",
+    "example_translation": "Библиотека находится справа от входа.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "🧭 66. Направления и ориентиры",
+    "word": "entrada",
+    "translation": "вход",
+    "example": "Nos encontramos en la entrada de la escuela.",
+    "example_translation": "Мы встретимся у входа в школу.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "🧭 66. Направления и ориентиры",
+    "word": "salida",
+    "translation": "выход",
+    "example": "La salida del cine está bien iluminada.",
+    "example_translation": "Выход из кинотеатра хорошо освещён.",
+    "pos": "noun",
+    "gender": "f"
+  },
+
+  # 📅 67. Время и природа
+  {
+    "group": "📅 67. Время и природа",
+    "word": "mes",
+    "translation": "месяц",
+    "example": "El mes de octubre tiene días muy primaverales.",
+    "example_translation": "В октябре очень весенние дни.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "📅 67. Время и природа",
+    "word": "año",
+    "translation": "год",
+    "example": "Este año aprendí muchas cosas en la escuela.",
+    "example_translation": "В этом году я узнала много нового в школе.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "📅 67. Время и природа",
+    "word": "minuto",
+    "translation": "минута",
+    "example": "Falta solo un minuto para que toque el timbre.",
+    "example_translation": "Осталась всего одна минута до звонка.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "📅 67. Время и природа",
+    "word": "montaña",
+    "translation": "гора",
+    "example": "En las vacaciones vimos montañas muy altas con nieve.",
+    "example_translation": "На каникулах мы видели высокие горы со снегом.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "📅 67. Время и природа",
+    "word": "río",
+    "translation": "река",
+    "example": "El agua del río es fresca y cristalina.",
+    "example_translation": "Вода в реке прохладная и прозрачная.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "📅 67. Время и природа",
+    "word": "tierra",
+    "translation": "земля",
+    "example": "Plantamos flores de colores en la tierra del jardín.",
+    "example_translation": "Мы посадили цветные цветы в землю в саду.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "📅 67. Время и природа",
+    "word": "vida",
+    "translation": "жизнь",
+    "example": "La vida en familia es hermosa y alegre.",
+    "example_translation": "Семейная жизнь прекрасна и радостна.",
+    "pos": "noun",
+    "gender": "f"
+  },
+
+  # 💪 68. Тело и здоровье
+  {
+    "group": "💪 68. Тело и здоровье",
+    "word": "cuerpo",
+    "translation": "тело",
+    "example": "Bailar es bueno para cuidar el cuerpo y divertirse.",
+    "example_translation": "Танцевать полезно для тела и весело.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "💪 68. Тело и здоровье",
+    "word": "cara",
+    "translation": "лицо",
+    "example": "Me lavo la cara con agua fresca por la mañana.",
+    "example_translation": "Я умываю лицо прохладной водой по утрам.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "💪 68. Тело и здоровье",
+    "word": "brazo",
+    "translation": "рука (от плеча)",
+    "example": "Levanto el brazo para saludar a mi amiga.",
+    "example_translation": "Я поднимаю руку, чтобы помахать подруге.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "💪 68. Тело и здоровье",
+    "word": "pierna",
+    "translation": "нога (вся)",
+    "example": "Tengo piernas fuertes para correr y saltar.",
+    "example_translation": "У меня сильные ноги, чтобы бегать и прыгать.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "💪 68. Тело и здоровье",
+    "word": "pelo",
+    "translation": "волосы",
+    "example": "Mamá me peina el pelo largo con un cepillo suave.",
+    "example_translation": "Мама расчёсывает мои длинные волосы мягкой щёткой.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "💪 68. Тело и здоровье",
+    "word": "salud",
+    "translation": "здоровье",
+    "example": "Comer frutas y verduras es muy bueno para la salud.",
+    "example_translation": "Есть фрукты и овощи очень полезно для здоровья.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "💪 68. Тело и здоровье",
+    "word": "dolor",
+    "translation": "боль",
+    "example": "Ya no siento dolor en la rodilla.",
+    "example_translation": "Я больше не чувствую боли в коленке.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "💪 68. Тело и здоровье",
+    "word": "médico",
+    "translation": "врач / доктор",
+    "example": "El médico me revisó y me dijo que estoy muy sana.",
+    "example_translation": "Врач осмотрел меня и сказал, что я абсолютно здорова.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "💪 68. Тело и здоровье",
+    "word": "enfermedad",
+    "translation": "болезнь",
+    "example": "Dormir bien nos protege de cualquier enfermedad.",
+    "example_translation": "Хороший сон защищает нас от любых болезней.",
+    "pos": "noun",
+    "gender": "f"
+  },
+
+  # 👋 69. Вежливость и этикет
+  {
+    "group": "👋 69. Вежливость и этикет",
+    "word": "adiós",
+    "translation": "до свидания / прощай",
+    "example": "¡Adiós, nos vemos el lunes en la escuela!",
+    "example_translation": "До свидания, увидимся в понедельник в школе!",
+    "pos": "interjection",
+    "gender": None
+  },
+  {
+    "group": "👋 69. Вежливость и этикет",
+    "word": "disculpa",
+    "translation": "извини / извините",
+    "example": "Disculpa, no te escuché bien.",
+    "example_translation": "Извини, я тебя плохо услышала.",
+    "pos": "interjection",
+    "gender": None
+  },
+  {
+    "group": "👋 69. Вежливость и этикет",
+    "word": "permiso",
+    "translation": "разрешите / с вашего позволения",
+    "example": "Permiso, ¿puedo pasar a buscar mi mochila?",
+    "example_translation": "Разрешите, я могу пройти взять свой рюкзак?",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "👋 69. Вежливость и этикет",
+    "word": "bienvenido",
+    "translation": "добро пожаловать",
+    "example": "¡Bienvenido a nuestra escuela y a nuestro grupo!",
+    "example_translation": "Добро пожаловать в нашу школу и в нашу группу!",
+    "pos": "interjection",
+    "gender": None
+  },
+  {
+    "group": "👋 69. Вежливость и этикет",
+    "word": "ayuda",
+    "translation": "помощь",
+    "example": "Muchas gracias por tu ayuda con la tarea.",
+    "example_translation": "Большое спасибо за твою помощь с уроками.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "👋 69. Вежливость и этикет",
+    "word": "problema",
+    "translation": "проблема",
+    "example": "No hay ningún problema, lo resolvemos juntas.",
+    "example_translation": "Никаких проблем, мы решим это вместе.",
+    "pos": "noun",
+    "gender": "m"
+  },
+
+  # 💡 70. Слова, факты и мысли
+  {
+    "group": "💡 70. Слова, факты и мысли",
+    "word": "verdad",
+    "translation": "правда",
+    "example": "Siempre digo la verdad a mis amigos.",
+    "example_translation": "Я всегда говорю правду своим друзьям.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "💡 70. Слова, факты и мысли",
+    "word": "mentira",
+    "translation": "ложь / неправда",
+    "example": "Decir mentiras no está bien.",
+    "example_translation": "Говорить неправду — это нехорошо.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "💡 70. Слова, факты и мысли",
+    "word": "nombre",
+    "translation": "имя",
+    "example": "Mi nombre es Maya y tengo diez años.",
+    "example_translation": "Моё имя Майя, и мне десять лет.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "💡 70. Слова, факты и мысли",
+    "word": "número",
+    "translation": "число / номер",
+    "example": "El siete es mi número de la suerte.",
+    "example_translation": "Семь — моё счастливое число.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "💡 70. Слова, факты и мысли",
+    "word": "teléfono",
+    "translation": "телефон",
+    "example": "Hablo por teléfono con mi abuela los sábados.",
+    "example_translation": "По субботам я разговариваю по телефону с бабушкой.",
+    "pos": "noun",
+    "gender": "m"
+  },
+  {
+    "group": "💡 70. Слова, факты и мысли",
+    "word": "cosa",
+    "translation": "вещь",
+    "example": "Guardo cada cosa en su lugar en mi cuarto.",
+    "example_translation": "Я храню каждую вещь на своём месте в комнате.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "💡 70. Слова, факты и мысли",
+    "word": "manera",
+    "translation": "способ / образ",
+    "example": "Hay una manera fácil y divertida de resolverlo.",
+    "example_translation": "Есть лёгкий и весёлый способ решить это.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "💡 70. Слова, факты и мысли",
+    "word": "razón",
+    "translation": "причина / правота",
+    "example": "La seño tiene razón, hay que escuchar con atención.",
+    "example_translation": "Учительница права: нужно слушать внимательно.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "💡 70. Слова, факты и мысли",
+    "word": "oportunidad",
+    "translation": "возможность / шанс",
+    "example": "Aprender español es una gran oportunidad para mí.",
+    "example_translation": "Учить испанский — это отличная возможность для меня.",
+    "pos": "noun",
+    "gender": "f"
+  },
+  {
+    "group": "💡 70. Слова, факты и мысли",
+    "word": "suerte",
+    "translation": "удача / везенье",
+    "example": "¡Mucha suerte en tu examen de música!",
+    "example_translation": "Удачи на твоём экзамене по музыке!",
+    "pos": "noun",
+    "gender": "f"
+  }
+]
+
+with open("/srv/LinguaLearn/spanish/server/scripts/maya_256_new_words.json", "w", encoding="utf-8") as f:
+    json.dump(WORDS_DATA, f, ensure_ascii=False, indent=2)
+
+print(f"Successfully generated maya_256_new_words.json with {len(WORDS_DATA)} words!")

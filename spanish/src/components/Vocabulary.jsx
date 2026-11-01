@@ -680,7 +680,7 @@ function Vocabulary() {
   const [wordSearchQuery, setWordSearchQuery] = useState('');
   const [groupFilterSearchQuery, setGroupFilterSearchQuery] = useState('');
   const [isGroupFilterOpen, setIsGroupFilterOpen] = useState(false);
-  const [sortBy, setSortBy] = useState('newest');
+  const [sortBy, setSortBy] = useState('program_order');
   const [selectedStudyGroupIds, setSelectedStudyGroupIds] = useState([]);
   const [isGroupsStudyExpanded, setIsGroupsStudyExpanded] = useState(false);
   const [showGroupManager, setShowGroupManager] = useState(false);
@@ -706,14 +706,17 @@ function Vocabulary() {
     return [];
   }, []);
 
+  const extractGroupNum = (name) => {
+    const m = String(name || '').match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : 999999;
+  };
+
   const sortedGroups = useMemo(() => {
     return [...groups].sort((a, b) => {
-      const timeA = a.last_practiced_at ? new Date(a.last_practiced_at).getTime() : 0;
-      const timeB = b.last_practiced_at ? new Date(b.last_practiced_at).getTime() : 0;
-      if (timeA !== timeB) {
-        return timeB - timeA;
-      }
-      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+      const numA = extractGroupNum(a.name);
+      const numB = extractGroupNum(b.name);
+      if (numA !== numB) return numA - numB;
+      return (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' });
     });
   }, [groups]);
 
@@ -1469,6 +1472,24 @@ function Vocabulary() {
     }
 
     result = [...result].sort((a, b) => {
+      if (sortBy === 'program_order') {
+        const getMinGroup = (entry) => {
+          const gNames = (entry.groups || []).map((g) => g.name);
+          let minNum = 999999;
+          for (const n of gNames) {
+            const m = String(n || '').match(/(\d+)/);
+            if (m) {
+              const num = parseInt(m[1], 10);
+              if (num < minNum) minNum = num;
+            }
+          }
+          return minNum;
+        };
+        const gA = getMinGroup(a);
+        const gB = getMinGroup(b);
+        if (gA !== gB) return gA - gB;
+        return Number(a.id) - Number(b.id);
+      }
       if (sortBy === 'newest') return Number(b.id) - Number(a.id);
       if (sortBy === 'word_asc') return a.word.localeCompare(b.word, 'es');
       if (sortBy === 'translation_asc') return (a.translation || '').localeCompare(b.translation || '', 'ru');
@@ -2640,10 +2661,10 @@ function Vocabulary() {
           </div>
 
           <div className="space-y-2 max-h-60 overflow-y-auto">
-            {groups.length === 0 ? (
+            {sortedGroups.length === 0 ? (
               <p className="text-sm text-slate-500 italic py-2">No groups created yet. Create one above!</p>
             ) : (
-              groups.map((group) => (
+              sortedGroups.map((group) => (
                 <div key={group.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
                   {editingGroupId === group.id ? (
                     <div className="flex-1 flex gap-2 mr-2">
@@ -3320,6 +3341,7 @@ function Vocabulary() {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="bg-transparent text-xs font-bold text-indigo-950 focus:outline-none cursor-pointer"
                 >
+                  <option value="program_order">📚 По порядку (Группы 1–70)</option>
                   <option value="newest">✨ Сначала новые</option>
                   <option value="word_asc">🔤 Испанский (A–Z)</option>
                   <option value="translation_asc">🇷🇺 Перевод (А–Я)</option>

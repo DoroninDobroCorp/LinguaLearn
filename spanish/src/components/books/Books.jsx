@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   BookOpen,
   ArrowRight,
+  ChevronRight,
   Check,
   Mic,
   Square,
@@ -55,16 +56,77 @@ function ProgressBar({ percent }) {
 }
 export function BooksHomeCard() {
   return (
-    <Card className="p-5 mt-4">
-      <Link to="/books" className="flex items-center justify-between gap-3">
-        <span>
-          <span className="font-extrabold c-text text-lg">Мои книги</span>
-          <span className="block c-muted text-sm mt-1">
-            Nivel 2 и грамматика A1–B2 · занятия, прогресс и повторение
+    <Card className="p-4 sm:p-5 mt-4 border border-purple-200 dark:border-purple-800/60 bg-gradient-to-br from-white via-purple-50/40 to-pink-50/30 dark:from-slate-900 dark:via-purple-950/20 dark:to-slate-900 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-extrabold c-text text-base sm:text-lg">Курсы по книгам & CEFR</span>
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-fuchsia-100 dark:bg-fuchsia-950 text-fuchsia-700 dark:text-fuchsia-300 border border-fuchsia-200 dark:border-fuchsia-800">
+              НОВОЕ
+            </span>
+          </div>
+          <span className="block c-muted text-xs sm:text-sm mt-0.5">
+            Пошаговые занятия с теорией, примерами и проверкой
           </span>
-        </span>
-        <BookOpen className="w-7 h-7 c-accent shrink-0" />
-      </Link>
+        </div>
+        <BookOpen className="w-6 h-6 c-accent shrink-0 mt-0.5" />
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3.5">
+        <Link
+          to="/curriculum?tab=book_gramatica"
+          className="flex flex-col p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-purple-100 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all shadow-xs group"
+        >
+          <span className="text-xs font-black text-purple-900 dark:text-purple-200 group-hover:text-fuchsia-600 flex items-center justify-between">
+            📘 Грамматика
+            <ChevronRight className="w-3.5 h-3.5 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+          </span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+            126 занятий A1–B2
+          </span>
+        </Link>
+
+        <Link
+          to="/curriculum?tab=book_nivel2"
+          className="flex flex-col p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-purple-100 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all shadow-xs group"
+        >
+          <span className="text-xs font-black text-purple-900 dark:text-purple-200 group-hover:text-fuchsia-600 flex items-center justify-between">
+            📗 Nivel 2
+            <ChevronRight className="w-3.5 h-3.5 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+          </span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+            24 занятия (UBA)
+          </span>
+        </Link>
+
+        <Link
+          to="/curriculum?tab=checkpoints"
+          className="col-span-2 sm:col-span-1 flex flex-col p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-purple-100 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all shadow-xs group"
+        >
+          <span className="text-xs font-black text-purple-900 dark:text-purple-200 group-hover:text-fuchsia-600 flex items-center justify-between">
+            🎯 Срезы CEFR A1
+            <ChevronRight className="w-3.5 h-3.5 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+          </span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+            10 проверочных срезов
+          </span>
+        </Link>
+      </div>
+
+      <div className="mt-3 pt-2.5 border-t border-purple-100/70 dark:border-slate-800 flex items-center justify-between text-xs flex-wrap gap-2">
+        <Link
+          to="/curriculum?tab=book_courses"
+          className="font-bold text-fuchsia-600 dark:text-fuchsia-400 hover:underline inline-flex items-center gap-1"
+        >
+          📚 Оглавление курсов <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+        <Link
+          to="/books"
+          className="font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 inline-flex items-center gap-1"
+        >
+          Оригиналы книг <ChevronRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
       <BookReminder />
     </Card>
   );
@@ -98,6 +160,68 @@ export function BooksHome() {
         темой.
       </p>
       <BookReminder text={data.reminder} />
+      {/* Новые пошаговые курсы */}
+      <Card className="p-4 sm:p-5 mt-4 border-2 border-fuchsia-300 dark:border-fuchsia-700 bg-gradient-to-br from-fuchsia-50/50 via-white to-purple-50/40 dark:from-slate-900 dark:via-purple-950/20 dark:to-slate-900 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold c-text text-base sm:text-lg">✨ Новые пошаговые курсы по книгам</span>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-fuchsia-100 dark:bg-fuchsia-950 text-fuchsia-700 dark:text-fuchsia-300 border border-fuchsia-200 dark:border-fuchsia-800">
+                НОВОЕ
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm c-muted mt-1 leading-relaxed">
+              Занятия идут строго по порядку книги: объяснение, примеры, страница оригинала и интерактивная проверка.
+            </p>
+          </div>
+          <BookOpen className="w-6 h-6 c-accent shrink-0 mt-1" />
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3 mt-4">
+          <Link
+            to="/curriculum?tab=book_gramatica"
+            className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-800 border border-purple-100 dark:border-slate-700 hover:border-purple-400 hover:shadow-md transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-extrabold text-sm sm:text-base text-purple-900 dark:text-purple-200 group-hover:text-fuchsia-600">
+                📘 Курс грамматики
+              </span>
+              <ArrowRight className="w-4 h-4 text-fuchsia-500 group-hover:translate-x-1 transition-transform" />
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Gramática de uso del español · 126 разделов A1–B2
+            </p>
+          </Link>
+
+          <Link
+            to="/curriculum?tab=book_nivel2"
+            className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-800 border border-purple-100 dark:border-slate-700 hover:border-purple-400 hover:shadow-md transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-extrabold text-sm sm:text-base text-purple-900 dark:text-purple-200 group-hover:text-fuchsia-600">
+                📗 Курс Nivel 2
+              </span>
+              <ArrowRight className="w-4 h-4 text-fuchsia-500 group-hover:translate-x-1 transition-transform" />
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Español para extranjeros · 24 занятия UBA
+            </p>
+          </Link>
+        </div>
+        <div className="mt-3 pt-2.5 border-t border-purple-100 dark:border-slate-800 flex items-center justify-between text-xs flex-wrap gap-2">
+          <Link
+            to="/curriculum?tab=book_courses"
+            className="font-bold text-fuchsia-600 dark:text-fuchsia-400 hover:underline inline-flex items-center gap-1"
+          >
+            📚 Открыть оба курса по книгам <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+          <Link
+            to="/curriculum?tab=checkpoints"
+            className="font-semibold text-slate-600 dark:text-slate-400 hover:text-fuchsia-600 inline-flex items-center gap-1"
+          >
+            🎯 Проверочные срезы CEFR <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </Card>
       <Card className="p-5 mt-4">
         <div className="text-sm c-muted">
           {next.progress.due ? "Пора повторить" : "Предложение на сегодня"}

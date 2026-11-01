@@ -108,6 +108,7 @@ import { buildProfileNameKey } from './unicodeKeys.js';
 import { ensureBookSchema } from './books/bookStore.js';
 import { initPreparations } from './books/bookService.js';
 import { createBookRoutes } from './books/bookRoutes.js';
+import { listBookCourses, getBookCourseLesson, checkBookCourseAnswer } from './books/bookCourse.js';
 import { ensureCoachSchema } from './coach/coachStore.js';
 import { createCoachRoutes } from './coach/coachRoutes.js';
 import { attachCoachLive } from './coach/coachLive.js';
@@ -1751,6 +1752,30 @@ app.use('/api/exercises', createExerciseRoutes({ db, getProfileId }));
 app.use('/api/coach', createCoachRoutes({ db }));
 app.use('/api/books', createBookRoutes({ db }));
 
+app.get('/api/book-courses', (_req, res) => {
+  res.json({ courses: listBookCourses() });
+});
+
+app.get('/api/book-courses/:courseId/lessons/:lessonId', (req, res) => {
+  const found = getBookCourseLesson(req.params.courseId, req.params.lessonId);
+  if (!found) return res.status(404).json({ error: 'Занятие курса не найдено.' });
+  res.json(found);
+});
+
+app.post('/api/book-courses/:courseId/lessons/:lessonId/check', (req, res) => {
+  try {
+    const result = checkBookCourseAnswer(
+      req.params.courseId,
+      req.params.lessonId,
+      req.body?.exerciseId,
+      req.body?.answer,
+    );
+    res.json(result);
+  } catch (error) {
+    res.status(error.status || 500).json({ error: error.message });
+  }
+});
+
 
 // API: Ручная установка прогресса темы (0%, 100% и Заморозка)
 app.post('/api/topics/:id/set-score', (req, res) => {
@@ -2724,7 +2749,36 @@ app.get('/api/a1/topics/:id/exercises', (req, res) => {
 
 app.get('/api/a1/checkpoints', (req, res) => {
   try {
-    res.json({ checkpoints: getAllA1Checkpoints() });
+    const profileId = getProfileId(req);
+    const rawCheckpoints = getAllA1Checkpoints();
+    const checkpoints = rawCheckpoints.map((chk) => {
+      let status = null;
+      if (profileId) {
+        try {
+          const row = db.prepare(`
+            SELECT count(*) as total, sum(correct) as correct_count, max(occurred_at) as last_submitted
+            FROM a1_learning_attempts
+            WHERE profile_id = ? AND activity_type = ?
+          `).get(profileId, `checkpoint_${chk.unitId}`);
+          if (row && row.total > 0) {
+            const score = Math.round((Number(row.correct_count || 0) / Math.max(1, Number(row.total || 1))) * 100);
+            status = {
+              completed: true,
+              passed: score >= 70,
+              score,
+              total: row.total,
+              correct: row.correct_count,
+              lastSubmittedAt: row.last_submitted,
+            };
+          }
+        } catch (_) {}
+      }
+      return {
+        ...chk,
+        status,
+      };
+    });
+    res.json({ checkpoints });
   } catch (error) {
     console.error('Error fetching checkpoints:', error);
     res.status(500).json({ error: error.message });
@@ -2735,7 +2789,29 @@ app.get('/api/a1/checkpoints/:unitId', (req, res) => {
   try {
     const checkpoint = getA1CheckpointByUnit(req.params.unitId);
     if (!checkpoint) return res.status(404).json({ error: 'Checkpoint not found' });
-    res.json({ checkpoint });
+    const profileId = getProfileId(req);
+    let status = null;
+    if (profileId) {
+      try {
+        const row = db.prepare(`
+          SELECT count(*) as total, sum(correct) as correct_count, max(occurred_at) as last_submitted
+          FROM a1_learning_attempts
+          WHERE profile_id = ? AND activity_type = ?
+        `).get(profileId, `checkpoint_${checkpoint.unitId}`);
+        if (row && row.total > 0) {
+          const score = Math.round((Number(row.correct_count || 0) / Math.max(1, Number(row.total || 1))) * 100);
+          status = {
+            completed: true,
+            passed: score >= 70,
+            score,
+            total: row.total,
+            correct: row.correct_count,
+            lastSubmittedAt: row.last_submitted,
+          };
+        }
+      } catch (_) {}
+    }
+    res.json({ checkpoint: { ...checkpoint, status } });
   } catch (error) {
     console.error('Error fetching checkpoint:', error);
     res.status(500).json({ error: error.message });

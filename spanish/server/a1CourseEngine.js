@@ -558,6 +558,27 @@ export function recordA1SkillEvidence(db, profileId, input, now = new Date()) {
   return { replayed: result.changes === 0, skills: skillCoverage(db, profileId) };
 }
 
+const CHECKPOINT_TEXT_TYPES = new Set(['gap', 'input', 'transformation']);
+
+export function checkpointTaskNeedsText(task) {
+  return CHECKPOINT_TEXT_TYPES.has(task?.type) && !Array.isArray(task?.options);
+}
+
+function normalizeCheckpointText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[¿?¡!.,;:«»"'“”]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function checkpointTextMatches(task, raw) {
+  const given = normalizeCheckpointText(raw);
+  if (!given) return false;
+  const accepted = [task.correctAnswer, ...(task.acceptableAnswers || [])];
+  return accepted.some((value) => normalizeCheckpointText(value) === given);
+}
+
 export function recordA1CheckpointSubmission(db, profileId, unitId, input, now = new Date()) {
   ensureA1CourseSchema(db);
   const checkpoint = getA1CheckpointByUnit(unitId);
@@ -565,8 +586,9 @@ export function recordA1CheckpointSubmission(db, profileId, unitId, input, now =
     throw Object.assign(new Error(`Checkpoint '${unitId}' not found`), { status: 404, code: 'CHECKPOINT_NOT_FOUND' });
   }
 
+  const checkpointTasks = checkpoint.tasks || (checkpoint.sections ? checkpoint.sections.flatMap(s => s.tasks || (s.task ? [s.task] : [])) : []);
   const answers = Array.isArray(input?.answers) ? input.answers : [];
-  const objectiveTasks = checkpoint.tasks.filter((task) => Array.isArray(task.options) && task.topicId);
+  const objectiveTasks = checkpointTasks.filter((task) => task.topicId && (Array.isArray(task.options) || checkpointTaskNeedsText(task)));
   const answerByTask = new Map(answers.map((answer) => [String(answer.taskId || answer.id), answer]));
   if (objectiveTasks.some((task) => !answerByTask.has(String(task.id)))) {
     throw Object.assign(new Error('Ответьте на все проверяемые задания контрольной точки.'), { status: 400, code: 'INCOMPLETE_CHECKPOINT' });
@@ -577,7 +599,9 @@ export function recordA1CheckpointSubmission(db, profileId, unitId, input, now =
     let correctCount = 0;
     for (const task of objectiveTasks) {
       const answer = answerByTask.get(String(task.id));
-      const correct = String(answer.selected) === String(task.correctAnswer);
+      const correct = checkpointTaskNeedsText(task)
+        ? checkpointTextMatches(task, answer.text ?? answer.selected)
+        : String(answer.selected) === String(task.correctAnswer);
       if (correct) correctCount += 1;
       const attemptRes = recordA1Attempt(db, profileId, {
         topicId: Number(task.topicId),
@@ -590,6 +614,34 @@ export function recordA1CheckpointSubmission(db, profileId, unitId, input, now =
       }, now);
       attemptResults.push(attemptRes);
     }
+
+    const writingTask = checkpointTasks.find((task) => task.type === 'productive_writing');
+    if (writingTask && answerByTask.has(String(writingTask.id))) {
+      const writingAnswer = answerByTask.get(String(writingTask.id));
+      const writingText = String(writingAnswer.text || '').trim();
+      if (writingText) {
+        recordA1Attempt(db, profileId, {
+          topicId: Number(writingTask.topicId || 27),
+          eventId: String(writingAnswer.eventId || `chk-${unitId}-${writingTask.id}-${Date.now()}`),
+          correct: true,
+          quality: 4,
+          activityType: `checkpoint_${unitId}`,
+          hintsUsed: 0,
+          responseMs: 0,
+        }, now);
+        try {
+          recordA1SkillEvidence(db, profileId, {
+            skill: 'writing',
+            taskId: String(writingTask.id),
+            topicId: Number(writingTask.topicId || 27),
+            eventId: `chk-skill-${unitId}-${writingTask.id}-${Date.now()}`,
+            score: 85,
+            notes: `Контрольная точка: ${checkpoint.title}`,
+          }, now);
+        } catch (_) {}
+      }
+    }
+
     const objectiveScore = Math.round((correctCount / Math.max(1, objectiveTasks.length)) * 100);
 
     const courseSnapshot = getA1CourseSnapshot(db, profileId, now);
@@ -600,7 +652,7 @@ export function recordA1CheckpointSubmission(db, profileId, unitId, input, now =
       objectiveScore,
       passed: objectiveScore >= 70,
       skillEvidence: null,
-      productiveEvaluationRequired: checkpoint.tasks.some((task) => task.type === 'productive_writing'),
+      productiveEvaluationRequired: checkpointTasks.some((task) => task.type === 'productive_writing'),
       course: courseSnapshot,
     };
   })();

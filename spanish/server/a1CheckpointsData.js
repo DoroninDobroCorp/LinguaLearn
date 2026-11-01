@@ -2095,7 +2095,7 @@ export const A1_CHECKPOINTS = Object.freeze(
     "unitOrder": 10,
     "title": "Финальный выпускной экзамен A1 (Evaluación Global de Nivel A1)",
     "description": "Комплексный экзамен на 45–60 минут по 4 речевым навыкам (Listening, Reading, Writing, Speaking) и 30 темам курса A1. Не отменяет системные требования (30 освоенных тем, 650 зрелых слов).",
-    "tasksCount": 20,
+    "tasksCount": 8,
     "sections": [
       {
         "skill": "listening",
@@ -2247,6 +2247,162 @@ export const A1_CHECKPOINTS = Object.freeze(
               }
             ]
           }
+        }
+      }
+    ],
+    "tasks": [
+      {
+        "id": "final-listen-01",
+        "topicId": 27,
+        "type": "choice",
+        "skill": "listening",
+        "audioUrl": "/a1/media/audio/a1-u09-audio-01.mp3",
+        "question": "¿Adónde viaja Diego el fin de semana según la grabación?",
+        "options": [
+          "A Granada",
+          "A Sevilla",
+          "A Valencia",
+          "A Barcelona"
+        ],
+        "correctAnswer": "A Granada",
+        "explanation": "En el audio: «el sábado viajo a Granada»."
+      },
+      {
+        "id": "final-listen-02",
+        "topicId": 27,
+        "type": "choice",
+        "skill": "listening",
+        "audioUrl": "/a1/media/audio/a1-u07-audio-01.mp3",
+        "question": "¿Qué bebida pide la clienta en el café?",
+        "options": [
+          "Té con limón y agua mineral sin gas",
+          "Café con leche caliente",
+          "Vino tinto",
+          "Zumo de naranja"
+        ],
+        "correctAnswer": "Té con limón y agua mineral sin gas",
+        "explanation": "En el audio: «un té con limón y un vaso de agua mineral sin gas»."
+      },
+      {
+        "id": "final-listen-03",
+        "topicId": 27,
+        "type": "choice",
+        "skill": "listening",
+        "audioUrl": "/a1/media/audio/a1-u05-audio-01.mp3",
+        "question": "¿A qué hora sale Laura de casa por la mañana?",
+        "options": [
+          "A las ocho en punto",
+          "A las siete y media",
+          "A las nueve",
+          "A las diez"
+        ],
+        "correctAnswer": "A las ocho en punto",
+        "explanation": "En el audio: «salgo de casa a las ocho en punto»."
+      },
+      {
+        "id": "final-read-01",
+        "topicId": 27,
+        "type": "choice",
+        "skill": "reading",
+        "context": "Mateo es un joven argentino de veintidós años que estudia arquitectura en Madrid. Vive en un piso luminoso en el centro con su amigo Carlos. En su piso hay dos dormitorios, un salón acogedor con un sofá gris y una cocina moderna. De lunes a viernes, Mateo se levanta a las siete en punto de la mañana, desayuna café con leche y tostadas, y va a la universidad en metro. Los fines de semana le gusta cocinar paella, pasear por los parques de la ciudad y hablar con su familia por videollamada. El próximo mes de agosto va a viajar por Andalucía para visitar Sevilla y Granada.",
+        "question": "¿De dónde es Mateo y cuántos años tiene?",
+        "options": [
+          "Es de Argentina y tiene veintidós años",
+          "Es de Madrid y tiene veinte años",
+          "Es de México y tiene dieciocho años",
+          "Es de Sevilla y tiene treinta años"
+        ],
+        "correctAnswer": "Es de Argentina y tiene veintidós años",
+        "explanation": "В тексте: «argentino de veintidós años»."
+      },
+      {
+        "id": "final-read-02",
+        "topicId": 27,
+        "type": "choice",
+        "skill": "reading",
+        "context": "Mateo es un joven argentino de veintidós años que estudia arquitectura en Madrid. Vive en un piso luminoso en el centro con su amigo Carlos. En su piso hay dos dormitorios, un salón acogedor con un sofá gris y una cocina moderna. De lunes a viernes, Mateo se levanta a las siete en punto de la mañana, desayuna café con leche y tostadas, y va a la universidad en metro. Los fines de semana le gusta cocinar paella, pasear por los parques de la ciudad y hablar con su familia por videollamada. El próximo mes de agosto va a viajar por Andalucía para visitar Sevilla y Granada.",
+        "question": "¿Cómo viaja Mateo a la universidad de lunes a viernes?",
+        "options": [
+          "En metro",
+          "En coche",
+          "En bicicleta",
+          "En autobús"
+        ],
+        "correctAnswer": "En metro",
+        "explanation": "В тексте: «va a la universidad en metro»."
+      },
+      {
+        "id": "final-read-03",
+        "topicId": 27,
+        "type": "choice",
+        "skill": "reading",
+        "context": "Mateo es un joven argentino de veintidós años que estudia arquitectura en Madrid. Vive en un piso luminoso en el centro con su amigo Carlos. En su piso hay dos dormitorios, un salón acogedor con un sofá gris y una cocina moderna. De lunes a viernes, Mateo se levanta a las siete en punto de la mañana, desayuna café con leche y tostadas, y va a la universidad en metro. Los fines de semana le gusta cocinar paella, pasear por los parques de la ciudad y hablar con su familia por videollamada. El próximo mes de agosto va a viajar por Andalucía para visitar Sevilla y Granada.",
+        "question": "¿Qué planes tiene Mateo para el mes de agosto?",
+        "options": [
+          "Va a viajar por Andalucía para visitar Sevilla y Granada",
+          "Va a regresar a Argentina",
+          "Va a trabajar en un hospital",
+          "Va a comprar un coche nuevo"
+        ],
+        "correctAnswer": "Va a viajar por Andalucía para visitar Sevilla y Granada",
+        "explanation": "В тексте: «El próximo mes de agosto va a viajar por Andalucía...»."
+      },
+      {
+        "id": "final-write-01",
+        "topicId": 27,
+        "type": "productive_writing",
+        "skill": "writing",
+        "prompt": "Escribe un correo electrónico a un amigo español presentándote, describiendo tu rutina diaria, tus gustos y tus planes para el próximo verano (mínimo 50 palabras).",
+        "minWords": 50,
+        "rubric": {
+          "total": 100,
+          "criteria": [
+            {
+              "name": "Cumplimiento de la tarea (presentación, rutina, gustos, planes)",
+              "max": 30
+            },
+            {
+              "name": "Corrección gramatical (Presente, SER/ESTAR/TENER, IR A + inf., GUSTAR)",
+              "max": 30
+            },
+            {
+              "name": "Riqueza de vocabulario A1 (650 lemas)",
+              "max": 25
+            },
+            {
+              "name": "Coherencia y puntuación",
+              "max": 15
+            }
+          ]
+        }
+      },
+      {
+        "id": "final-speak-01",
+        "topicId": 27,
+        "type": "productive_speaking",
+        "skill": "speaking",
+        "prompt": "Graba un mensaje de voz de 45 a 60 segundos presentándote, describiendo a tu familia y tu casa, y contando qué vas a hacer este fin de semana.",
+        "durationRange": "45-60s",
+        "rubric": {
+          "total": 100,
+          "criteria": [
+            {
+              "name": "Comprensibilidad y fluidez general",
+              "max": 40
+            },
+            {
+              "name": "Gramática objetivo A1 (SER/ESTAR, TENER, IR A)",
+              "max": 30
+            },
+            {
+              "name": "Vocabulario específico",
+              "max": 20
+            },
+            {
+              "name": "Pronunciación y acento",
+              "max": 10
+            }
+          ]
         }
       }
     ]

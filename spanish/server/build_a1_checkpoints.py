@@ -740,6 +740,56 @@ checkpoints = {
     }
 }
 
+# Populate flattened tasks array for final graduation checkpoint while preserving sections
+final_tasks = []
+for t in checkpoints["a1-final-graduation"]["sections"][0]["tasks"]:
+    final_tasks.append({
+        "id": t["id"],
+        "topicId": 27,
+        "type": "choice",
+        "skill": "listening",
+        "audioUrl": t.get("audioUrl"),
+        "question": t["question"],
+        "options": t["options"],
+        "correctAnswer": t["correctAnswer"],
+        "explanation": t.get("explanation", "")
+    })
+reading_text = checkpoints["a1-final-graduation"]["sections"][1]["text"]
+for t in checkpoints["a1-final-graduation"]["sections"][1]["tasks"]:
+    final_tasks.append({
+        "id": t["id"],
+        "topicId": 27,
+        "type": "choice",
+        "skill": "reading",
+        "context": reading_text,
+        "question": t["question"],
+        "options": t["options"],
+        "correctAnswer": t["correctAnswer"],
+        "explanation": t.get("explanation", "")
+    })
+w = checkpoints["a1-final-graduation"]["sections"][2]["task"]
+final_tasks.append({
+    "id": w["id"],
+    "topicId": 27,
+    "type": "productive_writing",
+    "skill": "writing",
+    "prompt": w["prompt"],
+    "minWords": w.get("minWords", 50),
+    "rubric": w.get("rubric")
+})
+s = checkpoints["a1-final-graduation"]["sections"][3]["task"]
+final_tasks.append({
+    "id": s["id"],
+    "topicId": 27,
+    "type": "productive_speaking",
+    "skill": "speaking",
+    "prompt": s["prompt"],
+    "durationRange": s.get("durationRange", "45-60s"),
+    "rubric": s.get("rubric")
+})
+checkpoints["a1-final-graduation"]["tasks"] = final_tasks
+checkpoints["a1-final-graduation"]["tasksCount"] = len(final_tasks)
+
 # Save JSON
 with open('/srv/LinguaLearn/spanish/server/a1CheckpointsData.json', 'w', encoding='utf-8') as f:
     json.dump(checkpoints, f, ensure_ascii=False, indent=2)

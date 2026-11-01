@@ -12,6 +12,7 @@ import {
 } from '../utils/topicCatalog';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useProfile } from '../contexts/ProfileContext';
 import TopicTheoryModal from './TopicTheoryModal';
 import ExamModal from './ExamModal';
 import A1UnitsView from './A1UnitsView';
@@ -19,6 +20,7 @@ import A1AdventureMap from './A1AdventureMap';
 import A1CheckpointsView from './A1CheckpointsView';
 import A1SkillsView from './A1SkillsView';
 import A1VocabularyDomainsView from './A1VocabularyDomainsView';
+import { BookCourseOutline, BookCoursesHome } from './books/BookCourses';
 
 const LEVEL_CONFIG = {
   'A1': { label: 'Principiante / Начальный', emoji: '📗', gradient: 'from-green-400 to-green-500' },
@@ -64,13 +66,16 @@ function StatusIcon({ stage, score, isLocked }) {
 export default function CurriculumMap() {
   const { isDark } = useTheme();
   const { t } = useLanguage();
+  const { activeProfile } = useProfile();
+  const conversationTrack = activeProfile?.learning_track === 'conversation';
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const topicParam = searchParams.get('topic');
 
-  const VALID_TABS = ['a1_units', 'a1_map', 'checkpoints', 'skills', 'vocab_domains', 'all_topics'];
+  const VALID_TABS = ['a1_units', 'a1_map', 'checkpoints', 'skills', 'vocab_domains', 'all_topics', 'book_courses', 'book_gramatica', 'book_nivel2'];
+  const defaultTab = conversationTrack ? 'book_courses' : 'a1_units';
   const [activeTab, setActiveTab] = useState(
-    tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'a1_units'
+    tabParam && VALID_TABS.includes(tabParam) ? tabParam : defaultTab
   );
 
   const [topics, setTopics] = useState([]);
@@ -163,10 +168,53 @@ export default function CurriculumMap() {
         </div>
 
         {/* Tab switchers */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-white/90 dark:bg-gray-800/90 p-1.5 rounded-2xl border border-purple-200 dark:border-gray-700 shadow-md">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1.5 px-1 bg-white/90 dark:bg-gray-800/90 rounded-2xl border border-purple-200 dark:border-gray-700 shadow-md flex-nowrap sm:flex-wrap">
+          <button
+            onClick={() => handleTabChange('book_courses')}
+            className={`px-3 py-2 rounded-xl font-black text-xs sm:text-sm transition-all whitespace-nowrap shrink-0 ${
+              activeTab === 'book_courses'
+                ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            📚 Два курса
+          </button>
+          <button
+            onClick={() => handleTabChange('book_gramatica')}
+            className={`px-3 py-2 rounded-xl font-black text-xs sm:text-sm transition-all whitespace-nowrap shrink-0 ${
+              activeTab === 'book_gramatica'
+                ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            📘 Курс грамматики
+          </button>
+          <button
+            onClick={() => handleTabChange('book_nivel2')}
+            className={`px-3 py-2 rounded-xl font-black text-xs sm:text-sm transition-all whitespace-nowrap shrink-0 ${
+              activeTab === 'book_nivel2'
+                ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            📗 Курс Nivel 2
+          </button>
+
+          <button
+            onClick={() => handleTabChange('checkpoints')}
+            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+              activeTab === 'checkpoints'
+                ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
+                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            <Trophy className="w-4 h-4" />
+            <span>🎯 10 Срезов</span>
+          </button>
+
           <button
             onClick={() => handleTabChange('a1_units')}
-            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeTab === 'a1_units'
                 ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
                 : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
@@ -178,7 +226,7 @@ export default function CurriculumMap() {
 
           <button
             onClick={() => handleTabChange('a1_map')}
-            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeTab === 'a1_map'
                 ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
                 : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
@@ -189,20 +237,8 @@ export default function CurriculumMap() {
           </button>
 
           <button
-            onClick={() => handleTabChange('checkpoints')}
-            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
-              activeTab === 'checkpoints'
-                ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
-                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            <Trophy className="w-4 h-4" />
-            <span>🎯 10 Срезов</span>
-          </button>
-
-          <button
             onClick={() => handleTabChange('skills')}
-            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeTab === 'skills'
                 ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
                 : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
@@ -214,7 +250,7 @@ export default function CurriculumMap() {
 
           <button
             onClick={() => handleTabChange('vocab_domains')}
-            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeTab === 'vocab_domains'
                 ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
                 : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
@@ -226,7 +262,7 @@ export default function CurriculumMap() {
 
           <button
             onClick={() => handleTabChange('all_topics')}
-            className={`px-3 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-2 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               activeTab === 'all_topics'
                 ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md'
                 : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-700'
@@ -235,6 +271,44 @@ export default function CurriculumMap() {
             <span>📋 Каталог тем (158)</span>
           </button>
         </div>
+      </div>
+
+      {/* Quick category banner for mobile & desktop */}
+      <div className="flex flex-wrap items-center gap-2 p-3 rounded-2xl bg-gradient-to-r from-purple-100/70 via-fuchsia-50 to-pink-100/60 dark:from-purple-950/40 dark:via-slate-900/40 dark:to-fuchsia-950/40 border border-purple-200/80 dark:border-purple-800/60 text-xs">
+        <span className="font-bold text-slate-700 dark:text-slate-300">Быстрый переход:</span>
+        <button
+          type="button"
+          onClick={() => handleTabChange('book_courses')}
+          className={`px-3 py-1.5 rounded-xl font-extrabold transition-all ${
+            ['book_courses', 'book_gramatica', 'book_nivel2'].includes(activeTab)
+              ? 'bg-fuchsia-600 text-white shadow-xs'
+              : 'bg-white/80 dark:bg-slate-800 text-purple-900 dark:text-purple-200 hover:bg-purple-50'
+          }`}
+        >
+          📚 2 курса по книгам
+        </button>
+        <button
+          type="button"
+          onClick={() => handleTabChange('checkpoints')}
+          className={`px-3 py-1.5 rounded-xl font-extrabold transition-all ${
+            activeTab === 'checkpoints'
+              ? 'bg-fuchsia-600 text-white shadow-xs'
+              : 'bg-white/80 dark:bg-slate-800 text-purple-900 dark:text-purple-200 hover:bg-purple-50'
+          }`}
+        >
+          🎯 10 проверочных срезов A1
+        </button>
+        <button
+          type="button"
+          onClick={() => handleTabChange('a1_units')}
+          className={`px-3 py-1.5 rounded-xl font-extrabold transition-all ${
+            ['a1_units', 'a1_map', 'skills', 'vocab_domains'].includes(activeTab)
+              ? 'bg-fuchsia-600 text-white shadow-xs'
+              : 'bg-white/80 dark:bg-slate-800 text-purple-900 dark:text-purple-200 hover:bg-purple-50'
+          }`}
+        >
+          🎓 Программа CEFR A1
+        </button>
       </div>
 
       {/* VIEW 1: 9 THEMATIC A1 UNITS (DEFAULT & PRIMARY) */}
@@ -269,6 +343,10 @@ export default function CurriculumMap() {
       )}
 
       {/* VIEW 6: FULL 158-TOPIC CATALOG (A1 to C2) */}
+      {activeTab === 'book_courses' && <BookCoursesHome />}
+      {activeTab === 'book_gramatica' && <BookCourseOutline courseId="gramatica" />}
+      {activeTab === 'book_nivel2' && <BookCourseOutline courseId="nivel2" />}
+
       {activeTab === 'all_topics' && (
         <div className="space-y-6 animate-fadeIn">
           {/* Filters & Overall Summary */}

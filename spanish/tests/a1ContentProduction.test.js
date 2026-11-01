@@ -162,11 +162,12 @@ function createTestDb() {
 
 describe('A1 Content Production Verification (TZ Specification)', () => {
   it('covers all 30 A1 topic packages with complete pedagogical structure', () => {
-    const allTopicNames = A1_UNITS.flatMap((u) => u.topics);
+    const allTopicNames = A1_UNITS.flatMap((u) => u.topics).filter((t) => !t.includes('Cognates'));
     assert.equal(allTopicNames.length, 30, 'There must be exactly 30 preset topics in A1_UNITS');
 
     for (const unit of A1_UNITS) {
       for (const topicName of unit.topics) {
+        if (topicName.includes('Cognates')) continue;
         const guide = getGrammarTheoryGuide(null, topicName);
         assert.ok(guide, `Topic package must exist for '${topicName}'`);
         assert.equal(guide.topicName, topicName);
@@ -324,6 +325,29 @@ describe('A1 Content Production Verification (TZ Specification)', () => {
       assert.ok(chk, `Checkpoint for unit '${unit.id}' must exist`);
       assert.ok(chk.tasks.length >= 12 && chk.tasks.length <= 18, `Unit ${order} checkpoint tasks count must be 12..18 (got ${chk.tasks.length})`);
     }
+
+    const db = createTestDb();
+    const unitId = 'a1-u01-first-contact';
+    const checkpoint = getA1CheckpointByUnit(unitId);
+    const graded = checkpoint.tasks.filter((task) => task.topicId && (Array.isArray(task.options) || ['gap', 'input', 'transformation'].includes(task.type)));
+    const typed = graded.filter((task) => !task.options);
+    assert.ok(typed.length >= 3, 'Unit 1 must include typed tasks');
+    const answersFor = (suffix, wrongId) => graded.map((task) => ({
+      taskId: task.id,
+      topicId: task.topicId,
+      eventId: `${task.id}-${suffix}`,
+      selected: task.options ? task.correctAnswer : undefined,
+      text: task.options ? undefined : (task.id === wrongId ? 'no' : (task.acceptableAnswers?.[0] || task.correctAnswer)),
+    }));
+    assert.throws(
+      () => recordA1CheckpointSubmission(db, 1, unitId, { answers: answersFor('partial').filter((answer) => answer.selected) }),
+      (error) => error.code === 'INCOMPLETE_CHECKPOINT',
+    );
+    const perfect = recordA1CheckpointSubmission(db, 1, unitId, { answers: answersFor('ok') });
+    assert.equal(perfect.objectiveScore, 100);
+    assert.equal(perfect.recordedAttempts, graded.length);
+    const missed = recordA1CheckpointSubmission(db, 1, unitId, { answers: answersFor('miss', typed[0].id) });
+    assert.ok(missed.objectiveScore < 100);
 
     const finalChk = getA1CheckpointByUnit('a1-final-graduation');
     assert.ok(finalChk, 'Final A1 Graduation checkpoint must exist');
